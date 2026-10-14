@@ -90,6 +90,27 @@ public sealed partial class MainViewModel : ObservableObject
             return [];
         });
 
+        // Wire target resolution for UtilitiesTab speed controls
+        UtilitiesTab.SetSpeedTargetResolver(() =>
+        {
+            if (UtilitiesTab.IsApplySpeedToAll)
+            {
+                var running = AccountsPanel.Accounts.Where(a => a.IsRunning).Select(a => a.Id).ToList();
+                if (running.Count > 0) return running;
+            }
+
+            var targets = AccountsPanel.GetTargetAccounts();
+            var runningSelected = targets.Where(a => a.IsRunning).Select(a => a.Id).ToList();
+            if (runningSelected.Count > 0) return runningSelected;
+
+            if (AccountsPanel.SelectedAccount != null && AccountsPanel.SelectedAccount.IsRunning)
+            {
+                return [AccountsPanel.SelectedAccount.Id];
+            }
+
+            return [];
+        });
+
         // Wire selection coordination between accounts panel and edit form / utilities tab
         AccountsPanel.OnAccountSelectionChanged += selected =>
         {

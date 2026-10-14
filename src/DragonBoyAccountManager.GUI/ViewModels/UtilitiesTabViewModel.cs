@@ -78,6 +78,19 @@ public sealed partial class UtilitiesTabViewModel : ObservableObject
     [ObservableProperty]
     private string _syncTargetDisplay = "1 tài khoản";
 
+    // Game Speed properties
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(GameSpeedText))]
+    private float _gameSpeed = 1.0f;
+
+    [ObservableProperty]
+    private bool _isApplySpeedToAll = true;
+
+    public string GameSpeedText => $"{GameSpeed:0.0}x";
+
+    private bool _isInternalSpeedUpdate;
+    private Func<List<Guid>>? _speedTargetResolver;
+
     // Auto Chat properties
     [ObservableProperty]
     private string _chatText = "Chào mọi người!";
@@ -152,6 +165,11 @@ public sealed partial class UtilitiesTabViewModel : ObservableObject
         _targetResolver = resolver;
     }
 
+    public void SetSpeedTargetResolver(Func<List<Guid>> resolver)
+    {
+        _speedTargetResolver = resolver;
+    }
+
     public void RequestZoneList()
     {
         if (ActiveAccount != null && ActiveAccount.IsRunning && ActiveAccount.Status == GameSessionStatus.Active)
@@ -189,6 +207,19 @@ public sealed partial class UtilitiesTabViewModel : ObservableObject
             if (account.IsRunning && account.Status == GameSessionStatus.Active)
             {
                 _gameEngine.RequestZoneList(account.Id);
+                float curSpeed = _gameEngine.GetGameSpeed(account.Id);
+                if (curSpeed > 0 && Math.Abs(GameSpeed - curSpeed) > 0.05f)
+                {
+                    _isInternalSpeedUpdate = true;
+                    try
+                    {
+                        GameSpeed = curSpeed;
+                    }
+                    finally
+                    {
+                        _isInternalSpeedUpdate = false;
+                    }
+                }
             }
             RefreshMapData();
         }
@@ -580,6 +611,40 @@ public sealed partial class UtilitiesTabViewModel : ObservableObject
         {
             StatusText = $"Dùng TDLT: {successCount}/{targets.Count} acc thành công";
         }
+    }
+
+    partial void OnGameSpeedChanged(float value)
+    {
+        if (_isInternalSpeedUpdate) return;
+        var targets = ResolveSpeedTargets();
+        if (targets.Count == 0) return;
+
+        foreach (var id in targets)
+        {
+            _gameEngine.SetGameSpeed(id, value);
+        }
+
+        StatusText = $"Đã đặt tốc độ {value:0.0}x ({targets.Count} acc)";
+    }
+
+    [RelayCommand]
+    private void SetGameSpeed(string speedStr)
+    {
+        if (float.TryParse(speedStr, System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture, out float speed))
+        {
+            GameSpeed = speed;
+        }
+    }
+
+    private List<Guid> ResolveSpeedTargets()
+    {
+        if (IsApplySpeedToAll && _speedTargetResolver != null)
+        {
+            var all = _speedTargetResolver();
+            if (all.Count > 0) return all;
+        }
+
+        return GetTargetAccountIds();
     }
 
     #region Auto Chat Logic
