@@ -434,6 +434,21 @@ public sealed partial class UtilitiesTabViewModel : ObservableObject
     }
 
     [RelayCommand]
+    public void NextZone()
+    {
+        int next = (CurrentZoneId < 0 ? 0 : CurrentZoneId) + 1;
+        ExecuteChangeZone(next);
+    }
+
+    [RelayCommand]
+    public void PreviousZone()
+    {
+        int prev = (CurrentZoneId < 0 ? 0 : CurrentZoneId) - 1;
+        if (prev < 0) prev = 0;
+        ExecuteChangeZone(prev);
+    }
+
+    [RelayCommand]
     public void ChangeZone(object? parameter)
     {
         int targetZone = -1;

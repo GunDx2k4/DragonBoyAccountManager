@@ -237,20 +237,32 @@
                                 Height="26"
                                 Margin="0,0,4,0"
                                 Command="{Binding PreviousZoneCommand}"
-                                Content="&lt;"
-                                FontSize="11"
-                                FontWeight="ExtraBold"
                                 Style="{StaticResource GameSecondaryButton}"
-                                ToolTip="Chuyển sang khu trước (Phím [)" />
+                                ToolTip="Chuyển sang khu trước (Phím [)">
+                                <TextBlock
+                                    HorizontalAlignment="Center"
+                                    VerticalAlignment="Center"
+                                    FontFamily="Segoe UI Black, Arial Black, Segoe UI"
+                                    FontSize="12"
+                                    FontWeight="ExtraBold"
+                                    Foreground="{DynamicResource GameBtnTanTextBrush}"
+                                    Text="&lt;" />
+                            </Button>
                             <Button
                                 Width="26"
                                 Height="26"
                                 Command="{Binding NextZoneCommand}"
-                                Content="&gt;"
-                                FontSize="11"
-                                FontWeight="ExtraBold"
                                 Style="{StaticResource GameSecondaryButton}"
-                                ToolTip="Chuyển sang khu kế tiếp (Phím ])" />
+                                ToolTip="Chuyển sang khu kế tiếp (Phím ])">
+                                <TextBlock
+                                    HorizontalAlignment="Center"
+                                    VerticalAlignment="Center"
+                                    FontFamily="Segoe UI Black, Arial Black, Segoe UI"
+                                    FontSize="12"
+                                    FontWeight="ExtraBold"
+                                    Foreground="{DynamicResource GameBtnTanTextBrush}"
+                                    Text="&gt;" />
+                            </Button>
                         </StackPanel>
                     </Grid>
 
@@ -399,24 +411,60 @@
 
                         <StackPanel VerticalAlignment="Center">
                             <Button
-                                Height="24"
+                                Height="26"
                                 Margin="0,0,0,5"
                                 Padding="8,1"
                                 Command="{Binding UseCapsuleCommand}"
-                                Content="Capsule [C]"
-                                FontSize="9.5"
-                                FontWeight="Bold"
                                 Style="{StaticResource GameSecondaryButton}"
-                                ToolTip="Sử dụng Capsule bay về nhà / các map (Phím C)" />
+                                ToolTip="Sử dụng Capsule bay về nhà / các map (Phím C)">
+                                <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center" Orientation="Horizontal">
+                                    <TextBlock
+                                        VerticalAlignment="Center"
+                                        FontSize="10"
+                                        FontWeight="ExtraBold"
+                                        Foreground="{DynamicResource GameBtnTanTextBrush}"
+                                        Text="Capsule" />
+                                    <Border
+                                        Margin="4,0,0,0"
+                                        Padding="3,0.5"
+                                        VerticalAlignment="Center"
+                                        Background="#350C03"
+                                        CornerRadius="2.5">
+                                        <TextBlock
+                                            FontSize="8.5"
+                                            FontWeight="ExtraBold"
+                                            Foreground="#F7C934"
+                                            Text="[C]" />
+                                    </Border>
+                                </StackPanel>
+                            </Button>
                             <Button
-                                Height="24"
+                                Height="26"
                                 Padding="8,1"
                                 Command="{Binding UseTdltCommand}"
-                                Content="TDLT [X]"
-                                FontSize="9.5"
-                                FontWeight="Bold"
                                 Style="{StaticResource GameSecondaryButton}"
-                                ToolTip="Sử dụng Tự Động Luyện Tập (Phím X)" />
+                                ToolTip="Sử dụng Tự Động Luyện Tập (Phím X)">
+                                <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center" Orientation="Horizontal">
+                                    <TextBlock
+                                        VerticalAlignment="Center"
+                                        FontSize="10"
+                                        FontWeight="ExtraBold"
+                                        Foreground="{DynamicResource GameBtnTanTextBrush}"
+                                        Text="TDLT" />
+                                    <Border
+                                        Margin="4,0,0,0"
+                                        Padding="3,0.5"
+                                        VerticalAlignment="Center"
+                                        Background="#350C03"
+                                        CornerRadius="2.5">
+                                        <TextBlock
+                                            FontSize="8.5"
+                                            FontWeight="ExtraBold"
+                                            Foreground="#F7C934"
+                                            Text="[X]" />
+                                    </Border>
+                                </StackPanel>
+                            </Button>
                         </StackPanel>
                     </StackPanel>
 
@@ -471,7 +519,8 @@
                                             MaxWidth="46"
                                             VerticalAlignment="Center"
                                             FontSize="9"
-                                            FontWeight="Bold"
+                                            FontWeight="ExtraBold"
+                                            Foreground="{DynamicResource GameBtnTanTextBrush}"
                                             Text="{Binding Name}"
                                             TextTrimming="CharacterEllipsis" />
                                         <Border
@@ -482,7 +531,7 @@
                                             CornerRadius="2.5">
                                             <TextBlock
                                                 FontSize="8"
-                                                FontWeight="Bold"
+                                                FontWeight="ExtraBold"
                                                 Foreground="#F7C934"
                                                 Text="{Binding ShortcutBadge}" />
                                         </Border>

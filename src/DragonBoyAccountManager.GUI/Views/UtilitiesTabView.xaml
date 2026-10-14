@@ -87,11 +87,12 @@
                         TextTrimming="CharacterEllipsis" />
                 </Grid>
 
-                <!-- Dòng Dropdown Chọn & Đổi Khu (Không cần nút chuyển, tự đồng bộ theo openzonemap) -->
+                <!-- Dòng Dropdown Chọn & Đổi Khu và nút bấm chuyển khu nhanh -->
                 <Grid>
                     <Grid.ColumnDefinitions>
                         <ColumnDefinition Width="Auto" />
                         <ColumnDefinition Width="*" />
+                        <ColumnDefinition Width="Auto" />
                     </Grid.ColumnDefinitions>
 
                     <TextBlock
@@ -160,6 +161,43 @@
                             </DataTemplate>
                         </ComboBox.ItemTemplate>
                     </ComboBox>
+
+                    <StackPanel
+                        Grid.Column="2"
+                        Margin="6,0,0,0"
+                        Orientation="Horizontal">
+                        <Button
+                            Width="28"
+                            Height="28"
+                            Margin="0,0,4,0"
+                            Command="{Binding PreviousZoneCommand}"
+                            Style="{StaticResource GameSecondaryButton}"
+                            ToolTip="Chuyển sang khu trước (Phím [)">
+                            <TextBlock
+                                HorizontalAlignment="Center"
+                                VerticalAlignment="Center"
+                                FontFamily="Segoe UI Black, Arial Black, Segoe UI"
+                                FontSize="12"
+                                FontWeight="ExtraBold"
+                                Foreground="{DynamicResource GameBtnTanTextBrush}"
+                                Text="&lt;" />
+                        </Button>
+                        <Button
+                            Width="28"
+                            Height="28"
+                            Command="{Binding NextZoneCommand}"
+                            Style="{StaticResource GameSecondaryButton}"
+                            ToolTip="Chuyển sang khu kế tiếp (Phím ])">
+                            <TextBlock
+                                HorizontalAlignment="Center"
+                                VerticalAlignment="Center"
+                                FontFamily="Segoe UI Black, Arial Black, Segoe UI"
+                                FontSize="12"
+                                FontWeight="ExtraBold"
+                                Foreground="{DynamicResource GameBtnTanTextBrush}"
+                                Text="&gt;" />
+                        </Button>
+                    </StackPanel>
                 </Grid>
             </StackPanel>
         </Border>
@@ -292,9 +330,9 @@
                 Style="{StaticResource GameSecondaryButton}"
                 ToolTip="Sử dụng Capsule bay về nhà / các map (Phím tắt: C) - Tìm ID 194/193 trong túi">
                 <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center" Orientation="Horizontal">
-                    <TextBlock VerticalAlignment="Center" FontSize="11" FontWeight="ExtraBold" Text="Capsule" />
+                    <TextBlock VerticalAlignment="Center" FontSize="11" FontWeight="ExtraBold" Foreground="{DynamicResource GameBtnTanTextBrush}" Text="Capsule" />
                     <Border Margin="5,0,0,0" Padding="4,1" VerticalAlignment="Center" Background="#350C03" CornerRadius="3">
-                        <TextBlock FontSize="9" FontWeight="Bold" Foreground="#F7C934" Text="[C]" />
+                        <TextBlock FontSize="9" FontWeight="ExtraBold" Foreground="#F7C934" Text="[C]" />
                     </Border>
                 </StackPanel>
             </Button>
@@ -306,9 +344,9 @@
                 Style="{StaticResource GameSecondaryButton}"
                 ToolTip="Bật/Tắt Tự Động Luyện Tập (Phím tắt: X) - Tìm ID 521 trong túi">
                 <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center" Orientation="Horizontal">
-                    <TextBlock VerticalAlignment="Center" FontSize="11" FontWeight="ExtraBold" Text="TDLT" />
+                    <TextBlock VerticalAlignment="Center" FontSize="11" FontWeight="ExtraBold" Foreground="{DynamicResource GameBtnTanTextBrush}" Text="TDLT" />
                     <Border Margin="5,0,0,0" Padding="4,1" VerticalAlignment="Center" Background="#350C03" CornerRadius="3">
-                        <TextBlock FontSize="9" FontWeight="Bold" Foreground="#F7C934" Text="[X]" />
+                        <TextBlock FontSize="9" FontWeight="ExtraBold" Foreground="#F7C934" Text="[X]" />
                     </Border>
                 </StackPanel>
             </Button>
