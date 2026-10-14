@@ -1,4 +1,5 @@
 using System.Diagnostics;
+using DragonBoyAccountManager.Core.Game.Objects;
 using DragonBoyAccountManager.Core.Mono;
 
 namespace DragonBoyAccountManager.Core.Game;
@@ -18,6 +19,7 @@ public sealed class GameInstance : IDisposable
     public GameTime Time { get; }
     public GameResolution Resolution { get; }
     public GameMap Map { get; }
+    public GameChat Chat { get; }
 
     public int ProcessId => Process.Id;
     public bool IsRunning => !Process.HasExited;
@@ -44,6 +46,7 @@ public sealed class GameInstance : IDisposable
         Time = new GameTime(Reflector);
         Resolution = new GameResolution(Reflector);
         Map = new GameMap(Reflector);
+        Chat = new GameChat(Reflector);
     }
 
     public bool AutoKillOnDispose { get; set; } = true;
@@ -78,6 +81,18 @@ public sealed class GameInstance : IDisposable
         catch
         {
             return 1.0f;
+        }
+    }
+
+    public bool SendChat(string text, ChatType type = ChatType.Map)
+    {
+        try
+        {
+            return Chat.SendChat(text, type);
+        }
+        catch
+        {
+            return false;
         }
     }
 

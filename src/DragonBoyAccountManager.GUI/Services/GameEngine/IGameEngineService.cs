@@ -1,3 +1,4 @@
+using DragonBoyAccountManager.Core.Game.Objects;
 using DragonBoyAccountManager.GUI.Models;
 
 namespace DragonBoyAccountManager.GUI.Services.GameEngine;
@@ -29,7 +30,9 @@ public interface IGameEngineService
     void RequestZoneList(Guid accountId);
     bool MoveToWaypoint(Guid accountId, int targetX, int targetY);
     bool FocusOrClickObject(Guid accountId, string entityType, int entityId);
-    DragonBoyAccountManager.Core.Game.Objects.MapSnapshot? GetMapSnapshot(Guid accountId);
+    MapSnapshot? GetMapSnapshot(Guid accountId);
+
+    bool SendChat(Guid accountId, string text, ChatType type = ChatType.Map);
 
     event Action<Guid, GameSessionStatus, CharacterSnapshot?>? OnSessionUpdated;
     event Action<Guid, string>? OnSessionMessageUpdated;

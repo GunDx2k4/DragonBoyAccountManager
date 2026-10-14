@@ -3,6 +3,7 @@ using System.Diagnostics;
 using System.IO;
 
 using DragonBoyAccountManager.Core.Game;
+using DragonBoyAccountManager.Core.Game.Objects;
 using DragonBoyAccountManager.GUI.Helpers;
 using DragonBoyAccountManager.GUI.Models;
 using DragonBoyAccountManager.GUI.Services.Settings;
@@ -549,6 +550,15 @@ public sealed class CoreGameEngineAdapter(ISettingsService? settingsService = nu
             return session.Instance.Map.GetMapSnapshot();
         }
         return null;
+    }
+
+    public bool SendChat(Guid accountId, string text, ChatType type = ChatType.Map)
+    {
+        if (_sessions.TryGetValue(accountId, out var session) && session.Instance.IsRunning && session.Instance.MyChar.IsInGame)
+        {
+            return session.Instance.SendChat(text, type);
+        }
+        return false;
     }
 
     public void Dispose()
