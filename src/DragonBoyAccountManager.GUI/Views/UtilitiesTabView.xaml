@@ -292,7 +292,6 @@
                 Style="{StaticResource GameSecondaryButton}"
                 ToolTip="Sử dụng Capsule bay về nhà / các map (Phím tắt: C) - Tìm ID 194/193 trong túi">
                 <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center" Orientation="Horizontal">
-                    <TextBlock Margin="0,0,5,0" VerticalAlignment="Center" FontSize="13" Text="💊" />
                     <TextBlock VerticalAlignment="Center" FontSize="11" FontWeight="ExtraBold" Text="Capsule" />
                     <Border Margin="5,0,0,0" Padding="4,1" VerticalAlignment="Center" Background="#350C03" CornerRadius="3">
                         <TextBlock FontSize="9" FontWeight="Bold" Foreground="#F7C934" Text="[C]" />
@@ -307,7 +306,6 @@
                 Style="{StaticResource GameSecondaryButton}"
                 ToolTip="Bật/Tắt Tự Động Luyện Tập (Phím tắt: X) - Tìm ID 521 trong túi">
                 <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center" Orientation="Horizontal">
-                    <TextBlock Margin="0,0,5,0" VerticalAlignment="Center" FontSize="13" Text="⚡" />
                     <TextBlock VerticalAlignment="Center" FontSize="11" FontWeight="ExtraBold" Text="TDLT" />
                     <Border Margin="5,0,0,0" Padding="4,1" VerticalAlignment="Center" Background="#350C03" CornerRadius="3">
                         <TextBlock FontSize="9" FontWeight="Bold" Foreground="#F7C934" Text="[X]" />

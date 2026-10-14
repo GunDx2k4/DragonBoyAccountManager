@@ -277,8 +277,8 @@
                                 Margin="0,0,0,5"
                                 Padding="8,1"
                                 Command="{Binding UseCapsuleCommand}"
-                                Content="💊 Capsule [C]"
-                                FontSize="10"
+                                Content="Capsule [C]"
+                                FontSize="9.5"
                                 FontWeight="Bold"
                                 Style="{StaticResource GameSecondaryButton}"
                                 ToolTip="Sử dụng Capsule bay về nhà / các map (Phím C)" />
@@ -286,8 +286,8 @@
                                 Height="24"
                                 Padding="8,1"
                                 Command="{Binding UseTdltCommand}"
-                                Content="⚡ TDLT [X]"
-                                FontSize="10"
+                                Content="TDLT [X]"
+                                FontSize="9.5"
                                 FontWeight="Bold"
                                 Style="{StaticResource GameSecondaryButton}"
                                 ToolTip="Sử dụng Tự Động Luyện Tập (Phím X)" />
