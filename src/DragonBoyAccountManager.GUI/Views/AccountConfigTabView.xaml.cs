@@ -54,4 +54,9 @@ public partial class AccountConfigTabView : UserControl
             ViewModel.StopHoldingKey(key);
         }
     }
+
+    private void ZoneComboBox_DropDownOpened(object? sender, EventArgs e)
+    {
+        ViewModel?.RequestZoneList();
+    }
 }

@@ -21,6 +21,7 @@ public sealed class GameInstance : IDisposable
     public GameMap Map { get; }
     public GameChat Chat { get; }
     public GameInventory Inventory { get; }
+    public GameSkills Skills { get; }
 
     public int ProcessId => Process.Id;
     public bool IsRunning => !Process.HasExited;
@@ -49,6 +50,7 @@ public sealed class GameInstance : IDisposable
         Map = new GameMap(Reflector);
         Chat = new GameChat(Reflector);
         Inventory = new GameInventory(Reflector);
+        Skills = new GameSkills(Reflector);
     }
 
     public bool AutoKillOnDispose { get; set; } = true;
@@ -119,6 +121,30 @@ public sealed class GameInstance : IDisposable
         catch (Exception ex)
         {
             return (false, $"Lỗi sử dụng TDLT: {ex.Message}");
+        }
+    }
+
+    public (bool Success, string Message) UseSkill(int slotIndex)
+    {
+        try
+        {
+            return Skills.UseSkill(slotIndex);
+        }
+        catch (Exception ex)
+        {
+            return (false, $"Lỗi sử dụng skill: {ex.Message}");
+        }
+    }
+
+    public List<GameSkillInfo> GetSkills()
+    {
+        try
+        {
+            return Skills.GetSkills();
+        }
+        catch
+        {
+            return [];
         }
     }
 

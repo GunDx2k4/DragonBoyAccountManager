@@ -579,6 +579,24 @@ public sealed class CoreGameEngineAdapter(ISettingsService? settingsService = nu
         return (false, "Tài khoản chưa vào game");
     }
 
+    public (bool Success, string Message) UseSkill(Guid accountId, int slotIndex)
+    {
+        if (_sessions.TryGetValue(accountId, out var session) && session.Instance.IsRunning && session.Instance.MyChar.IsInGame)
+        {
+            return session.Instance.UseSkill(slotIndex);
+        }
+        return (false, "Tài khoản chưa vào game");
+    }
+
+    public IReadOnlyList<GameSkillInfo> GetSkills(Guid accountId)
+    {
+        if (_sessions.TryGetValue(accountId, out var session) && session.Instance.IsRunning && session.Instance.MyChar.IsInGame)
+        {
+            return session.Instance.GetSkills();
+        }
+        return [];
+    }
+
     public void Dispose()
     {
         StopAll();

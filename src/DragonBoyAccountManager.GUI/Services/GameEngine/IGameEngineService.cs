@@ -36,6 +36,8 @@ public interface IGameEngineService
 
     (bool Success, string Message) UseCapsule(Guid accountId);
     (bool Success, string Message) UseTdlt(Guid accountId);
+    (bool Success, string Message) UseSkill(Guid accountId, int slotIndex);
+    IReadOnlyList<GameSkillInfo> GetSkills(Guid accountId);
 
     event Action<Guid, GameSessionStatus, CharacterSnapshot?>? OnSessionUpdated;
     event Action<Guid, string>? OnSessionMessageUpdated;

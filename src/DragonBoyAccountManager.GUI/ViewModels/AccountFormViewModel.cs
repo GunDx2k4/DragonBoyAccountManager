@@ -5,6 +5,7 @@ using System.Globalization;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 
+using DragonBoyAccountManager.Core.Game.Objects;
 using DragonBoyAccountManager.GUI.Models;
 using DragonBoyAccountManager.GUI.Services.Dialog;
 using DragonBoyAccountManager.GUI.Services.GameEngine;
@@ -57,6 +58,32 @@ public sealed partial class AccountFormViewModel : ObservableObject
     public string GameSpeedText => $"{GameSpeed:0.0}x";
 
     public ObservableCollection<string> AvailableServers { get; } = [];
+    public ObservableCollection<MapZoneInfo> AvailableZones { get; } = [];
+    public ObservableCollection<SkillButtonItem> Skills { get; } = [];
+
+    private MapZoneInfo? _selectedZone;
+    public MapZoneInfo? SelectedZone
+    {
+        get => _selectedZone;
+        set
+        {
+            if (SetProperty(ref _selectedZone, value))
+            {
+                if (value != null && !_isRefreshingZones)
+                {
+                    ExecuteChangeZone(value.ZoneId);
+                }
+            }
+        }
+    }
+
+    [ObservableProperty]
+    private int? _currentZoneId;
+
+    [ObservableProperty]
+    private string _zonePlayerDisplay = "0/15";
+
+    private bool _isRefreshingZones;
 
     private AccountItemViewModel? _editingAccount;
     private Func<IEnumerable<Guid>>? _targetResolver;
@@ -78,6 +105,11 @@ public sealed partial class AccountFormViewModel : ObservableObject
         foreach (var server in ServerOption.DefaultServers)
         {
             AvailableServers.Add(server.ServerName);
+        }
+
+        for (int i = 0; i < 5; i++)
+        {
+            Skills.Add(new SkillButtonItem(i, $"Skill {i + 1}"));
         }
     }
 
@@ -107,7 +139,15 @@ public sealed partial class AccountFormViewModel : ObservableObject
             SelectedServer = item.Server;
             GameSpeed = item.GameSpeed;
             AutoLogin = item.Model.AutoLogin;
+            CurrentZoneId = item.ZoneId;
+            ZonePlayerDisplay = $"{item.CurrentPlayers ?? 0}/{item.MaxPlayers ?? 15}";
             IsEditing = true;
+
+            if (item.IsRunning)
+            {
+                RequestZoneList();
+                RefreshSkills();
+            }
         }
         else
         {
@@ -121,6 +161,32 @@ public sealed partial class AccountFormViewModel : ObservableObject
         if (e.PropertyName == nameof(AccountItemViewModel.IsRunning))
         {
             OnPropertyChanged(nameof(CanDelete));
+            if (_editingAccount != null && _editingAccount.IsRunning)
+            {
+                RequestZoneList();
+                RefreshSkills();
+            }
+        }
+        else if (e.PropertyName == nameof(AccountItemViewModel.ZoneId))
+        {
+            CurrentZoneId = _editingAccount?.ZoneId;
+            if (_editingAccount != null)
+            {
+                ZonePlayerDisplay = $"{_editingAccount.CurrentPlayers ?? 0}/{_editingAccount.MaxPlayers ?? 15}";
+                if (SelectedZone?.ZoneId != _editingAccount.ZoneId)
+                {
+                    _selectedZone = AvailableZones.FirstOrDefault(z => z.ZoneId == _editingAccount.ZoneId);
+                    OnPropertyChanged(nameof(SelectedZone));
+                }
+            }
+        }
+        else if (e.PropertyName == nameof(AccountItemViewModel.CurrentPlayers) ||
+                 e.PropertyName == nameof(AccountItemViewModel.MaxPlayers))
+        {
+            if (_editingAccount != null)
+            {
+                ZonePlayerDisplay = $"{_editingAccount.CurrentPlayers ?? 0}/{_editingAccount.MaxPlayers ?? 15}";
+            }
         }
     }
 
@@ -136,6 +202,15 @@ public sealed partial class AccountFormViewModel : ObservableObject
         SelectedServer = AvailableServers.FirstOrDefault() ?? "Vũ trụ 1";
         GameSpeed = 1.0f;
         AutoLogin = true;
+        CurrentZoneId = null;
+        ZonePlayerDisplay = "0/15";
+        _selectedZone = null;
+        OnPropertyChanged(nameof(SelectedZone));
+        AvailableZones.Clear();
+        for (int i = 0; i < Skills.Count; i++)
+        {
+            Skills[i].Name = $"Skill {i + 1}";
+        }
         IsEditing = false;
         OnPropertyChanged(nameof(CanDelete));
     }
@@ -196,6 +271,144 @@ public sealed partial class AccountFormViewModel : ObservableObject
         foreach (var id in targets)
         {
             _gameEngine.UseTdlt(id);
+        }
+    }
+
+    [RelayCommand]
+    public void UseSkill(object? parameter)
+    {
+        int slotIndex = 0;
+        if (parameter is int idx)
+        {
+            slotIndex = idx;
+        }
+        else if (parameter is string str && int.TryParse(str, out int parsed))
+        {
+            slotIndex = parsed;
+        }
+        else if (parameter is SkillButtonItem item)
+        {
+            slotIndex = item.SlotIndex;
+        }
+
+        var targets = ResolveKeyTargets();
+        foreach (var id in targets)
+        {
+            _gameEngine.UseSkill(id, slotIndex);
+        }
+    }
+
+    public void RefreshSkills()
+    {
+        var accountId = _editingAccount?.Id;
+        if (accountId == null && _keyTargetResolver != null)
+        {
+            accountId = _keyTargetResolver().FirstOrDefault();
+        }
+        if (accountId == null) return;
+
+        var skills = _gameEngine.GetSkills(accountId.Value);
+        if (skills.Count > 0)
+        {
+            for (int i = 0; i < Skills.Count && i < skills.Count; i++)
+            {
+                if (!string.IsNullOrWhiteSpace(skills[i].Name))
+                {
+                    Skills[i].Name = skills[i].Name;
+                }
+            }
+        }
+    }
+
+    [RelayCommand]
+    public void NextZone()
+    {
+        int next = (CurrentZoneId ?? 0) + 1;
+        ExecuteChangeZone(next);
+    }
+
+    [RelayCommand]
+    public void PreviousZone()
+    {
+        int prev = (CurrentZoneId ?? 0) - 1;
+        if (prev < 0) prev = 0;
+        ExecuteChangeZone(prev);
+    }
+
+    public void ExecuteChangeZone(int targetZone)
+    {
+        if (targetZone < 0) return;
+        var targets = ResolveKeyTargets();
+        foreach (var id in targets)
+        {
+            _gameEngine.ChangeZone(id, targetZone);
+        }
+    }
+
+    public void RequestZoneList()
+    {
+        var accountId = _editingAccount?.Id;
+        if (accountId == null && _keyTargetResolver != null)
+        {
+            accountId = _keyTargetResolver().FirstOrDefault();
+        }
+        if (accountId == null) return;
+
+        _gameEngine.RequestZoneList(accountId.Value);
+        var snapshot = _gameEngine.GetMapSnapshot(accountId.Value);
+        if (snapshot != null && snapshot.Zones.Count > 0)
+        {
+            UpdateZones(snapshot.Zones, snapshot.ZoneId);
+        }
+    }
+
+    public void UpdateZones(IReadOnlyList<MapZoneInfo> newZones, int currentZoneId)
+    {
+        _isRefreshingZones = true;
+        try
+        {
+            bool needRebuild = AvailableZones.Count != newZones.Count;
+            if (!needRebuild)
+            {
+                for (int i = 0; i < newZones.Count; i++)
+                {
+                    if (AvailableZones[i].ZoneId != newZones[i].ZoneId)
+                    {
+                        needRebuild = true;
+                        break;
+                    }
+                }
+            }
+
+            if (needRebuild)
+            {
+                AvailableZones.Clear();
+                foreach (var z in newZones)
+                {
+                    AvailableZones.Add(z);
+                }
+            }
+            else
+            {
+                for (int i = 0; i < newZones.Count; i++)
+                {
+                    if (AvailableZones[i] != newZones[i])
+                    {
+                        AvailableZones[i] = newZones[i];
+                    }
+                }
+            }
+
+            CurrentZoneId = currentZoneId;
+            if (SelectedZone?.ZoneId != currentZoneId)
+            {
+                _selectedZone = AvailableZones.FirstOrDefault(z => z.ZoneId == currentZoneId);
+                OnPropertyChanged(nameof(SelectedZone));
+            }
+        }
+        finally
+        {
+            _isRefreshingZones = false;
         }
     }
 

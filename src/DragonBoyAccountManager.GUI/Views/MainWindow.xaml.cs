@@ -38,6 +38,31 @@ public partial class MainWindow : Window
             vm.UtilitiesTab.UseTdltCommand.Execute(null);
             e.Handled = true;
         }
+        else if (e.Key is Key.D1 or Key.NumPad1)
+        {
+            vm.AccountForm.UseSkillCommand.Execute(0);
+            e.Handled = true;
+        }
+        else if (e.Key is Key.D2 or Key.NumPad2)
+        {
+            vm.AccountForm.UseSkillCommand.Execute(1);
+            e.Handled = true;
+        }
+        else if (e.Key is Key.D3 or Key.NumPad3)
+        {
+            vm.AccountForm.UseSkillCommand.Execute(2);
+            e.Handled = true;
+        }
+        else if (e.Key is Key.D4 or Key.NumPad4)
+        {
+            vm.AccountForm.UseSkillCommand.Execute(3);
+            e.Handled = true;
+        }
+        else if (e.Key is Key.D5 or Key.NumPad5)
+        {
+            vm.AccountForm.UseSkillCommand.Execute(4);
+            e.Handled = true;
+        }
     }
 
     protected override void OnStateChanged(EventArgs e)
