@@ -86,18 +86,28 @@ jobs:
             -p:AssemblyVersion=${{ steps.ver.outputs.version }} `
             -o ./publish/gui
 
-      - name: Prepare Artifacts
+      - name: Prepare Artifacts & Checksums
         shell: pwsh
         run: |
           New-Item -ItemType Directory -Force -Path ./publish/release
           Copy-Item ./publish/cli/DragonBoyAccountManager.CLI.exe ./publish/release/DragonBoyAccountManager-CLI.exe
           Copy-Item ./publish/gui/DragonBoyAccountManager.GUI.exe ./publish/release/DragonBoyAccountManager-GUI.exe
 
+          $guiSha = (Get-FileHash ./publish/release/DragonBoyAccountManager-GUI.exe -Algorithm SHA256).Hash
+          $cliSha = (Get-FileHash ./publish/release/DragonBoyAccountManager-CLI.exe -Algorithm SHA256).Hash
+
+          "$guiSha  DragonBoyAccountManager-GUI.exe" | Out-File -Encoding utf8 ./publish/release/DragonBoyAccountManager-GUI.exe.sha256
+          "$cliSha  DragonBoyAccountManager-CLI.exe" | Out-File -Encoding utf8 ./publish/release/DragonBoyAccountManager-CLI.exe.sha256
+          "$guiSha  DragonBoyAccountManager-GUI.exe`n$cliSha  DragonBoyAccountManager-CLI.exe" | Out-File -Encoding utf8 ./publish/release/checksums.txt
+
+          Write-Host "GUI SHA256: $guiSha"
+          Write-Host "CLI SHA256: $cliSha"
+
       - name: Upload Build Artifacts
         uses: actions/upload-artifact@v4
         with:
           name: DBAM-win-x64-${{ steps.ver.outputs.version }}
-          path: ./publish/release/*.exe
+          path: ./publish/release/*
           if-no-files-found: error
 
       - name: Create GitHub Release
@@ -108,6 +118,9 @@ jobs:
           files: |
             ./publish/release/DragonBoyAccountManager-GUI.exe
             ./publish/release/DragonBoyAccountManager-CLI.exe
+            ./publish/release/DragonBoyAccountManager-GUI.exe.sha256
+            ./publish/release/DragonBoyAccountManager-CLI.exe.sha256
+            ./publish/release/checksums.txt
           body_path: RELEASE_NOTES.md
           generate_release_notes: true
           draft: ${{ github.event.inputs.draft || false }}
