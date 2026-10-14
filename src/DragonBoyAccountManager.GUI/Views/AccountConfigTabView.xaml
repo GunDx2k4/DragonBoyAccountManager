@@ -510,7 +510,7 @@
                                     Command="{Binding DataContext.UseSkillCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
                                     CommandParameter="{Binding}"
                                     Style="{StaticResource GameSecondaryButton}"
-                                    ToolTip="{Binding Name, StringFormat='Sử dụng {0} (Phím {1})', ConverterParameter={Binding SlotIndex}}">
+                                    ToolTip="{Binding ToolTipText}">
                                     <StackPanel
                                         HorizontalAlignment="Center"
                                         VerticalAlignment="Center"
