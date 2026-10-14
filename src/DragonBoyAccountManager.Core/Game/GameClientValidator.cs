@@ -8,6 +8,8 @@ using System.Security.Cryptography;
 using System.Text.Json;
 using System.Threading;
 using System.Threading.Tasks;
+using System.Diagnostics;
+using System.Text.RegularExpressions;
 using DragonBoyAccountManager.Core.Common;
 
 namespace DragonBoyAccountManager.Core.Game;
@@ -153,12 +155,13 @@ public class GameClientValidator : IGameClientValidator, IDisposable
             ? versionChecksums
             : _versionChecksums;
 
-        var latestOfficialVersion = checksums.Keys.FirstOrDefault() ?? Constants.Client.DefaultVersion;
+        var latestOfficialVersion = DetermineLatestVersion(checksums.Keys);
 
         var metadata = new ClientMetadata
         {
             GamePath = gamePath,
-            TargetVersion = latestOfficialVersion
+            TargetVersion = latestOfficialVersion,
+            ExpectedSha256 = checksums.TryGetValue(latestOfficialVersion, out var targetSha) ? targetSha : null
         };
 
         if (string.IsNullOrWhiteSpace(gamePath))
@@ -202,49 +205,157 @@ public class GameClientValidator : IGameClientValidator, IDisposable
             var actualHash = ComputeFileSha256(resolvedAssembly);
             metadata.ActualSha256 = actualHash;
 
-            string? matchedVersion = null;
+            // 1. Kiểm tra đối chiếu mã SHA256 với bảng mã checksum chính thức
+            string? matchedVersionBySha = null;
             foreach (var (ver, hash) in checksums)
             {
                 if (string.Equals(hash, actualHash, StringComparison.OrdinalIgnoreCase))
                 {
-                    matchedVersion = ver;
+                    matchedVersionBySha = ver;
                     break;
                 }
             }
 
-            if (!string.IsNullOrEmpty(matchedVersion))
+            if (!string.IsNullOrEmpty(matchedVersionBySha))
             {
-                metadata.DetectedVersion = matchedVersion;
+                // Khớp chính xác mã SHA256 chính thức!
+                metadata.DetectedVersion = matchedVersionBySha;
+                metadata.IsShaMatch = true;
+                metadata.ExpectedSha256 = checksums[matchedVersionBySha];
 
-                if (string.Equals(matchedVersion, latestOfficialVersion, StringComparison.OrdinalIgnoreCase))
-                {
-                    metadata.IsCorrectVersion = true;
-                    metadata.IsModified = false;
-                    metadata.Status = ClientStatus.OfficialVersionMatch;
-                }
-                else
-                {
-                    metadata.IsCorrectVersion = false;
-                    metadata.IsModified = false;
-                    metadata.Status = ClientStatus.OutdatedVersion;
-                }
+                bool isLatest = string.Equals(matchedVersionBySha, latestOfficialVersion, StringComparison.OrdinalIgnoreCase);
+                metadata.IsCorrectVersion = isLatest;
+                metadata.IsModified = false;
+                metadata.Status = isLatest ? ClientStatus.OfficialVersionMatch : ClientStatus.OutdatedVersion;
             }
             else
             {
-                metadata.IsCorrectVersion = false;
+                // Không khớp mã SHA256 nào trong bảng -> Bản Mod hoặc phiên bản tùy biến/khác
+                metadata.IsShaMatch = false;
                 metadata.IsModified = true;
-                metadata.DetectedVersion = null;
-                metadata.Status = ClientStatus.ModifiedOrMod;
+
+                // Thử nhận diện phiên bản của client qua FileVersionInfo hoặc tên tệp/thư mục
+                string? detectedVer = TryDetectVersionFromGame(resolvedExe, resolvedAssembly);
+                metadata.DetectedVersion = detectedVer;
+
+                if (!string.IsNullOrEmpty(detectedVer))
+                {
+                    metadata.ExpectedSha256 = checksums.TryGetValue(detectedVer, out var expVer)
+                        ? expVer
+                        : (checksums.TryGetValue(latestOfficialVersion, out var expLatest) ? expLatest : null);
+
+                    bool isTarget = string.Equals(detectedVer, latestOfficialVersion, StringComparison.OrdinalIgnoreCase);
+                    metadata.IsCorrectVersion = isTarget;
+
+                    if (isTarget)
+                    {
+                        // Đúng phiên bản hiện tại (vd: 2.5.0) nhưng SHA256 đã bị mod/thay đổi
+                        metadata.Status = ClientStatus.ModifiedOrMod;
+                    }
+                    else
+                    {
+                        // Phiên bản cũ hơn và SHA256 cũng không khớp
+                        metadata.Status = ClientStatus.OutdatedVersion;
+                    }
+                }
+                else
+                {
+                    // Hoàn toàn không nhận diện được phiên bản
+                    metadata.IsCorrectVersion = false;
+                    metadata.ExpectedSha256 = checksums.TryGetValue(latestOfficialVersion, out var expLatest) ? expLatest : null;
+                    metadata.Status = ClientStatus.ModifiedOrMod;
+                }
             }
         }
         catch (Exception ex)
         {
             metadata.IsCorrectVersion = false;
+            metadata.IsShaMatch = false;
             metadata.Status = ClientStatus.Error;
             metadata.ErrorMessage = ex.Message;
         }
 
         return metadata;
+    }
+
+    private static string DetermineLatestVersion(IEnumerable<string> versions)
+    {
+        Version? maxVer = null;
+        string latest = Constants.Client.DefaultVersion;
+
+        foreach (var v in versions)
+        {
+            var match = Regex.Match(v, @"^\d+(\.\d+)+");
+            if (match.Success && Version.TryParse(match.Value, out var parsed))
+            {
+                if (maxVer == null || parsed > maxVer)
+                {
+                    maxVer = parsed;
+                    latest = v;
+                }
+            }
+            else if (maxVer == null)
+            {
+                latest = v;
+            }
+        }
+        return latest;
+    }
+
+    private static string? TryDetectVersionFromGame(string exePath, string assemblyPath)
+    {
+        try
+        {
+            // 1. Kiểm tra FileVersionInfo của Assembly-CSharp.dll
+            if (File.Exists(assemblyPath))
+            {
+                var fvi = FileVersionInfo.GetVersionInfo(assemblyPath);
+                var ver = ExtractVersionString(fvi.FileVersion) ?? ExtractVersionString(fvi.ProductVersion);
+                if (!string.IsNullOrEmpty(ver)) return ver;
+            }
+
+            // 2. Kiểm tra FileVersionInfo của file game .exe
+            if (File.Exists(exePath))
+            {
+                var fvi = FileVersionInfo.GetVersionInfo(exePath);
+                var ver = ExtractVersionString(fvi.FileVersion) ?? ExtractVersionString(fvi.ProductVersion);
+                if (!string.IsNullOrEmpty(ver)) return ver;
+            }
+
+            // 3. Phân tích tên file exe hoặc thư mục chứa game (vd: DragonBoy250.exe, DragonBoy_2.5.0)
+            var exeName = Path.GetFileNameWithoutExtension(exePath);
+            var verFromName = ExtractVersionFromText(exeName);
+            if (!string.IsNullOrEmpty(verFromName)) return verFromName;
+
+            var dirName = Path.GetFileName(Path.GetDirectoryName(exePath) ?? "");
+            var verFromDir = ExtractVersionFromText(dirName);
+            if (!string.IsNullOrEmpty(verFromDir)) return verFromDir;
+        }
+        catch { }
+
+        return null;
+    }
+
+    private static string? ExtractVersionString(string? text)
+    {
+        if (string.IsNullOrWhiteSpace(text)) return null;
+        var match = Regex.Match(text, @"\b\d+\.\d+(\.\d+)?\b");
+        return match.Success ? match.Value : null;
+    }
+
+    private static string? ExtractVersionFromText(string? text)
+    {
+        if (string.IsNullOrWhiteSpace(text)) return null;
+        var matchDot = Regex.Match(text, @"\b\d+\.\d+(\.\d+)?\b");
+        if (matchDot.Success) return matchDot.Value;
+
+        var matchDigits = Regex.Match(text, @"(?<!\d)(\d)(\d{2})(?!\d)");
+        if (matchDigits.Success)
+        {
+            return $"{matchDigits.Groups[1].Value}.{matchDigits.Groups[2].Value[0]}.{matchDigits.Groups[2].Value[1]}";
+        }
+
+        return null;
     }
 
     public void Dispose()

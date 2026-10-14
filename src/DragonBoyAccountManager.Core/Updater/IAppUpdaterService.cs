@@ -23,4 +23,14 @@ public interface IAppUpdaterService
         AppUpdateInfo update,
         IProgress<double>? progress = null,
         CancellationToken ct = default);
+
+    /// <summary>
+    /// Lấy mã Git commit SHA của phiên bản hiện tại.
+    /// </summary>
+    string GetCurrentCommitSha();
+
+    /// <summary>
+    /// Lấy mã SHA256 của file thực thi hiện tại.
+    /// </summary>
+    string GetCurrentExeSha256();
 }

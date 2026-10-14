@@ -13,9 +13,11 @@ public sealed class ClientMetadata
     public long FileSizeBytes { get; set; }
     public DateTime? LastModifiedTime { get; set; }
     public string ActualSha256 { get; set; } = string.Empty;
+    public string? ExpectedSha256 { get; set; }
     public string TargetVersion { get; set; } = string.Empty;
     public string? DetectedVersion { get; set; }
     public bool IsCorrectVersion { get; set; }
+    public bool IsShaMatch { get; set; }
     public bool IsModified { get; set; }
     public ClientStatus Status { get; set; } = ClientStatus.Unknown;
     public string? ErrorMessage { get; set; }

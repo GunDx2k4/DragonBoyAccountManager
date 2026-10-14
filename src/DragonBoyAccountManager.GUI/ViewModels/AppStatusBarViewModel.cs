@@ -91,7 +91,7 @@ public sealed partial class AppStatusBarViewModel : ObservableObject
         switch (metadata.Status)
         {
             case ClientStatus.OfficialVersionMatch:
-                AssemblyStatus = $"v{metadata.DetectedVersion} (Bản gốc)";
+                AssemblyStatus = $"v{metadata.DetectedVersion} (Gốc - Khớp SHA)";
                 AssemblyStatusColor = "#2E7D32";
                 AssemblyStatusBg = "#E8F5E9";
                 AssemblyStatusTooltip = $"Tệp: {Path.GetFileName(metadata.AssemblyPath)}\n" +
@@ -106,28 +106,39 @@ public sealed partial class AppStatusBarViewModel : ObservableObject
                 AssemblyStatus = $"Cần cập nhật v{metadata.TargetVersion}";
                 AssemblyStatusColor = "#C62828";
                 AssemblyStatusBg = "#FFEBEE";
+                string shaOldInfo = metadata.IsShaMatch ? "Khớp SHA gốc bản cũ" : "Không khớp SHA bản cũ";
                 AssemblyStatusTooltip = $"Tệp: {Path.GetFileName(metadata.AssemblyPath)}\n" +
                                          $"Đường dẫn: {metadata.AssemblyPath}\n" +
                                          $"Kích thước: {metadata.FileSizeBytes:N0} byte\n" +
                                          $"Phiên bản tệp: v{metadata.DetectedVersion}\n" +
                                          $"Phiên bản mới nhất: v{metadata.TargetVersion}\n" +
-                                         $"Trạng thái: Game chưa được cập nhật lên bản mới nhất!\n" +
+                                         $"Trạng thái: Game chưa được cập nhật lên bản mới nhất ({shaOldInfo})!\n" +
                                          $"Mã SHA256: {metadata.ActualSha256}\n" +
                                          $"(Bấm để mở thư mục chứa tệp)";
                 break;
 
             case ClientStatus.ModifiedOrMod:
-                AssemblyStatus = "Chưa đúng phiên bản (Bản mod)";
-                AssemblyStatusColor = "#C62828";
-                AssemblyStatusBg = "#FFEBEE";
-                var expected = (_versionChecksums != null && _versionChecksums.TryGetValue(metadata.TargetVersion, out var exp))
-                    ? $"\nMã SHA256 gốc v{metadata.TargetVersion}: {exp}"
+                if (metadata.IsCorrectVersion)
+                {
+                    AssemblyStatus = $"v{metadata.DetectedVersion} (Lệch SHA - Mod)";
+                    AssemblyStatusColor = "#E65100";
+                    AssemblyStatusBg = "#FFF3E0";
+                }
+                else
+                {
+                    AssemblyStatus = "Chưa đúng phiên bản (Bản mod)";
+                    AssemblyStatusColor = "#C62828";
+                    AssemblyStatusBg = "#FFEBEE";
+                }
+                var expected = !string.IsNullOrEmpty(metadata.ExpectedSha256)
+                    ? $"\nMã SHA256 gốc mong muốn: {metadata.ExpectedSha256}"
                     : "";
                 AssemblyStatusTooltip = $"Tệp: {Path.GetFileName(metadata.AssemblyPath)}\n" +
                                          $"Đường dẫn: {metadata.AssemblyPath}\n" +
                                          $"Kích thước: {metadata.FileSizeBytes:N0} byte\n" +
+                                         $"Phiên bản phát hiện: v{metadata.DetectedVersion ?? "Không rõ"}\n" +
                                          $"Phiên bản chính thức: v{metadata.TargetVersion}\n" +
-                                         $"Trạng thái: Không khớp mã SHA256 gốc (Bản mod hoặc sai phiên bản){expected}\n" +
+                                         $"Trạng thái: Không khớp mã SHA256 gốc (Bản mod hoặc đã bị can thiệp){expected}\n" +
                                          $"Mã SHA256 thực tế: {metadata.ActualSha256}\n" +
                                          $"(Bấm để mở thư mục chứa tệp)";
                 break;

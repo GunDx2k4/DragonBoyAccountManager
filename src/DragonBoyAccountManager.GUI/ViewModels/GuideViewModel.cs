@@ -140,10 +140,11 @@ public sealed partial class GuideViewModel : ObservableObject
         switch (metadata.Status)
         {
             case ClientStatus.OfficialVersionMatch:
-                AssemblyStatus = $"v{metadata.DetectedVersion} (Bản gốc)";
+                AssemblyStatus = $"v{metadata.DetectedVersion} (Gốc - Khớp SHA)";
                 AssemblyStatusColor = "#2E7D32";
                 AssemblyStatusBg = "#E8F5E9";
-                UpdateStatusMessage = $"Khớp phiên bản chính thức v{metadata.DetectedVersion}. SHA256: {metadata.ActualSha256}";
+                string shortHash = metadata.ActualSha256.Length >= 8 ? metadata.ActualSha256[..8] : metadata.ActualSha256;
+                UpdateStatusMessage = $"Khớp phiên bản chính thức v{metadata.DetectedVersion} & SHA256 ({shortHash}...).";
                 AssemblyStatusTooltip = $"Tệp: {Path.GetFileName(metadata.AssemblyPath)}\n" +
                                          $"Đường dẫn: {metadata.AssemblyPath}\n" +
                                          $"Kích thước: {metadata.FileSizeBytes:N0} bytes\n" +
@@ -155,27 +156,41 @@ public sealed partial class GuideViewModel : ObservableObject
                 AssemblyStatus = $"Cần cập nhật v{metadata.TargetVersion}";
                 AssemblyStatusColor = "#C62828";
                 AssemblyStatusBg = "#FFEBEE";
-                UpdateStatusMessage = $"Game đang ở phiên bản cũ v{metadata.DetectedVersion}, bản mới nhất là v{metadata.TargetVersion}.";
+                string shaOldInfo = metadata.IsShaMatch ? "Khớp SHA gốc bản cũ" : "Không khớp SHA bản cũ";
+                UpdateStatusMessage = $"Game đang ở phiên bản cũ v{metadata.DetectedVersion} ({shaOldInfo}), bản mới nhất là v{metadata.TargetVersion}.";
                 AssemblyStatusTooltip = $"Tệp: {Path.GetFileName(metadata.AssemblyPath)}\n" +
                                          $"Đường dẫn: {metadata.AssemblyPath}\n" +
                                          $"Kích thước: {metadata.FileSizeBytes:N0} bytes\n" +
                                          $"Phiên bản tệp: v{metadata.DetectedVersion}\n" +
                                          $"Phiên bản mới nhất: v{metadata.TargetVersion}\n" +
-                                         $"Mã SHA256: {metadata.ActualSha256}";
+                                         $"Trạng thái: {shaOldInfo}\n" +
+                                         $"Mã SHA256 thực tế: {metadata.ActualSha256}\n" +
+                                         (!string.IsNullOrEmpty(metadata.ExpectedSha256) ? $"Mã SHA256 mong muốn: {metadata.ExpectedSha256}" : "");
                 break;
 
             case ClientStatus.ModifiedOrMod:
-                AssemblyStatus = "Chưa đúng phiên bản (Bản mod)";
-                AssemblyStatusColor = "#C62828";
-                AssemblyStatusBg = "#FFEBEE";
-                UpdateStatusMessage = "Không khớp mã SHA256 gốc (File game đã bị can thiệp hoặc là bản mod).";
-                var expected = (_versionChecksums != null && _versionChecksums.TryGetValue(metadata.TargetVersion, out var exp))
-                    ? $"\nMã SHA256 mong muốn v{metadata.TargetVersion}: {exp}"
+                if (metadata.IsCorrectVersion)
+                {
+                    AssemblyStatus = $"v{metadata.DetectedVersion} (Lệch SHA - Mod)";
+                    AssemblyStatusColor = "#E65100";
+                    AssemblyStatusBg = "#FFF3E0";
+                    UpdateStatusMessage = $"Đúng phiên bản v{metadata.DetectedVersion} nhưng không khớp mã SHA256 gốc (File game đã bị can thiệp hoặc là bản mod).";
+                }
+                else
+                {
+                    AssemblyStatus = "Chưa đúng phiên bản (Bản mod)";
+                    AssemblyStatusColor = "#C62828";
+                    AssemblyStatusBg = "#FFEBEE";
+                    UpdateStatusMessage = "Không khớp phiên bản và không khớp mã SHA256 gốc (File game đã bị can thiệp hoặc là bản mod).";
+                }
+                var expected = !string.IsNullOrEmpty(metadata.ExpectedSha256)
+                    ? $"\nMã SHA256 gốc mong muốn: {metadata.ExpectedSha256}"
                     : "";
                 AssemblyStatusTooltip = $"Tệp: {Path.GetFileName(metadata.AssemblyPath)}\n" +
                                          $"Đường dẫn: {metadata.AssemblyPath}\n" +
                                          $"Kích thước: {metadata.FileSizeBytes:N0} bytes\n" +
-                                         $"Phiên bản chính thức: v{metadata.TargetVersion}\n" +
+                                         $"Phiên bản phát hiện: v{metadata.DetectedVersion ?? "Không xác định"}\n" +
+                                         $"Phiên bản mục tiêu: v{metadata.TargetVersion}\n" +
                                          $"Mã SHA256 thực tế: {metadata.ActualSha256}{expected}";
                 break;
 
@@ -210,13 +225,13 @@ public sealed partial class GuideViewModel : ObservableObject
     private async Task CheckForUpdatesAsync()
     {
         IsCheckingUpdate = true;
-        UpdateStatusMessage = "Đang kiểm tra cập nhật và quét file game...";
+        UpdateStatusMessage = "Đang kiểm tra phiên bản & xác thực SHA...";
         try
         {
             await Task.Delay(200);
             await LoadSha256ChecksumsAsync();
 
-            // Kiểm tra cập nhật tool DBAM từ GitHub Releases
+            // Kiểm tra cập nhật tool DBAM từ GitHub Releases (vừa check version vừa check SHA/commit)
             AppUpdateInfo? update = null;
             try
             {
@@ -235,9 +250,26 @@ public sealed partial class GuideViewModel : ObservableObject
                 string size = update.SizeBytes.HasValue ? $" ({update.SizeBytes.Value / 1024.0 / 1024.0:F1} MB)" : "";
                 string notes = !string.IsNullOrWhiteSpace(update.ReleaseNotes) ? $"\n\nNội dung cập nhật:\n{update.ReleaseNotes}" : "";
 
-                bool confirm = _dialogService.ShowConfirmation(
-                    "Cập nhật Tool DBAM",
-                    $"Phát hiện phiên bản mới: v{update.Version}{size}\nPhiên bản hiện tại: v{AppVersion}{notes}\n\nBạn có muốn cập nhật ngay bây giờ không?");
+                string shaDetails = "";
+                if (!string.IsNullOrEmpty(update.RemoteSha256))
+                {
+                    shaDetails += $"\nMã SHA256 phát hành: {update.RemoteSha256}";
+                }
+                if (!string.IsNullOrEmpty(update.RemoteCommitSha))
+                {
+                    string localCommit = _updaterService.GetCurrentCommitSha();
+                    string commitInfo = !string.IsNullOrEmpty(localCommit)
+                        ? $"{localCommit[..Math.Min(7, localCommit.Length)]} -> {update.RemoteCommitSha[..Math.Min(7, update.RemoteCommitSha.Length)]}"
+                        : update.RemoteCommitSha[..Math.Min(7, update.RemoteCommitSha.Length)];
+                    shaDetails += $"\nCommit SHA: {commitInfo}";
+                }
+
+                string title = update.IsShaUpdateOnly ? "Cập nhật Tool DBAM (Hotfix/SHA)" : "Cập nhật Tool DBAM";
+                string desc = update.IsShaUpdateOnly
+                    ? $"Phát hiện bản cập nhật mới cùng phiên bản: v{update.Version}{size}\nPhiên bản hiện tại: v{AppVersion}{shaDetails}{notes}\n\nBạn có muốn cập nhật ngay bây giờ không?"
+                    : $"Phát hiện phiên bản mới: v{update.Version}{size}\nPhiên bản hiện tại: v{AppVersion}{shaDetails}{notes}\n\nBạn có muốn cập nhật ngay bây giờ không?";
+
+                bool confirm = _dialogService.ShowConfirmation(title, desc);
 
                 if (confirm)
                 {
@@ -251,19 +283,28 @@ public sealed partial class GuideViewModel : ObservableObject
                 AvailableAppUpdate = null;
             }
 
+            string localExeSha = _updaterService.GetCurrentExeSha256();
+            string localCommitSha = _updaterService.GetCurrentCommitSha();
+            string toolShaInfo = !string.IsNullOrEmpty(localExeSha) && localExeSha.Length >= 8
+                ? $", SHA: {localExeSha[..8]}..."
+                : "";
+            string toolCommitInfo = !string.IsNullOrEmpty(localCommitSha) && localCommitSha.Length >= 7
+                ? $", Rev: {localCommitSha[..7]}"
+                : "";
+
             string path = _settingsService.Current.GamePath;
             if (!string.IsNullOrEmpty(path) && File.Exists(path))
             {
                 string toolInfo = HasAppUpdate
                     ? $"\n\n★ Có bản cập nhật Tool mới: v{AvailableAppUpdate?.Version}"
-                    : $"\n\nTool DBAM đang ở phiên bản mới nhất (v{AppVersion}).";
-                _dialogService.ShowInfo("Kiểm tra phiên bản", $"Trạng thái Game Client: {AssemblyStatus}\n{UpdateStatusMessage}{toolInfo}");
+                    : $"\n\nTool DBAM đang ở phiên bản mới nhất (v{AppVersion}{toolShaInfo}{toolCommitInfo}).";
+                _dialogService.ShowInfo("Kiểm tra phiên bản & SHA", $"Trạng thái Game Client: {AssemblyStatus}\n{UpdateStatusMessage}{toolInfo}");
             }
             else
             {
                 if (!HasAppUpdate)
                 {
-                    _dialogService.ShowInfo("Kiểm tra phiên bản", $"Tool DBAM đang ở phiên bản mới nhất (v{AppVersion}).\n(Chưa chọn file game .exe)");
+                    _dialogService.ShowInfo("Kiểm tra phiên bản & SHA", $"Tool DBAM đang ở phiên bản mới nhất (v{AppVersion}{toolShaInfo}{toolCommitInfo}).\n(Chưa chọn file game .exe)");
                 }
             }
         }
