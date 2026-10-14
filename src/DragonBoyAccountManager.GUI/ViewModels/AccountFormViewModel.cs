@@ -179,6 +179,26 @@ public sealed partial class AccountFormViewModel : ObservableObject
     [RelayCommand]
     public async Task ActionOkAsync() => await SendKeyPulseAsync(GameKey.Ok);
 
+    [RelayCommand]
+    public void UseCapsule()
+    {
+        var targets = ResolveKeyTargets();
+        foreach (var id in targets)
+        {
+            _gameEngine.UseCapsule(id);
+        }
+    }
+
+    [RelayCommand]
+    public void UseTdlt()
+    {
+        var targets = ResolveKeyTargets();
+        foreach (var id in targets)
+        {
+            _gameEngine.UseTdlt(id);
+        }
+    }
+
     public void StartHoldingKey(GameKey key)
     {
         var targets = ResolveKeyTargets();

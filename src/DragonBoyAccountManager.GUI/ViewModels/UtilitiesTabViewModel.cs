@@ -518,6 +518,70 @@ public sealed partial class UtilitiesTabViewModel : ObservableObject
         SyncTargetDisplay = count > 1 ? $"Đồng bộ: {count} acc" : (count == 1 ? "1 tài khoản" : "Chưa chọn acc");
     }
 
+    [RelayCommand]
+    public void UseCapsule()
+    {
+        var targets = GetTargetAccountIds();
+        if (targets.Count == 0)
+        {
+            StatusText = "Chưa chọn tài khoản đang chạy nào!";
+            return;
+        }
+
+        int successCount = 0;
+        string lastMsg = string.Empty;
+        foreach (var id in targets)
+        {
+            var res = _gameEngine.UseCapsule(id);
+            if (res.Success)
+            {
+                successCount++;
+            }
+            lastMsg = res.Message;
+        }
+
+        if (targets.Count == 1)
+        {
+            StatusText = lastMsg;
+        }
+        else
+        {
+            StatusText = $"Dùng Capsule: {successCount}/{targets.Count} acc thành công";
+        }
+    }
+
+    [RelayCommand]
+    public void UseTdlt()
+    {
+        var targets = GetTargetAccountIds();
+        if (targets.Count == 0)
+        {
+            StatusText = "Chưa chọn tài khoản đang chạy nào!";
+            return;
+        }
+
+        int successCount = 0;
+        string lastMsg = string.Empty;
+        foreach (var id in targets)
+        {
+            var res = _gameEngine.UseTdlt(id);
+            if (res.Success)
+            {
+                successCount++;
+            }
+            lastMsg = res.Message;
+        }
+
+        if (targets.Count == 1)
+        {
+            StatusText = lastMsg;
+        }
+        else
+        {
+            StatusText = $"Dùng TDLT: {successCount}/{targets.Count} acc thành công";
+        }
+    }
+
     #region Auto Chat Logic
 
     [RelayCommand]

@@ -20,9 +20,11 @@
         <Grid.RowDefinitions>
             <!-- 1. Khung Đổi Khu (Dropdown theo openzonemap) -->
             <RowDefinition Height="Auto" />
-            <!-- 2. Cụm các nút chuyển Waypoint (Tối đa 3 cổng, tự ẩn nếu không có) -->
+            <!-- 2. Cụm phím tắt nhanh (Capsule, TDLT) -->
             <RowDefinition Height="Auto" />
-            <!-- 3. Danh sách chi tiết thực thể (Boss, Người, NPC) -->
+            <!-- 3. Cụm các nút chuyển Waypoint (Tối đa 3 cổng, tự ẩn nếu không có) -->
+            <RowDefinition Height="Auto" />
+            <!-- 4. Danh sách chi tiết thực thể (Boss, Người, NPC, Auto Chat) -->
             <RowDefinition Height="*" />
         </Grid.RowDefinitions>
 
@@ -160,9 +162,48 @@
             </StackPanel>
         </Border>
 
-        <!-- ==================== 2. CÁC NÚT DỊCH CHUYỂN WAYPOINT (TỐI ĐA 3 CỔNG) ==================== -->
+        <!-- ==================== 2. CỤM PHÍM TẮT NHANH VẬT PHẨM (CAPSULE, TDLT) ==================== -->
+        <Grid Grid.Row="1" Margin="0,0,0,7">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*" />
+                <ColumnDefinition Width="8" />
+                <ColumnDefinition Width="*" />
+            </Grid.ColumnDefinitions>
+
+            <Button
+                Grid.Column="0"
+                Height="32"
+                Command="{Binding UseCapsuleCommand}"
+                Style="{StaticResource GameSecondaryButton}"
+                ToolTip="Sử dụng Capsule bay về nhà / các map (Phím tắt: C) - Tìm ID 194/193 trong túi">
+                <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center" Orientation="Horizontal">
+                    <TextBlock Margin="0,0,5,0" VerticalAlignment="Center" FontSize="13" Text="💊" />
+                    <TextBlock VerticalAlignment="Center" FontSize="11" FontWeight="ExtraBold" Text="Capsule" />
+                    <Border Margin="5,0,0,0" Padding="4,1" VerticalAlignment="Center" Background="#350C03" CornerRadius="3">
+                        <TextBlock FontSize="9" FontWeight="Bold" Foreground="#F7C934" Text="[C]" />
+                    </Border>
+                </StackPanel>
+            </Button>
+
+            <Button
+                Grid.Column="2"
+                Height="32"
+                Command="{Binding UseTdltCommand}"
+                Style="{StaticResource GameSecondaryButton}"
+                ToolTip="Bật/Tắt Tự Động Luyện Tập (Phím tắt: X) - Tìm ID 521 trong túi">
+                <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center" Orientation="Horizontal">
+                    <TextBlock Margin="0,0,5,0" VerticalAlignment="Center" FontSize="13" Text="⚡" />
+                    <TextBlock VerticalAlignment="Center" FontSize="11" FontWeight="ExtraBold" Text="TDLT" />
+                    <Border Margin="5,0,0,0" Padding="4,1" VerticalAlignment="Center" Background="#350C03" CornerRadius="3">
+                        <TextBlock FontSize="9" FontWeight="Bold" Foreground="#F7C934" Text="[X]" />
+                    </Border>
+                </StackPanel>
+            </Button>
+        </Grid>
+
+        <!-- ==================== 3. CÁC NÚT DỊCH CHUYỂN WAYPOINT (TỐI ĐA 3 CỔNG) ==================== -->
         <ItemsControl
-            Grid.Row="1"
+            Grid.Row="2"
             Margin="0,0,0,8"
             ItemsSource="{Binding WaypointButtons}">
             <ItemsControl.ItemsPanel>
@@ -205,9 +246,9 @@
             </ItemsControl.ItemTemplate>
         </ItemsControl>
 
-        <!-- ==================== 3. DANH SÁCH THỰC THỂ (SUB TABS) ==================== -->
+        <!-- ==================== 4. DANH SÁCH THỰC THỂ (SUB TABS) ==================== -->
         <Border
-            Grid.Row="2"
+            Grid.Row="3"
             Background="{DynamicResource GameTabContentBrush}"
             BorderBrush="{DynamicResource GameBorderBrush}"
             BorderThickness="1.5"

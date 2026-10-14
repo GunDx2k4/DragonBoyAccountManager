@@ -379,6 +379,35 @@
                                     Style="{StaticResource GameEnterOrbButtonStyle}"
                                     Tag="Ok"
                                     ToolTip="Phím Chọn / Tấn công / Trò chuyện NPC (Enter / Space / Phím 5)" />
+
+                                <Border
+                                    Width="1"
+                                    Margin="8,4,8,4"
+                                    VerticalAlignment="Stretch"
+                                    Background="{DynamicResource GameBorderBrush}"
+                                    Opacity="0.4" />
+
+                                <StackPanel VerticalAlignment="Center">
+                                    <Button
+                                        Height="22"
+                                        Margin="0,0,0,4"
+                                        Padding="5,1"
+                                        Command="{Binding UseCapsuleCommand}"
+                                        Content="💊 Capsule [C]"
+                                        FontSize="9.5"
+                                        FontWeight="Bold"
+                                        Style="{StaticResource GameSecondaryButton}"
+                                        ToolTip="Sử dụng Capsule bay về nhà / các map (Phím C)" />
+                                    <Button
+                                        Height="22"
+                                        Padding="5,1"
+                                        Command="{Binding UseTdltCommand}"
+                                        Content="⚡ TDLT [X]"
+                                        FontSize="9.5"
+                                        FontWeight="Bold"
+                                        Style="{StaticResource GameSecondaryButton}"
+                                        ToolTip="Sử dụng Tự Động Luyện Tập (Phím X)" />
+                                </StackPanel>
                             </StackPanel>
                         </StackPanel>
                     </Border>

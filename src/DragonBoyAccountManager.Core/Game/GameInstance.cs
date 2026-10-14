@@ -20,6 +20,7 @@ public sealed class GameInstance : IDisposable
     public GameResolution Resolution { get; }
     public GameMap Map { get; }
     public GameChat Chat { get; }
+    public GameInventory Inventory { get; }
 
     public int ProcessId => Process.Id;
     public bool IsRunning => !Process.HasExited;
@@ -47,6 +48,7 @@ public sealed class GameInstance : IDisposable
         Resolution = new GameResolution(Reflector);
         Map = new GameMap(Reflector);
         Chat = new GameChat(Reflector);
+        Inventory = new GameInventory(Reflector);
     }
 
     public bool AutoKillOnDispose { get; set; } = true;
@@ -93,6 +95,30 @@ public sealed class GameInstance : IDisposable
         catch
         {
             return false;
+        }
+    }
+
+    public (bool Success, string Message) UseCapsule()
+    {
+        try
+        {
+            return Inventory.UseCapsule();
+        }
+        catch (Exception ex)
+        {
+            return (false, $"Lỗi sử dụng Capsule: {ex.Message}");
+        }
+    }
+
+    public (bool Success, string Message) UseTdlt()
+    {
+        try
+        {
+            return Inventory.UseTdlt();
+        }
+        catch (Exception ex)
+        {
+            return (false, $"Lỗi sử dụng TDLT: {ex.Message}");
         }
     }
 

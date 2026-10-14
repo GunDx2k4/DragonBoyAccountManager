@@ -561,6 +561,24 @@ public sealed class CoreGameEngineAdapter(ISettingsService? settingsService = nu
         return false;
     }
 
+    public (bool Success, string Message) UseCapsule(Guid accountId)
+    {
+        if (_sessions.TryGetValue(accountId, out var session) && session.Instance.IsRunning && session.Instance.MyChar.IsInGame)
+        {
+            return session.Instance.UseCapsule();
+        }
+        return (false, "Tài khoản chưa vào game");
+    }
+
+    public (bool Success, string Message) UseTdlt(Guid accountId)
+    {
+        if (_sessions.TryGetValue(accountId, out var session) && session.Instance.IsRunning && session.Instance.MyChar.IsInGame)
+        {
+            return session.Instance.UseTdlt();
+        }
+        return (false, "Tài khoản chưa vào game");
+    }
+
     public void Dispose()
     {
         StopAll();

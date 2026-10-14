@@ -34,6 +34,9 @@ public interface IGameEngineService
 
     bool SendChat(Guid accountId, string text, ChatType type = ChatType.Map);
 
+    (bool Success, string Message) UseCapsule(Guid accountId);
+    (bool Success, string Message) UseTdlt(Guid accountId);
+
     event Action<Guid, GameSessionStatus, CharacterSnapshot?>? OnSessionUpdated;
     event Action<Guid, string>? OnSessionMessageUpdated;
 }

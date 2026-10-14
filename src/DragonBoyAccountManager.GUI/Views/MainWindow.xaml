@@ -25,6 +25,7 @@
     UseLayoutRounding="True"
     WindowStartupLocation="CenterScreen"
     WindowStyle="None"
+    PreviewKeyDown="Window_PreviewKeyDown"
     mc:Ignorable="d">
 
     <Grid>

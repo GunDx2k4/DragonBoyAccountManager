@@ -422,6 +422,30 @@ public class MonoReflector(MonoContext context)
         }
     }
 
+    public IntPtr[] ReadMonoPointerArray(IntPtr monoArrayPtr)
+    {
+        if (monoArrayPtr == IntPtr.Zero) return [];
+
+        try
+        {
+            int ptrSize = _context.Memory.PointerSize;
+            int length = _context.Memory.ReadInt(monoArrayPtr + ptrSize * 3);
+            if (length <= 0 || length > 1000) return [];
+
+            int elemOffset = ptrSize * 4;
+            var arr = new IntPtr[length];
+            for (int i = 0; i < length; i++)
+            {
+                arr[i] = _context.Memory.ReadIntPtr(monoArrayPtr + elemOffset + i * ptrSize);
+            }
+            return arr;
+        }
+        catch
+        {
+            return [];
+        }
+    }
+
     public void WriteStatic<T>(string className, string fieldName, T value) where T : unmanaged
     {
         var info = GetField(className, fieldName);
