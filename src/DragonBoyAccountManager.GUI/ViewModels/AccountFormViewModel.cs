@@ -1,6 +1,7 @@
 using System.Collections.ObjectModel;
 using System.ComponentModel;
 using System.Globalization;
+using System.Windows.Threading;
 
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
@@ -97,6 +98,8 @@ public sealed partial class AccountFormViewModel : ObservableObject
     public event Func<Account, Task>? OnAccountSaved;
     public event Func<Guid, Task>? OnAccountDeleted;
 
+    private readonly DispatcherTimer _skillRefreshTimer;
+
     public AccountFormViewModel(IGameEngineService gameEngine, IDialogService dialogService)
     {
         _gameEngine = gameEngine;
@@ -111,6 +114,19 @@ public sealed partial class AccountFormViewModel : ObservableObject
         {
             Skills.Add(new SkillButtonItem(i, $"Skill {i + 1}"));
         }
+
+        _skillRefreshTimer = new DispatcherTimer
+        {
+            Interval = TimeSpan.FromSeconds(2)
+        };
+        _skillRefreshTimer.Tick += (_, _) =>
+        {
+            if (_editingAccount != null && _editingAccount.IsRunning)
+            {
+                RefreshSkills();
+            }
+        };
+        _skillRefreshTimer.Start();
     }
 
     public void SetTargetResolver(Func<IEnumerable<Guid>> resolver)
@@ -310,11 +326,14 @@ public sealed partial class AccountFormViewModel : ObservableObject
         var skills = _gameEngine.GetSkills(accountId.Value);
         if (skills.Count > 0)
         {
-            for (int i = 0; i < Skills.Count && i < skills.Count; i++)
+            foreach (var s in skills)
             {
-                if (!string.IsNullOrWhiteSpace(skills[i].Name))
+                if (s.Slot >= 0 && s.Slot < Skills.Count && !string.IsNullOrWhiteSpace(s.Name))
                 {
-                    Skills[i].Name = skills[i].Name;
+                    if (Skills[s.Slot].Name != s.Name)
+                    {
+                        Skills[s.Slot].Name = s.Name;
+                    }
                 }
             }
         }

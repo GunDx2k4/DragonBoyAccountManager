@@ -119,13 +119,21 @@ public sealed partial class MainViewModel : ObservableObject
             UtilitiesTab.UpdateSyncTargetDisplay();
         };
 
-        // When switching to Utilities tab, trigger an immediate refresh
+        // When switching tabs, trigger immediate refresh
         PropertyChanged += (_, e) =>
         {
-            if (e.PropertyName == nameof(SelectedTabIndex) && SelectedTabIndex == 1)
+            if (e.PropertyName == nameof(SelectedTabIndex))
             {
-                UtilitiesTab.RefreshMapData();
-                UtilitiesTab.UpdateSyncTargetDisplay();
+                if (SelectedTabIndex == 0)
+                {
+                    AccountForm.RefreshSkills();
+                    AccountForm.RequestZoneList();
+                }
+                else if (SelectedTabIndex == 1)
+                {
+                    UtilitiesTab.RefreshMapData();
+                    UtilitiesTab.UpdateSyncTargetDisplay();
+                }
             }
         };
 
