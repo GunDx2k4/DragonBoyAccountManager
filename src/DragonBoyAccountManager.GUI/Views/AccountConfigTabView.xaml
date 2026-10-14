@@ -217,7 +217,7 @@
                                 FontSize="11"
                                 FontWeight="ExtraBold"
                                 Style="{StaticResource GameSecondaryButton}"
-                                ToolTip="Chuyển sang khu trước" />
+                                ToolTip="Chuyển sang khu trước (Phím [)" />
                             <Button
                                 Width="26"
                                 Height="26"
@@ -226,7 +226,7 @@
                                 FontSize="11"
                                 FontWeight="ExtraBold"
                                 Style="{StaticResource GameSecondaryButton}"
-                                ToolTip="Chuyển sang khu kế tiếp" />
+                                ToolTip="Chuyển sang khu kế tiếp (Phím ])" />
                         </StackPanel>
                     </Grid>
 
@@ -265,7 +265,7 @@
                                 PreviewMouseUp="DpadButton_PreviewMouseUp"
                                 Style="{StaticResource GameArrowVectorButtonStyle}"
                                 Tag="Up"
-                                ToolTip="Di chuyển Lên (Phím mũi tên Lên)">
+                                ToolTip="Di chuyển Lên (Phím mũi tên Lên / Phím W)">
                                 <Viewbox
                                     Width="20"
                                     Height="20"
@@ -289,7 +289,7 @@
                                 PreviewMouseUp="DpadButton_PreviewMouseUp"
                                 Style="{StaticResource GameArrowVectorButtonStyle}"
                                 Tag="Left"
-                                ToolTip="Di chuyển Trái (Phím mũi tên Trái)">
+                                ToolTip="Di chuyển Trái (Phím mũi tên Trái / Phím A)">
                                 <Viewbox
                                     Width="20"
                                     Height="20"
@@ -313,7 +313,7 @@
                                 PreviewMouseUp="DpadButton_PreviewMouseUp"
                                 Style="{StaticResource GameArrowVectorButtonStyle}"
                                 Tag="Down"
-                                ToolTip="Di chuyển Xuống (Phím mũi tên Xuống)">
+                                ToolTip="Di chuyển Xuống (Phím mũi tên Xuống / Phím S)">
                                 <Viewbox
                                     Width="20"
                                     Height="20"
@@ -337,7 +337,7 @@
                                 PreviewMouseUp="DpadButton_PreviewMouseUp"
                                 Style="{StaticResource GameArrowVectorButtonStyle}"
                                 Tag="Right"
-                                ToolTip="Di chuyển Phải (Phím mũi tên Phải)">
+                                ToolTip="Di chuyển Phải (Phím mũi tên Phải / Phím D)">
                                 <Viewbox
                                     Width="20"
                                     Height="20"
@@ -364,7 +364,7 @@
                             PreviewMouseUp="DpadButton_PreviewMouseUp"
                             Style="{StaticResource GameEnterOrbButtonStyle}"
                             Tag="Ok"
-                            ToolTip="Phím Chọn / Tấn công / Trò chuyện NPC (Enter / Space / Phím 5)" />
+                            ToolTip="Phím Chọn / Tấn công / Trò chuyện NPC (Enter / Space)" />
 
                         <Border
                             Width="1"

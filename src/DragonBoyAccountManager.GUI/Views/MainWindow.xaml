@@ -26,6 +26,7 @@
     WindowStartupLocation="CenterScreen"
     WindowStyle="None"
     PreviewKeyDown="Window_PreviewKeyDown"
+    PreviewKeyUp="Window_PreviewKeyUp"
     mc:Ignorable="d">
 
     <Grid>

@@ -432,11 +432,11 @@ public sealed partial class AccountFormViewModel : ObservableObject
 
     public async Task SendKeyPulseAsync(GameKey key, int holdMs = 120)
     {
-        var targets = ResolveKeyTargets();
-        foreach (var id in targets)
-        {
-            await _gameEngine.SendGameKeyPressAsync(id, key, holdMs);
-        }
+        var targets = ResolveKeyTargets().ToList();
+        if (targets.Count == 0) return;
+
+        var tasks = targets.Select(id => _gameEngine.SendGameKeyPressAsync(id, key, holdMs));
+        await Task.WhenAll(tasks);
     }
 
     private IEnumerable<Guid> ResolveKeyTargets()
