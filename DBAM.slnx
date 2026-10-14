@@ -1,0 +1,19 @@
+<Solution>
+  <Folder Name="/Solution Items/">
+    <File Path=".editorconfig" />
+    <File Path=".gitattributes" />
+    <File Path=".gitignore" />
+    <File Path="Directory.Build.props" />
+    <File Path="Directory.Packages.props" />
+    <File Path="LICENSE" />
+    <File Path="README.md" />
+    <File Path="RELEASE_NOTES.md" />
+    <File Path=".github/workflows/build.yml" />
+    <File Path=".github/workflows/release.yml" />
+  </Folder>
+  <Folder Name="/src/">
+    <Project Path="src/DragonBoyAccountManager.CLI/DragonBoyAccountManager.CLI.csproj" />
+    <Project Path="src/DragonBoyAccountManager.Core/DragonBoyAccountManager.Core.csproj" />
+    <Project Path="src/DragonBoyAccountManager.GUI/DragonBoyAccountManager.GUI.csproj" />
+  </Folder>
+</Solution>

@@ -1,0 +1,321 @@
+<UserControl
+    x:Class="DragonBoyAccountManager.GUI.Views.SettingsTabView"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+    xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+    xmlns:models="clr-namespace:DragonBoyAccountManager.GUI.Models"
+    xmlns:ui="clr-namespace:DragonBoyAccountManager.GUI.UI.Controls"
+    xmlns:viewmodels="clr-namespace:DragonBoyAccountManager.GUI.ViewModels"
+    d:DataContext="{d:DesignInstance Type=viewmodels:SettingsTabViewModel}"
+    d:DesignHeight="550"
+    d:DesignWidth="435"
+    mc:Ignorable="d">
+
+    <UserControl.Resources>
+        <!--  Template cho Setting kiểu Boolean (Checkbox)  -->
+        <DataTemplate x:Key="BooleanSettingTemplate" DataType="{x:Type viewmodels:SettingItemViewModel}">
+            <Border
+                Margin="0,2,0,6"
+                Padding="8,6"
+                Background="{DynamicResource GameBgBrush}"
+                BorderBrush="{DynamicResource GameBorderBrush}"
+                BorderThickness="1"
+                CornerRadius="4">
+                <StackPanel>
+                    <CheckBox
+                        Content="{Binding Label}"
+                        FontSize="11.5"
+                        FontWeight="Bold"
+                        IsChecked="{Binding BoolValue}"
+                        Style="{StaticResource GameCheckBoxStyle}" />
+                    <TextBlock
+                        Margin="22,2,0,0"
+                        FontSize="9.5"
+                        Foreground="{DynamicResource GameTextMutedBrush}"
+                        Text="{Binding Description}"
+                        TextWrapping="Wrap">
+                        <TextBlock.Style>
+                            <Style TargetType="TextBlock">
+                                <Setter Property="Visibility" Value="Visible" />
+                                <Style.Triggers>
+                                    <DataTrigger Binding="{Binding Description}" Value="{x:Null}">
+                                        <Setter Property="Visibility" Value="Collapsed" />
+                                    </DataTrigger>
+                                    <DataTrigger Binding="{Binding Description}" Value="">
+                                        <Setter Property="Visibility" Value="Collapsed" />
+                                    </DataTrigger>
+                                </Style.Triggers>
+                            </Style>
+                        </TextBlock.Style>
+                    </TextBlock>
+                </StackPanel>
+            </Border>
+        </DataTemplate>
+
+        <!--  Template cho Setting kiểu Number (Slider + Badge giá trị)  -->
+        <DataTemplate x:Key="NumberSettingTemplate" DataType="{x:Type viewmodels:SettingItemViewModel}">
+            <Border
+                Margin="0,2,0,6"
+                Padding="8,6"
+                Background="{DynamicResource GameBgBrush}"
+                BorderBrush="{DynamicResource GameBorderBrush}"
+                BorderThickness="1"
+                CornerRadius="4">
+                <StackPanel>
+                    <Grid Margin="0,0,0,3">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="Auto" />
+                        </Grid.ColumnDefinitions>
+
+                        <StackPanel Grid.Column="0">
+                            <TextBlock
+                                FontSize="11"
+                                FontWeight="Bold"
+                                Foreground="{DynamicResource GameTextDarkBrush}"
+                                Text="{Binding Label}" />
+                            <TextBlock
+                                FontSize="9"
+                                Foreground="{DynamicResource GameTextMutedBrush}"
+                                Text="{Binding Description}"
+                                TextWrapping="Wrap">
+                                <TextBlock.Style>
+                                    <Style TargetType="TextBlock">
+                                        <Setter Property="Visibility" Value="Visible" />
+                                        <Style.Triggers>
+                                            <DataTrigger Binding="{Binding Description}" Value="{x:Null}">
+                                                <Setter Property="Visibility" Value="Collapsed" />
+                                            </DataTrigger>
+                                            <DataTrigger Binding="{Binding Description}" Value="">
+                                                <Setter Property="Visibility" Value="Collapsed" />
+                                            </DataTrigger>
+                                        </Style.Triggers>
+                                    </Style>
+                                </TextBlock.Style>
+                            </TextBlock>
+                        </StackPanel>
+
+                        <Border
+                            Grid.Column="1"
+                            Padding="6,2"
+                            VerticalAlignment="Center"
+                            Background="{DynamicResource GameBtnOrangeFaceTopBrush}"
+                            BorderBrush="{DynamicResource GameBorderDarkBrush}"
+                            BorderThickness="1"
+                            CornerRadius="3.5">
+                            <StackPanel Orientation="Horizontal">
+                                <TextBlock
+                                    FontSize="10"
+                                    FontWeight="ExtraBold"
+                                    Foreground="#FFFFFF"
+                                    Text="{Binding NumberValue}" />
+                                <TextBlock
+                                    Margin="2,0,0,0"
+                                    FontSize="10"
+                                    FontWeight="Bold"
+                                    Foreground="#FFFFFF"
+                                    Text="{Binding Unit}" />
+                            </StackPanel>
+                        </Border>
+                    </Grid>
+
+                    <Slider
+                        Margin="0,4,0,0"
+                        LargeChange="2"
+                        Maximum="{Binding Max}"
+                        Minimum="{Binding Min}"
+                        SmallChange="1"
+                        Style="{StaticResource GameSliderStyle}"
+                        Value="{Binding NumberValue, UpdateSourceTrigger=PropertyChanged}" />
+                </StackPanel>
+            </Border>
+        </DataTemplate>
+
+        <!--  Template cho Setting kiểu Text (TextBox)  -->
+        <DataTemplate x:Key="TextSettingTemplate" DataType="{x:Type viewmodels:SettingItemViewModel}">
+            <Border
+                Margin="0,2,0,6"
+                Padding="8,6"
+                Background="{DynamicResource GameBgBrush}"
+                BorderBrush="{DynamicResource GameBorderBrush}"
+                BorderThickness="1"
+                CornerRadius="4">
+                <StackPanel>
+                    <TextBlock
+                        FontSize="11"
+                        FontWeight="Bold"
+                        Foreground="{DynamicResource GameTextDarkBrush}"
+                        Text="{Binding Label}" />
+                    <TextBlock
+                        Margin="0,1,0,4"
+                        FontSize="9"
+                        Foreground="{DynamicResource GameTextMutedBrush}"
+                        Text="{Binding Description}"
+                        TextWrapping="Wrap">
+                        <TextBlock.Style>
+                            <Style TargetType="TextBlock">
+                                <Setter Property="Visibility" Value="Visible" />
+                                <Style.Triggers>
+                                    <DataTrigger Binding="{Binding Description}" Value="{x:Null}">
+                                        <Setter Property="Visibility" Value="Collapsed" />
+                                    </DataTrigger>
+                                    <DataTrigger Binding="{Binding Description}" Value="">
+                                        <Setter Property="Visibility" Value="Collapsed" />
+                                    </DataTrigger>
+                                </Style.Triggers>
+                            </Style>
+                        </TextBlock.Style>
+                    </TextBlock>
+                    <TextBox
+                        Height="28"
+                        MaxLength="{Binding MaxLength}"
+                        Style="{StaticResource GameTextBoxStyle}"
+                        Text="{Binding TextValue, UpdateSourceTrigger=PropertyChanged}" />
+                </StackPanel>
+            </Border>
+        </DataTemplate>
+
+        <!--  Template cho Setting kiểu Select (ComboBox)  -->
+        <DataTemplate x:Key="SelectSettingTemplate" DataType="{x:Type viewmodels:SettingItemViewModel}">
+            <Border
+                Margin="0,2,0,6"
+                Padding="8,6"
+                Background="{DynamicResource GameBgBrush}"
+                BorderBrush="{DynamicResource GameBorderBrush}"
+                BorderThickness="1"
+                CornerRadius="4">
+                <StackPanel>
+                    <TextBlock
+                        FontSize="11"
+                        FontWeight="Bold"
+                        Foreground="{DynamicResource GameTextDarkBrush}"
+                        Text="{Binding Label}" />
+                    <TextBlock
+                        Margin="0,1,0,4"
+                        FontSize="9"
+                        Foreground="{DynamicResource GameTextMutedBrush}"
+                        Text="{Binding Description}"
+                        TextWrapping="Wrap">
+                        <TextBlock.Style>
+                            <Style TargetType="TextBlock">
+                                <Setter Property="Visibility" Value="Visible" />
+                                <Style.Triggers>
+                                    <DataTrigger Binding="{Binding Description}" Value="{x:Null}">
+                                        <Setter Property="Visibility" Value="Collapsed" />
+                                    </DataTrigger>
+                                    <DataTrigger Binding="{Binding Description}" Value="">
+                                        <Setter Property="Visibility" Value="Collapsed" />
+                                    </DataTrigger>
+                                </Style.Triggers>
+                            </Style>
+                        </TextBlock.Style>
+                    </TextBlock>
+                    <ComboBox
+                        Height="28"
+                        ItemsSource="{Binding Options}"
+                        SelectedItem="{Binding SelectedOption, UpdateSourceTrigger=PropertyChanged}"
+                        Style="{StaticResource GameComboBoxStyle}" />
+                </StackPanel>
+            </Border>
+        </DataTemplate>
+    </UserControl.Resources>
+
+    <ScrollViewer FocusVisualStyle="{x:Null}" VerticalScrollBarVisibility="Auto">
+        <StackPanel Margin="12,10">
+            <!--  Danh sách các Card nhóm cấu hình / Action linh hoạt  -->
+            <ItemsControl ItemsSource="{Binding Groups}">
+                <ItemsControl.ItemTemplate>
+                    <DataTemplate DataType="{x:Type viewmodels:SettingGroupViewModel}">
+                        <ui:GameCard Margin="0,0,0,10" Header="{Binding Title}">
+                            <StackPanel>
+                                <!--  Header Action tuỳ chọn có nút Bật/Tắt  -->
+                                <Grid Margin="0,0,0,6">
+                                    <Grid.Style>
+                                        <Style TargetType="Grid">
+                                            <Setter Property="Visibility" Value="Collapsed" />
+                                            <Style.Triggers>
+                                                <DataTrigger Binding="{Binding HasToggle}" Value="True">
+                                                    <Setter Property="Visibility" Value="Visible" />
+                                                </DataTrigger>
+                                            </Style.Triggers>
+                                        </Style>
+                                    </Grid.Style>
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="*" />
+                                        <ColumnDefinition Width="Auto" />
+                                    </Grid.ColumnDefinitions>
+
+                                    <TextBlock
+                                        Grid.Column="0"
+                                        VerticalAlignment="Center"
+                                        FontSize="10"
+                                        Foreground="{DynamicResource GameTextMutedBrush}"
+                                        Text="{Binding Description}"
+                                        TextWrapping="Wrap" />
+
+                                    <CheckBox
+                                        Grid.Column="1"
+                                        Margin="6,0,0,0"
+                                        VerticalAlignment="Center"
+                                        Content="KÍCH HOẠT"
+                                        FontSize="10.5"
+                                        FontWeight="ExtraBold"
+                                        IsChecked="{Binding IsEnabled}"
+                                        Style="{StaticResource GameCheckBoxStyle}" />
+                                </Grid>
+
+                                <!--  Danh sách các Options/Settings con  -->
+                                <ItemsControl ItemsSource="{Binding Settings}">
+                                    <ItemsControl.Style>
+                                        <Style TargetType="ItemsControl">
+                                            <Setter Property="IsEnabled" Value="{Binding IsEnabled}" />
+                                            <Style.Triggers>
+                                                <DataTrigger Binding="{Binding IsEnabled}" Value="False">
+                                                    <Setter Property="Opacity" Value="0.45" />
+                                                </DataTrigger>
+                                            </Style.Triggers>
+                                        </Style>
+                                    </ItemsControl.Style>
+                                    <ItemsControl.ItemTemplate>
+                                        <DataTemplate DataType="{x:Type viewmodels:SettingItemViewModel}">
+                                            <ContentControl Content="{Binding}">
+                                                <ContentControl.Style>
+                                                    <Style TargetType="ContentControl">
+                                                        <Setter Property="ContentTemplate" Value="{StaticResource BooleanSettingTemplate}" />
+                                                        <Style.Triggers>
+                                                            <DataTrigger Binding="{Binding ViewType}" Value="{x:Static models:SettingViewType.Number}">
+                                                                <Setter Property="ContentTemplate" Value="{StaticResource NumberSettingTemplate}" />
+                                                            </DataTrigger>
+                                                            <DataTrigger Binding="{Binding ViewType}" Value="{x:Static models:SettingViewType.Text}">
+                                                                <Setter Property="ContentTemplate" Value="{StaticResource TextSettingTemplate}" />
+                                                            </DataTrigger>
+                                                            <DataTrigger Binding="{Binding ViewType}" Value="{x:Static models:SettingViewType.Select}">
+                                                                <Setter Property="ContentTemplate" Value="{StaticResource SelectSettingTemplate}" />
+                                                            </DataTrigger>
+                                                        </Style.Triggers>
+                                                    </Style>
+                                                </ContentControl.Style>
+                                            </ContentControl>
+                                        </DataTemplate>
+                                    </ItemsControl.ItemTemplate>
+                                </ItemsControl>
+                            </StackPanel>
+                        </ui:GameCard>
+                    </DataTemplate>
+                </ItemsControl.ItemTemplate>
+            </ItemsControl>
+
+            <!--  Nút Lưu Cài Đặt  -->
+            <Button
+                Height="30"
+                MinWidth="130"
+                Margin="0,4,0,10"
+                HorizontalAlignment="Center"
+                Command="{Binding SaveSettingsCommand}"
+                Content="LƯU CÀI ĐẶT"
+                FontSize="11.5"
+                Style="{StaticResource GamePrimaryButton}" />
+        </StackPanel>
+    </ScrollViewer>
+</UserControl>

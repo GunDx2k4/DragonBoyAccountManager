@@ -1,0 +1,872 @@
+<ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+
+    <!--  Primary Game Button  -->
+    <Style x:Key="GamePrimaryButton" TargetType="Button">
+        <Setter Property="Height" Value="28" />
+        <Setter Property="MinWidth" Value="80" />
+        <Setter Property="FontWeight" Value="ExtraBold" />
+        <Setter Property="FontSize" Value="11.5" />
+        <Setter Property="Foreground" Value="{DynamicResource GameBtnTanTextBrush}" />
+        <Setter Property="Cursor" Value="Hand" />
+        <Setter Property="Padding" Value="12,2" />
+        <Setter Property="FocusVisualStyle" Value="{x:Null}" />
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="Button">
+                    <Grid x:Name="rootGrid" SnapsToDevicePixels="True">
+                        <Border
+                            x:Name="outerBorder"
+                            Padding="1.4"
+                            Background="{DynamicResource GameBtnOrangeBorderBrush}"
+                            CornerRadius="7">
+                            <Border
+                                x:Name="innerBorder"
+                                Padding="1"
+                                Background="{DynamicResource GameBtnOrangeInnerTopBrush}"
+                                BorderBrush="{DynamicResource GameBtnOrangeInnerBottomBrush}"
+                                BorderThickness="0,0,0,1.5"
+                                CornerRadius="5.8">
+                                <Grid>
+                                    <Border
+                                        x:Name="faceBase"
+                                        Background="{DynamicResource GameBtnOrangeFaceBottomBrush}"
+                                        CornerRadius="5" />
+                                    <Border
+                                        x:Name="faceGloss"
+                                        Height="9"
+                                        Margin="2,1,2,0"
+                                        VerticalAlignment="Top"
+                                        Background="{DynamicResource GameBtnOrangeFaceTopBrush}"
+                                        CornerRadius="4.5,4.5,3.5,3.5" />
+
+                                    <ContentPresenter
+                                        Margin="{TemplateBinding Padding}"
+                                        HorizontalAlignment="Center"
+                                        VerticalAlignment="Center"
+                                        RecognizesAccessKey="True" />
+                                </Grid>
+                            </Border>
+                        </Border>
+                    </Grid>
+                    <ControlTemplate.Triggers>
+                        <Trigger Property="IsMouseOver" Value="True">
+                            <Setter TargetName="faceBase" Property="Background" Value="{DynamicResource GameBtnOrangeHoverBottomBrush}" />
+                            <Setter TargetName="faceGloss" Property="Background" Value="{DynamicResource GameBtnOrangeHoverTopBrush}" />
+                        </Trigger>
+                        <Trigger Property="IsPressed" Value="True">
+                            <Setter TargetName="outerBorder" Property="Background" Value="{DynamicResource GameBtnGreenBorderBrush}" />
+                            <Setter TargetName="innerBorder" Property="Background" Value="{DynamicResource GameBtnGreenInnerTopBrush}" />
+                            <Setter TargetName="innerBorder" Property="BorderBrush" Value="{DynamicResource GameBtnGreenInnerBottomBrush}" />
+                            <Setter TargetName="faceBase" Property="Background" Value="{DynamicResource GameBtnGreenFaceBottomBrush}" />
+                            <Setter TargetName="faceGloss" Property="Background" Value="{DynamicResource GameBtnGreenFaceTopBrush}" />
+                            <Setter Property="Foreground" Value="{DynamicResource GameBtnSpriteGreenTextBrush}" />
+                            <Setter TargetName="rootGrid" Property="RenderTransform">
+                                <Setter.Value>
+                                    <TranslateTransform Y="0.8" />
+                                </Setter.Value>
+                            </Setter>
+                        </Trigger>
+                        <Trigger Property="IsEnabled" Value="False">
+                            <Setter TargetName="outerBorder" Property="Opacity" Value="0.5" />
+                            <Setter Property="Cursor" Value="No" />
+                        </Trigger>
+                    </ControlTemplate.Triggers>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+
+    <!--  Secondary Game Button  -->
+    <Style x:Key="GameSecondaryButton" TargetType="Button">
+        <Setter Property="Height" Value="28" />
+        <Setter Property="MinWidth" Value="72" />
+        <Setter Property="FontWeight" Value="ExtraBold" />
+        <Setter Property="FontSize" Value="11" />
+        <Setter Property="Foreground" Value="{DynamicResource GameBtnTanTextBrush}" />
+        <Setter Property="Cursor" Value="Hand" />
+        <Setter Property="Padding" Value="10,2" />
+        <Setter Property="FocusVisualStyle" Value="{x:Null}" />
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="Button">
+                    <Grid x:Name="rootGrid" SnapsToDevicePixels="True">
+                        <Border
+                            x:Name="outerBorder"
+                            Padding="1.3"
+                            Background="{DynamicResource GameBtnTanBorderBrush}"
+                            CornerRadius="6">
+                            <Border
+                                x:Name="innerBox"
+                                Background="{DynamicResource GameBtnTanBodyBrush}"
+                                CornerRadius="4.8">
+                                <Grid>
+                                    <Border
+                                        x:Name="highlightStrip"
+                                        Height="6"
+                                        VerticalAlignment="Top"
+                                        Background="{DynamicResource GameBtnTanHighlightBrush}"
+                                        CornerRadius="3.8,3.8,0,0" />
+                                    <ContentPresenter
+                                        Margin="{TemplateBinding Padding}"
+                                        HorizontalAlignment="Center"
+                                        VerticalAlignment="Center"
+                                        RecognizesAccessKey="True" />
+                                </Grid>
+                            </Border>
+                        </Border>
+                    </Grid>
+                    <ControlTemplate.Triggers>
+                        <Trigger Property="IsMouseOver" Value="True">
+                            <Setter TargetName="innerBox" Property="Background" Value="{DynamicResource GameBtnTanHoverBrush}" />
+                        </Trigger>
+                        <Trigger Property="IsPressed" Value="True">
+                            <Setter TargetName="outerBorder" Property="Background" Value="{DynamicResource GameBtnSpriteGreenBorderBrush}" />
+                            <Setter TargetName="innerBox" Property="Background" Value="{DynamicResource GameBtnSpriteGreenBodyBrush}" />
+                            <Setter TargetName="highlightStrip" Property="Background" Value="{DynamicResource GameBtnSpriteGreenHighlightBrush}" />
+                            <Setter Property="Foreground" Value="{DynamicResource GameBtnSpriteGreenTextBrush}" />
+                            <Setter TargetName="rootGrid" Property="RenderTransform">
+                                <Setter.Value>
+                                    <TranslateTransform Y="0.8" />
+                                </Setter.Value>
+                            </Setter>
+                        </Trigger>
+                        <Trigger Property="IsEnabled" Value="False">
+                            <Setter TargetName="outerBorder" Property="Opacity" Value="0.5" />
+                            <Setter Property="Cursor" Value="No" />
+                        </Trigger>
+                    </ControlTemplate.Triggers>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+
+    <!--  Close Button [X]  -->
+    <Style x:Key="GameCloseButton" TargetType="Button">
+        <Setter Property="Width" Value="28" />
+        <Setter Property="Height" Value="28" />
+        <Setter Property="Cursor" Value="Hand" />
+        <Setter Property="FocusVisualStyle" Value="{x:Null}" />
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="Button">
+                    <Border
+                        x:Name="outerBorder"
+                        Width="{TemplateBinding Width}"
+                        Height="{TemplateBinding Height}"
+                        Padding="1.2,1.2,1.2,2.8"
+                        Background="#500008"
+                        CornerRadius="5"
+                        SnapsToDevicePixels="True">
+                        <Border
+                            x:Name="innerFrame"
+                            Padding="1.2"
+                            Background="#FCE9A1"
+                            BorderBrush="#CE4C02"
+                            BorderThickness="0,0,0,1.6"
+                            CornerRadius="3.8">
+                            <Grid x:Name="body">
+                                <Border Background="#EB4C12" CornerRadius="2.5" />
+                                <Border
+                                    Height="7"
+                                    Margin="1,1,1,0"
+                                    VerticalAlignment="Top"
+                                    Background="#F78018"
+                                    CornerRadius="2,2,0,0" />
+                                <Border
+                                    Height="2.5"
+                                    Margin="1,0,1,0.5"
+                                    VerticalAlignment="Bottom"
+                                    Background="#D03D03"
+                                    CornerRadius="0,0,2,2" />
+
+                                <Viewbox
+                                    Width="15.5"
+                                    Height="16.5"
+                                    HorizontalAlignment="Center"
+                                    VerticalAlignment="Center">
+                                    <Canvas Width="27" Height="38">
+                                        <Path
+                                            Canvas.Top="5.4"
+                                            Data="M 2,1 L 8.5,1 L 13.5,8.2 L 18.5,1 L 25,1 L 17.8,15 L 25,29 L 18.5,29 L 13.5,21.8 L 8.5,29 L 2,29 L 9.2,15 Z"
+                                            Fill="#140002"
+                                            Stroke="#140002"
+                                            StrokeEndLineCap="Round"
+                                            StrokeLineJoin="Round"
+                                            StrokeStartLineCap="Round"
+                                            StrokeThickness="6.0" />
+
+                                        <Path
+                                            Canvas.Top="3.6"
+                                            Data="M 2,1 L 8.5,1 L 13.5,8.2 L 18.5,1 L 25,1 L 17.8,15 L 25,29 L 18.5,29 L 13.5,21.8 L 8.5,29 L 2,29 L 9.2,15 Z"
+                                            Fill="#220002"
+                                            Stroke="#220002"
+                                            StrokeEndLineCap="Round"
+                                            StrokeLineJoin="Round"
+                                            StrokeStartLineCap="Round"
+                                            StrokeThickness="4.8" />
+
+                                        <Path
+                                            Canvas.Top="1.8"
+                                            Data="M 2,1 L 8.5,1 L 13.5,8.2 L 18.5,1 L 25,1 L 17.8,15 L 25,29 L 18.5,29 L 13.5,21.8 L 8.5,29 L 2,29 L 9.2,15 Z"
+                                            Fill="#2F0302"
+                                            Stroke="#2F0302"
+                                            StrokeEndLineCap="Round"
+                                            StrokeLineJoin="Round"
+                                            StrokeStartLineCap="Round"
+                                            StrokeThickness="3.6" />
+
+                                        <Path
+                                            Data="M 2,1 L 8.5,1 L 13.5,8.2 L 18.5,1 L 25,1 L 17.8,15 L 25,29 L 18.5,29 L 13.5,21.8 L 8.5,29 L 2,29 L 9.2,15 Z"
+                                            Fill="#390801"
+                                            Stroke="#390801"
+                                            StrokeEndLineCap="Round"
+                                            StrokeLineJoin="Round"
+                                            StrokeStartLineCap="Round"
+                                            StrokeThickness="2.2" />
+
+                                        <Path Data="M 2,1 L 8.5,1 L 13.5,8.2 L 18.5,1 L 25,1 L 17.8,15 L 25,29 L 18.5,29 L 13.5,21.8 L 8.5,29 L 2,29 L 9.2,15 Z" Fill="#FFFFFF" />
+                                    </Canvas>
+                                </Viewbox>
+                            </Grid>
+                        </Border>
+                    </Border>
+                    <ControlTemplate.Triggers>
+                        <Trigger Property="IsMouseOver" Value="True">
+                            <Setter TargetName="outerBorder" Property="Background" Value="#7A000C" />
+                            <Setter TargetName="innerFrame" Property="Background" Value="#FFF2B8" />
+                        </Trigger>
+                        <Trigger Property="IsPressed" Value="True">
+                            <Setter TargetName="outerBorder" Property="Padding" Value="1.2,2.4,1.2,1.6" />
+                            <Setter TargetName="body" Property="RenderTransform">
+                                <Setter.Value>
+                                    <TranslateTransform Y="1.0" />
+                                </Setter.Value>
+                            </Setter>
+                        </Trigger>
+                    </ControlTemplate.Triggers>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+
+    <!--  Minimize Button [_]  -->
+    <Style x:Key="GameMinimizeButton" TargetType="Button">
+        <Setter Property="Width" Value="28" />
+        <Setter Property="Height" Value="28" />
+        <Setter Property="Cursor" Value="Hand" />
+        <Setter Property="FocusVisualStyle" Value="{x:Null}" />
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="Button">
+                    <Border
+                        x:Name="outerBorder"
+                        Width="{TemplateBinding Width}"
+                        Height="{TemplateBinding Height}"
+                        Padding="1.2,1.2,1.2,2.8"
+                        Background="#500008"
+                        CornerRadius="5"
+                        SnapsToDevicePixels="True">
+                        <Border
+                            x:Name="innerFrame"
+                            Padding="1.2"
+                            Background="#FCE9A1"
+                            BorderBrush="#B27F46"
+                            BorderThickness="0,0,0,1.6"
+                            CornerRadius="3.8">
+                            <Grid x:Name="body">
+                                <Border Background="#DCAE72" CornerRadius="2.5" />
+                                <Border
+                                    Height="7"
+                                    Margin="1,1,1,0"
+                                    VerticalAlignment="Top"
+                                    Background="#ECC58D"
+                                    CornerRadius="2,2,0,0" />
+                                <Border
+                                    Height="2.5"
+                                    Margin="1,0,1,0.5"
+                                    VerticalAlignment="Bottom"
+                                    Background="#B88A50"
+                                    CornerRadius="0,0,2,2" />
+
+                                <Viewbox
+                                    Width="15.5"
+                                    Height="16.5"
+                                    HorizontalAlignment="Center"
+                                    VerticalAlignment="Center">
+                                    <Canvas Width="27" Height="38">
+                                        <Path
+                                            Canvas.Top="5.4"
+                                            Data="M 3.5,17 L 23.5,17"
+                                            Stroke="#140002"
+                                            StrokeEndLineCap="Round"
+                                            StrokeStartLineCap="Round"
+                                            StrokeThickness="12.0" />
+
+                                        <Path
+                                            Canvas.Top="3.6"
+                                            Data="M 3.5,17 L 23.5,17"
+                                            Stroke="#250200"
+                                            StrokeEndLineCap="Round"
+                                            StrokeStartLineCap="Round"
+                                            StrokeThickness="11.2" />
+
+                                        <Path
+                                            Canvas.Top="1.8"
+                                            Data="M 3.5,17 L 23.5,17"
+                                            Stroke="#320600"
+                                            StrokeEndLineCap="Round"
+                                            StrokeStartLineCap="Round"
+                                            StrokeThickness="10.5" />
+
+                                        <Path
+                                            Data="M 3.5,17 L 23.5,17"
+                                            Stroke="#390801"
+                                            StrokeEndLineCap="Round"
+                                            StrokeStartLineCap="Round"
+                                            StrokeThickness="9.8" />
+
+                                        <Path
+                                            Data="M 3.5,17 L 23.5,17"
+                                            Stroke="#FFFFFF"
+                                            StrokeEndLineCap="Round"
+                                            StrokeStartLineCap="Round"
+                                            StrokeThickness="6.0" />
+                                    </Canvas>
+                                </Viewbox>
+                            </Grid>
+                        </Border>
+                    </Border>
+                    <ControlTemplate.Triggers>
+                        <Trigger Property="IsMouseOver" Value="True">
+                            <Setter TargetName="outerBorder" Property="Background" Value="#7A000C" />
+                            <Setter TargetName="innerFrame" Property="Background" Value="#FFF2B8" />
+                        </Trigger>
+                        <Trigger Property="IsPressed" Value="True">
+                            <Setter TargetName="outerBorder" Property="Padding" Value="1.2,2.4,1.2,1.6" />
+                            <Setter TargetName="body" Property="RenderTransform">
+                                <Setter.Value>
+                                    <TranslateTransform Y="1.0" />
+                                </Setter.Value>
+                            </Setter>
+                        </Trigger>
+                    </ControlTemplate.Triggers>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+
+    <!--  Radar Minimize Button  -->
+    <Style x:Key="GameRadarMinimizeButton" TargetType="Button">
+        <Setter Property="Width" Value="28" />
+        <Setter Property="Height" Value="28" />
+        <Setter Property="Cursor" Value="Hand" />
+        <Setter Property="FocusVisualStyle" Value="{x:Null}" />
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="Button">
+                    <Border
+                        x:Name="border"
+                        Width="{TemplateBinding Width}"
+                        Height="{TemplateBinding Height}"
+                        Background="{DynamicResource GameCapsulePearlBrush}"
+                        BorderBrush="{DynamicResource GameCapsuleBorderBrush}"
+                        BorderThickness="2"
+                        CornerRadius="14"
+                        SnapsToDevicePixels="True">
+                        <TextBlock
+                            Margin="0,-1,0,0"
+                            HorizontalAlignment="Center"
+                            VerticalAlignment="Center"
+                            FontSize="14"
+                            FontWeight="ExtraBold"
+                            Foreground="{DynamicResource GameTextDarkBrush}"
+                            Text="—" />
+                    </Border>
+                    <ControlTemplate.Triggers>
+                        <Trigger Property="IsMouseOver" Value="True">
+                            <Setter TargetName="border" Property="Background" Value="{DynamicResource GameCapsulePearlHoverBrush}" />
+                            <Setter TargetName="border" Property="BorderBrush" Value="{DynamicResource GameCapsuleBorderDarkBrush}" />
+                        </Trigger>
+                        <Trigger Property="IsPressed" Value="True">
+                            <Setter TargetName="border" Property="Background" Value="{DynamicResource GameCapsulePearlPressedBrush}" />
+                        </Trigger>
+                    </ControlTemplate.Triggers>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+
+    <!--  Mini Action Button  -->
+    <Style x:Key="GameMiniButton" TargetType="Button">
+        <Setter Property="Height" Value="24" />
+        <Setter Property="Padding" Value="7,2" />
+        <Setter Property="Margin" Value="2,0" />
+        <Setter Property="MinWidth" Value="42" />
+        <Setter Property="FontWeight" Value="Bold" />
+        <Setter Property="FontSize" Value="11" />
+        <Setter Property="Cursor" Value="Hand" />
+        <Setter Property="Foreground" Value="{DynamicResource GameBtnTanTextBrush}" />
+        <Setter Property="FocusVisualStyle" Value="{x:Null}" />
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="Button">
+                    <Grid x:Name="rootGrid" SnapsToDevicePixels="True">
+                        <Border
+                            x:Name="outerBorder"
+                            Padding="1.2"
+                            Background="{DynamicResource GameBtnTanBorderBrush}"
+                            CornerRadius="5">
+                            <Border
+                                x:Name="innerBox"
+                                Background="{DynamicResource GameBtnTanBodyBrush}"
+                                CornerRadius="3.8">
+                                <Grid>
+                                    <Border
+                                        x:Name="highlightStrip"
+                                        Height="5"
+                                        VerticalAlignment="Top"
+                                        Background="{DynamicResource GameBtnTanHighlightBrush}"
+                                        CornerRadius="3,3,0,0" />
+                                    <ContentPresenter
+                                        Margin="{TemplateBinding Padding}"
+                                        HorizontalAlignment="Center"
+                                        VerticalAlignment="Center" />
+                                </Grid>
+                            </Border>
+                        </Border>
+                    </Grid>
+                    <ControlTemplate.Triggers>
+                        <Trigger Property="IsMouseOver" Value="True">
+                            <Setter TargetName="innerBox" Property="Background" Value="{DynamicResource GameBtnTanHoverBrush}" />
+                        </Trigger>
+                        <Trigger Property="IsPressed" Value="True">
+                            <Setter TargetName="outerBorder" Property="Background" Value="{DynamicResource GameBtnSpriteGreenBorderBrush}" />
+                            <Setter TargetName="innerBox" Property="Background" Value="{DynamicResource GameBtnSpriteGreenBodyBrush}" />
+                            <Setter TargetName="highlightStrip" Property="Background" Value="{DynamicResource GameBtnSpriteGreenHighlightBrush}" />
+                            <Setter Property="Foreground" Value="{DynamicResource GameBtnSpriteGreenTextBrush}" />
+                            <Setter TargetName="rootGrid" Property="RenderTransform">
+                                <Setter.Value>
+                                    <TranslateTransform Y="0.8" />
+                                </Setter.Value>
+                            </Setter>
+                        </Trigger>
+                        <Trigger Property="IsEnabled" Value="False">
+                            <Setter TargetName="outerBorder" Property="Opacity" Value="0.5" />
+                            <Setter Property="Cursor" Value="No" />
+                        </Trigger>
+                    </ControlTemplate.Triggers>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+
+    <!--  Radar Close Button  -->
+    <Style
+        x:Key="GameRadarCloseButton"
+        BasedOn="{StaticResource GameCloseButton}"
+        TargetType="Button" />
+
+    <!--  Refresh Button  -->
+    <Style x:Key="GameRadarRefreshButton" TargetType="Button">
+        <Setter Property="Width" Value="32" />
+        <Setter Property="Height" Value="32" />
+        <Setter Property="Cursor" Value="Hand" />
+        <Setter Property="FocusVisualStyle" Value="{x:Null}" />
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="Button">
+                    <Grid
+                        x:Name="rootGrid"
+                        Width="{TemplateBinding Width}"
+                        Height="{TemplateBinding Height}"
+                        SnapsToDevicePixels="True">
+                        <Viewbox Stretch="Uniform">
+                            <Grid Width="124" Height="124">
+                                <Border
+                                    x:Name="outerRing"
+                                    Background="#61000E"
+                                    CornerRadius="62" />
+
+                                <Border
+                                    x:Name="metalRing"
+                                    Margin="4"
+                                    Background="#FDF8B0"
+                                    BorderBrush="#D65B0A"
+                                    BorderThickness="0,0,0,3.5"
+                                    CornerRadius="58" />
+
+                                <Grid Margin="7.5">
+                                    <Grid.Clip>
+                                        <EllipseGeometry
+                                            Center="54.5,54.5"
+                                            RadiusX="54.5"
+                                            RadiusY="54.5" />
+                                    </Grid.Clip>
+                                    <Grid x:Name="diskFace" Background="#F1731D">
+                                        <Path
+                                            x:Name="crescent"
+                                            Data="M -5,63.5 Q 54.5,115.5 114,63.5 L 114,115 L -5,115 Z"
+                                            Fill="#BF2405" />
+                                        <Path
+                                            Data="M -5,63.5 Q 54.5,115.5 114,63.5"
+                                            Stroke="#F7841F"
+                                            StrokeThickness="2.5" />
+                                    </Grid>
+                                </Grid>
+
+                                <Canvas Width="124" Height="124">
+                                    <Path
+                                        Canvas.Top="2.5"
+                                        Data="M 37.5,75 L 22,60 L 31,60 C 31,44 44,30 61,30 C 70,30 78,33 81,38 L 74,48 C 70,45 66,44 61,44 C 51,44 44,52 44,60 L 53,60 Z"
+                                        Fill="#D06815" />
+                                    <Path
+                                        x:Name="arrow1"
+                                        Data="M 37.5,75 L 22,60 L 31,60 C 31,44 44,30 61,30 C 70,30 78,33 81,38 L 74,48 C 70,45 66,44 61,44 C 51,44 44,52 44,60 L 53,60 Z"
+                                        Fill="#F1EBD1" />
+
+                                    <Path
+                                        Canvas.Top="2.5"
+                                        Data="M 85.5,48 L 101,63 L 92,63 C 92,79 79,93 62,93 C 53,93 45,90 42,85 L 49,75 C 53,78 57,79 62,79 C 72,79 79,71 79,63 L 70,63 Z"
+                                        Fill="#781603" />
+                                    <Path
+                                        x:Name="arrow2"
+                                        Data="M 85.5,48 L 101,63 L 92,63 C 92,79 79,93 62,93 C 53,93 45,90 42,85 L 49,75 C 53,78 57,79 62,79 C 72,79 79,71 79,63 L 70,63 Z"
+                                        Fill="#F1EBD1" />
+                                </Canvas>
+                            </Grid>
+                        </Viewbox>
+                    </Grid>
+                    <ControlTemplate.Triggers>
+                        <Trigger Property="IsMouseOver" Value="True">
+                            <Setter TargetName="outerRing" Property="Background" Value="#7A0012" />
+                            <Setter TargetName="metalRing" Property="Background" Value="#FFFEC7" />
+                            <Setter TargetName="diskFace" Property="Background" Value="#FF7F24" />
+                            <Setter TargetName="crescent" Property="Fill" Value="#D62B08" />
+                            <Setter TargetName="arrow1" Property="Fill" Value="#FFFFFF" />
+                            <Setter TargetName="arrow2" Property="Fill" Value="#FFFFFF" />
+                        </Trigger>
+                        <Trigger Property="IsPressed" Value="True">
+                            <Setter TargetName="rootGrid" Property="RenderTransform">
+                                <Setter.Value>
+                                    <TranslateTransform Y="0.8" />
+                                </Setter.Value>
+                            </Setter>
+                        </Trigger>
+                    </ControlTemplate.Triggers>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+    <!--  Game Arrow Vector Button (Keyboard Keycap Style)  -->
+    <Style x:Key="GameArrowVectorButtonStyle" TargetType="Button">
+        <Setter Property="Width" Value="34" />
+        <Setter Property="Height" Value="34" />
+        <Setter Property="Cursor" Value="Hand" />
+        <Setter Property="FocusVisualStyle" Value="{x:Null}" />
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="Button">
+                    <Grid x:Name="rootGrid" SnapsToDevicePixels="True">
+                        <Border
+                            x:Name="KeycapOuter"
+                            Padding="1.2"
+                            Background="{DynamicResource GameBorderDarkBrush}"
+                            CornerRadius="6">
+                            <Border
+                                x:Name="KeycapInner"
+                                Padding="0.8"
+                                Background="#FFE8B5"
+                                BorderBrush="#B8863A"
+                                BorderThickness="0,0,0,1.5"
+                                CornerRadius="4.8">
+                                <Grid>
+                                    <Border x:Name="KeycapFace" CornerRadius="4">
+                                        <Border.Background>
+                                            <LinearGradientBrush StartPoint="0,0" EndPoint="0,1">
+                                                <GradientStop Offset="0.0" Color="#FFFDF8" />
+                                                <GradientStop Offset="0.4" Color="#FCF0D2" />
+                                                <GradientStop Offset="1.0" Color="#F5DFA0" />
+                                            </LinearGradientBrush>
+                                        </Border.Background>
+                                    </Border>
+                                    <Border
+                                        x:Name="KeycapGloss"
+                                        Height="4.5"
+                                        Margin="1,0.5,1,0"
+                                        VerticalAlignment="Top"
+                                        Background="#60FFFFFF"
+                                        CornerRadius="3.5,3.5,2,2" />
+
+                                    <ContentPresenter
+                                        x:Name="ContentHost"
+                                        HorizontalAlignment="Center"
+                                        VerticalAlignment="Center" />
+                                </Grid>
+                            </Border>
+                        </Border>
+                    </Grid>
+                    <ControlTemplate.Triggers>
+                        <Trigger Property="IsMouseOver" Value="True">
+                            <Setter TargetName="KeycapOuter" Property="Background" Value="{DynamicResource GameBtnOrangeBorderBrush}" />
+                            <Setter TargetName="KeycapFace" Property="Background">
+                                <Setter.Value>
+                                    <LinearGradientBrush StartPoint="0,0" EndPoint="0,1">
+                                        <GradientStop Offset="0.0" Color="#FFFFFF" />
+                                        <GradientStop Offset="0.4" Color="#FFF2C6" />
+                                        <GradientStop Offset="1.0" Color="#FFE38E" />
+                                    </LinearGradientBrush>
+                                </Setter.Value>
+                            </Setter>
+                            <Setter TargetName="KeycapGloss" Property="Background" Value="#85FFFFFF" />
+                        </Trigger>
+
+                        <Trigger Property="IsPressed" Value="True">
+                            <Setter TargetName="rootGrid" Property="RenderTransform">
+                                <Setter.Value>
+                                    <TranslateTransform Y="0.8" />
+                                </Setter.Value>
+                            </Setter>
+                            <Setter TargetName="KeycapOuter" Property="Background" Value="#351B00" />
+                            <Setter TargetName="KeycapInner" Property="Background" Value="#F2A840" />
+                            <Setter TargetName="KeycapInner" Property="BorderBrush" Value="#94580C" />
+                            <Setter TargetName="KeycapInner" Property="BorderThickness" Value="0,0,0,1.2" />
+                            <Setter TargetName="KeycapFace" Property="Background">
+                                <Setter.Value>
+                                    <LinearGradientBrush StartPoint="0,0" EndPoint="0,1">
+                                        <GradientStop Offset="0.0" Color="#FFB347" />
+                                        <GradientStop Offset="0.6" Color="#F58A1F" />
+                                        <GradientStop Offset="1.0" Color="#E66700" />
+                                    </LinearGradientBrush>
+                                </Setter.Value>
+                            </Setter>
+                            <Setter TargetName="KeycapGloss" Property="Opacity" Value="0.25" />
+                        </Trigger>
+
+                        <Trigger Property="IsEnabled" Value="False">
+                            <Setter Property="Opacity" Value="0.4" />
+                            <Setter Property="Cursor" Value="No" />
+                        </Trigger>
+                    </ControlTemplate.Triggers>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+
+    <!--  Game Enter Button Style  -->
+    <Style x:Key="GameEnterOrbButtonStyle" TargetType="Button">
+        <Setter Property="Width" Value="46" />
+        <Setter Property="Height" Value="46" />
+        <Setter Property="Cursor" Value="Hand" />
+        <Setter Property="FocusVisualStyle" Value="{x:Null}" />
+        <Setter Property="Content" Value="ENTER" />
+        <Setter Property="FontWeight" Value="ExtraBold" />
+        <Setter Property="FontSize" Value="11" />
+        <Setter Property="FontFamily" Value="Segoe UI Black, Impact, Arial Black" />
+        <Setter Property="Foreground" Value="{DynamicResource GameBtnTanTextBrush}" />
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="Button">
+                    <Grid x:Name="rootGrid" SnapsToDevicePixels="True">
+                        <Border
+                            x:Name="outerBorder"
+                            Padding="1.6"
+                            Background="{DynamicResource GameBtnOrangeBorderBrush}"
+                            CornerRadius="23">
+                            <Border
+                                x:Name="innerBorder"
+                                Padding="1.2"
+                                Background="{DynamicResource GameBtnOrangeInnerTopBrush}"
+                                BorderBrush="{DynamicResource GameBtnOrangeInnerBottomBrush}"
+                                BorderThickness="0,0,0,1.8"
+                                CornerRadius="21.4">
+                                <Grid>
+                                    <Border
+                                        x:Name="faceBase"
+                                        Background="{DynamicResource GameBtnOrangeFaceBottomBrush}"
+                                        CornerRadius="20.2" />
+                                    <Border
+                                        x:Name="faceGloss"
+                                        Height="14"
+                                        Margin="4,2,4,0"
+                                        VerticalAlignment="Top"
+                                        Background="{DynamicResource GameBtnOrangeFaceTopBrush}"
+                                        CornerRadius="16,16,10,10" />
+
+                                    <ContentPresenter
+                                        HorizontalAlignment="Center"
+                                        VerticalAlignment="Center"
+                                        RecognizesAccessKey="True" />
+                                </Grid>
+                            </Border>
+                        </Border>
+                    </Grid>
+                    <ControlTemplate.Triggers>
+                        <Trigger Property="IsMouseOver" Value="True">
+                            <Setter TargetName="faceBase" Property="Background" Value="{DynamicResource GameBtnOrangeHoverBottomBrush}" />
+                            <Setter TargetName="faceGloss" Property="Background" Value="{DynamicResource GameBtnOrangeHoverTopBrush}" />
+                        </Trigger>
+                        <Trigger Property="IsPressed" Value="True">
+                            <Setter TargetName="outerBorder" Property="Background" Value="{DynamicResource GameBtnGreenBorderBrush}" />
+                            <Setter TargetName="innerBorder" Property="Background" Value="{DynamicResource GameBtnGreenInnerTopBrush}" />
+                            <Setter TargetName="innerBorder" Property="BorderBrush" Value="{DynamicResource GameBtnGreenInnerBottomBrush}" />
+                            <Setter TargetName="faceBase" Property="Background" Value="{DynamicResource GameBtnGreenFaceBottomBrush}" />
+                            <Setter TargetName="faceGloss" Property="Background" Value="{DynamicResource GameBtnGreenFaceTopBrush}" />
+                            <Setter Property="Foreground" Value="{DynamicResource GameBtnSpriteGreenTextBrush}" />
+                            <Setter TargetName="rootGrid" Property="RenderTransform">
+                                <Setter.Value>
+                                    <TranslateTransform Y="0.8" />
+                                </Setter.Value>
+                            </Setter>
+                        </Trigger>
+                        <Trigger Property="IsEnabled" Value="False">
+                            <Setter TargetName="outerBorder" Property="Opacity" Value="0.5" />
+                            <Setter Property="Cursor" Value="No" />
+                        </Trigger>
+                    </ControlTemplate.Triggers>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+
+    <!-- Danger Button (Red) -->
+    <Style x:Key="GameDangerButton" BasedOn="{StaticResource GameSecondaryButton}" TargetType="Button">
+        <Setter Property="Foreground" Value="#FFEAEA" />
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="Button">
+                    <Grid x:Name="rootGrid" SnapsToDevicePixels="True">
+                        <Border
+                            x:Name="outerBorder"
+                            Padding="1.4"
+                            Background="#7A000C"
+                            CornerRadius="7">
+                            <Border
+                                x:Name="innerBox"
+                                Padding="1"
+                                Background="#D32F2F"
+                                CornerRadius="4.8">
+                                <Grid>
+                                    <Border
+                                        x:Name="highlightStrip"
+                                        Height="6"
+                                        VerticalAlignment="Top"
+                                        Background="#EF5350"
+                                        CornerRadius="3.8,3.8,0,0" />
+                                    <ContentPresenter
+                                        Margin="{TemplateBinding Padding}"
+                                        HorizontalAlignment="Center"
+                                        VerticalAlignment="Center"
+                                        RecognizesAccessKey="True" />
+                                </Grid>
+                            </Border>
+                        </Border>
+                    </Grid>
+                    <ControlTemplate.Triggers>
+                        <Trigger Property="IsMouseOver" Value="True">
+                            <Setter TargetName="innerBox" Property="Background" Value="#E53935" />
+                        </Trigger>
+                        <Trigger Property="IsPressed" Value="True">
+                            <Setter TargetName="rootGrid" Property="RenderTransform">
+                                <Setter.Value>
+                                    <TranslateTransform Y="0.8" />
+                                </Setter.Value>
+                            </Setter>
+                        </Trigger>
+                        <Trigger Property="IsEnabled" Value="False">
+                            <Setter TargetName="outerBorder" Property="Opacity" Value="0.5" />
+                            <Setter Property="Cursor" Value="No" />
+                        </Trigger>
+                    </ControlTemplate.Triggers>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+
+    <!-- Success Button (Green) -->
+    <Style x:Key="GameSuccessButton" BasedOn="{StaticResource GamePrimaryButton}" TargetType="Button">
+        <Setter Property="Foreground" Value="#FFFFFF" />
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="Button">
+                    <Grid x:Name="rootGrid" SnapsToDevicePixels="True">
+                        <Border
+                            x:Name="outerBorder"
+                            Padding="1.4"
+                            Background="#1B5E20"
+                            CornerRadius="7">
+                            <Border
+                                x:Name="innerBox"
+                                Padding="1"
+                                Background="#388E3C"
+                                CornerRadius="4.8">
+                                <Grid>
+                                    <Border
+                                        x:Name="highlightStrip"
+                                        Height="6"
+                                        VerticalAlignment="Top"
+                                        Background="#66BB6A"
+                                        CornerRadius="3.8,3.8,0,0" />
+                                    <ContentPresenter
+                                        Margin="{TemplateBinding Padding}"
+                                        HorizontalAlignment="Center"
+                                        VerticalAlignment="Center"
+                                        RecognizesAccessKey="True" />
+                                </Grid>
+                            </Border>
+                        </Border>
+                    </Grid>
+                    <ControlTemplate.Triggers>
+                        <Trigger Property="IsMouseOver" Value="True">
+                            <Setter TargetName="innerBox" Property="Background" Value="#43A047" />
+                        </Trigger>
+                        <Trigger Property="IsPressed" Value="True">
+                            <Setter TargetName="rootGrid" Property="RenderTransform">
+                                <Setter.Value>
+                                    <TranslateTransform Y="0.8" />
+                                </Setter.Value>
+                            </Setter>
+                        </Trigger>
+                        <Trigger Property="IsEnabled" Value="False">
+                            <Setter TargetName="outerBorder" Property="Opacity" Value="0.5" />
+                            <Setter Property="Cursor" Value="No" />
+                        </Trigger>
+                    </ControlTemplate.Triggers>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+
+    <!-- Ghost Button (Transparent borderless) -->
+    <Style x:Key="GameGhostButton" TargetType="Button">
+        <Setter Property="Cursor" Value="Hand" />
+        <Setter Property="Focusable" Value="False" />
+        <Setter Property="Background" Value="Transparent" />
+        <Setter Property="BorderThickness" Value="0" />
+        <Setter Property="Padding" Value="0" />
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="Button">
+                    <Border
+                        x:Name="border"
+                        Padding="{TemplateBinding Padding}"
+                        Background="Transparent"
+                        CornerRadius="4">
+                        <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center" />
+                    </Border>
+                    <ControlTemplate.Triggers>
+                        <Trigger Property="IsMouseOver" Value="True">
+                            <Setter TargetName="border" Property="Background" Value="#254A2800" />
+                        </Trigger>
+                        <Trigger Property="IsPressed" Value="True">
+                            <Setter TargetName="border" Property="Background" Value="#404A2800" />
+                        </Trigger>
+                        <Trigger Property="IsEnabled" Value="False">
+                            <Setter Property="Opacity" Value="0.5" />
+                        </Trigger>
+                    </ControlTemplate.Triggers>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+
+</ResourceDictionary>

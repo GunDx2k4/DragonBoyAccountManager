@@ -1,0 +1,97 @@
+using System.Diagnostics;
+using DragonBoyAccountManager.Core.Common;
+using DragonBoyAccountManager.Core.Mono;
+
+namespace DragonBoyAccountManager.Core.Game;
+
+public record ResolvedGamePaths(string DataPath, string ManagedPath, string AssemblyPath = "");
+
+public class GameLauncher
+{
+    public static ResolvedGamePaths Validate(string? gamePath)
+    {
+        if (string.IsNullOrWhiteSpace(gamePath))
+            throw new ArgumentException("Game path is empty.");
+
+        if (!File.Exists(gamePath))
+            throw new ArgumentException($"File not found: \"{gamePath}\".");
+
+        if (!Path.GetExtension(gamePath).Equals(".exe", StringComparison.OrdinalIgnoreCase))
+            throw new ArgumentException("Not an executable (.exe).");
+
+        using var validator = new GameClientValidator();
+        var paths = validator.ResolveGamePaths(gamePath);
+
+        if (paths == null)
+        {
+            string exeName = Path.GetFileNameWithoutExtension(gamePath);
+            throw new ArgumentException($"Missing Unity data folder or \"{Constants.Client.AssemblyName}\" under \"{exeName}_Data\".");
+        }
+
+        return paths;
+    }
+
+    public async Task<GameInstance> LaunchAsync(LaunchOptions options, CancellationToken cancellationToken = default)
+    {
+        Validate(options.GamePath);
+
+        string workingDir = options.WorkingDirectory ?? Path.GetDirectoryName(options.GamePath)!;
+        string arguments = options.AdditionalArguments ?? string.Empty;
+
+        if (options.EnableLogging && !string.IsNullOrEmpty(options.LogPrefix))
+        {
+            var logsDir = Path.Combine(workingDir, "Logs");
+            Directory.CreateDirectory(logsDir);
+
+            string safeName = string.Join("_", options.LogPrefix.Split(Path.GetInvalidFileNameChars()));
+            string logFile = Path.Combine(logsDir, $"log_{safeName}_{DateTime.Now:yyyyMMdd_HHmmss}.txt");
+            arguments = $"{arguments} -logfile \"{logFile}\"".Trim();
+        }
+
+        var startInfo = new ProcessStartInfo
+        {
+            FileName = options.GamePath,
+            WorkingDirectory = workingDir,
+            Arguments = arguments,
+            UseShellExecute = true
+        };
+
+        var process = Process.Start(startInfo)
+                      ?? throw new InvalidOperationException("Failed to start game process.");
+
+        WindowsJobManager.AddProcess(process);
+
+        try
+        {
+            var monoContext = await MonoContext.CreateAsync(process, cancellationToken)
+                              ?? throw new InvalidOperationException("Failed to attach Mono runtime.");
+
+            var instance = new GameInstance(process, monoContext);
+
+            // Đợi Assembly-CSharp được nạp vào Mono domain và thêm delay ngắn để các static pointer khởi tạo
+            await instance.Reflector.WaitForAssemblyAsync("Assembly-CSharp", 15000, cancellationToken);
+            await Task.Delay(500, cancellationToken);
+
+            // Bật runInBackground và reset cờ isQuitApp của game ngay khi attach Mono để game không bị pause khi mất focus
+            try
+            {
+                instance.Reflector.CallUnityMethod("UnityEngine", "Application", "set_runInBackground", IntPtr.Zero, true);
+                instance.Reflector.WriteStatic("Main", "isQuitApp", false);
+            }
+            catch { }
+
+            return instance;
+        }
+        catch
+        {
+            if (!process.HasExited)
+            {
+                try { process.Kill(); }
+                catch (Exception ex) when (ex is InvalidOperationException or System.ComponentModel.Win32Exception) { }
+            }
+
+            process.Dispose();
+            throw;
+        }
+    }
+}
