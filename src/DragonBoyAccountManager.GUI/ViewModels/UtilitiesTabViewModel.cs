@@ -521,9 +521,16 @@ public sealed partial class UtilitiesTabViewModel : ObservableObject
     #region Auto Chat Logic
 
     [RelayCommand]
-    private void SetChatDelay(int seconds)
+    private void SetChatDelay(object? parameter)
     {
-        ChatDelaySeconds = Math.Max(1, seconds);
+        if (parameter is int sec)
+        {
+            ChatDelaySeconds = Math.Max(1, sec);
+        }
+        else if (parameter != null && int.TryParse(parameter.ToString(), out int parsed))
+        {
+            ChatDelaySeconds = Math.Max(1, parsed);
+        }
     }
 
     [RelayCommand]
