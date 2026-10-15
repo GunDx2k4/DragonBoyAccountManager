@@ -5,6 +5,7 @@ using CommunityToolkit.Mvvm.Input;
 using DragonBoyAccountManager.Core.Game.Objects;
 using DragonBoyAccountManager.GUI.Models;
 using DragonBoyAccountManager.GUI.Services.GameEngine;
+using DragonBoyAccountManager.GUI.Services.Settings;
 
 namespace DragonBoyAccountManager.GUI.ViewModels;
 
@@ -18,8 +19,18 @@ public sealed record WaypointButtonItem(
 public sealed partial class UtilitiesTabViewModel : ObservableObject
 {
     private readonly IGameEngineService _gameEngine;
+    private readonly ISettingsService _settingsService;
     private readonly DispatcherTimer _refreshTimer;
     private Func<List<Guid>>? _targetResolver;
+
+    [ObservableProperty]
+    private bool _moveByFlying;
+
+    partial void OnMoveByFlyingChanged(bool value)
+    {
+        _settingsService.Current.MoveByFlying = value;
+        _ = _settingsService.SaveAsync();
+    }
 
     [ObservableProperty]
     private AccountItemViewModel? _activeAccount;
@@ -148,9 +159,12 @@ public sealed partial class UtilitiesTabViewModel : ObservableObject
         }
     }
 
-    public UtilitiesTabViewModel(IGameEngineService gameEngine)
+    public UtilitiesTabViewModel(IGameEngineService gameEngine, ISettingsService settingsService)
     {
         _gameEngine = gameEngine;
+        _settingsService = settingsService;
+
+        _moveByFlying = _settingsService.Current.MoveByFlying;
 
         _refreshTimer = new DispatcherTimer
         {
@@ -477,7 +491,7 @@ public sealed partial class UtilitiesTabViewModel : ObservableObject
     }
 
     [RelayCommand]
-    public void MoveToWaypoint(object? parameter)
+    public async Task MoveToWaypoint(object? parameter)
     {
         MapWaypointInfo? wp = null;
         if (parameter is WaypointButtonItem btnItem)
@@ -494,50 +508,64 @@ public sealed partial class UtilitiesTabViewModel : ObservableObject
         var targetIds = GetTargetAccountIds();
         if (targetIds.Count == 0) return;
 
-        int successCount = 0;
-        foreach (var id in targetIds)
-        {
-            if (_gameEngine.MoveToWaypoint(id, wp.X, wp.Y))
-            {
-                successCount++;
-            }
-        }
+        StatusText = $"Đang di chuyển tới {wp.Name}...";
 
-        StatusText = $"Đã di chuyển tới {wp.Name} ({successCount}/{targetIds.Count} acc)";
+        bool isFly = MoveByFlying;
+
+        // Tự động tìm đường A* hoặc bay thẳng tới cổng, sau đó kích hoạt chuyển map
+        var tasks = targetIds.Select(async id =>
+        {
+            await _gameEngine.AutoMoveAsync(id, wp.X, wp.Y, isFly);
+            await Task.Delay(100);
+            _gameEngine.MoveToWaypoint(id, wp.X, wp.Y);
+        });
+
+        await Task.WhenAll(tasks);
+        StatusText = $"Đã chuyển tới {wp.Name} ({targetIds.Count} acc)";
     }
 
     [RelayCommand]
-    public void ClickObject(object? parameter)
+    public async Task ClickObject(object? parameter)
     {
         if (parameter == null) return;
 
         string entityType = string.Empty;
         int entityId = 0;
         string entityName = string.Empty;
+        int targetX = 0;
+        int targetY = 0;
 
         if (parameter is MapMobInfo mob)
         {
             entityType = "mob";
             entityId = mob.Id;
             entityName = mob.Name;
+            targetX = mob.X;
+            targetY = mob.Y;
         }
         else if (parameter is MapBossInfo boss)
         {
             entityType = "boss";
             entityId = boss.Id;
             entityName = boss.Name;
+            targetX = boss.X;
+            targetY = boss.Y;
         }
         else if (parameter is MapPlayerInfo player)
         {
             entityType = "player";
             entityId = player.Id;
             entityName = player.Name;
+            targetX = player.X;
+            targetY = player.Y;
         }
         else if (parameter is MapNpcInfo npc)
         {
             entityType = "npc";
             entityId = npc.Id;
             entityName = npc.Name;
+            targetX = npc.X;
+            targetY = npc.Y;
         }
 
         if (string.IsNullOrEmpty(entityType)) return;
@@ -545,16 +573,22 @@ public sealed partial class UtilitiesTabViewModel : ObservableObject
         var targetIds = GetTargetAccountIds();
         if (targetIds.Count == 0) return;
 
-        int successCount = 0;
-        foreach (var id in targetIds)
-        {
-            if (_gameEngine.FocusOrClickObject(id, entityType, entityId))
-            {
-                successCount++;
-            }
-        }
+        StatusText = $"Đang tiếp cận và chọn {entityName}...";
 
-        StatusText = $"Đã click vào {entityName} ({successCount}/{targetIds.Count} acc)";
+        bool isFly = MoveByFlying;
+
+        // Tự động tìm đường A* hoặc bay thẳng tới gần mục tiêu trước khi chọn
+        var tasks = targetIds.Select(async id =>
+        {
+            if (targetX > 0 && targetY > 0)
+            {
+                await _gameEngine.AutoMoveAsync(id, targetX, targetY, isFly);
+            }
+            _gameEngine.FocusOrClickObject(id, entityType, entityId);
+        });
+
+        await Task.WhenAll(tasks);
+        StatusText = $"Đã chọn {entityName} ({targetIds.Count} acc)";
     }
 
     public void UpdateSyncTargetDisplay()

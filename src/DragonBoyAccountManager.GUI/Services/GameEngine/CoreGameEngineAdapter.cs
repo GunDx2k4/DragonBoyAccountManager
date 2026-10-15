@@ -534,6 +534,16 @@ public sealed class CoreGameEngineAdapter(ISettingsService? settingsService = nu
         return false;
     }
 
+    public async Task<bool> AutoMoveAsync(Guid accountId, int targetX, int targetY, bool isFly = false)
+    {
+        if (_sessions.TryGetValue(accountId, out var session) && session.Instance.IsRunning && session.Instance.MyChar.IsInGame)
+        {
+            var moveAction = new DragonBoyAccountManager.Core.Game.Actions.AutoMoveAction(targetX, targetY, isFly);
+            return await session.Controller.ExecuteAsync(moveAction, cancellationToken: session.Cts.Token);
+        }
+        return false;
+    }
+
     public bool FocusOrClickObject(Guid accountId, string entityType, int entityId)
     {
         if (_sessions.TryGetValue(accountId, out var session) && session.Instance.IsRunning && session.Instance.MyChar.IsInGame)

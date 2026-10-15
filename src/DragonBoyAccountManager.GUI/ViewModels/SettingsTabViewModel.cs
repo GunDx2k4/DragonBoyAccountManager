@@ -50,6 +50,18 @@ public sealed partial class SettingsTabViewModel : ObservableObject
         }
     }
 
+
+    public bool MoveByFlying
+    {
+        get => FindGroup("movement")?.GetBool("MoveByFlying", _settingsService.Current.MoveByFlying) ?? _settingsService.Current.MoveByFlying;
+        set
+        {
+            var item = FindGroup("movement")?.Find("MoveByFlying");
+            if (item != null) item.BoolValue = value;
+            OnPropertyChanged();
+        }
+    }
+
     public SettingsTabViewModel(ISettingsService settingsService, IDialogService dialogService)
     {
         _settingsService = settingsService;
@@ -114,6 +126,19 @@ public sealed partial class SettingsTabViewModel : ObservableObject
                 "Tự động đặt lại kích thước cửa sổ game khi sắp xếp."));
 
         Groups.Add(windowGroup);
+
+        // 3. Nhóm Cấu hình Di chuyển
+        var movementGroup = new SettingGroupViewModel(
+            "movement",
+            "CẤU HÌNH DI CHUYỂN",
+            "Thiết lập cơ chế di chuyển tìm đường thông minh A* hoặc bay thẳng")
+            .Add(SettingItemViewModel.CreateBoolean(
+                "MoveByFlying",
+                "Chế độ bay (Bay trực tiếp đến mục tiêu)",
+                _settingsService.Current.MoveByFlying,
+                "Bỏ qua tìm đường A* và bay thẳng đến tọa độ đích (dành cho nhân vật có thể bay)."));
+
+        Groups.Add(movementGroup);
     }
 
     private void LoadValuesFromSettings()
@@ -144,6 +169,13 @@ public sealed partial class SettingsTabViewModel : ObservableObject
 
             var size = winGroup.Find("WindowSizePreset");
             if (size != null) size.SelectedOption = GetSizePresetDisplay(settings.WindowCustomWidth, settings.WindowCustomHeight);
+        }
+
+        var moveGroup = FindGroup("movement");
+        if (moveGroup != null)
+        {
+            var fly = moveGroup.Find("MoveByFlying");
+            if (fly != null) fly.BoolValue = settings.MoveByFlying;
         }
 
         // Tải các giá trị tuỳ biến của Action trong tương lai
@@ -303,6 +335,12 @@ public sealed partial class SettingsTabViewModel : ObservableObject
             };
             _settingsService.Current.WindowCustomWidth = w;
             _settingsService.Current.WindowCustomHeight = h;
+        }
+
+        var moveGroup = FindGroup("movement");
+        if (moveGroup != null)
+        {
+            _settingsService.Current.MoveByFlying = moveGroup.GetBool("MoveByFlying", _settingsService.Current.MoveByFlying);
         }
 
         // Lưu toàn bộ các cấu hình của các nhóm / action vào CustomValues

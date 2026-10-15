@@ -398,7 +398,7 @@ public class MonoReflector(MonoContext context)
         }
     }
 
-    public int[] ReadMonoIntArray(IntPtr monoArrayPtr)
+    public int[] ReadMonoIntArray(IntPtr monoArrayPtr, int maxElements = 200_000)
     {
         if (monoArrayPtr == IntPtr.Zero) return [];
 
@@ -406,14 +406,14 @@ public class MonoReflector(MonoContext context)
         {
             int ptrSize = _context.Memory.PointerSize;
             int length = _context.Memory.ReadInt(monoArrayPtr + ptrSize * 3);
-            if (length <= 0 || length > 500) return [];
+            if (length <= 0 || length > maxElements) return [];
 
             int elemOffset = ptrSize * 4;
+            byte[] rawBytes = _context.Memory.ReadBytes(monoArrayPtr + elemOffset, length * 4);
+            if (rawBytes.Length < length * 4) return [];
+
             var arr = new int[length];
-            for (int i = 0; i < length; i++)
-            {
-                arr[i] = _context.Memory.ReadInt(monoArrayPtr + elemOffset + i * 4);
-            }
+            Buffer.BlockCopy(rawBytes, 0, arr, 0, rawBytes.Length);
             return arr;
         }
         catch
@@ -628,6 +628,31 @@ public class MonoReflector(MonoContext context)
         {
             foreach (var ptr in tempAllocations)
                 _context.Memory.Free(ptr);
+        }
+    }
+
+    public IntPtr CreateInstance(string className, params object?[]? args)
+    {
+        try
+        {
+            IntPtr classPtr = GetClass(className);
+            if (classPtr == IntPtr.Zero) return IntPtr.Zero;
+
+            IntPtr exportObjNew = _context.GetExport(Constants.MonoExports.ObjectNew);
+            if (exportObjNew == IntPtr.Zero) return IntPtr.Zero;
+
+            IntPtr monoObject = _context.Invoker.Call(exportObjNew, _context.RootDomain, classPtr);
+            if (monoObject == IntPtr.Zero) return IntPtr.Zero;
+
+            if (args != null && args.Length > 0)
+            {
+                CallMethod(className, ".ctor", monoObject, args);
+            }
+            return monoObject;
+        }
+        catch
+        {
+            return IntPtr.Zero;
         }
     }
 

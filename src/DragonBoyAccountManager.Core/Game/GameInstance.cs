@@ -148,6 +148,12 @@ public sealed class GameInstance : IDisposable
         }
     }
 
+    public Task<bool> AutoMoveAsync(int targetX, int targetY, IProgress<string>? progress = null, CancellationToken cancellationToken = default)
+    {
+        var action = new DragonBoyAccountManager.Core.Game.Actions.AutoMoveAction(targetX, targetY);
+        return action.ExecuteAsync(this, progress, cancellationToken);
+    }
+
     public void Kill()
     {
         if (!Process.HasExited)

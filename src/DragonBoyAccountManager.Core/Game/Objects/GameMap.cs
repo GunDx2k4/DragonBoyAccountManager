@@ -10,6 +10,50 @@ public class GameMap(MonoReflector reflector) : GameObject(reflector)
 
     private readonly ConcurrentDictionary<int, string> _mobTemplateCache = new();
     private readonly ConcurrentDictionary<int, string> _npcTemplateCache = new();
+    private int _cachedCollisionMapId = -1;
+    private (int Width, int Height, int[] Types)? _cachedCollisionData;
+
+    public (int Width, int Height, int[] Types)? GetTileMapCollisionData()
+    {
+        try
+        {
+            int tmw = Reflector.ReadStatic<int>("TileMap", "tmw");
+            int tmh = Reflector.ReadStatic<int>("TileMap", "tmh");
+            if (tmw <= 0 || tmh <= 0) return null;
+
+            int mapId = MapId;
+            if (mapId >= 0 && _cachedCollisionMapId == mapId && _cachedCollisionData != null)
+                return _cachedCollisionData;
+
+            IntPtr typesPtr = Reflector.ReadStatic<IntPtr>("TileMap", "types");
+            if (typesPtr == IntPtr.Zero)
+            {
+                typesPtr = Reflector.ReadStatic<IntPtr>("TileMap", "maps");
+            }
+
+            if (typesPtr == IntPtr.Zero) return null;
+
+            int[] types = Reflector.ReadMonoIntArray(typesPtr, 300_000);
+            if (types == null || types.Length == 0) return null;
+
+            if (types.Length < tmw * tmh)
+            {
+                Array.Resize(ref types, tmw * tmh);
+            }
+
+            if (mapId >= 0)
+            {
+                _cachedCollisionMapId = mapId;
+                _cachedCollisionData = (tmw, tmh, types);
+            }
+
+            return (tmw, tmh, types);
+        }
+        catch
+        {
+            return null;
+        }
+    }
 
     public int MapId
     {
@@ -118,6 +162,18 @@ public class GameMap(MonoReflector reflector) : GameObject(reflector)
         catch { }
     }
 
+    public static int GetWaypointX(short minX, short maxX, int pxw)
+    {
+        return maxX < 60 ? 15 :
+               minX > pxw - 60 ? pxw - 15 :
+               minX + ((maxX - minX) / 2);
+    }
+
+    public static int GetWaypointY(short maxY)
+    {
+        return maxY;
+    }
+
     public bool MoveToWaypoint(int targetX, int targetY)
     {
         try
@@ -129,8 +185,19 @@ public class GameMap(MonoReflector reflector) : GameObject(reflector)
             IntPtr vGoPtr = Reflector.ReadStatic<IntPtr>("TileMap", "vGo");
             if (vGoPtr == IntPtr.Zero) return false;
             var wpPointers = Reflector.ReadMyVector(vGoPtr);
+            if (wpPointers.Count == 0) return false;
+
+            int pxw = Reflector.ReadStatic<int>("TileMap", "pxw");
+            if (pxw <= 0)
+            {
+                int tmw = Reflector.ReadStatic<int>("TileMap", "tmw");
+                pxw = (tmw > 0 ? tmw : 100) * 24;
+            }
+
             IntPtr bestWp = IntPtr.Zero;
             int minDistance = int.MaxValue;
+            short bestMinX = 0, bestMinY = 0, bestMaxX = 0, bestMaxY = 0;
+            bool bestIsEnter = false, bestIsOffline = false;
 
             foreach (var wpPtr in wpPointers)
             {
@@ -138,15 +205,23 @@ public class GameMap(MonoReflector reflector) : GameObject(reflector)
                 short minY = Reflector.ReadField<short>("Waypoint", "minY", wpPtr);
                 short maxX = Reflector.ReadField<short>("Waypoint", "maxX", wpPtr);
                 short maxY = Reflector.ReadField<short>("Waypoint", "maxY", wpPtr);
+                bool isEnter = Reflector.ReadField<bool>("Waypoint", "isEnter", wpPtr);
+                bool isOffline = Reflector.ReadField<bool>("Waypoint", "isOffline", wpPtr);
 
-                int x = (minX + maxX) / 2;
-                int y = maxY > minY + 24 ? (minY + maxY) / 2 : maxY;
+                int x = GetWaypointX(minX, maxX, pxw);
+                int y = GetWaypointY(maxY);
 
                 int dist = Math.Abs(x - targetX) + Math.Abs(y - targetY);
                 if (dist < minDistance)
                 {
                     minDistance = dist;
                     bestWp = wpPtr;
+                    bestMinX = minX;
+                    bestMinY = minY;
+                    bestMaxX = maxX;
+                    bestMaxY = maxY;
+                    bestIsEnter = isEnter;
+                    bestIsOffline = isOffline;
                 }
             }
 
@@ -426,6 +501,13 @@ public class GameMap(MonoReflector reflector) : GameObject(reflector)
             IntPtr vGoPtr = Reflector.ReadStatic<IntPtr>("TileMap", "vGo");
             if (vGoPtr != IntPtr.Zero)
             {
+                int pxw = Reflector.ReadStatic<int>("TileMap", "pxw");
+                if (pxw <= 0)
+                {
+                    int tmw = Reflector.ReadStatic<int>("TileMap", "tmw");
+                    pxw = (tmw > 0 ? tmw : 100) * 24;
+                }
+
                 var wpPointers = Reflector.ReadMyVector(vGoPtr);
                 foreach (var wpPtr in wpPointers)
                 {
@@ -454,8 +536,8 @@ public class GameMap(MonoReflector reflector) : GameObject(reflector)
                         name = "Cổng sang map";
                     }
 
-                    int x = (minX + maxX) / 2;
-                    int y = maxY > minY + 24 ? (minY + maxY) / 2 : maxY;
+                    int x = GetWaypointX(minX, maxX, pxw);
+                    int y = GetWaypointY(maxY);
 
                     waypoints.Add(new MapWaypointInfo(name, x, y, minX, minY, maxX, maxY));
                 }

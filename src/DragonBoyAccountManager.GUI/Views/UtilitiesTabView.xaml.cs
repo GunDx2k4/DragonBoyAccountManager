@@ -21,7 +21,7 @@ public partial class UtilitiesTabView : UserControl
 
     private void EntityItem_MouseLeftButtonDown(object sender, System.Windows.Input.MouseButtonEventArgs e)
     {
-        if (e.ClickCount == 2 && sender is System.Windows.FrameworkElement fe && fe.DataContext != null)
+        if (sender is System.Windows.FrameworkElement fe && fe.DataContext != null)
         {
             if (DataContext is UtilitiesTabViewModel vm)
             {
