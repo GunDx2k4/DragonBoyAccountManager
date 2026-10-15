@@ -1,34 +1,27 @@
 # DragonBoy Account Manager (DBAM) - Release Notes
 
-## Phiên bản v1.0.0 (Official Release)
+## 🚀 Phiên bản v1.0.1
 
-Phát hành chính thức phiên bản đầu tiên của **DragonBoy Account Manager (DBAM)** - Công cụ quản lý và tự động hóa đa tài khoản Ngọc Rồng Online (Dragon Boy).
+Bản cập nhật tập trung dọn dẹp hệ thống, tối ưu độ mượt và cải thiện độ ổn định khi treo nhiều tài khoản game.
 
-### Tính năng nổi bật
+### ✨ Chi tiết cập nhật
 
-#### 1. Quản lý tài khoản toàn diện
-- Quản lý danh sách tài khoản theo server, nhóm và trạng thái.
-- Đăng nhập tự động, ghi nhớ thông tin và phiên đăng nhập.
-- Tab Tài khoản & Tiện ích đồng bộ đầy đủ các tác vụ nhanh:
-  - Nút chuyển khu nhanh: `<` (Khu trước) và `>` (Khu sau).
-  - Phím tắt hành động nhanh: **Capsule [C]**, **Tự động luyện tập [X]**.
-  - **Skill Hotbar**: Hiển thị bảng kỹ năng trực quan, kích hoạt skill trực tiếp từ giao diện quản lý tài khoản.
+- **Di chuyển thông minh & mượt mà hơn**:
+  - Tối ưu thuật toán tự động tìm đường (A*), di chuyển chính xác theo địa hình, không bị khựng hay gửi lệnh trùng lặp lên máy chủ.
+- **Phản hồi điều khiển nhanh hơn**:
+  - Tối ưu cơ chế chỉnh tốc độ game (TimeScale) và thay đổi kích thước cửa sổ game, nhận lệnh mượt mà và tức thì.
+- **Nâng cấp tính năng Tự động cập nhật**:
+  - Kiểm tra và tải bản cập nhật mới nhanh, ổn định hơn, tự động kiểm tra an toàn trước khi thay thế tệp.
+- **Giao diện & Cài đặt tinh gọn**:
+  - Dọn dẹp các mục cài đặt cũ, lưu cấu hình nhanh chóng.
+  - Bỏ các thành phần dư thừa giúp tool nhẹ hơn, giảm chiếm dụng bộ nhớ khi chạy lâu dài.
 
-#### 2. Kiểm tra tính toàn vẹn Game Client (Version & SHA256)
-- Tự động nhận diện thư mục game và file `Assembly-CSharp.dll` trong `Data\Managed`.
-- Đối chiếu độc lập cả **Phiên bản (Version)** và **Mã băm SHA256**:
-  - Nhận diện bản gốc chính thức, bản mod hoặc phiên bản cũ cần cập nhật.
-  - Tự động quét `FileVersionInfo` và cấu trúc tên thư mục/tệp để nhận diện phiên bản.
-  - Cảnh báo trực quan qua badge màu sắc và tooltip chi tiết (đường dẫn, kích thước, SHA256 thực tế & mong muốn).
+---
 
-#### 3. Hệ thống Cập nhật Tự động (Auto-Updater Kép)
-- Kiểm tra cập nhật ứng dụng DBAM trực tiếp từ GitHub Releases.
-- Cơ chế đối chiếu kép: Kiểm tra cả **Số phiên bản (Version)** và **Mã SHA (Git Commit SHA & SHA256)**:
-  - Hỗ trợ phát hiện các bản vá hotfix / commit mới ngay cả khi cùng phiên bản.
-  - Tự động tải và xác thực tính toàn vẹn của file thực thi trước khi cập nhật.
+## 📌 Phiên bản v1.0.0 (Official Release)
 
-#### 4. Đóng gói & Phát hành Single-File Executable
-- Cung cấp 2 phiên bản độc lập:
-  - **DragonBoyAccountManager-GUI.exe**: Giao diện đồ họa hiện đại WPF (Material Design).
-  - **DragonBoyAccountManager-CLI.exe**: Giao diện dòng lệnh console gọn nhẹ.
-- Đi kèm file kiểm tra tính toàn vẹn: `checksums.txt`, `DragonBoyAccountManager-GUI.exe.sha256`, `DragonBoyAccountManager-CLI.exe.sha256`.
+Phát hành chính thức phiên bản đầu tiên của **DragonBoy Account Manager (DBAM)**:
+- Quản lý danh sách tài khoản theo máy chủ, tự động đăng nhập, điều khiển nhân vật.
+- Kiểm tra tính toàn vẹn client game (phiên bản và mã băm SHA256).
+- Tự động cập nhật trực tiếp qua GitHub Releases.
+- Hỗ trợ cả giao diện đồ họa (GUI) và dòng lệnh (CLI).

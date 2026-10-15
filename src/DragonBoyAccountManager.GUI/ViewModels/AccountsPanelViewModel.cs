@@ -38,12 +38,6 @@ public sealed partial class AccountsPanelViewModel : ObservableObject
 
     private bool _isUpdatingSelection;
 
-    public bool IsAllAccountsSelected
-    {
-        get => IsAllSelected;
-        set => IsAllSelected = value;
-    }
-
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(IsMasked))]
     private bool _isHideAccounts;

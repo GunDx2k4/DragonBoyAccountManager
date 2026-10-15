@@ -346,22 +346,4 @@ public static class TileAStarFinder
         int dy = Math.Abs(y1 - y2);
         return dx + dy;
     }
-
-    public static void SendCharMove(DragonBoyAccountManager.Core.Game.GameInstance instance)
-    {
-        try
-        {
-            IntPtr service = instance.Reflector.CallMethod("Service", "gI", IntPtr.Zero);
-            if (service == IntPtr.Zero)
-            {
-                service = instance.Reflector.ReadStatic<IntPtr>("Service", "instance");
-            }
-
-            if (service != IntPtr.Zero)
-            {
-                instance.Reflector.CallMethod("Service", "charMove", service);
-            }
-        }
-        catch { }
-    }
 }

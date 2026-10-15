@@ -1,53 +1,10 @@
-using System;
 using DragonBoyAccountManager.Core.Mono;
 
 namespace DragonBoyAccountManager.Core.Game;
 
-public class GameResolution
+public class GameResolution(MonoReflector reflector)
 {
-    private readonly MonoReflector _reflector;
-    private readonly MonoContext _context;
-    private IntPtr _screenClass = IntPtr.Zero;
-    private IntPtr _setResolutionMethod = IntPtr.Zero;
-    private IntPtr _getWidthMethod = IntPtr.Zero;
-    private IntPtr _getHeightMethod = IntPtr.Zero;
-
-    public GameResolution(MonoReflector reflector)
-    {
-        _reflector = reflector;
-        _context = reflector.Context;
-    }
-
-    private bool EnsureInitialized()
-    {
-        if (_screenClass != IntPtr.Zero && _setResolutionMethod != IntPtr.Zero)
-            return true;
-
-        _screenClass = _reflector.GetClass("Screen", "UnityEngine", "UnityEngine");
-        if (_screenClass == IntPtr.Zero)
-            _screenClass = _reflector.GetClass("Screen", "UnityEngine", "UnityEngine.dll");
-        if (_screenClass == IntPtr.Zero)
-            _screenClass = _reflector.GetClass("Screen", "UnityEngine", "UnityEngine.CoreModule");
-        if (_screenClass == IntPtr.Zero)
-            _screenClass = _reflector.GetClass("Screen", "UnityEngine", "UnityEngine.CoreModule.dll");
-
-        if (_screenClass != IntPtr.Zero)
-        {
-            _setResolutionMethod = _reflector.ResolveMethod("Screen", "SetResolution", 3, "UnityEngine", "UnityEngine");
-            if (_setResolutionMethod == IntPtr.Zero)
-                _setResolutionMethod = _reflector.ResolveMethod("Screen", "SetResolution", 3, "UnityEngine", "UnityEngine.CoreModule");
-
-            _getWidthMethod = _reflector.ResolveMethod("Screen", "get_width", 0, "UnityEngine", "UnityEngine");
-            if (_getWidthMethod == IntPtr.Zero)
-                _getWidthMethod = _reflector.ResolveMethod("Screen", "get_width", 0, "UnityEngine", "UnityEngine.CoreModule");
-
-            _getHeightMethod = _reflector.ResolveMethod("Screen", "get_height", 0, "UnityEngine", "UnityEngine");
-            if (_getHeightMethod == IntPtr.Zero)
-                _getHeightMethod = _reflector.ResolveMethod("Screen", "get_height", 0, "UnityEngine", "UnityEngine.CoreModule");
-        }
-
-        return _screenClass != IntPtr.Zero && _setResolutionMethod != IntPtr.Zero;
-    }
+    private readonly MonoReflector _reflector = reflector;
 
     public bool SetResolution(int width, int height, bool fullscreen = false)
     {
@@ -78,17 +35,14 @@ public class GameResolution
 
     public (int Width, int Height) GetResolution()
     {
-        if (!EnsureInitialized() || _getWidthMethod == IntPtr.Zero || _getHeightMethod == IntPtr.Zero)
-            return (0, 0);
-
         try
         {
-            IntPtr wBoxed = _reflector.InvokeMethod(_getWidthMethod, IntPtr.Zero);
-            IntPtr hBoxed = _reflector.InvokeMethod(_getHeightMethod, IntPtr.Zero);
+            IntPtr wBoxed = _reflector.CallUnityMethod("UnityEngine", "Screen", "get_width", IntPtr.Zero);
+            IntPtr hBoxed = _reflector.CallUnityMethod("UnityEngine", "Screen", "get_height", IntPtr.Zero);
 
-            int ptrSize = _context.Memory.PointerSize;
-            int w = wBoxed != IntPtr.Zero ? _context.Memory.Read<int>(wBoxed + ptrSize * 2) : 0;
-            int h = hBoxed != IntPtr.Zero ? _context.Memory.Read<int>(hBoxed + ptrSize * 2) : 0;
+            int ptrSize = _reflector.Context.Memory.PointerSize;
+            int w = wBoxed != IntPtr.Zero ? _reflector.Context.Memory.Read<int>(wBoxed + ptrSize * 2) : 0;
+            int h = hBoxed != IntPtr.Zero ? _reflector.Context.Memory.Read<int>(hBoxed + ptrSize * 2) : 0;
             return (w, h);
         }
         catch

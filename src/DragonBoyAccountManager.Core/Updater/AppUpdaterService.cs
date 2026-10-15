@@ -15,83 +15,26 @@ public sealed class AppUpdaterService : IAppUpdaterService
         DefaultRequestHeaders = { { "User-Agent", "DragonBoyAccountManager-Updater" } }
     };
 
-    /// <summary>
-    /// Dọn dẹp file .old từ lần cập nhật trước (nếu có).
-    /// </summary>
     public void CleanUpOld()
     {
-        CleanUpOldInternal();
+        string currentExe = Environment.ProcessPath ?? "";
+        if (string.IsNullOrEmpty(currentExe)) return;
+
+        string oldExe = currentExe + ".old";
+        if (File.Exists(oldExe))
+        {
+            try
+            {
+                File.Delete(oldExe);
+            }
+            catch (Exception ex)
+            {
+                Debug.WriteLine($"[AppUpdater] Không thể xóa file cũ {oldExe}: {ex.Message}");
+            }
+        }
     }
 
-    /// <summary>
-    /// Lấy mã Git commit SHA của phiên bản hiện tại.
-    /// </summary>
     public string GetCurrentCommitSha()
-    {
-        return GetCurrentCommitShaInternal();
-    }
-
-    /// <summary>
-    /// Lấy mã SHA256 của file thực thi hiện tại.
-    /// </summary>
-    public string GetCurrentExeSha256()
-    {
-        return GetCurrentExeSha256Internal();
-    }
-
-    /// <summary>
-    /// Kiểm tra phiên bản mới từ GitHub Release. Trả về AppUpdateInfo nếu có bản mới, ngược lại null.
-    /// </summary>
-    public Task<AppUpdateInfo?> CheckForUpdatesAsync(
-        string repo = "GunDx2k4/DragonBoyAccountManager",
-        Version? currentVersion = null,
-        string? assetKeyword = "GUI",
-        CancellationToken ct = default)
-    {
-        return CheckAsyncInternal(repo, currentVersion, assetKeyword, ct);
-    }
-
-    /// <summary>
-    /// Tải file exe mới, xác thực SHA256, hoán đổi file và khởi động lại ứng dụng.
-    /// </summary>
-    public Task ApplyUpdateAsync(
-        AppUpdateInfo update,
-        IProgress<double>? progress = null,
-        CancellationToken ct = default)
-    {
-        return ApplyAsyncInternal(update, progress, ct);
-    }
-
-    #region Static Helper Methods
-
-    public static void CleanUpOldStatic() => CleanUpOldInternal();
-
-    public static string GetCurrentCommitShaStatic() => GetCurrentCommitShaInternal();
-
-    public static string GetCurrentExeSha256Static() => GetCurrentExeSha256Internal();
-
-    public static Task<AppUpdateInfo?> CheckAsync(
-        string repo = "GunDx2k4/DragonBoyAccountManager",
-        Version? currentVersion = null,
-        string? assetKeyword = "GUI",
-        CancellationToken ct = default)
-    {
-        return CheckAsyncInternal(repo, currentVersion, assetKeyword, ct);
-    }
-
-    public static Task ApplyAsync(
-        AppUpdateInfo update,
-        IProgress<double>? progress = null,
-        CancellationToken ct = default)
-    {
-        return ApplyAsyncInternal(update, progress, ct);
-    }
-
-    #endregion
-
-    #region Core Logic
-
-    private static string GetCurrentCommitShaInternal()
     {
         try
         {
@@ -114,7 +57,7 @@ public sealed class AppUpdaterService : IAppUpdaterService
         return string.Empty;
     }
 
-    private static string GetCurrentExeSha256Internal()
+    public string GetCurrentExeSha256()
     {
         string currentExe = Environment.ProcessPath ?? "";
         if (!string.IsNullOrEmpty(currentExe) && File.Exists(currentExe))
@@ -133,38 +76,19 @@ public sealed class AppUpdaterService : IAppUpdaterService
         return string.Empty;
     }
 
-    private static void CleanUpOldInternal()
+    public async Task<AppUpdateInfo?> CheckForUpdatesAsync(
+        string repo = "GunDx2k4/DragonBoyAccountManager",
+        Version? currentVersion = null,
+        string? assetKeyword = "GUI",
+        CancellationToken ct = default)
     {
-        string currentExe = Environment.ProcessPath ?? "";
-        if (string.IsNullOrEmpty(currentExe)) return;
-
-        string oldExe = currentExe + ".old";
-        if (File.Exists(oldExe))
-        {
-            try
-            {
-                File.Delete(oldExe);
-            }
-            catch (Exception ex)
-            {
-                Debug.WriteLine($"[AppUpdater] Không thể xóa file cũ {oldExe}: {ex.Message}");
-            }
-        }
-    }
-
-    private static async Task<AppUpdateInfo?> CheckAsyncInternal(
-        string repo,
-        Version? currentVersion,
-        string? assetKeyword,
-        CancellationToken ct)
-    {
-        CleanUpOldInternal();
+        CleanUpOld();
 
         currentVersion ??= Assembly.GetEntryAssembly()?.GetName().Version
                         ?? Assembly.GetExecutingAssembly().GetName().Version;
 
-        string localCommitSha = GetCurrentCommitShaInternal();
-        string localExeSha = GetCurrentExeSha256Internal();
+        string localCommitSha = GetCurrentCommitSha();
+        string localExeSha = GetCurrentExeSha256();
 
         string url = $"https://api.github.com/repos/{repo}/releases/latest";
         using var request = new HttpRequestMessage(HttpMethod.Get, url);
@@ -356,10 +280,10 @@ public sealed class AppUpdaterService : IAppUpdaterService
         return new AppUpdateInfo(tag, notes, downloadUrl, sizeBytes, assetName, remoteSha256, remoteCommitSha, isShaUpdateOnly);
     }
 
-    private static async Task ApplyAsyncInternal(
+    public async Task ApplyUpdateAsync(
         AppUpdateInfo update,
-        IProgress<double>? progress,
-        CancellationToken ct)
+        IProgress<double>? progress = null,
+        CancellationToken ct = default)
     {
         string currentExe = Environment.ProcessPath ?? "";
         if (string.IsNullOrEmpty(currentExe) || !File.Exists(currentExe))
@@ -447,6 +371,4 @@ public sealed class AppUpdaterService : IAppUpdaterService
             throw;
         }
     }
-
-    #endregion
 }

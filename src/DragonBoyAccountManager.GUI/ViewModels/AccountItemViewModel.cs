@@ -1,5 +1,6 @@
 using CommunityToolkit.Mvvm.ComponentModel;
 
+using DragonBoyAccountManager.GUI.Helpers;
 using DragonBoyAccountManager.GUI.Models;
 
 namespace DragonBoyAccountManager.GUI.ViewModels;
@@ -111,9 +112,9 @@ public sealed partial class AccountItemViewModel : ObservableObject
         _gameSpeed = model.GameSpeed;
     }
 
-    public string DisplayUsername => IsMasked ? DragonBoyAccountManager.GUI.Helpers.TextMaskHelper.MaskText(Username) : Username;
+    public string DisplayUsername => IsMasked ? TextMaskHelper.MaskText(Username) : Username;
 
-    public string DisplayCharacterName => IsMasked ? DragonBoyAccountManager.GUI.Helpers.TextMaskHelper.MaskText(CharacterName) : (CharacterName ?? string.Empty);
+    public string DisplayCharacterName => IsMasked ? TextMaskHelper.MaskText(CharacterName) : (CharacterName ?? string.Empty);
 
     public string StatusDisplayName
     {

@@ -4,8 +4,6 @@ using DragonBoyAccountManager.Core.Mono;
 
 namespace DragonBoyAccountManager.Core.Game;
 
-public record ResolvedGamePaths(string DataPath, string ManagedPath, string AssemblyPath = "");
-
 public class GameLauncher
 {
     public static ResolvedGamePaths Validate(string? gamePath)

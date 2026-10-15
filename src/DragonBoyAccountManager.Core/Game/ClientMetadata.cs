@@ -3,6 +3,8 @@ using System.IO;
 
 namespace DragonBoyAccountManager.Core.Game;
 
+public record ResolvedGamePaths(string DataPath, string ManagedPath, string AssemblyPath = "");
+
 public sealed class ClientMetadata
 {
     public string? GamePath { get; set; }

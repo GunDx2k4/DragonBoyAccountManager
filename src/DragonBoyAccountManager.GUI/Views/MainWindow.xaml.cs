@@ -202,9 +202,4 @@ public partial class MainWindow : Window
         }
         catch { }
     }
-
-    private void UtilitiesTabView_Loaded(object sender)
-    {
-
-    }
 }

@@ -7,7 +7,7 @@
 [![.NET 10](https://img.shields.io/badge/.NET-10.0-512BD4?logo=dotnet&logoColor=white)](https://dotnet.microsoft.com/)
 [![Platform](https://img.shields.io/badge/Platform-Windows%20x64-0078D6?logo=windows&logoColor=white)](https://github.com/)
 [![License: GPL-3.0](https://img.shields.io/badge/License-GPL--3.0-blue.svg)](LICENSE)
-[![GitHub Release](https://img.shields.io/badge/Release-v1.0.0-green.svg)](https://github.com/)
+[![GitHub Release](https://img.shields.io/badge/Release-v1.0.1-green.svg)](https://github.com/)
 
 ---
 

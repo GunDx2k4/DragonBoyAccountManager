@@ -16,52 +16,6 @@ public sealed partial class SettingsTabViewModel : ObservableObject
 
     public ObservableCollection<SettingGroupViewModel> Groups { get; } = [];
 
-    // Tương thích ngược với các thuộc tính cũ
-    public bool AutoReconnect
-    {
-        get => FindGroup("network")?.GetBool("AutoReconnect", _settingsService.Current.AutoReconnect) ?? _settingsService.Current.AutoReconnect;
-        set
-        {
-            var item = FindGroup("network")?.Find("AutoReconnect");
-            if (item != null) item.BoolValue = value;
-            OnPropertyChanged();
-        }
-    }
-
-    public int ReconnectDelaySeconds
-    {
-        get => FindGroup("network")?.GetInt("ReconnectDelaySeconds", _settingsService.Current.ReconnectDelaySeconds) ?? _settingsService.Current.ReconnectDelaySeconds;
-        set
-        {
-            var item = FindGroup("network")?.Find("ReconnectDelaySeconds");
-            if (item != null) item.NumberValue = value;
-            OnPropertyChanged();
-        }
-    }
-
-    public bool AutoArrangeWindows
-    {
-        get => FindGroup("window")?.GetBool("AutoArrangeWindows", _settingsService.Current.AutoArrangeWindows) ?? _settingsService.Current.AutoArrangeWindows;
-        set
-        {
-            var item = FindGroup("window")?.Find("AutoArrangeWindows");
-            if (item != null) item.BoolValue = value;
-            OnPropertyChanged();
-        }
-    }
-
-
-    public bool MoveByFlying
-    {
-        get => FindGroup("movement")?.GetBool("MoveByFlying", _settingsService.Current.MoveByFlying) ?? _settingsService.Current.MoveByFlying;
-        set
-        {
-            var item = FindGroup("movement")?.Find("MoveByFlying");
-            if (item != null) item.BoolValue = value;
-            OnPropertyChanged();
-        }
-    }
-
     public SettingsTabViewModel(ISettingsService settingsService, IDialogService dialogService)
     {
         _settingsService = settingsService;

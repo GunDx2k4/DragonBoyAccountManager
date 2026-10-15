@@ -26,7 +26,7 @@ public static class ProcessHelper
     {
         int ptrSize = is64Bit ? Constants.PointerSize64 : Constants.PointerSize32;
 
-        IntPtr[] moduleHandles = Array.Empty<IntPtr>();
+        IntPtr[] moduleHandles = [];
 
         if (!Native.EnumProcessModulesEx(handle, moduleHandles, 0, out int bytesNeeded, ModuleFilter.LIST_MODULES_ALL))
             return IntPtr.Zero;
@@ -58,7 +58,7 @@ public static class ProcessHelper
     public static IntPtr FindAnyMonoModule(IntPtr handle, bool is64Bit)
     {
         int ptrSize = is64Bit ? Constants.PointerSize64 : Constants.PointerSize32;
-        IntPtr[] moduleHandles = Array.Empty<IntPtr>();
+        IntPtr[] moduleHandles = [];
 
         if (!Native.EnumProcessModulesEx(handle, moduleHandles, 0, out int bytesNeeded, ModuleFilter.LIST_MODULES_ALL))
             return IntPtr.Zero;
