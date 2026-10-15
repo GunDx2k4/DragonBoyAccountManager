@@ -36,11 +36,11 @@ public sealed class DialogService : IDialogService
         });
     }
 
-    public bool ShowConfirmation(string title, string message)
+    public bool ShowConfirmation(string title, string message, string yesText = "Đồng ý", string noText = "Hủy")
     {
         return RunOnUi(() =>
         {
-            return GameDialogWindow.ShowConfirm(GetActiveWindow(), title, message, yesText: "Đồng ý", noText: "Hủy");
+            return GameDialogWindow.ShowConfirm(GetActiveWindow(), title, message, yesText: yesText, noText: noText);
         });
     }
 

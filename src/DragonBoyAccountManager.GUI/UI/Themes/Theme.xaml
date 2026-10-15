@@ -1,4 +1,7 @@
-﻿<ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+<ResourceDictionary
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:converters="clr-namespace:DragonBoyAccountManager.GUI.UI.Converters">
     <ResourceDictionary.MergedDictionaries>
         <ResourceDictionary Source="pack://application:,,,/DragonBoyAccountManager.GUI;component/UI/Themes/Colors.xaml" />
         <ResourceDictionary Source="pack://application:,,,/DragonBoyAccountManager.GUI;component/UI/Themes/Buttons.xaml" />
@@ -7,6 +10,8 @@
         <ResourceDictionary Source="pack://application:,,,/DragonBoyAccountManager.GUI;component/UI/Themes/Dialogs.xaml" />
         <ResourceDictionary Source="pack://application:,,,/DragonBoyAccountManager.GUI;component/UI/Themes/Generic.xaml" />
     </ResourceDictionary.MergedDictionaries>
+
+    <converters:BooleanToVisibilityConverter x:Key="BooleanToVisibilityConverter" />
 
     <FontFamily x:Key="GameFont">pack://application:,,,/DragonBoyAccountManager.GUI;component/Assets/Fonts/#Barmeno-ExtraBold, Segoe UI, Tahoma</FontFamily>
     <FontFamily x:Key="GameFontRegular">pack://application:,,,/DragonBoyAccountManager.GUI;component/Assets/Fonts/#UTM Nokia Standard, Segoe UI, Tahoma</FontFamily>

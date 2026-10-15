@@ -184,7 +184,27 @@
                                                             </TabItem>
 
                                                             <!-- TAB 4: HƯỚNG DẪN & THÔNG TIN PHIÊN BẢN -->
-                                                            <TabItem Header="HƯỚNG DẪN" Style="{StaticResource GameTabItemStyle}">
+                                                            <TabItem Style="{StaticResource GameTabItemStyle}">
+                                                                <TabItem.Header>
+                                                                    <StackPanel VerticalAlignment="Center" Orientation="Horizontal">
+                                                                        <TextBlock VerticalAlignment="Center" Text="HƯỚNG DẪN" />
+                                                                        <Border
+                                                                            Margin="5,0,0,0"
+                                                                            Padding="4,1"
+                                                                            VerticalAlignment="Center"
+                                                                            Background="#DC2626"
+                                                                            BorderBrush="#B91C1C"
+                                                                            BorderThickness="1"
+                                                                            CornerRadius="4"
+                                                                            Visibility="{Binding Guide.HasAppUpdate, Converter={StaticResource BooleanToVisibilityConverter}}">
+                                                                            <TextBlock
+                                                                                FontSize="8.5"
+                                                                                FontWeight="ExtraBold"
+                                                                                Foreground="#FFFFFF"
+                                                                                Text="MỚI" />
+                                                                        </Border>
+                                                                    </StackPanel>
+                                                                </TabItem.Header>
                                                                 <views:GuideTabView DataContext="{Binding Guide}" />
                                                             </TabItem>
                                                         </TabControl>

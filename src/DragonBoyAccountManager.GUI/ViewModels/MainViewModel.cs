@@ -148,6 +148,20 @@ public sealed partial class MainViewModel : ObservableObject
             Guide.CheckAssemblyStatus();
         };
 
+        // Navigate to Guide tab when update is applied from startup dialog
+        Guide.OnRequestNavigateToGuide += () =>
+        {
+            SelectedTabIndex = 3;
+        };
+
+        Guide.PropertyChanged += (_, e) =>
+        {
+            if (e.PropertyName == nameof(GuideViewModel.HasAppUpdate) && Guide.HasAppUpdate && Guide.AvailableAppUpdate != null)
+            {
+                StatusBar.StatusMessage = $"★ Đã có bản cập nhật mới v{Guide.AvailableAppUpdate.Version}! Vào tab Hướng dẫn để xem chi tiết.";
+            }
+        };
+
         // Sync hide account status across list and form
         AccountsPanel.PropertyChanged += (_, e) =>
         {

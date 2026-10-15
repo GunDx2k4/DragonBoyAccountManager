@@ -25,6 +25,13 @@ public interface IAppUpdaterService
         CancellationToken ct = default);
 
     /// <summary>
+    /// Lấy nội dung ghi chú phát hành (release notes) của phiên bản mới nhất từ GitHub Release.
+    /// </summary>
+    Task<string?> GetLatestReleaseNotesAsync(
+        string repo = "GunDx2k4/DragonBoyAccountManager",
+        CancellationToken ct = default);
+
+    /// <summary>
     /// Lấy mã Git commit SHA của phiên bản hiện tại.
     /// </summary>
     string GetCurrentCommitSha();

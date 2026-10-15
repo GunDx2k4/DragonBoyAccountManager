@@ -69,7 +69,12 @@ public sealed partial class GuideViewModel : ObservableObject
     [ObservableProperty]
     private string _appUpdateStatusText = string.Empty;
 
+    [ObservableProperty]
+    private string _releaseNotes = string.Empty;
+
     public bool CanApplyUpdate => HasAppUpdate && !IsUpdatingApp;
+
+    public event Action? OnRequestNavigateToGuide;
 
     private Dictionary<string, string>? _versionChecksums;
 
@@ -87,26 +92,109 @@ public sealed partial class GuideViewModel : ObservableObject
         var version = System.Reflection.Assembly.GetExecutingAssembly().GetName().Version;
         _appVersion = version != null ? $"{version.Major}.{version.Minor}.{version.Build}" : "1.0.0";
 
+        _releaseNotes = LoadReleaseNotes();
         CheckAssemblyStatus();
         _ = LoadSha256ChecksumsAsync();
-        _ = CheckAppUpdateSilentlyAsync();
+        _ = CheckAppUpdateOnStartupAsync();
     }
 
-    public async Task CheckAppUpdateSilentlyAsync()
+    public string LoadReleaseNotes()
     {
         try
         {
+            // 1. Thử đọc từ tệp RELEASE_NOTES.md ở thư mục chạy hoặc các thư mục cha
+            string baseDir = AppDomain.CurrentDomain.BaseDirectory;
+            string[] searchPaths =
+            [
+                Path.Combine(baseDir, "RELEASE_NOTES.md"),
+                Path.Combine(baseDir, "..", "RELEASE_NOTES.md"),
+                Path.Combine(baseDir, "..", "..", "RELEASE_NOTES.md"),
+                Path.Combine(baseDir, "..", "..", "..", "RELEASE_NOTES.md"),
+                Path.Combine(baseDir, "..", "..", "..", "..", "RELEASE_NOTES.md")
+            ];
+
+            foreach (var path in searchPaths)
+            {
+                if (File.Exists(path))
+                {
+                    return File.ReadAllText(path);
+                }
+            }
+
+            // 2. Thử đọc từ EmbeddedResource trong assembly
+            var asm = typeof(GuideViewModel).Assembly;
+            var resourceName = asm.GetManifestResourceNames()
+                .FirstOrDefault(n => n.EndsWith("RELEASE_NOTES.md", StringComparison.OrdinalIgnoreCase));
+            if (!string.IsNullOrEmpty(resourceName))
+            {
+                using var stream = asm.GetManifestResourceStream(resourceName);
+                if (stream != null)
+                {
+                    using var reader = new StreamReader(stream);
+                    return reader.ReadToEnd();
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            Debug.WriteLine($"[GuideViewModel] Lỗi nạp nhật ký phiên bản: {ex.Message}");
+        }
+
+        return "Hiện chưa có thông tin nhật ký phiên bản.";
+    }
+
+    public async Task CheckAppUpdateOnStartupAsync()
+    {
+        try
+        {
+            // Đợi 1.2s để cửa sổ chính MainWindow hiển thị đầy đủ và ổn định
+            await Task.Delay(1200);
+
             var update = await _updaterService.CheckForUpdatesAsync("GunDx2k4/DragonBoyAccountManager", null, "GUI");
             if (update != null)
             {
                 AvailableAppUpdate = update;
                 HasAppUpdate = true;
+
+                string size = update.SizeBytes.HasValue ? $" ({update.SizeBytes.Value / 1024.0 / 1024.0:F1} MB)" : "";
+                string notes = !string.IsNullOrWhiteSpace(update.ReleaseNotes) ? $"\n\nNội dung cập nhật:\n{update.ReleaseNotes}" : "";
+
+                string shaDetails = "";
+                if (!string.IsNullOrEmpty(update.RemoteSha256))
+                {
+                    shaDetails += $"\nMã SHA256 phát hành: {update.RemoteSha256}";
+                }
+                if (!string.IsNullOrEmpty(update.RemoteCommitSha))
+                {
+                    string localCommit = _updaterService.GetCurrentCommitSha();
+                    string commitInfo = !string.IsNullOrEmpty(localCommit)
+                        ? $"{localCommit[..Math.Min(7, localCommit.Length)]} -> {update.RemoteCommitSha[..Math.Min(7, update.RemoteCommitSha.Length)]}"
+                        : update.RemoteCommitSha[..Math.Min(7, update.RemoteCommitSha.Length)];
+                    shaDetails += $"\nCommit SHA: {commitInfo}";
+                }
+
+                string title = update.IsShaUpdateOnly ? "CẬP NHẬT TOOL DBAM (HOTFIX)" : "ĐÃ CÓ PHIÊN BẢN MỚI!";
+                string desc = update.IsShaUpdateOnly
+                    ? $"Phát hiện bản cập nhật mới cùng phiên bản: v{update.Version}{size}\nPhiên bản hiện tại: v{AppVersion}{shaDetails}{notes}\n\nBạn có muốn cập nhật ngay bây giờ không?"
+                    : $"Phát hiện phiên bản mới: v{update.Version}{size}\nPhiên bản hiện tại: v{AppVersion}{shaDetails}{notes}\n\nBạn có muốn cập nhật ngay bây giờ không?";
+
+                bool confirm = _dialogService.ShowConfirmation(title, desc, yesText: "Cập nhật ngay", noText: "Để sau");
+                if (confirm)
+                {
+                    OnRequestNavigateToGuide?.Invoke();
+                    await ApplyAppUpdateAsync();
+                }
             }
         }
         catch (Exception ex)
         {
-            Debug.WriteLine($"[GuideViewModel] Lỗi kiểm tra cập nhật ngầm: {ex.Message}");
+            Debug.WriteLine($"[GuideViewModel] Lỗi kiểm tra cập nhật khi khởi động: {ex.Message}");
         }
+    }
+
+    public async Task CheckAppUpdateSilentlyAsync()
+    {
+        await CheckAppUpdateOnStartupAsync();
     }
 
     public async Task LoadSha256ChecksumsAsync()
@@ -269,7 +357,7 @@ public sealed partial class GuideViewModel : ObservableObject
                     ? $"Phát hiện bản cập nhật mới cùng phiên bản: v{update.Version}{size}\nPhiên bản hiện tại: v{AppVersion}{shaDetails}{notes}\n\nBạn có muốn cập nhật ngay bây giờ không?"
                     : $"Phát hiện phiên bản mới: v{update.Version}{size}\nPhiên bản hiện tại: v{AppVersion}{shaDetails}{notes}\n\nBạn có muốn cập nhật ngay bây giờ không?";
 
-                bool confirm = _dialogService.ShowConfirmation(title, desc);
+                bool confirm = _dialogService.ShowConfirmation(title, desc, yesText: "Cập nhật ngay", noText: "Để sau");
 
                 if (confirm)
                 {
@@ -281,6 +369,16 @@ public sealed partial class GuideViewModel : ObservableObject
             {
                 HasAppUpdate = false;
                 AvailableAppUpdate = null;
+
+                try
+                {
+                    var latestNotes = await _updaterService.GetLatestReleaseNotesAsync();
+                    if (!string.IsNullOrWhiteSpace(latestNotes))
+                    {
+                        ReleaseNotes = latestNotes;
+                    }
+                }
+                catch { }
             }
 
             string localExeSha = _updaterService.GetCurrentExeSha256();

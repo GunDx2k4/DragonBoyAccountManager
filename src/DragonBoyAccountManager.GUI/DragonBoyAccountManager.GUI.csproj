@@ -20,6 +20,9 @@
   <ItemGroup>
     <Resource Include="Assets\app_icon.png" />
     <Resource Include="Assets\Fonts\*.ttf" />
+    <EmbeddedResource Include="..\..\RELEASE_NOTES.md" Link="RELEASE_NOTES.md">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </EmbeddedResource>
   </ItemGroup>
 
   <ItemGroup>

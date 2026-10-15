@@ -1,4 +1,4 @@
-﻿using System.Windows;
+using System.Windows;
 using System.Windows.Input;
 using System.Windows.Media;
 
@@ -37,6 +37,7 @@ public partial class GameDialogWindow : Window
         }
 
         MessageTextBlock.Text = message;
+        MessageTextBlock.TextAlignment = message.Contains('\n') ? TextAlignment.Left : TextAlignment.Center;
 
         if (!string.IsNullOrWhiteSpace(title) && !string.Equals(title, "Thông báo", StringComparison.OrdinalIgnoreCase))
         {

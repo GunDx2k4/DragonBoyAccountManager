@@ -371,4 +371,33 @@ public sealed class AppUpdaterService : IAppUpdaterService
             throw;
         }
     }
+
+    public async Task<string?> GetLatestReleaseNotesAsync(
+        string repo = "GunDx2k4/DragonBoyAccountManager",
+        CancellationToken ct = default)
+    {
+        try
+        {
+            string url = $"https://api.github.com/repos/{repo}/releases/latest";
+            using var request = new HttpRequestMessage(HttpMethod.Get, url);
+            using var response = await Http.SendAsync(request, ct);
+
+            if (!response.IsSuccessStatusCode)
+            {
+                return null;
+            }
+
+            var json = await response.Content.ReadFromJsonAsync<JsonElement>(cancellationToken: ct);
+            if (json.TryGetProperty("body", out var bodyProp))
+            {
+                return bodyProp.GetString();
+            }
+        }
+        catch (Exception ex)
+        {
+            Debug.WriteLine($"[AppUpdater] Không thể lấy release notes mới nhất: {ex.Message}");
+        }
+
+        return null;
+    }
 }
