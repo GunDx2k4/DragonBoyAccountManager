@@ -1,7 +1,9 @@
 using System.ComponentModel;
+using System.Runtime.InteropServices;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
+using System.Windows.Interop;
 using DragonBoyAccountManager.GUI.Models;
 using DragonBoyAccountManager.GUI.Services.GameEngine;
 using DragonBoyAccountManager.GUI.ViewModels;
@@ -183,14 +185,146 @@ public partial class MainWindow : Window
         _heldMovementKeys.Clear();
     }
 
-    protected override void OnStateChanged(EventArgs e)
+    protected override void OnSourceInitialized(EventArgs e)
     {
-        base.OnStateChanged(e);
-        if (WindowState == WindowState.Maximized)
-        {
-            WindowState = WindowState.Normal;
-        }
+        base.OnSourceInitialized(e);
+        var handle = new WindowInteropHelper(this).Handle;
+        var source = HwndSource.FromHwnd(handle);
+        source?.AddHook(WndProc);
     }
+
+    private IntPtr WndProc(IntPtr hwnd, int msg, IntPtr wParam, IntPtr lParam, ref bool handled)
+    {
+        switch (msg)
+        {
+            case WM_GETMINMAXINFO:
+                WmGetMinMaxInfo(hwnd, lParam);
+                handled = true;
+                break;
+
+            case WM_NCHITTEST:
+                if (HandleNcHitTest(lParam, out var hitResult))
+                {
+                    handled = true;
+                    return hitResult;
+                }
+                break;
+        }
+
+        return IntPtr.Zero;
+    }
+
+    private bool HandleNcHitTest(IntPtr lParam, out IntPtr result)
+    {
+        result = IntPtr.Zero;
+        if (WindowState == WindowState.Maximized)
+            return false;
+
+        int x = (short)(lParam.ToInt64() & 0xFFFF);
+        int y = (short)((lParam.ToInt64() >> 16) & 0xFFFF);
+
+        var point = PointFromScreen(new Point(x, y));
+        const double resizeBorder = 6.0;
+
+        bool onLeft = point.X <= resizeBorder;
+        bool onRight = point.X >= ActualWidth - resizeBorder;
+        bool onTop = point.Y <= resizeBorder;
+        bool onBottom = point.Y >= ActualHeight - resizeBorder;
+
+        if (onTop && onLeft) { result = (IntPtr)HTTOPLEFT; return true; }
+        if (onTop && onRight) { result = (IntPtr)HTTOPRIGHT; return true; }
+        if (onBottom && onLeft) { result = (IntPtr)HTBOTTOMLEFT; return true; }
+        if (onBottom && onRight) { result = (IntPtr)HTBOTTOMRIGHT; return true; }
+        if (onLeft) { result = (IntPtr)HTLEFT; return true; }
+        if (onRight) { result = (IntPtr)HTRIGHT; return true; }
+        if (onTop) { result = (IntPtr)HTTOP; return true; }
+        if (onBottom) { result = (IntPtr)HTBOTTOM; return true; }
+
+        return false;
+    }
+
+    private static void WmGetMinMaxInfo(IntPtr hwnd, IntPtr lParam)
+    {
+        var mmi = Marshal.PtrToStructure<MINMAXINFO>(lParam);
+        var monitor = MonitorFromWindow(hwnd, MONITOR_DEFAULTTONEAREST);
+        if (monitor != IntPtr.Zero)
+        {
+            var monitorInfo = new MONITORINFO();
+            monitorInfo.cbSize = Marshal.SizeOf(typeof(MONITORINFO));
+            if (GetMonitorInfo(monitor, ref monitorInfo))
+            {
+                var rcWorkArea = monitorInfo.rcWork;
+                var rcMonitorArea = monitorInfo.rcMonitor;
+
+                mmi.ptMaxPosition.x = Math.Abs(rcWorkArea.Left - rcMonitorArea.Left);
+                mmi.ptMaxPosition.y = Math.Abs(rcWorkArea.Top - rcMonitorArea.Top);
+                mmi.ptMaxSize.x = Math.Abs(rcWorkArea.Right - rcWorkArea.Left);
+                mmi.ptMaxSize.y = Math.Abs(rcWorkArea.Bottom - rcWorkArea.Top);
+                mmi.ptMinTrackSize.x = 1060;
+                mmi.ptMinTrackSize.y = 560;
+            }
+        }
+        Marshal.StructureToPtr(mmi, lParam, true);
+    }
+
+    #region Win32 Interop for Resizing & Maximizing
+
+    private const int WM_GETMINMAXINFO = 0x0024;
+    private const int WM_NCHITTEST = 0x0084;
+    private const int MONITOR_DEFAULTTONEAREST = 0x00000002;
+
+    private const int HTLEFT = 10;
+    private const int HTRIGHT = 11;
+    private const int HTTOP = 12;
+    private const int HTTOPLEFT = 13;
+    private const int HTTOPRIGHT = 14;
+    private const int HTBOTTOM = 15;
+    private const int HTBOTTOMLEFT = 16;
+    private const int HTBOTTOMRIGHT = 17;
+
+    [StructLayout(LayoutKind.Sequential)]
+    private struct POINT
+    {
+        public int x;
+        public int y;
+    }
+
+    [StructLayout(LayoutKind.Sequential)]
+    private struct MINMAXINFO
+    {
+        public POINT ptReserved;
+        public POINT ptMaxSize;
+        public POINT ptMaxPosition;
+        public POINT ptMinTrackSize;
+        public POINT ptMaxTrackSize;
+    }
+
+    [StructLayout(LayoutKind.Sequential, CharSet = CharSet.Auto)]
+    private struct MONITORINFO
+    {
+        public int cbSize;
+        public RECT rcMonitor;
+        public RECT rcWork;
+        public int dwFlags;
+    }
+
+    [StructLayout(LayoutKind.Sequential)]
+    private struct RECT
+    {
+        public int Left;
+        public int Top;
+        public int Right;
+        public int Bottom;
+    }
+
+    [DllImport("user32.dll")]
+    private static extern IntPtr MonitorFromWindow(IntPtr hwnd, int dwFlags);
+
+    [DllImport("user32.dll", SetLastError = true)]
+    [return: MarshalAs(UnmanagedType.Bool)]
+    private static extern bool GetMonitorInfo(IntPtr hMonitor, ref MONITORINFO lpmi);
+
+    #endregion
 
     protected override void OnClosing(CancelEventArgs e)
     {

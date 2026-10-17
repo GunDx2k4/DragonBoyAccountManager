@@ -13,6 +13,6 @@
 
     <converters:BooleanToVisibilityConverter x:Key="BooleanToVisibilityConverter" />
 
-    <FontFamily x:Key="GameFont">pack://application:,,,/DragonBoyAccountManager.GUI;component/Assets/Fonts/#Barmeno-ExtraBold, Segoe UI, Tahoma</FontFamily>
-    <FontFamily x:Key="GameFontRegular">pack://application:,,,/DragonBoyAccountManager.GUI;component/Assets/Fonts/#UTM Nokia Standard, Segoe UI, Tahoma</FontFamily>
+    <FontFamily x:Key="GameFont">Segoe UI, Tahoma, Arial</FontFamily>
+    <FontFamily x:Key="GameFontRegular">Segoe UI, Tahoma, Arial</FontFamily>
 </ResourceDictionary>

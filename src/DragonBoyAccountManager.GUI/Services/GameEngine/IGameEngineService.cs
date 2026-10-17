@@ -30,6 +30,7 @@ public interface IGameEngineService
 
     bool ChangeZone(Guid accountId, int zoneId);
     void RequestZoneList(Guid accountId);
+    void CloseZonePanel(Guid accountId);
     bool MoveToWaypoint(Guid accountId, int targetX, int targetY);
     Task<bool> AutoMoveAsync(Guid accountId, int targetX, int targetY, bool isFly = false);
     bool FocusOrClickObject(Guid accountId, string entityType, int entityId);

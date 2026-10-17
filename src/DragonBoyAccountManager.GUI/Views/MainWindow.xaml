@@ -8,12 +8,10 @@
     xmlns:views="clr-namespace:DragonBoyAccountManager.GUI.Views"
     Title="Dragon Boy Account Manager"
     Width="1180"
-    Height="640"
-    MinWidth="1180"
-    MinHeight="640"
-    MaxWidth="1180"
-    MaxHeight="640"
-    ResizeMode="CanMinimize"
+    Height="660"
+    MinWidth="1060"
+    MinHeight="560"
+    ResizeMode="CanResize"
     d:DataContext="{d:DesignInstance Type=viewmodels:MainViewModel}"
     AllowsTransparency="True"
     Background="Transparent"
@@ -30,43 +28,87 @@
     mc:Ignorable="d">
 
     <Grid>
-        <Grid.RowDefinitions>
-            <RowDefinition Height="277*" />
-            <RowDefinition Height="43*" />
-        </Grid.RowDefinitions>
-        <Border
-            Grid.RowSpan="2"
-            Margin="3,6,3,2"
-            Background="#261302"
-            CornerRadius="10" />
+        <!-- Shadow border (hidden when maximized) -->
+        <Border Background="#261302">
+            <Border.Style>
+                <Style TargetType="Border">
+                    <Setter Property="Margin" Value="3,6,3,2" />
+                    <Setter Property="CornerRadius" Value="10" />
+                    <Setter Property="Visibility" Value="Visible" />
+                    <Style.Triggers>
+                        <DataTrigger Binding="{Binding WindowState, RelativeSource={RelativeSource AncestorType=Window}}" Value="Maximized">
+                            <Setter Property="Visibility" Value="Collapsed" />
+                        </DataTrigger>
+                    </Style.Triggers>
+                </Style>
+            </Border.Style>
+        </Border>
 
+        <!-- Main Outer Frame -->
         <Border
-            Grid.RowSpan="2"
-            Margin="3,2,3,6"
             Padding="1.8"
             Background="{DynamicResource GameBorderBrush}"
-            CornerRadius="9"
             SnapsToDevicePixels="True">
+            <Border.Style>
+                <Style TargetType="Border">
+                    <Setter Property="Margin" Value="3,2,3,6" />
+                    <Setter Property="CornerRadius" Value="9" />
+                    <Style.Triggers>
+                        <DataTrigger Binding="{Binding WindowState, RelativeSource={RelativeSource AncestorType=Window}}" Value="Maximized">
+                            <Setter Property="Margin" Value="0" />
+                            <Setter Property="CornerRadius" Value="0" />
+                        </DataTrigger>
+                    </Style.Triggers>
+                </Style>
+            </Border.Style>
 
             <Border
                 Padding="0"
                 Background="{DynamicResource GameBgAltBrush}"
                 BorderBrush="{DynamicResource GamePanelHighlightBrush}"
-                BorderThickness="1.5,1.5,1,0"
-                CornerRadius="7.5">
+                BorderThickness="1.5,1.5,1,0">
+                <Border.Style>
+                    <Style TargetType="Border">
+                        <Setter Property="CornerRadius" Value="7.5" />
+                        <Style.Triggers>
+                            <DataTrigger Binding="{Binding WindowState, RelativeSource={RelativeSource AncestorType=Window}}" Value="Maximized">
+                                <Setter Property="CornerRadius" Value="0" />
+                            </DataTrigger>
+                        </Style.Triggers>
+                    </Style>
+                </Border.Style>
                 <Grid>
                     <Border
                         Height="3"
                         VerticalAlignment="Bottom"
-                        Background="{DynamicResource GamePanelShadowBrush}"
-                        CornerRadius="0,0,7,7" />
+                        Background="{DynamicResource GamePanelShadowBrush}">
+                        <Border.Style>
+                            <Style TargetType="Border">
+                                <Setter Property="CornerRadius" Value="0,0,7,7" />
+                                <Style.Triggers>
+                                    <DataTrigger Binding="{Binding WindowState, RelativeSource={RelativeSource AncestorType=Window}}" Value="Maximized">
+                                        <Setter Property="CornerRadius" Value="0" />
+                                    </DataTrigger>
+                                </Style.Triggers>
+                            </Style>
+                        </Border.Style>
+                    </Border>
 
                     <Border
                         Margin="1,1,1,2"
                         Background="{DynamicResource GameBgBrush}"
                         BorderBrush="{DynamicResource GameBorderBrush}"
-                        BorderThickness="1.5"
-                        CornerRadius="6">
+                        BorderThickness="1.5">
+                        <Border.Style>
+                            <Style TargetType="Border">
+                                <Setter Property="CornerRadius" Value="6" />
+                                <Style.Triggers>
+                                    <DataTrigger Binding="{Binding WindowState, RelativeSource={RelativeSource AncestorType=Window}}" Value="Maximized">
+                                        <Setter Property="CornerRadius" Value="0" />
+                                    </DataTrigger>
+                                </Style.Triggers>
+                            </Style>
+                        </Border.Style>
                         <Grid>
                             <Grid.RowDefinitions>
                                 <RowDefinition Height="38" />
@@ -86,13 +128,39 @@
                                         Background="{DynamicResource GamePanelShadowBrush}" />
                                     <Grid Margin="10,6">
                                         <Grid.ColumnDefinitions>
-                                            <ColumnDefinition Width="*" />
-                                            <ColumnDefinition Width="10" />
-                                            <ColumnDefinition Width="455" />
+                                            <ColumnDefinition Width="*" MinWidth="520" />
+                                            <ColumnDefinition Width="8" />
+                                            <ColumnDefinition Width="455" MinWidth="410" MaxWidth="720" />
                                         </Grid.ColumnDefinitions>
 
                                         <!-- ========== CỘT TRÁI: DANH SÁCH TÀI KHOẢN ========== -->
                                         <views:AccountsPanelView Grid.Column="0" DataContext="{Binding AccountsPanel}" />
+
+                                        <!-- ========== THANH KÉO CO GIÃN (GRID SPLITTER) ========== -->
+                                        <Grid Grid.Column="1" HorizontalAlignment="Center" VerticalAlignment="Stretch">
+                                            <Rectangle Width="1.5" Fill="{DynamicResource GameBorderBrush}" HorizontalAlignment="Center" />
+                                            <Border
+                                                Width="6"
+                                                Height="36"
+                                                VerticalAlignment="Center"
+                                                Background="{DynamicResource GameBgAltBrush}"
+                                                BorderBrush="{DynamicResource GameBorderBrush}"
+                                                BorderThickness="1"
+                                                CornerRadius="3">
+                                                <StackPanel VerticalAlignment="Center" HorizontalAlignment="Center">
+                                                    <Rectangle Width="2" Height="2" Margin="0,1" Fill="{DynamicResource GameBorderHighlightBrush}" />
+                                                    <Rectangle Width="2" Height="2" Margin="0,1" Fill="{DynamicResource GameBorderHighlightBrush}" />
+                                                    <Rectangle Width="2" Height="2" Margin="0,1" Fill="{DynamicResource GameBorderHighlightBrush}" />
+                                                </StackPanel>
+                                            </Border>
+                                            <GridSplitter
+                                                Width="8"
+                                                HorizontalAlignment="Center"
+                                                VerticalAlignment="Stretch"
+                                                Background="Transparent"
+                                                Cursor="SizeWE"
+                                                ShowsPreview="False" />
+                                        </Grid>
 
                                         <!-- ========== CỘT PHẢI: BẢNG CẤU HÌNH ========== -->
                                         <Border
@@ -184,21 +252,24 @@
                                                             </TabItem>
 
                                                             <!-- TAB 4: HƯỚNG DẪN & THÔNG TIN PHIÊN BẢN -->
-                                                            <TabItem Style="{StaticResource GameTabItemStyle}">
+                                                            <TabItem Style="{StaticResource GameTabItemStyle}" ToolTip="Hướng dẫn sử dụng &amp; Thông tin phiên bản">
                                                                 <TabItem.Header>
                                                                     <StackPanel VerticalAlignment="Center" Orientation="Horizontal">
-                                                                        <TextBlock VerticalAlignment="Center" Text="HƯỚNG DẪN" />
+                                                                        <TextBlock
+                                                                            VerticalAlignment="Center"
+                                                                            FontSize="10.5"
+                                                                            Text="HƯỚNG DẪN" />
                                                                         <Border
-                                                                            Margin="5,0,0,0"
-                                                                            Padding="4,1"
+                                                                            Margin="4,0,0,0"
+                                                                            Padding="3,0"
                                                                             VerticalAlignment="Center"
                                                                             Background="#DC2626"
                                                                             BorderBrush="#B91C1C"
                                                                             BorderThickness="1"
-                                                                            CornerRadius="4"
+                                                                            CornerRadius="3"
                                                                             Visibility="{Binding Guide.HasAppUpdate, Converter={StaticResource BooleanToVisibilityConverter}}">
                                                                             <TextBlock
-                                                                                FontSize="8.5"
+                                                                                FontSize="8"
                                                                                 FontWeight="ExtraBold"
                                                                                 Foreground="#FFFFFF"
                                                                                 Text="MỚI" />

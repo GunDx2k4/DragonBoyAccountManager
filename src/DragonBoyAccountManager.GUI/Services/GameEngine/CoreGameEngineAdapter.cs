@@ -7,6 +7,7 @@ using DragonBoyAccountManager.Core.Game.Actions;
 using DragonBoyAccountManager.Core.Game.Entities;
 using DragonBoyAccountManager.Core.Game.Models;
 using DragonBoyAccountManager.Core.Game.Modules;
+using DragonBoyAccountManager.Core.Game.Schema;
 using DragonBoyAccountManager.Core.Game.Snapshots;
 using DragonBoyAccountManager.GUI.Helpers;
 using DragonBoyAccountManager.GUI.Models;
@@ -34,6 +35,7 @@ public sealed class CoreGameEngineAdapter(ISettingsService? settingsService = nu
             Cts.Dispose();
             Controller.Stop();
             Controller.Dispose();
+            Instance.Kill();
             Instance.Dispose();
         }
     }
@@ -127,37 +129,63 @@ public sealed class CoreGameEngineAdapter(ISettingsService? settingsService = nu
 
             controller.Ticked += inst =>
             {
+                if (!inst.IsRunning || session.Cts.IsCancellationRequested)
+                    return;
+
                 try
                 {
-                    inst.Reflector.WriteStatic("Main", "isQuitApp", false);
-                }
-                catch { }
-
-                if (inst.Player.IsInGame)
-                {
-                    var worldSnapshot = inst.World.GetSnapshot();
-                    var playerSnapshot = inst.Player.GetSnapshot();
-                    var sessionSnapshot = new GameSessionSnapshot(playerSnapshot, worldSnapshot);
-
-                    OnSessionUpdated?.Invoke(account.Id, GameSessionStatus.Active, sessionSnapshot);
-
-                    string title = $"DBAM - {account.Username} ({account.ServerName}) [{playerSnapshot.Name}]";
-                    GameWindowHelper.UpdateWindowTitle(inst.Process, title);
-                }
-                else
-                {
-                    if (account.AutoLogin && !session.IsLoggingIn && inst.IsRunning && !session.Cts.IsCancellationRequested)
+                    bool isQuitApp = inst.Reflector.ReadStatic<bool>(GameSchema.Main.ClassName, GameSchema.Main.StaticIsQuitApp);
+                    if (isQuitApp)
                     {
-                        _ = Task.Run(async () =>
+                        controller.Stop();
+                        inst.Kill();
+                        return;
+                    }
+
+                    inst.Reflector.WriteStatic(GameSchema.Main.ClassName, GameSchema.Main.StaticIsQuitApp, false);
+                }
+                catch
+                {
+                    return;
+                }
+
+                if (!inst.IsRunning || session.Cts.IsCancellationRequested)
+                    return;
+
+                try
+                {
+                    if (inst.Player.IsInGame)
+                    {
+                        if (inst.UI.IsZonePanelOpen)
                         {
-                            try
+                            inst.UI.CloseZonePanel();
+                        }
+
+                        var worldSnapshot = inst.World.GetSnapshot();
+                        var playerSnapshot = inst.Player.GetSnapshot();
+                        var sessionSnapshot = new GameSessionSnapshot(playerSnapshot, worldSnapshot);
+
+                        OnSessionUpdated?.Invoke(account.Id, GameSessionStatus.Active, sessionSnapshot);
+
+                        string title = $"DBAM - {account.Username} ({account.ServerName}) [{playerSnapshot.Name}]";
+                        GameWindowHelper.UpdateWindowTitle(inst.Process, title);
+                    }
+                    else
+                    {
+                        if (account.AutoLogin && !session.IsLoggingIn && inst.IsRunning && !session.Cts.IsCancellationRequested)
+                        {
+                            _ = Task.Run(async () =>
                             {
-                                await ExecuteLoginAsync(session);
-                            }
-                            catch { }
-                        });
+                                try
+                                {
+                                    await ExecuteLoginAsync(session);
+                                }
+                                catch { }
+                            });
+                        }
                     }
                 }
+                catch { }
             };
 
             controller.Start(TimeSpan.FromSeconds(1));
@@ -507,6 +535,14 @@ public sealed class CoreGameEngineAdapter(ISettingsService? settingsService = nu
         }
     }
 
+    public void CloseZonePanel(Guid accountId)
+    {
+        if (_sessions.TryGetValue(accountId, out var session) && session.Instance.IsRunning && session.Instance.Player.IsInGame)
+        {
+            session.Instance.UI.CloseZonePanel();
+        }
+    }
+
     public bool MoveToWaypoint(Guid accountId, int targetX, int targetY)
     {
         if (_sessions.TryGetValue(accountId, out var session) && session.Instance.IsRunning && session.Instance.Player.IsInGame)
@@ -540,7 +576,14 @@ public sealed class CoreGameEngineAdapter(ISettingsService? settingsService = nu
     {
         if (_sessions.TryGetValue(accountId, out var session) && session.Instance.IsRunning && session.Instance.Player.IsInGame)
         {
-            return session.Instance.World.GetSnapshot();
+            try
+            {
+                return session.Instance.World.GetSnapshot();
+            }
+            catch
+            {
+                return null;
+            }
         }
         return null;
     }

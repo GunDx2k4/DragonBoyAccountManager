@@ -27,13 +27,12 @@ public sealed partial class AppStatusBarViewModel : ObservableObject
     private string _appVersion;
 
     [ObservableProperty]
+    private ClientStatus _status = ClientStatus.GameNotFound;
+
+    [ObservableProperty]
     private string _assemblyStatus = "Chưa chọn file game .exe";
 
-    [ObservableProperty]
-    private string _assemblyStatusColor = "#546E7A";
 
-    [ObservableProperty]
-    private string _assemblyStatusBg = "#ECEFF1";
 
     [ObservableProperty]
     private string _assemblyStatusTooltip = "Chưa cài đặt đường dẫn game hợp lệ.";
@@ -87,81 +86,63 @@ public sealed partial class AppStatusBarViewModel : ObservableObject
 
         GameVersion = metadata.DetectedVersion ?? metadata.TargetVersion;
         AssemblyPath = metadata.AssemblyPath ?? string.Empty;
+        Status = metadata.Status;
 
         switch (metadata.Status)
         {
             case ClientStatus.OfficialVersionMatch:
-                AssemblyStatus = $"v{metadata.DetectedVersion} (Gốc - Khớp SHA)";
-                AssemblyStatusColor = "#2E7D32";
-                AssemblyStatusBg = "#E8F5E9";
+                AssemblyStatus = $"v{metadata.DetectedVersion} (Khớp bản gốc)";
                 AssemblyStatusTooltip = $"Tệp: {Path.GetFileName(metadata.AssemblyPath)}\n" +
                                          $"Đường dẫn: {metadata.AssemblyPath}\n" +
                                          $"Kích thước: {metadata.FileSizeBytes:N0} byte\n" +
                                          $"Phiên bản: v{metadata.DetectedVersion} (Bản gốc chính thức)\n" +
-                                         $"Mã SHA256: {metadata.ActualSha256}\n" +
+                                         $"Trạng thái: Khớp bản gốc\n" +
                                          $"(Bấm để mở thư mục chứa tệp)";
                 break;
 
             case ClientStatus.OutdatedVersion:
                 AssemblyStatus = $"Cần cập nhật v{metadata.TargetVersion}";
-                AssemblyStatusColor = "#C62828";
-                AssemblyStatusBg = "#FFEBEE";
-                string shaOldInfo = metadata.IsShaMatch ? "Khớp SHA gốc bản cũ" : "Không khớp SHA bản cũ";
+                string oldVerState = metadata.IsShaMatch ? "Bản gốc cũ" : "Bản mod cũ";
                 AssemblyStatusTooltip = $"Tệp: {Path.GetFileName(metadata.AssemblyPath)}\n" +
                                          $"Đường dẫn: {metadata.AssemblyPath}\n" +
                                          $"Kích thước: {metadata.FileSizeBytes:N0} byte\n" +
                                          $"Phiên bản tệp: v{metadata.DetectedVersion}\n" +
                                          $"Phiên bản mới nhất: v{metadata.TargetVersion}\n" +
-                                         $"Trạng thái: Game chưa được cập nhật lên bản mới nhất ({shaOldInfo})!\n" +
-                                         $"Mã SHA256: {metadata.ActualSha256}\n" +
+                                         $"Trạng thái: Cần cập nhật ({oldVerState})\n" +
                                          $"(Bấm để mở thư mục chứa tệp)";
                 break;
 
             case ClientStatus.ModifiedOrMod:
                 if (metadata.IsCorrectVersion)
                 {
-                    AssemblyStatus = $"v{metadata.DetectedVersion} (Lệch SHA - Mod)";
-                    AssemblyStatusColor = "#E65100";
-                    AssemblyStatusBg = "#FFF3E0";
+                    AssemblyStatus = $"v{metadata.DetectedVersion} (Không khớp - Bản mod)";
                 }
                 else
                 {
-                    AssemblyStatus = "Chưa đúng phiên bản (Bản mod)";
-                    AssemblyStatusColor = "#C62828";
-                    AssemblyStatusBg = "#FFEBEE";
+                    AssemblyStatus = "Không khớp (Bản mod)";
                 }
-                var expected = !string.IsNullOrEmpty(metadata.ExpectedSha256)
-                    ? $"\nMã SHA256 gốc mong muốn: {metadata.ExpectedSha256}"
-                    : "";
                 AssemblyStatusTooltip = $"Tệp: {Path.GetFileName(metadata.AssemblyPath)}\n" +
                                          $"Đường dẫn: {metadata.AssemblyPath}\n" +
                                          $"Kích thước: {metadata.FileSizeBytes:N0} byte\n" +
                                          $"Phiên bản phát hiện: v{metadata.DetectedVersion ?? "Không rõ"}\n" +
                                          $"Phiên bản chính thức: v{metadata.TargetVersion}\n" +
-                                         $"Trạng thái: Không khớp mã SHA256 gốc (Bản mod hoặc đã bị can thiệp){expected}\n" +
-                                         $"Mã SHA256 thực tế: {metadata.ActualSha256}\n" +
+                                         $"Trạng thái: Không khớp với bản gốc (Bản mod hoặc đã can thiệp)\n" +
                                          $"(Bấm để mở thư mục chứa tệp)";
                 break;
 
             case ClientStatus.AssemblyNotFound:
                 AssemblyStatus = "Không tìm thấy Assembly";
-                AssemblyStatusColor = "#546E7A";
-                AssemblyStatusBg = "#ECEFF1";
                 AssemblyStatusTooltip = $"Đã nhận file game: {Path.GetFileName(path)}\nNhưng không tìm thấy file Assembly-CSharp.dll trong thư mục dữ liệu Data\\Managed.";
                 break;
 
             case ClientStatus.Error:
                 AssemblyStatus = "Lỗi đọc file";
-                AssemblyStatusColor = "#C62828";
-                AssemblyStatusBg = "#FFEBEE";
                 AssemblyStatusTooltip = $"Lỗi đọc file: {metadata.ErrorMessage}";
                 break;
 
             case ClientStatus.GameNotFound:
             default:
                 AssemblyStatus = "Chưa chọn file game .exe";
-                AssemblyStatusColor = "#546E7A";
-                AssemblyStatusBg = "#ECEFF1";
                 AssemblyStatusTooltip = "Đường dẫn game bắt buộc phải là file thực thi (.exe).\nVui lòng chọn file game (.exe) để kiểm tra phiên bản.";
                 break;
         }

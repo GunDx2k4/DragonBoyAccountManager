@@ -30,9 +30,9 @@
             <Grid Grid.Row="0" Margin="0,0,0,10">
                 <Grid.ColumnDefinitions>
                     <ColumnDefinition Width="Auto" />
-                    <ColumnDefinition Width="*" MaxWidth="220" />
+                    <ColumnDefinition Width="*" MinWidth="80" MaxWidth="220" />
                     <ColumnDefinition Width="Auto" />
-                    <ColumnDefinition Width="120" />
+                    <ColumnDefinition Width="105" />
                     <ColumnDefinition Width="Auto" />
                     <ColumnDefinition Width="*" />
                     <ColumnDefinition Width="Auto" />
@@ -68,7 +68,7 @@
                 <Button
                     Grid.Column="4"
                     Height="28"
-                    MinWidth="55"
+                    MinWidth="50"
                     Margin="6,0,0,0"
                     VerticalAlignment="Center"
                     Command="{Binding ClearFilterCommand}"
@@ -134,9 +134,10 @@
             <DataGrid
                 x:Name="AccountsDataGrid"
                 Grid.Row="1"
+                CanUserResizeColumns="True"
                 IsReadOnly="True"
                 ItemsSource="{Binding AccountsView}"
-                ScrollViewer.HorizontalScrollBarVisibility="Disabled"
+                ScrollViewer.HorizontalScrollBarVisibility="Auto"
                 ScrollViewer.VerticalScrollBarVisibility="Auto"
                 SelectedItem="{Binding SelectedAccount}"
                 SelectionChanged="AccountsDataGrid_SelectionChanged"
@@ -177,27 +178,15 @@
                         </DataGridTemplateColumn.CellTemplate>
                     </DataGridTemplateColumn>
 
-                    <DataGridTemplateColumn Width="110" Header="MÁY CHỦ">
+                    <DataGridTemplateColumn Width="105" MinWidth="80" Header="MÁY CHỦ">
                         <DataGridTemplateColumn.CellTemplate>
                             <DataTemplate>
-                                <Border
-                                    Padding="8,2.5"
-                                    HorizontalAlignment="Left"
-                                    Background="{DynamicResource GameBgAltBrush}"
-                                    BorderBrush="{DynamicResource GameBorderBrush}"
-                                    BorderThickness="1.5"
-                                    CornerRadius="4">
-                                    <TextBlock
-                                        FontSize="11"
-                                        FontWeight="Bold"
-                                        Foreground="{DynamicResource GameTextDarkBrush}"
-                                        Text="{Binding Server}" />
-                                </Border>
+                                <ui:GameBadge Content="{Binding Server}" />
                             </DataTemplate>
                         </DataGridTemplateColumn.CellTemplate>
                     </DataGridTemplateColumn>
 
-                    <DataGridTemplateColumn Width="*" Header="TÀI KHOẢN">
+                    <DataGridTemplateColumn Width="*" MinWidth="160" Header="TÀI KHOẢN">
                         <DataGridTemplateColumn.CellTemplate>
                             <DataTemplate>
                                 <StackPanel Margin="0,2" VerticalAlignment="Center">
@@ -205,7 +194,9 @@
                                         FontSize="12"
                                         FontWeight="Bold"
                                         Foreground="{DynamicResource GameTextDarkBrush}"
-                                        Text="{Binding DisplayUsername}" />
+                                        Text="{Binding DisplayUsername}"
+                                        TextTrimming="CharacterEllipsis"
+                                        ToolTip="{Binding DisplayUsername}" />
                                     <StackPanel Margin="0,2,0,0" Orientation="Horizontal">
                                         <StackPanel.Style>
                                             <Style TargetType="StackPanel">
@@ -271,7 +262,9 @@
                                             VerticalAlignment="Center"
                                             FontSize="11"
                                             FontWeight="Bold"
-                                            Text="{Binding DisplayCharacterName}">
+                                            Text="{Binding DisplayCharacterName}"
+                                            TextTrimming="CharacterEllipsis"
+                                            ToolTip="{Binding DisplayCharacterName, StringFormat='Nhân vật: {0}'}">
                                             <TextBlock.Style>
                                                 <Style TargetType="TextBlock">
                                                     <Setter Property="Foreground" Value="#8B2500" />
@@ -316,7 +309,7 @@
                         </DataGridTemplateColumn.CellTemplate>
                     </DataGridTemplateColumn>
 
-                    <DataGridTemplateColumn Width="155" Header="KHU">
+                    <DataGridTemplateColumn Width="145" MinWidth="100" Header="KHU">
                         <DataGridTemplateColumn.CellTemplate>
                             <DataTemplate>
                                 <StackPanel Margin="6,2" VerticalAlignment="Center">
@@ -355,7 +348,7 @@
                         </DataGridTemplateColumn.CellTemplate>
                     </DataGridTemplateColumn>
 
-                    <DataGridTemplateColumn Width="110" Header="TRẠNG THÁI">
+                    <DataGridTemplateColumn Width="115" MinWidth="90" Header="TRẠNG THÁI">
                         <DataGridTemplateColumn.CellTemplate>
                             <DataTemplate>
                                 <Border
@@ -367,11 +360,11 @@
                                     CornerRadius="4"
                                     ToolTip="{Binding StatusTooltip}">
                                     <StackPanel VerticalAlignment="Center" Orientation="Horizontal">
-                                        <ContentControl
+                                        <ui:GameStatusOrb
                                             Margin="0,0,5,0"
                                             VerticalAlignment="Center"
-                                            Content="{Binding Status}"
-                                            ContentTemplate="{StaticResource StatusOrbTemplate}" />
+                                            Status="{Binding Status}"
+                                            Size="14" />
                                         <TextBlock
                                             VerticalAlignment="Center"
                                             FontSize="11"
@@ -393,7 +386,7 @@
                     <ColumnDefinition Width="Auto" />
                 </Grid.ColumnDefinitions>
 
-                <StackPanel
+                <WrapPanel
                     Grid.Column="0"
                     VerticalAlignment="Center"
                     Orientation="Horizontal">
@@ -426,11 +419,11 @@
                         BorderThickness="1.2"
                         CornerRadius="6">
                         <StackPanel VerticalAlignment="Center" Orientation="Horizontal">
-                            <ContentControl
+                            <ui:GameStatusOrb
                                 Margin="0,0,5,0"
                                 VerticalAlignment="Center"
-                                Content="Active"
-                                ContentTemplate="{StaticResource StatusOrbTemplate}" />
+                                Status="Active"
+                                Size="13" />
                             <TextBlock
                                 FontSize="11"
                                 FontWeight="Bold"
@@ -445,6 +438,7 @@
                     </Border>
 
                     <Border
+                        Margin="0,0,6,0"
                         Padding="8,3"
                         Background="{DynamicResource GameBgBrush}"
                         BorderBrush="{DynamicResource GameBorderBrush}"
@@ -463,7 +457,7 @@
                                 Text="{Binding SelectedAccountsCount}" />
                         </StackPanel>
                     </Border>
-                </StackPanel>
+                </WrapPanel>
 
                 <StackPanel
                     Grid.Column="1"
@@ -471,7 +465,7 @@
                     Orientation="Horizontal">
                     <Button
                         Height="28"
-                        MinWidth="110"
+                        MinWidth="90"
                         Margin="0,0,6,0"
                         Command="{Binding LoginSelectedAccountsCommand}"
                         Content="ĐĂNG NHẬP"
@@ -481,7 +475,7 @@
 
                     <Button
                         Height="28"
-                        MinWidth="95"
+                        MinWidth="85"
                         Margin="0,0,6,0"
                         Command="{Binding StopSelectedAccountsCommand}"
                         Content="TẮT ĐÃ CHỌN"
@@ -491,7 +485,7 @@
 
                     <Button
                         Height="28"
-                        MinWidth="105"
+                        MinWidth="80"
                         Command="{Binding ArrangeWindowsCommand}"
                         Content="SẮP XẾP"
                         FontSize="11"

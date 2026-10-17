@@ -174,7 +174,22 @@ public sealed partial class UtilitiesTabViewModel : ObservableObject
             Interval = TimeSpan.FromSeconds(1.5)
         };
         _refreshTimer.Tick += (_, _) => RefreshMapData();
-        _refreshTimer.Start();
+    }
+
+    public void StartPolling()
+    {
+        if (!_refreshTimer.IsEnabled)
+        {
+            _refreshTimer.Start();
+        }
+    }
+
+    public void StopPolling()
+    {
+        if (_refreshTimer.IsEnabled)
+        {
+            _refreshTimer.Stop();
+        }
     }
 
     public void SetTargetResolver(Func<List<Guid>> resolver)
@@ -192,9 +207,14 @@ public sealed partial class UtilitiesTabViewModel : ObservableObject
         if (ActiveAccount != null && ActiveAccount.IsRunning && ActiveAccount.Status == GameSessionStatus.Active)
         {
             _gameEngine.RequestZoneList(ActiveAccount.Id);
-            Task.Delay(350).ContinueWith(_ =>
+            _ = Task.Run(async () =>
             {
-                App.Current?.Dispatcher?.Invoke(RefreshMapData);
+                await Task.Delay(350);
+                var dispatcher = App.Current?.Dispatcher;
+                if (dispatcher != null)
+                {
+                    await dispatcher.InvokeAsync(RefreshMapData);
+                }
             });
         }
     }
@@ -313,11 +333,10 @@ public sealed partial class UtilitiesTabViewModel : ObservableObject
 
         // Update Waypoint buttons (tối đa 3 nút, chỉ hiển thị tên đích đến và tọa độ, tự ẩn nếu không có)
         var sortedWps = snapshot.Waypoints.OrderBy(w => w.X).ToList();
-        WaypointButtons.Clear();
-        foreach (var wp in sortedWps.Take(3))
-        {
-            WaypointButtons.Add(new WaypointButtonItem(wp.Name, wp.X, wp.Y, wp));
-        }
+        var newWaypointButtons = sortedWps.Take(3)
+            .Select(wp => new WaypointButtonItem(wp.Name, wp.X, wp.Y, wp))
+            .ToList();
+        UpdateCollection(WaypointButtons, newWaypointButtons);
 
         UpdateSyncTargetDisplay();
         StatusText = $"Cập nhật lúc: {DateTime.Now:HH:mm:ss}";
@@ -374,10 +393,33 @@ public sealed partial class UtilitiesTabViewModel : ObservableObject
 
     private static void UpdateCollection<T>(ObservableCollection<T> target, IReadOnlyList<T> source)
     {
-        target.Clear();
-        foreach (var item in source)
+        if (target.Count == source.Count && target.SequenceEqual(source))
         {
-            target.Add(item);
+            return;
+        }
+
+        int commonCount = Math.Min(target.Count, source.Count);
+        for (int i = 0; i < commonCount; i++)
+        {
+            if (!EqualityComparer<T>.Default.Equals(target[i], source[i]))
+            {
+                target[i] = source[i];
+            }
+        }
+
+        if (target.Count > source.Count)
+        {
+            for (int i = target.Count - 1; i >= source.Count; i--)
+            {
+                target.RemoveAt(i);
+            }
+        }
+        else if (target.Count < source.Count)
+        {
+            for (int i = target.Count; i < source.Count; i++)
+            {
+                target.Add(source[i]);
+            }
         }
     }
 
@@ -444,9 +486,14 @@ public sealed partial class UtilitiesTabViewModel : ObservableObject
         }
 
         StatusText = $"Đã chuyển sang Khu {targetZone} ({successCount}/{targetIds.Count} acc)";
-        Task.Delay(1000).ContinueWith(_ =>
+        _ = Task.Run(async () =>
         {
-            App.Current?.Dispatcher?.Invoke(RefreshMapData);
+            await Task.Delay(1000);
+            var dispatcher = App.Current?.Dispatcher;
+            if (dispatcher != null)
+            {
+                await dispatcher.InvokeAsync(RefreshMapData);
+            }
         });
     }
 

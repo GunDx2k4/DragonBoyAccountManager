@@ -18,15 +18,18 @@
         <converters:BooleanToVisibilityConverter x:Key="BooleanToVisibilityConverter" />
     </UserControl.Resources>
 
-    <ScrollViewer FocusVisualStyle="{x:Null}" VerticalScrollBarVisibility="Auto">
-        <StackPanel Margin="12,10">
+    <ScrollViewer
+        FocusVisualStyle="{x:Null}"
+        HorizontalScrollBarVisibility="Disabled"
+        VerticalScrollBarVisibility="Auto">
+        <StackPanel Margin="10,8,10,14">
             <ui:GameCard
                 Margin="0,0,0,10"
                 Header="THÔNG TIN &amp; PHIÊN BẢN">
                 <StackPanel>
                     <Grid Margin="0,0,0,6">
                         <Grid.ColumnDefinitions>
-                            <ColumnDefinition Width="105" />
+                            <ColumnDefinition Width="95" />
                             <ColumnDefinition Width="*" />
                         </Grid.ColumnDefinitions>
                         <TextBlock
@@ -61,7 +64,7 @@
 
                     <Grid Margin="0,0,0,6">
                         <Grid.ColumnDefinitions>
-                            <ColumnDefinition Width="105" />
+                            <ColumnDefinition Width="95" />
                             <ColumnDefinition Width="*" />
                         </Grid.ColumnDefinitions>
                         <TextBlock
@@ -69,18 +72,20 @@
                             FontSize="11"
                             FontWeight="Bold"
                             Foreground="{DynamicResource GameTextMutedBrush}"
-                            Text="Trạng thái Client:" />
+                            Text="Trạng thái:" />
                         <ui:GameBadge
                             Grid.Column="1"
+                            HorizontalAlignment="Left"
                             Padding="6,2"
                             Background="{Binding Status, Converter={StaticResource ClientStatusToBrushConverter}, ConverterParameter=Background}"
                             BorderBrush="{Binding Status, Converter={StaticResource ClientStatusToBrushConverter}}"
                             ToolTip="{Binding AssemblyStatusTooltip}">
                             <TextBlock
-                                FontSize="10.5"
+                                FontSize="10"
                                 FontWeight="Bold"
                                 Foreground="{Binding Status, Converter={StaticResource ClientStatusToBrushConverter}}"
-                                Text="{Binding AssemblyStatus}" />
+                                Text="{Binding AssemblyStatus}"
+                                TextTrimming="CharacterEllipsis" />
                         </ui:GameBadge>
                     </Grid>
 
@@ -104,13 +109,15 @@
                                         FontSize="11.5"
                                         FontWeight="ExtraBold"
                                         Foreground="#B45309"
-                                        Text="{Binding AvailableAppUpdate.Version, StringFormat='★ CÓ PHIÊN BẢN MỚI: v{0}'}" />
+                                        Text="{Binding AvailableAppUpdate.Version, StringFormat='★ CÓ BẢN MỚI: v{0}'}"
+                                        TextTrimming="CharacterEllipsis" />
                                     <TextBlock
                                         Margin="0,2,0,0"
-                                        FontSize="10.5"
+                                        FontSize="10"
                                         FontWeight="SemiBold"
                                         Foreground="#92400E"
-                                        Text="Nội dung cập nhật của phiên bản mới:" />
+                                        Text="Nội dung cập nhật mới:"
+                                        TextWrapping="Wrap" />
                                 </StackPanel>
                                 <Button
                                     Grid.Column="1"
@@ -177,7 +184,8 @@
                     <StackPanel Margin="0,2,0,0" Orientation="Horizontal">
                         <Button
                             Height="28"
-                            MinWidth="120"
+                            MinWidth="0"
+                            Padding="12,0"
                             Margin="0,0,8,0"
                             Command="{Binding CheckForUpdatesCommand}"
                             Content="Kiểm tra phiên bản"
@@ -185,7 +193,8 @@
                             Style="{StaticResource GamePrimaryButton}" />
                         <Button
                             Height="28"
-                            MinWidth="95"
+                            MinWidth="0"
+                            Padding="12,0"
                             Command="{Binding OpenGameFolderCommand}"
                             Content="Thư mục game"
                             FontSize="11"
@@ -197,7 +206,7 @@
             <!-- Card 2: NHẬT KÝ & CHI TIẾT CẬP NHẬT PHIÊN BẢN -->
             <ui:GameCard
                 Margin="0,0,0,10"
-                Header="CHI TIẾT &amp; NHẬT KÝ BẢN CẬP NHẬT">
+                Header="NHẬT KÝ CẬP NHẬT PHIÊN BẢN">
                 <StackPanel>
                     <Grid Margin="0,0,0,8">
                         <Grid.ColumnDefinitions>
@@ -209,7 +218,7 @@
                                 FontSize="11"
                                 FontWeight="Bold"
                                 Foreground="{DynamicResource GameTextMutedBrush}"
-                                Text="Phiên bản hiện tại: " />
+                                Text="Phiên bản: " />
                             <TextBlock
                                 FontSize="11.5"
                                 FontWeight="ExtraBold"
@@ -218,11 +227,13 @@
                         </StackPanel>
                         <TextBlock
                             Grid.Column="1"
+                            Margin="6,0,0,0"
                             VerticalAlignment="Center"
-                            FontSize="10.5"
+                            FontSize="10"
                             FontWeight="SemiBold"
                             Foreground="{DynamicResource GameTextMutedBrush}"
-                            Text="(Cuộn để xem toàn bộ nội dung)" />
+                            Text="(Cuộn xem thêm)"
+                            ToolTip="Cuộn chuột để xem toàn bộ nội dung nhật ký" />
                     </Grid>
 
                     <Border
@@ -246,7 +257,7 @@
                 </StackPanel>
             </ui:GameCard>
 
-            <ui:GameCard Header="HƯỚNG DẪN SỬ DỤNG NHANH">
+            <ui:GameCard Margin="0,0,0,4" Header="HƯỚNG DẪN SỬ DỤNG NHANH">
                 <StackPanel>
                     <StackPanel Margin="0,0,0,6">
                         <TextBlock

@@ -118,33 +118,41 @@ public sealed partial class AccountsPanelViewModel : ObservableObject
 
         _gameEngine.OnSessionUpdated += (accountId, status, snapshot) =>
         {
-            App.Current?.Dispatcher?.Invoke(() =>
+            var dispatcher = App.Current?.Dispatcher;
+            if (dispatcher != null)
             {
-                var item = Accounts.FirstOrDefault(a => a.Id == accountId);
-                if (item != null)
+                _ = dispatcher.InvokeAsync(() =>
                 {
-                    item.UpdateStatus(status, _gameEngine.GetProcessId(accountId));
-                    if (snapshot != null)
+                    var item = Accounts.FirstOrDefault(a => a.Id == accountId);
+                    if (item != null)
                     {
-                        item.UpdateSnapshot(snapshot);
+                        item.UpdateStatus(status, _gameEngine.GetProcessId(accountId));
+                        if (snapshot != null)
+                        {
+                            item.UpdateSnapshot(snapshot);
+                        }
+                        NotifyCountsChanged();
                     }
-                    NotifyCountsChanged();
-                }
-            });
+                });
+            }
         };
 
         _gameEngine.OnSessionMessageUpdated += (accountId, message) =>
         {
-            App.Current?.Dispatcher?.Invoke(() =>
+            var dispatcher = App.Current?.Dispatcher;
+            if (dispatcher != null)
             {
-                var item = Accounts.FirstOrDefault(a => a.Id == accountId);
-                if (item != null)
+                _ = dispatcher.InvokeAsync(() =>
                 {
-                    item.StatusMessage = message;
-                    AccountsView.Refresh();
-                }
-                OnStatusMessageUpdated?.Invoke($"[{item?.Username ?? "Tài khoản"}]: {message}");
-            });
+                    var item = Accounts.FirstOrDefault(a => a.Id == accountId);
+                    if (item != null)
+                    {
+                        item.StatusMessage = message;
+                        AccountsView.Refresh();
+                    }
+                    OnStatusMessageUpdated?.Invoke($"[{item?.Username ?? "Tài khoản"}]: {message}");
+                });
+            }
         };
     }
 

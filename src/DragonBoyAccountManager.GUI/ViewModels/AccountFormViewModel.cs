@@ -381,6 +381,20 @@ public sealed partial class AccountFormViewModel : ObservableObject
         {
             UpdateZones(snapshot.Zones, snapshot.ZoneId);
         }
+
+        _ = Task.Run(async () =>
+        {
+            await Task.Delay(350);
+            var freshSnapshot = _gameEngine.GetWorldSnapshot(accountId.Value);
+            if (freshSnapshot != null && freshSnapshot.Zones.Count > 0)
+            {
+                var dispatcher = App.Current?.Dispatcher;
+                if (dispatcher != null)
+                {
+                    await dispatcher.InvokeAsync(() => UpdateZones(freshSnapshot.Zones, freshSnapshot.ZoneId));
+                }
+            }
+        });
     }
 
     public void UpdateZones(IReadOnlyList<WorldZoneInfo> newZones, int currentZoneId)
