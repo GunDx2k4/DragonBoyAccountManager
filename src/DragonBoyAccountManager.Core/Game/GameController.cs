@@ -88,18 +88,21 @@ public class GameController(GameInstance instance) : IDisposable
                     if (!Instance.IsRunning || token.IsCancellationRequested)
                         break;
 
-                    if (_isPaused || IsExecutingAction) continue;
+                    if (_isPaused) continue;
 
-                    IGameAction[] actions;
-                    lock (_periodicLock)
+                    if (!IsExecutingAction)
                     {
-                        actions = [.. PeriodicActions];
-                    }
+                        IGameAction[] actions;
+                        lock (_periodicLock)
+                        {
+                            actions = [.. PeriodicActions];
+                        }
 
-                    foreach (var action in actions)
-                    {
-                        if (token.IsCancellationRequested || !Instance.IsRunning) break;
-                        await action.ExecuteAsync(Instance.Context, null, token);
+                        foreach (var action in actions)
+                        {
+                            if (token.IsCancellationRequested || !Instance.IsRunning) break;
+                            await action.ExecuteAsync(Instance.Context, null, token);
+                        }
                     }
 
                     if (!Instance.IsRunning || token.IsCancellationRequested)

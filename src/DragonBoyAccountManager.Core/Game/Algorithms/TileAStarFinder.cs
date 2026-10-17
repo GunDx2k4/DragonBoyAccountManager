@@ -1,5 +1,9 @@
 namespace DragonBoyAccountManager.Core.Game.Algorithms;
 
+/// <summary>
+/// Thuật toán tìm đường A* trên lưới ô TileMap của game Dragon Boy (NRO).
+/// Hỗ trợ tìm đường trực giao 4 hướng (Orthogonal 4-way), phân biệt mặt đất/không khí và nén góc ngoặt.
+/// </summary>
 public static class TileAStarFinder
 {
     public const int TileSize = 24;
@@ -141,7 +145,7 @@ public static class TileAStarFinder
                     stepCost = 1.8f;
                 }
 
-                // Thêm một lượng phạt đổi hướng nhỏ để A* ưu tiên đi thẳng tắp (L-shape) thay vì ziczac
+                // Phạt đổi hướng nhỏ để A* ưu tiên đi thẳng tắp thay vì ziczac
                 if (prevDirX != 0 || prevDirY != 0)
                 {
                     if (Dx[i] != prevDirX || Dy[i] != prevDirY)
@@ -176,16 +180,15 @@ public static class TileAStarFinder
         }
         cellPath.Reverse();
 
-        // 3. Nén các đoạn thẳng trực giao (Collinear Simplification)
-        // Gom các ô liên tiếp cùng hướng (thẳng đứng hoặc nằm ngang) thành các Waypoint chính xác
-        var waypoints = CompressCollinearPath(cellPath, tmw, tmh, types);
+        // 3. Nén các đoạn thẳng trực giao thành các điểm ngoặt (Corner Waypoints)
+        var waypoints = CompressCollinearPath(cellPath);
 
         // 4. Chuyển sang tọa độ pixel bàn chân chuẩn
         result.Add((startPx, startPy));
         for (int i = 1; i < waypoints.Count - 1; i++)
         {
             var (tx, ty) = waypoints[i];
-            var (px, py) = CellToFootPixel(tx, ty, tmw, tmh, types);
+            var (px, py) = CellToFootPixel(tx, ty);
             result.Add((px, py));
         }
         result.Add((targetPx, targetPy));
@@ -195,9 +198,8 @@ public static class TileAStarFinder
 
     /// <summary>
     /// Nén các ô di chuyển cùng hàng hoặc cùng cột thành các điểm ngoặt (Corner Waypoints).
-    /// Đảm bảo mọi phân đoạn di chuyển chỉ là THẲNG ĐỨNG (Pure Vertical) hoặc NẰM NGANG (Pure Horizontal).
     /// </summary>
-    private static List<(int X, int Y)> CompressCollinearPath(List<(int X, int Y)> cellPath, int tmw, int tmh, int[] types)
+    private static List<(int X, int Y)> CompressCollinearPath(List<(int X, int Y)> cellPath)
     {
         if (cellPath.Count <= 2)
             return cellPath;
@@ -215,7 +217,7 @@ public static class TileAStarFinder
             int dx2 = next.X - curr.X;
             int dy2 = next.Y - curr.Y;
 
-            // Nếu hướng thay đổi (điểm góc / ngã rẽ) -> giữ lại làm Waypoint
+            // Nếu đổi hướng -> giữ lại làm Waypoint
             if (dx1 != dx2 || dy1 != dy2)
             {
                 compressed.Add(curr);
@@ -227,7 +229,7 @@ public static class TileAStarFinder
     }
 
     /// <summary>
-    /// Kiểm tra xem ô (tx, ty) có phải là BỨC TƯỜNG CHẮN của TileMap không thể đi vào không.
+    /// Kiểm tra xem ô (tx, ty) có phải là bức tường chắn không thể đi vào không.
     /// </summary>
     public static bool IsWall(int tx, int ty, int tmw, int tmh, int[] types)
     {
@@ -238,13 +240,11 @@ public static class TileAStarFinder
         if (index < 0 || index >= types.Length)
             return true;
 
-        int type = types[index];
-        return (type & WallMask) != 0;
+        return (types[index] & WallMask) != 0;
     }
 
     /// <summary>
     /// Kiểm tra xem vị trí ô (tx, ty) có phải là khoảng trống thoáng để nhân vật đứng/đi qua không.
-    /// Cả ô chân (tx, ty) và ô thân/đầu (tx, ty - 1) đều không được là tường chắn.
     /// </summary>
     public static bool IsOpenSpace(int tx, int ty, int tmw, int tmh, int[] types)
     {
@@ -254,8 +254,7 @@ public static class TileAStarFinder
     }
 
     /// <summary>
-    /// Kiểm tra xem ngay dưới chân ô (tx, ty) có phải là NỀN ĐẤT để đặt chân chạy không.
-    /// Bất kỳ ô tường chắn nào bên dưới (không phải bẫy gai) đều là mặt đất để đứng/chạy.
+    /// Kiểm tra xem ngay dưới chân ô (tx, ty) có phải là nền đất để đặt chân chạy không.
     /// </summary>
     public static bool IsGroundBelow(int tx, int ty, int tmw, int tmh, int[] types)
     {
@@ -270,12 +269,10 @@ public static class TileAStarFinder
     /// <summary>
     /// Chuyển đổi từ tọa độ ô lưới (Cell) sang tọa độ pixel bàn chân chuẩn của nhân vật.
     /// </summary>
-    public static (int X, int Y) CellToFootPixel(int tx, int ty, int tmw, int tmh, int[] types)
+    public static (int X, int Y) CellToFootPixel(int tx, int ty)
     {
         int px = tx * TileSize + (TileSize / 2);
-        int py = IsGroundBelow(tx, ty, tmw, tmh, types) 
-            ? ((ty + 1) * TileSize) 
-            : (ty * TileSize + TileSize);
+        int py = (ty + 1) * TileSize;
         return (px, py);
     }
 
@@ -341,9 +338,6 @@ public static class TileAStarFinder
 
     private static float Heuristic(int x1, int y1, int x2, int y2)
     {
-        // Manhattan heuristic chuẩn cho lưới trực giao 4 hướng
-        int dx = Math.Abs(x1 - x2);
-        int dy = Math.Abs(y1 - y2);
-        return dx + dy;
+        return Math.Abs(x1 - x2) + Math.Abs(y1 - y2);
     }
 }

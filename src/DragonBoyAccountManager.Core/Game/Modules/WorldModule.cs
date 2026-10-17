@@ -30,6 +30,7 @@ public interface IWorldModule
     bool FocusOrClick(string entityType, int entityId);
     bool FocusOrClickObject(string entityType, int entityId);
     bool MoveToWaypoint(int targetX, int targetY);
+    int GetYGround(int x);
 
     void CheckClickMoveTo(int x, int y);
     void DoDoubleClickToObj(IntPtr objPtr);
@@ -42,10 +43,11 @@ public interface IWorldModule
     WorldSnapshot GetSnapshot();
 }
 
-public class WorldModule(MonoReflector reflector, IUIModule ui) : IWorldModule
+public class WorldModule(MonoReflector reflector, IUIModule ui, INetworkModule network) : IWorldModule
 {
     private readonly MonoReflector _reflector = reflector;
     private readonly IUIModule _ui = ui;
+    private readonly INetworkModule _network = network;
 
     private readonly ConcurrentDictionary<int, string> _mobTemplateCache = new();
     private readonly ConcurrentDictionary<int, string> _npcTemplateCache = new();
@@ -110,15 +112,23 @@ public class WorldModule(MonoReflector reflector, IUIModule ui) : IWorldModule
         {
             try
             {
-                IntPtr mapNamesPtr = _reflector.ReadStatic<IntPtr>(GameSchema.TileMap.ClassName, GameSchema.TileMap.StaticMapNames);
-                if (mapNamesPtr == IntPtr.Zero) return string.Empty;
-
-                string[] names = _reflector.ReadMonoStringArray(mapNamesPtr);
-                int id = MapId;
-                if (names != null && id >= 0 && id < names.Length)
+                string staticName = _reflector.ReadStaticString(GameSchema.TileMap.ClassName, GameSchema.TileMap.StaticMapName);
+                if (!string.IsNullOrWhiteSpace(staticName))
                 {
-                    return names[id] ?? string.Empty;
+                    return staticName;
                 }
+
+                IntPtr mapNamesPtr = _reflector.ReadStatic<IntPtr>(GameSchema.TileMap.ClassName, GameSchema.TileMap.StaticMapNames);
+                if (mapNamesPtr != IntPtr.Zero)
+                {
+                    string[] names = _reflector.ReadMonoStringArray(mapNamesPtr);
+                    int id = MapId;
+                    if (names != null && id >= 0 && id < names.Length && !string.IsNullOrWhiteSpace(names[id]))
+                    {
+                        return names[id];
+                    }
+                }
+
                 return string.Empty;
             }
             catch
@@ -492,12 +502,48 @@ public class WorldModule(MonoReflector reflector, IUIModule ui) : IWorldModule
         {
             try
             {
-                _reflector.CallMethod(GameSchema.Waypoint.ClassName, GameSchema.Waypoint.MethodPerform, bestWp.Pointer, 2, null);
+                if (bestWp.IsOffline)
+                {
+                    _network.GetMapOffline();
+                }
+                else
+                {
+                    _network.RequestChangeMap();
+                }
                 return true;
             }
             catch { }
         }
         return false;
+    }
+
+    public int GetYGround(int x)
+    {
+        var col = GetCollisionData();
+        if (col.HasValue)
+        {
+            int tmw = col.Value.Width;
+            int tmh = col.Value.Height;
+            int[] types = col.Value.Types;
+
+            int tx = Math.Clamp(x / 24, 0, tmw - 1);
+            int y = 50;
+            for (int i = 0; i < 30; i++)
+            {
+                y += 24;
+                int ty = y / 24;
+                if (ty >= tmh) break;
+                int idx = ty * tmw + tx;
+                if (idx >= 0 && idx < types.Length && (types[idx] & 2) == 2)
+                {
+                    if (y % 24 != 0) y -= y % 24;
+                    return y;
+                }
+            }
+            return y;
+        }
+
+        return 300;
     }
 
     public void CheckClickMoveTo(int x, int y)

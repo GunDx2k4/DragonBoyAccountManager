@@ -40,6 +40,6 @@ public class GameContext : IGameContext
         UI = new UIModule(reflector);
         Network = new NetworkModule(reflector);
         Engine = new EngineModule(reflector);
-        World = new WorldModule(reflector, UI);
+        World = new WorldModule(reflector, UI, Network);
     }
 }

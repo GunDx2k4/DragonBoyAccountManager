@@ -18,6 +18,7 @@ public static class GameSchema
         public const string StaticLoginScr = "loginScr";
         public const string StaticMenu = "menu";
         public const string StaticPanel = "panel";
+        public const string StaticIsLoading = "isLoading";
 
         public const string MethodConnect = "connect";
         public const string MethodEndDlg = "endDlg";
@@ -129,6 +130,8 @@ public static class GameSchema
         public const string FieldY = "cy";
         public const string FieldCvx = "cvx";
         public const string FieldCvy = "cvy";
+        public const string FieldCxSend = "cxSend";
+        public const string FieldCySend = "cySend";
         public const string FieldStatusMe = "statusMe";
         public const string FieldCdir = "cdir";
         public const string FieldCTypePk = "cTypePk";
@@ -144,9 +147,20 @@ public static class GameSchema
         public const string FieldIsManualFocus = "isManualFocus";
         public const string FieldCurrentMovePoint = "currentMovePoint";
         public const string FieldEndMovePointCommand = "endMovePointCommand";
+        public const string FieldIsTeleport = "isTeleport";
+        public const string FieldTelePortSkill = "telePortSkill";
+
+        public const string StaticIsChangingMap = "ischangingMap";
+        public const string StaticIsLoadingMap = "isLoadingMap";
 
         public const string MethodMyCharz = "myCharz";
         public const string MethodFocusManualTo = "focusManualTo";
+    }
+
+    public static class Controller
+    {
+        public const string ClassName = "Controller";
+        public const string StaticIsStopReadMessage = "isStopReadMessage";
     }
 
     public static class Skill
@@ -244,6 +258,7 @@ public static class GameSchema
         public const string StaticTypes = "types";
         public const string StaticMaps = "maps";
         public const string StaticVGo = "vGo";
+        public const string MethodTileTypeAt = "tileTypeAt";
     }
 
     public static class Waypoint
@@ -258,6 +273,12 @@ public static class GameSchema
         public const string FieldPopup = "popup";
 
         public const string MethodPerform = "perform";
+    }
+
+    public static class PopUp
+    {
+        public const string ClassName = "PopUp";
+        public const string FieldSays = "says";
     }
 
     public static class MovePoint
@@ -275,6 +296,8 @@ public static class GameSchema
         public const string MethodCharMove = "charMove";
         public const string MethodRequestChangeZone = "requestChangeZone";
         public const string MethodOpenUIZone = "openUIZone";
+        public const string MethodRequestChangeMap = "requestChangeMap";
+        public const string MethodGetMapOffline = "getMapOffline";
         public const string MethodUseItem = "useItem";
         public const string MethodChat = "chat";
         public const string MethodChatGlobal = "chatGlobal";

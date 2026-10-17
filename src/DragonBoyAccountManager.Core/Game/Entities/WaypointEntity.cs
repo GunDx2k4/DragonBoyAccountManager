@@ -23,7 +23,38 @@ public sealed class WaypointEntity(MonoReflector reflector, IntPtr pointer, int 
     public override int X => MaxX < 60 ? 15 : MinX > pxw - 60 ? pxw - 15 : MinX + ((MaxX - MinX) / 2);
     public override int Y => MaxY;
 
-    public string Name { get; init; } = name;
+    private readonly string _defaultName = name;
+
+    public string Name
+    {
+        get
+        {
+            try
+            {
+                IntPtr popupPtr = GetPtr(GameSchema.Waypoint.FieldPopup);
+                if (popupPtr != IntPtr.Zero)
+                {
+                    IntPtr saysPtr = Reflector.ReadFieldPtr(GameSchema.PopUp.ClassName, GameSchema.PopUp.FieldSays, popupPtr);
+                    if (saysPtr != IntPtr.Zero)
+                    {
+                        string[] lines = Reflector.ReadMonoStringArray(saysPtr);
+                        if (lines != null && lines.Length > 0)
+                        {
+                            string combined = string.Join(" ", lines.Where(s => !string.IsNullOrWhiteSpace(s))).Trim();
+                            if (!string.IsNullOrWhiteSpace(combined))
+                            {
+                                return combined;
+                            }
+                        }
+                    }
+                }
+            }
+            catch { }
+
+            return !string.IsNullOrWhiteSpace(_defaultName) ? _defaultName : "Cổng sang map";
+        }
+        init => _defaultName = value;
+    }
 
     public void Enter(int mode = 2)
     {

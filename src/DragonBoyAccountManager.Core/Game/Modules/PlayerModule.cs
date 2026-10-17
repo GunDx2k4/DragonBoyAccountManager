@@ -9,6 +9,7 @@ public interface IPlayerModule
     IntPtr Pointer { get; }
     bool IsAlive { get; }
     bool IsInGame { get; }
+    bool IsChangingMap { get; }
 
     int Id { get; }
     string Name { get; }
@@ -53,19 +54,71 @@ public class PlayerModule(MonoReflector reflector) : IPlayerModule
     public bool IsAlive => Pointer != IntPtr.Zero;
     public bool IsInGame => IsAlive && !string.IsNullOrWhiteSpace(Name);
 
+    public bool IsChangingMap
+    {
+        get
+        {
+            try
+            {
+                bool isChanging = _reflector.ReadStatic<bool>(GameSchema.Char.ClassName, GameSchema.Char.StaticIsChangingMap);
+                if (isChanging) return true;
+
+                bool isLoading = _reflector.ReadStatic<bool>(GameSchema.Char.ClassName, GameSchema.Char.StaticIsLoadingMap);
+                if (isLoading) return true;
+
+                bool canvasLoading = _reflector.ReadStatic<bool>(GameSchema.GameCanvas.ClassName, GameSchema.GameCanvas.StaticIsLoading);
+                if (canvasLoading) return true;
+
+                bool isStopMsg = _reflector.ReadStatic<bool>(GameSchema.Controller.ClassName, GameSchema.Controller.StaticIsStopReadMessage);
+                if (isStopMsg) return true;
+
+                if (IsAlive)
+                {
+                    bool isTeleport = _reflector.ReadField<bool>(GameSchema.Char.ClassName, GameSchema.Char.FieldIsTeleport, Pointer);
+                    if (isTeleport) return true;
+                }
+
+                return false;
+            }
+            catch
+            {
+                return false;
+            }
+        }
+    }
+
     public int Id => IsAlive ? _reflector.ReadField<int>(GameSchema.Char.ClassName, GameSchema.Char.FieldCharId, Pointer) : 0;
     public string Name => IsAlive ? _reflector.ReadStringField(GameSchema.Char.ClassName, GameSchema.Char.FieldName, Pointer) : string.Empty;
-    public long Hp => IsInGame ? _reflector.ReadField<long>(GameSchema.Char.ClassName, GameSchema.Char.FieldHp, Pointer) : 0;
-    public long MaxHp => IsInGame ? _reflector.ReadField<long>(GameSchema.Char.ClassName, GameSchema.Char.FieldHpFull, Pointer) : 0;
-    public long Power => IsInGame ? _reflector.ReadField<long>(GameSchema.Char.ClassName, GameSchema.Char.FieldPower, Pointer) : 0;
-    public int Gender => IsInGame ? _reflector.ReadField<int>(GameSchema.Char.ClassName, GameSchema.Char.FieldGender, Pointer) : 0;
-    public int X => IsInGame ? _reflector.ReadField<int>(GameSchema.Char.ClassName, GameSchema.Char.FieldX, Pointer) : 0;
-    public int Y => IsInGame ? _reflector.ReadField<int>(GameSchema.Char.ClassName, GameSchema.Char.FieldY, Pointer) : 0;
+    public long Hp => IsAlive ? _reflector.ReadField<long>(GameSchema.Char.ClassName, GameSchema.Char.FieldHp, Pointer) : 0;
+    public long MaxHp => IsAlive ? _reflector.ReadField<long>(GameSchema.Char.ClassName, GameSchema.Char.FieldHpFull, Pointer) : 0;
+    public long Power => IsAlive ? _reflector.ReadField<long>(GameSchema.Char.ClassName, GameSchema.Char.FieldPower, Pointer) : 0;
+    public int Gender => IsAlive ? _reflector.ReadField<int>(GameSchema.Char.ClassName, GameSchema.Char.FieldGender, Pointer) : 0;
+    public int X => IsAlive ? _reflector.ReadField<int>(GameSchema.Char.ClassName, GameSchema.Char.FieldX, Pointer) : 0;
+    public int Y => IsAlive ? _reflector.ReadField<int>(GameSchema.Char.ClassName, GameSchema.Char.FieldY, Pointer) : 0;
 
     public PlayerSnapshot GetSnapshot()
     {
-        if (!IsAlive) return PlayerSnapshot.Empty;
-        return new PlayerSnapshot(Id, Name, Hp, MaxHp, Power, Gender, X, Y, IsAlive, IsInGame);
+        var ptr = Pointer;
+        if (ptr == IntPtr.Zero) return PlayerSnapshot.Empty;
+
+        try
+        {
+            int id = _reflector.ReadField<int>(GameSchema.Char.ClassName, GameSchema.Char.FieldCharId, ptr);
+            string name = _reflector.ReadStringField(GameSchema.Char.ClassName, GameSchema.Char.FieldName, ptr);
+            long hp = _reflector.ReadField<long>(GameSchema.Char.ClassName, GameSchema.Char.FieldHp, ptr);
+            long maxHp = _reflector.ReadField<long>(GameSchema.Char.ClassName, GameSchema.Char.FieldHpFull, ptr);
+            long power = _reflector.ReadField<long>(GameSchema.Char.ClassName, GameSchema.Char.FieldPower, ptr);
+            int gender = _reflector.ReadField<int>(GameSchema.Char.ClassName, GameSchema.Char.FieldGender, ptr);
+            int x = _reflector.ReadField<int>(GameSchema.Char.ClassName, GameSchema.Char.FieldX, ptr);
+            int y = _reflector.ReadField<int>(GameSchema.Char.ClassName, GameSchema.Char.FieldY, ptr);
+
+            bool isInGame = !string.IsNullOrWhiteSpace(name);
+            return new PlayerSnapshot(id, name, hp, maxHp, power, gender, x, y, true, isInGame, IsChangingMap);
+        }
+        catch
+        {
+            return PlayerSnapshot.Empty;
+        }
     }
 
     public IReadOnlyList<InventoryItem> GetBagItems()

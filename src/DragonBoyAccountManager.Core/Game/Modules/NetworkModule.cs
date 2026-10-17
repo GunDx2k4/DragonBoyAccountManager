@@ -13,6 +13,8 @@ public interface INetworkModule
     bool CharMove();
     bool RequestChangeZone(int zoneId, int index = -1);
     bool OpenUIZone();
+    bool RequestChangeMap();
+    bool GetMapOffline();
     bool UseItem(sbyte type, sbyte where, sbyte index, short templateId = -1);
     bool Chat(string text);
     bool ChatGlobal(string text);
@@ -110,6 +112,30 @@ public class NetworkModule(MonoReflector reflector) : INetworkModule
             IntPtr service = ServicePointer;
             if (service == IntPtr.Zero) return false;
             _reflector.CallMethod(GameSchema.Service.ClassName, GameSchema.Service.MethodOpenUIZone, service);
+            return true;
+        }
+        catch { return false; }
+    }
+
+    public bool RequestChangeMap()
+    {
+        try
+        {
+            IntPtr service = ServicePointer;
+            if (service == IntPtr.Zero) return false;
+            _reflector.CallMethod(GameSchema.Service.ClassName, GameSchema.Service.MethodRequestChangeMap, service);
+            return true;
+        }
+        catch { return false; }
+    }
+
+    public bool GetMapOffline()
+    {
+        try
+        {
+            IntPtr service = ServicePointer;
+            if (service == IntPtr.Zero) return false;
+            _reflector.CallMethod(GameSchema.Service.ClassName, GameSchema.Service.MethodGetMapOffline, service);
             return true;
         }
         catch { return false; }
