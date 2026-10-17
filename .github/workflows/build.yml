@@ -10,8 +10,8 @@ on:
   workflow_dispatch:
 
 jobs:
-  build:
-    name: Build Windows Single-File Executables (x64)
+  verify:
+    name: Verify Solution Build
     runs-on: windows-latest
 
     steps:
@@ -26,22 +26,5 @@ jobs:
       - name: Restore dependencies
         run: dotnet restore DBAM.slnx
 
-      - name: Publish CLI (Single-File)
-        run: dotnet publish src/DragonBoyAccountManager.CLI/DragonBoyAccountManager.CLI.csproj -c Release -r win-x64 --self-contained true -p:PublishSingleFile=true -p:EnableCompressionInSingleFile=true -o ./publish/cli
-
-      - name: Publish GUI (Single-File)
-        run: dotnet publish src/DragonBoyAccountManager.GUI/DragonBoyAccountManager.GUI.csproj -c Release -r win-x64 --self-contained true -p:PublishSingleFile=true -p:EnableCompressionInSingleFile=true -p:IncludeNativeLibrariesForSelfExtract=true -o ./publish/gui
-
-      - name: Prepare Artifacts
-        shell: pwsh
-        run: |
-          New-Item -ItemType Directory -Force -Path ./publish/release
-          Copy-Item ./publish/cli/DragonBoyAccountManager.CLI.exe ./publish/release/DragonBoyAccountManager-CLI.exe
-          Copy-Item ./publish/gui/DragonBoyAccountManager.GUI.exe ./publish/release/DragonBoyAccountManager-GUI.exe
-
-      - name: Upload Build Artifacts
-        uses: actions/upload-artifact@v4
-        with:
-          name: DBAM-win-x64-CI
-          path: ./publish/release/*.exe
-          if-no-files-found: error
+      - name: Build Solution (Release)
+        run: dotnet build DBAM.slnx -c Release --no-restore
