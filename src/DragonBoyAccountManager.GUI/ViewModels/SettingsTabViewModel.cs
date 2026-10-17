@@ -85,12 +85,12 @@ public sealed partial class SettingsTabViewModel : ObservableObject
         var movementGroup = new SettingGroupViewModel(
             "movement",
             "CẤU HÌNH DI CHUYỂN",
-            "Thiết lập cơ chế di chuyển tìm đường thông minh A* hoặc bay thẳng")
+            "Thiết lập cơ chế di chuyển tìm đường thông minh A* hoặc dịch chuyển nhanh (Tele)")
             .Add(SettingItemViewModel.CreateBoolean(
-                "MoveByFlying",
-                "Chế độ bay (Bay trực tiếp đến mục tiêu)",
-                _settingsService.Current.MoveByFlying,
-                "Bỏ qua tìm đường A* và bay thẳng đến tọa độ đích (dành cho nhân vật có thể bay)."));
+                "FastTeleport",
+                "Dịch chuyển nhanh (Teleport)",
+                _settingsService.Current.FastTeleport,
+                "Dịch chuyển tức thời đến tọa độ đích (bỏ qua tìm đường và di chuyển từng bước)."));
 
         Groups.Add(movementGroup);
     }
@@ -128,8 +128,8 @@ public sealed partial class SettingsTabViewModel : ObservableObject
         var moveGroup = FindGroup("movement");
         if (moveGroup != null)
         {
-            var fly = moveGroup.Find("MoveByFlying");
-            if (fly != null) fly.BoolValue = settings.MoveByFlying;
+            var tele = moveGroup.Find("FastTeleport");
+            if (tele != null) tele.BoolValue = settings.FastTeleport;
         }
 
         // Tải các giá trị tuỳ biến của Action trong tương lai
@@ -294,7 +294,7 @@ public sealed partial class SettingsTabViewModel : ObservableObject
         var moveGroup = FindGroup("movement");
         if (moveGroup != null)
         {
-            _settingsService.Current.MoveByFlying = moveGroup.GetBool("MoveByFlying", _settingsService.Current.MoveByFlying);
+            _settingsService.Current.FastTeleport = moveGroup.GetBool("FastTeleport", _settingsService.Current.FastTeleport);
         }
 
         // Lưu toàn bộ các cấu hình của các nhóm / action vào CustomValues

@@ -27,11 +27,11 @@ public sealed partial class UtilitiesTabViewModel : ObservableObject
     private Func<List<Guid>>? _targetResolver;
 
     [ObservableProperty]
-    private bool _moveByFlying;
+    private bool _fastTeleport;
 
-    partial void OnMoveByFlyingChanged(bool value)
+    partial void OnFastTeleportChanged(bool value)
     {
-        _settingsService.Current.MoveByFlying = value;
+        _settingsService.Current.FastTeleport = value;
         _ = _settingsService.SaveAsync();
     }
 
@@ -167,7 +167,7 @@ public sealed partial class UtilitiesTabViewModel : ObservableObject
         _gameEngine = gameEngine;
         _settingsService = settingsService;
 
-        _moveByFlying = _settingsService.Current.MoveByFlying;
+        _fastTeleport = _settingsService.Current.FastTeleport;
 
         _refreshTimer = new DispatcherTimer
         {
@@ -560,12 +560,12 @@ public sealed partial class UtilitiesTabViewModel : ObservableObject
 
         StatusText = $"Đang di chuyển tới {wp.Name}...";
 
-        bool isFly = MoveByFlying;
+        bool isTeleport = FastTeleport;
 
-        // Tự động tìm đường A* hoặc bay thẳng tới cổng, sau đó kích hoạt chuyển map
+        // Tự động tìm đường A* hoặc tele nhanh tới cổng, sau đó kích hoạt chuyển map
         var tasks = targetIds.Select(async id =>
         {
-            await _gameEngine.AutoMoveAsync(id, wp.X, wp.Y, isFly);
+            await _gameEngine.AutoMoveAsync(id, wp.X, wp.Y, isTeleport);
             await Task.Delay(100);
             _gameEngine.MoveToWaypoint(id, wp.X, wp.Y);
         });
@@ -625,14 +625,14 @@ public sealed partial class UtilitiesTabViewModel : ObservableObject
 
         StatusText = $"Đang tiếp cận và chọn {entityName}...";
 
-        bool isFly = MoveByFlying;
+        bool isTeleport = FastTeleport;
 
-        // Tự động tìm đường A* hoặc bay thẳng tới gần mục tiêu trước khi chọn
+        // Tự động tìm đường A* hoặc tele nhanh tới gần mục tiêu trước khi chọn
         var tasks = targetIds.Select(async id =>
         {
             if (targetX > 0 && targetY > 0)
             {
-                await _gameEngine.AutoMoveAsync(id, targetX, targetY, isFly);
+                await _gameEngine.AutoMoveAsync(id, targetX, targetY, isTeleport);
             }
             _gameEngine.FocusOrClickObject(id, entityType, entityId);
         });

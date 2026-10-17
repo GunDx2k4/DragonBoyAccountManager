@@ -13,6 +13,6 @@ public sealed class AppSettings
     public int WindowArrangeColumns { get; set; } = 0; // 0 = Tự động
     public int WindowCustomWidth { get; set; } = 0; // 0 = Giữ nguyên
     public int WindowCustomHeight { get; set; } = 0; // 0 = Giữ nguyên
-    public bool MoveByFlying { get; set; } = false; // Chế độ bay thẳng đến mục tiêu
+    public bool FastTeleport { get; set; } = false; // Chế độ dịch chuyển nhanh (teleport) đến mục tiêu
     public Dictionary<string, string> CustomValues { get; set; } = new(StringComparer.OrdinalIgnoreCase);
 }

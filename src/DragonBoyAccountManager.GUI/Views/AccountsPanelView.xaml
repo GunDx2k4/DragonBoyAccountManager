@@ -309,7 +309,7 @@
                         </DataGridTemplateColumn.CellTemplate>
                     </DataGridTemplateColumn>
 
-                    <DataGridTemplateColumn Width="145" MinWidth="100" Header="KHU">
+                    <DataGridTemplateColumn Width="145" MinWidth="100" Header="BẢN ĐỒ / KHU">
                         <DataGridTemplateColumn.CellTemplate>
                             <DataTemplate>
                                 <StackPanel Margin="6,2" VerticalAlignment="Center">

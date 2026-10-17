@@ -376,12 +376,12 @@
                     Orientation="Horizontal">
                     <CheckBox
                         VerticalAlignment="Center"
-                        Content="Bay thẳng"
+                        Content="Tele nhanh"
                         FontSize="9.5"
                         FontWeight="Bold"
-                        IsChecked="{Binding MoveByFlying}"
+                        IsChecked="{Binding FastTeleport}"
                         Style="{StaticResource GameCheckBoxStyle}"
-                        ToolTip="Bỏ qua tìm đường A* và bay trực tiếp đến tọa độ đích" />
+                        ToolTip="Dịch chuyển tức thời đến tọa độ đích" />
                 </StackPanel>
             </Grid>
 

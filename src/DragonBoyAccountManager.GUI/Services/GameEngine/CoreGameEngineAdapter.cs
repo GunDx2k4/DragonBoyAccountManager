@@ -161,14 +161,7 @@ public sealed class CoreGameEngineAdapter(ISettingsService? settingsService = nu
                             inst.UI.CloseZonePanel();
                         }
 
-                        var worldSnapshot = inst.World.GetSnapshot();
-                        var playerSnapshot = inst.Player.GetSnapshot();
-                        var sessionSnapshot = new GameSessionSnapshot(playerSnapshot, worldSnapshot);
-
-                        OnSessionUpdated?.Invoke(account.Id, GameSessionStatus.Active, sessionSnapshot);
-
-                        string title = $"DBAM - {account.Username} ({account.ServerName}) [{playerSnapshot.Name}]";
-                        GameWindowHelper.UpdateWindowTitle(inst.Process, title);
+                        PublishSessionUpdate(session);
                     }
                     else
                     {
@@ -547,17 +540,29 @@ public sealed class CoreGameEngineAdapter(ISettingsService? settingsService = nu
     {
         if (_sessions.TryGetValue(accountId, out var session) && session.Instance.IsRunning && session.Instance.Player.IsInGame)
         {
-            return session.Instance.World.MoveToWaypoint(targetX, targetY);
+            bool res = session.Instance.World.MoveToWaypoint(targetX, targetY);
+            PublishSessionUpdate(session);
+            return res;
         }
         return false;
     }
 
-    public async Task<bool> AutoMoveAsync(Guid accountId, int targetX, int targetY, bool isFly = false)
+    public async Task<bool> AutoMoveAsync(Guid accountId, int targetX, int targetY, bool isFastTeleport = false)
     {
         if (_sessions.TryGetValue(accountId, out var session) && session.Instance.IsRunning && session.Instance.Player.IsInGame)
         {
-            var moveAction = new AutoMoveAction(targetX, targetY, isFly);
-            var result = await session.Controller.ExecuteAsync(moveAction, cancellationToken: session.Cts.Token);
+            if (isFastTeleport && session.Instance.Player.IsChangingMap)
+            {
+                return false;
+            }
+
+            var progress = new Progress<string>(_ =>
+            {
+                PublishSessionUpdate(session);
+            });
+            var moveAction = new AutoMoveAction(targetX, targetY, isFastTeleport);
+            var result = await session.Controller.ExecuteAsync(moveAction, progress, cancellationToken: session.Cts.Token);
+            PublishSessionUpdate(session);
             return result.IsSuccess;
         }
         return false;
@@ -567,7 +572,9 @@ public sealed class CoreGameEngineAdapter(ISettingsService? settingsService = nu
     {
         if (_sessions.TryGetValue(accountId, out var session) && session.Instance.IsRunning && session.Instance.Player.IsInGame)
         {
-            return session.Instance.World.FocusOrClickObject(entityType, entityId);
+            bool res = session.Instance.World.FocusOrClickObject(entityType, entityId);
+            PublishSessionUpdate(session);
+            return res;
         }
         return false;
     }
@@ -631,6 +638,28 @@ public sealed class CoreGameEngineAdapter(ISettingsService? settingsService = nu
             return session.Instance.Player.GetSkills();
         }
         return [];
+    }
+
+    private void PublishSessionUpdate(ActiveSession session)
+    {
+        var inst = session.Instance;
+        if (!inst.IsRunning || session.Cts.IsCancellationRequested) return;
+
+        try
+        {
+            if (inst.Player.IsInGame)
+            {
+                var worldSnapshot = inst.World.GetSnapshot();
+                var playerSnapshot = inst.Player.GetSnapshot();
+                var sessionSnapshot = new GameSessionSnapshot(playerSnapshot, worldSnapshot);
+
+                OnSessionUpdated?.Invoke(session.Account.Id, GameSessionStatus.Active, sessionSnapshot);
+
+                string title = $"DBAM - {session.Account.Username} ({session.Account.ServerName}) [{playerSnapshot.Name}]";
+                GameWindowHelper.UpdateWindowTitle(inst.Process, title);
+            }
+        }
+        catch { }
     }
 
     public void Dispose()
