@@ -1,5 +1,6 @@
 using System.Diagnostics;
-using DragonBoyAccountManager.Core.Game.Objects;
+using DragonBoyAccountManager.Core.Game.Context;
+using DragonBoyAccountManager.Core.Game.Modules;
 using DragonBoyAccountManager.Core.Mono;
 
 namespace DragonBoyAccountManager.Core.Game;
@@ -10,18 +11,13 @@ public sealed class GameInstance : IDisposable
     public MonoContext MonoContext { get; }
     public MonoReflector Reflector { get; }
 
-    public GameMidlet Midlet { get; }
-    public GameChar MyChar { get; }
-    public GameCanvas Canvas { get; }
-    public GameSession Session { get; }
-    public GameServerListScreen ServerScreen { get; }
-    public GameLoginScreen LoginScreen { get; }
-    public GameTime Time { get; }
-    public GameResolution Resolution { get; }
-    public GameMap Map { get; }
-    public GameChat Chat { get; }
-    public GameInventory Inventory { get; }
-    public GameSkills Skills { get; }
+    public IGameContext Context { get; }
+
+    public IPlayerModule Player => Context.Player;
+    public IWorldModule World => Context.World;
+    public IUIModule UI => Context.UI;
+    public INetworkModule Network => Context.Network;
+    public IEngineModule Engine => Context.Engine;
 
     public int ProcessId => Process.Id;
     public bool IsRunning => !Process.HasExited;
@@ -32,6 +28,8 @@ public sealed class GameInstance : IDisposable
         remove => Process.Exited -= value;
     }
 
+    private readonly System.Collections.Concurrent.ConcurrentDictionary<Type, object> _modules = new();
+
     public GameInstance(Process process, MonoContext monoContext)
     {
         Process = process;
@@ -39,119 +37,28 @@ public sealed class GameInstance : IDisposable
         MonoContext = monoContext;
         Reflector = new MonoReflector(monoContext);
 
-        Midlet = new GameMidlet(Reflector);
-        MyChar = new GameChar(Reflector);
-        Canvas = new GameCanvas(Reflector);
-        Session = new GameSession(Reflector);
-        ServerScreen = new GameServerListScreen(Reflector);
-        LoginScreen = new GameLoginScreen(Reflector);
-        Time = new GameTime(Reflector);
-        Resolution = new GameResolution(Reflector);
-        Map = new GameMap(Reflector);
-        Chat = new GameChat(Reflector);
-        Inventory = new GameInventory(Reflector);
-        Skills = new GameSkills(Reflector);
+        Context = new GameContext(Reflector, () => IsRunning);
+
+        RegisterModule(Context);
+        RegisterModule(Context.Player);
+        RegisterModule(Context.World);
+        RegisterModule(Context.UI);
+        RegisterModule(Context.Network);
+        RegisterModule(Context.Engine);
     }
 
-    public bool AutoKillOnDispose { get; set; } = true;
-
-    public bool SetResolution(int width, int height, bool fullscreen = false)
+    public void RegisterModule<T>(T module) where T : class
     {
-        try
-        {
-            return Resolution.SetResolution(width, height, fullscreen);
-        }
-        catch
-        {
-            return false;
-        }
+        _modules[typeof(T)] = module;
     }
 
-    public void SetTimeScale(float speed)
+    public T? GetModule<T>() where T : class
     {
-        try
+        if (_modules.TryGetValue(typeof(T), out var obj))
         {
-            Time.SetTimeScale(speed);
+            return obj as T;
         }
-        catch { }
-    }
-
-    public float GetTimeScale()
-    {
-        try
-        {
-            return Time.GetTimeScale();
-        }
-        catch
-        {
-            return 1.0f;
-        }
-    }
-
-    public bool SendChat(string text, ChatType type = ChatType.Map)
-    {
-        try
-        {
-            return Chat.SendChat(text, type);
-        }
-        catch
-        {
-            return false;
-        }
-    }
-
-    public (bool Success, string Message) UseCapsule()
-    {
-        try
-        {
-            return Inventory.UseCapsule();
-        }
-        catch (Exception ex)
-        {
-            return (false, $"Lỗi sử dụng Capsule: {ex.Message}");
-        }
-    }
-
-    public (bool Success, string Message) UseTdlt()
-    {
-        try
-        {
-            return Inventory.UseTdlt();
-        }
-        catch (Exception ex)
-        {
-            return (false, $"Lỗi sử dụng TDLT: {ex.Message}");
-        }
-    }
-
-    public (bool Success, string Message) UseSkill(int slotIndex)
-    {
-        try
-        {
-            return Skills.UseSkill(slotIndex);
-        }
-        catch (Exception ex)
-        {
-            return (false, $"Lỗi sử dụng skill: {ex.Message}");
-        }
-    }
-
-    public List<GameSkillInfo> GetSkills()
-    {
-        try
-        {
-            return Skills.GetSkills();
-        }
-        catch
-        {
-            return [];
-        }
-    }
-
-    public Task<bool> AutoMoveAsync(int targetX, int targetY, IProgress<string>? progress = null, CancellationToken cancellationToken = default)
-    {
-        var action = new DragonBoyAccountManager.Core.Game.Actions.AutoMoveAction(targetX, targetY);
-        return action.ExecuteAsync(this, progress, cancellationToken);
+        return null;
     }
 
     public void Kill()
@@ -165,17 +72,6 @@ public sealed class GameInstance : IDisposable
 
     public void Dispose()
     {
-        Dispose(AutoKillOnDispose);
-        GC.SuppressFinalize(this);
-    }
-
-    public void Dispose(bool killProcess)
-    {
-        if (killProcess)
-        {
-            Kill();
-        }
         MonoContext.Dispose();
-        Process.Dispose();
     }
 }

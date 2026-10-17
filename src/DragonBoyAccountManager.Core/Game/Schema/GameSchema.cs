@@ -1,0 +1,292 @@
+namespace DragonBoyAccountManager.Core.Game.Schema;
+
+/// <summary>
+/// Tập trung toàn bộ tên Class, Field và Method của game engine Mono (Assembly-CSharp).
+/// Giúp loại bỏ hoàn toàn magic strings, ngăn ngừa lỗi chính tả (typo) khi runtime và dễ bảo trì khi game update.
+/// </summary>
+public static class GameSchema
+{
+    public static class GameCanvas
+    {
+        public const string ClassName = "GameCanvas";
+        public const string StaticInstance = "instance";
+        public const string StaticGameCanvas = "gameCanvas";
+        public const string StaticCurrentScreen = "currentScreen";
+        public const string StaticCurrentDialog = "currentDialog";
+        public const string StaticServerScreen = "serverScreen";
+        public const string StaticServerScr = "serverScr";
+        public const string StaticLoginScr = "loginScr";
+        public const string StaticMenu = "menu";
+        public const string StaticPanel = "panel";
+
+        public const string MethodConnect = "connect";
+        public const string MethodEndDlg = "endDlg";
+        public const string MethodStartOKDlg = "startOKDlg";
+        public const string MethodStartWaitDlg = "startWaitDlg";
+        public const string MethodKeyPressedz = "keyPressedz";
+        public const string MethodKeyReleasedz = "keyReleasedz";
+    }
+
+    public static class Screen
+    {
+        public const string MethodPerform = "perform";
+    }
+
+    public static class LoginScr
+    {
+        public const string ClassName = "LoginScr";
+        public const string FieldTfUser = "tfUser";
+        public const string FieldTfPass = "tfPass";
+
+        public const int ActionSubmit = 2008;
+        public const int ActionCancel = 101;
+    }
+
+    public static class ServerListScreen
+    {
+        public const string ClassName = "ServerListScreen";
+        public const string ClassNameAlt = "ServerScr";
+        public const string StaticIpSelect = "ipSelect";
+        public const string MethodSetIpSelect = "SetIpSelect";
+
+        public const int ActionSelectServer = 6;
+        public const int ActionOpenLogin = 7;
+        public const int ActionLoginSaved = 3;
+    }
+
+    public static class TField
+    {
+        public const string ClassName = "TField";
+        public const string FieldText = "text";
+        public const string FieldPaintedText = "paintedText";
+        public const string FieldPasswordText = "passwordText";
+        public const string FieldCaretPos = "caretPos";
+        public const string MethodSetText = "setText";
+        public const string MethodGetText = "getText";
+    }
+
+    public static class Rms
+    {
+        public const string ClassName = "Rms";
+        public const string MethodSaveRMSString = "saveRMSString";
+        public const string MethodSaveRMSInt = "saveRMSInt";
+        public const string KeyAcc = "acc";
+        public const string KeyPass = "pass";
+        public const string KeyLevelScreenKN = "levelScreenKN";
+    }
+
+    public static class GameMidlet
+    {
+        public const string ClassName = "GameMidlet";
+        public const string StaticVersion = "VERSION";
+        public const string StaticIntVersion = "intVERSION";
+        public const string StaticIp = "IP";
+        public const string StaticPort = "PORT";
+    }
+
+    public static class Session
+    {
+        public const string ClassName = "Session_ME";
+        public const string StaticConnected = "connected";
+        public const string StaticConnecting = "connecting";
+        public const string StaticGetKeyComplete = "getKeyComplete";
+    }
+
+    public static class GameScr
+    {
+        public const string ClassName = "GameScr";
+        public const string StaticInstance = "instance";
+        public const string StaticVMob = "vMob";
+        public const string StaticVNpc = "vNpc";
+        public const string StaticVCharInMap = "vCharInMap";
+        public const string StaticVItemMap = "vItemMap";
+        public const string StaticKeySkill = "keySkill";
+
+        public const string FieldZones = "zones";
+        public const string FieldMaxPlayer = "maxPlayer";
+        public const string FieldNumPlayer = "numPlayer";
+        public const string FieldPts = "pts";
+        public const string FieldClickMoving = "clickMoving";
+
+        public const string MethodGI = "gI";
+        public const string MethodCheckClickMoveTo = "checkClickMoveTo";
+        public const string MethodDoDoubleClickToObj = "doDoubleClickToObj";
+        public const string MethodDoSelectSkill = "doSelectSkill";
+    }
+
+    public static class Char
+    {
+        public const string ClassName = "Char";
+        public const string StaticMyChar = "myChar";
+
+        public const string FieldCharId = "charID";
+        public const string FieldName = "cName";
+        public const string FieldHp = "cHP";
+        public const string FieldHpFull = "cHPFull";
+        public const string FieldPower = "cPower";
+        public const string FieldGender = "cgender";
+        public const string FieldX = "cx";
+        public const string FieldY = "cy";
+        public const string FieldCdir = "cdir";
+        public const string FieldCTypePk = "cTypePk";
+        public const string FieldIsPet = "isPet";
+        public const string FieldIsMiniPet = "isMiniPet";
+        public const string FieldArrItemBag = "arrItemBag";
+        public const string FieldVSkillFight = "vSkillFight";
+
+        public const string FieldMobFocus = "mobFocus";
+        public const string FieldCharFocus = "charFocus";
+        public const string FieldNpcFocus = "npcFocus";
+        public const string FieldItemFocus = "itemFocus";
+        public const string FieldIsManualFocus = "isManualFocus";
+        public const string FieldCurrentMovePoint = "currentMovePoint";
+        public const string FieldEndMovePointCommand = "endMovePointCommand";
+
+        public const string MethodMyCharz = "myCharz";
+        public const string MethodFocusManualTo = "focusManualTo";
+    }
+
+    public static class Skill
+    {
+        public const string ClassName = "Skill";
+        public const string FieldSkillId = "skillId";
+        public const string FieldPoint = "point";
+        public const string FieldCoolDown = "coolDown";
+        public const string FieldManaUse = "manaUse";
+        public const string FieldTemplate = "template";
+    }
+
+    public static class SkillTemplate
+    {
+        public const string ClassName = "SkillTemplate";
+        public const string FieldName = "name";
+    }
+
+    public static class Mob
+    {
+        public const string ClassName = "Mob";
+        public const string StaticArrMobTemplate = "arrMobTemplate";
+
+        public const string FieldMobId = "mobId";
+        public const string FieldTemplateId = "templateId";
+        public const string FieldHp = "hp";
+        public const string FieldMaxHp = "maxHp";
+        public const string FieldStatus = "status";
+        public const string FieldX = "x";
+        public const string FieldY = "y";
+        public const string FieldIsBoss = "isBoss";
+        public const string FieldLevelBoss = "levelBoss";
+    }
+
+    public static class MobTemplate
+    {
+        public const string ClassName = "MobTemplate";
+        public const string FieldName = "name";
+    }
+
+    public static class Npc
+    {
+        public const string ClassName = "Npc";
+        public const string StaticArrNpcTemplate = "arrNpcTemplate";
+
+        public const string FieldNpcId = "npcId";
+        public const string FieldTemplate = "template";
+        public const string FieldTemplateId = "templateId";
+        public const string FieldCx = "cx";
+        public const string FieldCy = "cy";
+    }
+
+    public static class NpcTemplate
+    {
+        public const string ClassName = "NpcTemplate";
+        public const string FieldName = "name";
+        public const string FieldNpcTemplateId = "npcTemplateId";
+    }
+
+    public static class ItemMap
+    {
+        public const string ClassName = "ItemMap";
+        public const string FieldItemMapId = "itemMapID";
+        public const string FieldTemplateId = "templateId";
+        public const string FieldX = "x";
+        public const string FieldY = "y";
+        public const string FieldPlayerId = "playerId";
+    }
+
+    public static class Item
+    {
+        public const string ClassName = "Item";
+        public const string FieldTemplate = "template";
+        public const string FieldQuantity = "quantity";
+    }
+
+    public static class ItemTemplate
+    {
+        public const string ClassName = "ItemTemplate";
+        public const string FieldId = "id";
+        public const string FieldName = "name";
+    }
+
+    public static class TileMap
+    {
+        public const string ClassName = "TileMap";
+        public const string StaticMapId = "mapID";
+        public const string StaticZoneId = "zoneID";
+        public const string StaticMapName = "mapName";
+        public const string StaticMapNames = "mapNames";
+        public const string StaticTmw = "tmw";
+        public const string StaticTmh = "tmh";
+        public const string StaticPxw = "pxw";
+        public const string StaticPxh = "pxh";
+        public const string StaticTypes = "types";
+        public const string StaticMaps = "maps";
+        public const string StaticVGo = "vGo";
+    }
+
+    public static class Waypoint
+    {
+        public const string ClassName = "Waypoint";
+        public const string FieldMinX = "minX";
+        public const string FieldMinY = "minY";
+        public const string FieldMaxX = "maxX";
+        public const string FieldMaxY = "maxY";
+        public const string FieldIsEnter = "isEnter";
+        public const string FieldIsOffline = "isOffline";
+        public const string FieldPopup = "popup";
+
+        public const string MethodPerform = "perform";
+    }
+
+    public static class MovePoint
+    {
+        public const string ClassName = "MovePoint";
+        public const string FieldXEnd = "xEnd";
+        public const string FieldYEnd = "yEnd";
+    }
+
+    public static class Service
+    {
+        public const string ClassName = "Service";
+        public const string StaticInstance = "instance";
+        public const string MethodGI = "gI";
+        public const string MethodCharMove = "charMove";
+        public const string MethodRequestChangeZone = "requestChangeZone";
+        public const string MethodOpenUIZone = "openUIZone";
+        public const string MethodUseItem = "useItem";
+        public const string MethodChat = "chat";
+        public const string MethodChatGlobal = "chatGlobal";
+    }
+
+    public static class MsgDlg
+    {
+        public const string ClassName = "MsgDlg";
+        public const string FieldIsWait = "isWait";
+        public const string FieldInfo = "info";
+    }
+
+    public static class Panel
+    {
+        public const string ClassName = "Panel";
+        public const string FieldIsShow = "isShow";
+    }
+}

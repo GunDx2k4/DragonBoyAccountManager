@@ -1,3 +1,5 @@
+using DragonBoyAccountManager.Core.Game.Actions;
+
 namespace DragonBoyAccountManager.Core.Game;
 
 public class GameController(GameInstance instance) : IDisposable
@@ -45,7 +47,7 @@ public class GameController(GameInstance instance) : IDisposable
         }
     }
 
-    public async Task<bool> ExecuteAsync(
+    public async Task<ActionResult> ExecuteAsync(
         IGameAction action,
         IProgress<string>? progress = null,
         CancellationToken cancellationToken = default)
@@ -55,7 +57,7 @@ public class GameController(GameInstance instance) : IDisposable
         ActionChanged?.Invoke(action);
         try
         {
-            return await action.ExecuteAsync(Instance, progress, cancellationToken);
+            return await action.ExecuteAsync(Instance.Context, progress, cancellationToken);
         }
         finally
         {
@@ -94,7 +96,7 @@ public class GameController(GameInstance instance) : IDisposable
                     foreach (var action in actions)
                     {
                         if (token.IsCancellationRequested || !Instance.IsRunning) break;
-                        await action.ExecuteAsync(Instance, null, token);
+                        await action.ExecuteAsync(Instance.Context, null, token);
                     }
 
                     Ticked?.Invoke(Instance);

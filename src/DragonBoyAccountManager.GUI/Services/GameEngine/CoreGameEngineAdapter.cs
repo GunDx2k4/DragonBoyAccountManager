@@ -3,7 +3,11 @@ using System.Diagnostics;
 using System.IO;
 
 using DragonBoyAccountManager.Core.Game;
-using DragonBoyAccountManager.Core.Game.Objects;
+using DragonBoyAccountManager.Core.Game.Actions;
+using DragonBoyAccountManager.Core.Game.Entities;
+using DragonBoyAccountManager.Core.Game.Models;
+using DragonBoyAccountManager.Core.Game.Modules;
+using DragonBoyAccountManager.Core.Game.Snapshots;
 using DragonBoyAccountManager.GUI.Helpers;
 using DragonBoyAccountManager.GUI.Models;
 using DragonBoyAccountManager.GUI.Services.Settings;
@@ -40,7 +44,7 @@ public sealed class CoreGameEngineAdapter(ISettingsService? settingsService = nu
     private readonly HashSet<Guid> _userStoppedAccounts = [];
     private readonly object _userStoppedLock = new();
 
-    public event Action<Guid, GameSessionStatus, CharacterSnapshot?>? OnSessionUpdated;
+    public event Action<Guid, GameSessionStatus, GameSessionSnapshot?>? OnSessionUpdated;
     public event Action<Guid, string>? OnSessionMessageUpdated;
 
     public async Task<bool> StartAsync(Account account, string gamePath)
@@ -79,9 +83,9 @@ public sealed class CoreGameEngineAdapter(ISettingsService? settingsService = nu
             // Tự động đặt tiêu đề chuẩn ngay khi vừa bật game
             _ = Task.Run(() => GameWindowHelper.ApplyWindowStyleAsync(instance.Process, () =>
             {
-                if (session.Instance.IsRunning && session.Instance.MyChar.IsInGame && !string.IsNullOrWhiteSpace(session.Instance.MyChar.Name))
+                if (session.Instance.IsRunning && session.Instance.Player.IsInGame && !string.IsNullOrWhiteSpace(session.Instance.Player.Name))
                 {
-                    return $"DBAM - {account.Username}{serverInfo} [{session.Instance.MyChar.Name}]";
+                    return $"DBAM - {account.Username}{serverInfo} [{session.Instance.Player.Name}]";
                 }
                 return initialTitle;
             }));
@@ -129,26 +133,15 @@ public sealed class CoreGameEngineAdapter(ISettingsService? settingsService = nu
                 }
                 catch { }
 
-                if (inst.MyChar.IsInGame)
+                if (inst.Player.IsInGame)
                 {
-                    var mapSnapshot = inst.Map.GetMapSnapshot();
-                    var snapshot = new CharacterSnapshot(
-                        inst.MyChar.Name,
-                        inst.MyChar.Power,
-                        inst.MyChar.Hp,
-                        inst.MyChar.Gender,
-                        mapSnapshot.MapId >= 0 ? mapSnapshot.MapId : inst.Map.MapId,
-                        mapSnapshot.ZoneId >= 0 ? mapSnapshot.ZoneId : inst.Map.ZoneId,
-                        !string.IsNullOrWhiteSpace(mapSnapshot.MapName) ? mapSnapshot.MapName : inst.Map.MapName,
-                        inst.MyChar.X,
-                        inst.MyChar.Y,
-                        mapSnapshot.CurrentPlayers,
-                        mapSnapshot.MaxPlayers
-                    );
+                    var worldSnapshot = inst.World.GetSnapshot();
+                    var playerSnapshot = inst.Player.GetSnapshot();
+                    var sessionSnapshot = new GameSessionSnapshot(playerSnapshot, worldSnapshot);
 
-                    OnSessionUpdated?.Invoke(account.Id, GameSessionStatus.Active, snapshot);
+                    OnSessionUpdated?.Invoke(account.Id, GameSessionStatus.Active, sessionSnapshot);
 
-                    string title = $"DBAM - {account.Username} ({account.ServerName}) [{inst.MyChar.Name}]";
+                    string title = $"DBAM - {account.Username} ({account.ServerName}) [{playerSnapshot.Name}]";
                     GameWindowHelper.UpdateWindowTitle(inst.Process, title);
                 }
                 else
@@ -171,14 +164,14 @@ public sealed class CoreGameEngineAdapter(ISettingsService? settingsService = nu
 
             if (account.GameSpeed != 1.0f)
             {
-                instance.SetTimeScale(account.GameSpeed);
+                instance.Engine.SetTimeScale(account.GameSpeed);
             }
 
             int customW = _settingsService?.Current.WindowCustomWidth ?? 0;
             int customH = _settingsService?.Current.WindowCustomHeight ?? 0;
             if (customW > 0 && customH > 0)
             {
-                instance.SetResolution(customW, customH, false);
+                instance.Engine.SetResolution(customW, customH, false);
             }
 
             if (_settingsService?.Current.AutoArrangeWindows == true)
@@ -246,30 +239,19 @@ public sealed class CoreGameEngineAdapter(ISettingsService? settingsService = nu
 
         try
         {
-            while (instance.IsRunning && !session.Cts.IsCancellationRequested && !instance.MyChar.IsInGame)
+            while (instance.IsRunning && !session.Cts.IsCancellationRequested && !instance.Player.IsInGame)
             {
                 var loginAction = new AutoLoginAction(account.Username, account.Password, account.ServerId);
                 bool success = await controller.ExecuteAsync(loginAction, progress, session.Cts.Token);
-                if (success || instance.MyChar.IsInGame)
+                if (success || instance.Player.IsInGame)
                 {
                     OnSessionMessageUpdated?.Invoke(account.Id, "Đăng nhập thành công!");
-                    if (instance.MyChar.IsInGame)
+                    if (instance.Player.IsInGame)
                     {
-                        var mapSnapshot = instance.Map.GetMapSnapshot();
-                        var snapshot = new CharacterSnapshot(
-                            instance.MyChar.Name,
-                            instance.MyChar.Power,
-                            instance.MyChar.Hp,
-                            instance.MyChar.Gender,
-                            mapSnapshot.MapId >= 0 ? mapSnapshot.MapId : instance.Map.MapId,
-                            mapSnapshot.ZoneId >= 0 ? mapSnapshot.ZoneId : instance.Map.ZoneId,
-                            !string.IsNullOrWhiteSpace(mapSnapshot.MapName) ? mapSnapshot.MapName : instance.Map.MapName,
-                            instance.MyChar.X,
-                            instance.MyChar.Y,
-                            mapSnapshot.CurrentPlayers,
-                            mapSnapshot.MaxPlayers
-                        );
-                        OnSessionUpdated?.Invoke(account.Id, GameSessionStatus.Active, snapshot);
+                        var worldSnapshot = instance.World.GetSnapshot();
+                        var playerSnapshot = instance.Player.GetSnapshot();
+                        var sessionSnapshot = new GameSessionSnapshot(playerSnapshot, worldSnapshot);
+                        OnSessionUpdated?.Invoke(account.Id, GameSessionStatus.Active, sessionSnapshot);
                     }
                     return true;
                 }
@@ -283,7 +265,7 @@ public sealed class CoreGameEngineAdapter(ISettingsService? settingsService = nu
                 await Task.Delay(1500, session.Cts.Token);
             }
 
-            if (instance.MyChar.IsInGame)
+            if (instance.Player.IsInGame)
             {
                 return true;
             }
@@ -401,7 +383,7 @@ public sealed class CoreGameEngineAdapter(ISettingsService? settingsService = nu
             {
                 if (customW > 0 && customH > 0)
                 {
-                    session.Instance.SetResolution(customW, customH, false);
+                    session.Instance.Engine.SetResolution(customW, customH, false);
                 }
                 processes.Add(session.Instance.Process);
             }
@@ -432,7 +414,7 @@ public sealed class CoreGameEngineAdapter(ISettingsService? settingsService = nu
         if (_sessions.TryGetValue(accountId, out var session))
         {
             session.Account.GameSpeed = speed;
-            session.Instance.SetTimeScale(speed);
+            session.Instance.Engine.SetTimeScale(speed);
         }
     }
 
@@ -440,7 +422,7 @@ public sealed class CoreGameEngineAdapter(ISettingsService? settingsService = nu
     {
         if (_sessions.TryGetValue(accountId, out var session))
         {
-            return session.Instance.GetTimeScale();
+            return session.Instance.Engine.TimeScale;
         }
         return 1.0f;
     }
@@ -486,7 +468,7 @@ public sealed class CoreGameEngineAdapter(ISettingsService? settingsService = nu
     {
         if (_sessions.TryGetValue(accountId, out var session) && keyCode != 0)
         {
-            session.Instance.Canvas.KeyPressedz(keyCode);
+            session.Instance.UI.KeyPressed(keyCode);
         }
     }
 
@@ -494,7 +476,7 @@ public sealed class CoreGameEngineAdapter(ISettingsService? settingsService = nu
     {
         if (_sessions.TryGetValue(accountId, out var session) && keyCode != 0)
         {
-            session.Instance.Canvas.KeyReleasedz(keyCode);
+            session.Instance.UI.KeyReleased(keyCode);
         }
     }
 
@@ -502,9 +484,9 @@ public sealed class CoreGameEngineAdapter(ISettingsService? settingsService = nu
     {
         if (_sessions.TryGetValue(accountId, out var session) && keyCode != 0)
         {
-            session.Instance.Canvas.KeyPressedz(keyCode);
+            session.Instance.UI.KeyPressed(keyCode);
             await Task.Delay(holdMs);
-            session.Instance.Canvas.KeyReleasedz(keyCode);
+            session.Instance.UI.KeyReleased(keyCode);
         }
     }
 
@@ -512,97 +494,98 @@ public sealed class CoreGameEngineAdapter(ISettingsService? settingsService = nu
     {
         if (_sessions.TryGetValue(accountId, out var session) && session.Instance.IsRunning)
         {
-            return session.Instance.Map.ChangeZone(zoneId);
+            return session.Instance.World.ChangeZone(zoneId);
         }
         return false;
     }
 
     public void RequestZoneList(Guid accountId)
     {
-        if (_sessions.TryGetValue(accountId, out var session) && session.Instance.IsRunning && session.Instance.MyChar.IsInGame)
+        if (_sessions.TryGetValue(accountId, out var session) && session.Instance.IsRunning && session.Instance.Player.IsInGame)
         {
-            session.Instance.Map.RequestZoneList();
+            session.Instance.World.RequestZoneList();
         }
     }
 
     public bool MoveToWaypoint(Guid accountId, int targetX, int targetY)
     {
-        if (_sessions.TryGetValue(accountId, out var session) && session.Instance.IsRunning && session.Instance.MyChar.IsInGame)
+        if (_sessions.TryGetValue(accountId, out var session) && session.Instance.IsRunning && session.Instance.Player.IsInGame)
         {
-            return session.Instance.Map.MoveToWaypoint(targetX, targetY);
+            return session.Instance.World.MoveToWaypoint(targetX, targetY);
         }
         return false;
     }
 
     public async Task<bool> AutoMoveAsync(Guid accountId, int targetX, int targetY, bool isFly = false)
     {
-        if (_sessions.TryGetValue(accountId, out var session) && session.Instance.IsRunning && session.Instance.MyChar.IsInGame)
+        if (_sessions.TryGetValue(accountId, out var session) && session.Instance.IsRunning && session.Instance.Player.IsInGame)
         {
-            var moveAction = new DragonBoyAccountManager.Core.Game.Actions.AutoMoveAction(targetX, targetY, isFly);
-            return await session.Controller.ExecuteAsync(moveAction, cancellationToken: session.Cts.Token);
+            var moveAction = new AutoMoveAction(targetX, targetY, isFly);
+            var result = await session.Controller.ExecuteAsync(moveAction, cancellationToken: session.Cts.Token);
+            return result.IsSuccess;
         }
         return false;
     }
 
     public bool FocusOrClickObject(Guid accountId, string entityType, int entityId)
     {
-        if (_sessions.TryGetValue(accountId, out var session) && session.Instance.IsRunning && session.Instance.MyChar.IsInGame)
+        if (_sessions.TryGetValue(accountId, out var session) && session.Instance.IsRunning && session.Instance.Player.IsInGame)
         {
-            return session.Instance.Map.FocusOrClickObject(entityType, entityId);
+            return session.Instance.World.FocusOrClickObject(entityType, entityId);
         }
         return false;
     }
 
-    public DragonBoyAccountManager.Core.Game.Objects.MapSnapshot? GetMapSnapshot(Guid accountId)
+    public WorldSnapshot? GetWorldSnapshot(Guid accountId)
     {
-        if (_sessions.TryGetValue(accountId, out var session) && session.Instance.IsRunning && session.Instance.MyChar.IsInGame)
+        if (_sessions.TryGetValue(accountId, out var session) && session.Instance.IsRunning && session.Instance.Player.IsInGame)
         {
-            return session.Instance.Map.GetMapSnapshot();
+            return session.Instance.World.GetSnapshot();
         }
         return null;
     }
 
     public bool SendChat(Guid accountId, string text, ChatType type = ChatType.Map)
     {
-        if (_sessions.TryGetValue(accountId, out var session) && session.Instance.IsRunning && session.Instance.MyChar.IsInGame)
+        if (_sessions.TryGetValue(accountId, out var session) && session.Instance.IsRunning && session.Instance.Player.IsInGame)
         {
-            return session.Instance.SendChat(text, type);
+            return session.Instance.Network.SendChat(text, type);
         }
         return false;
     }
 
     public (bool Success, string Message) UseCapsule(Guid accountId)
     {
-        if (_sessions.TryGetValue(accountId, out var session) && session.Instance.IsRunning && session.Instance.MyChar.IsInGame)
+        if (_sessions.TryGetValue(accountId, out var session) && session.Instance.IsRunning && session.Instance.Player.IsInGame)
         {
-            return session.Instance.UseCapsule();
+            return session.Instance.Player.UseCapsule();
         }
         return (false, "Tài khoản chưa vào game");
     }
 
     public (bool Success, string Message) UseTdlt(Guid accountId)
     {
-        if (_sessions.TryGetValue(accountId, out var session) && session.Instance.IsRunning && session.Instance.MyChar.IsInGame)
+        if (_sessions.TryGetValue(accountId, out var session) && session.Instance.IsRunning && session.Instance.Player.IsInGame)
         {
-            return session.Instance.UseTdlt();
+            return session.Instance.Player.UseTdlt();
         }
         return (false, "Tài khoản chưa vào game");
     }
 
     public (bool Success, string Message) UseSkill(Guid accountId, int slotIndex)
     {
-        if (_sessions.TryGetValue(accountId, out var session) && session.Instance.IsRunning && session.Instance.MyChar.IsInGame)
+        if (_sessions.TryGetValue(accountId, out var session) && session.Instance.IsRunning && session.Instance.Player.IsInGame)
         {
-            return session.Instance.UseSkill(slotIndex);
+            return session.Instance.Player.UseSkill(slotIndex);
         }
         return (false, "Tài khoản chưa vào game");
     }
 
     public IReadOnlyList<GameSkillInfo> GetSkills(Guid accountId)
     {
-        if (_sessions.TryGetValue(accountId, out var session) && session.Instance.IsRunning && session.Instance.MyChar.IsInGame)
+        if (_sessions.TryGetValue(accountId, out var session) && session.Instance.IsRunning && session.Instance.Player.IsInGame)
         {
-            return session.Instance.GetSkills();
+            return session.Instance.Player.GetSkills();
         }
         return [];
     }

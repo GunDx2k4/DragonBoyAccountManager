@@ -1,5 +1,6 @@
 using Spectre.Console;
 using DragonBoyAccountManager.Core.Game;
+using DragonBoyAccountManager.Core.Game.Actions;
 
 AnsiConsole.Write(new Rule("[bold cyan]DBAM[/]").Centered());
 AnsiConsole.WriteLine();
@@ -60,8 +61,8 @@ while (instance.IsRunning)
                 "Status",
                 "TimeScale (Speed)",
                 "Auto Login",
-                "Read GameMidlet",
-                "Read MyChar",
+                "Read Client Info",
+                "Read Player",
                 controller.IsRunning ? "Stop Loop" : "Start Loop (1s)",
                 "Kill",
                 "Exit"));
@@ -73,32 +74,32 @@ while (instance.IsRunning)
             break;
 
         case "TimeScale (Speed)":
-            float current = instance.GetTimeScale();
+            float current = instance.Engine.TimeScale;
             float newSpeed = AnsiConsole.Ask<float>($"Current TimeScale: [yellow]{current:0.0}x[/]. Enter new value:");
-            instance.SetTimeScale(newSpeed);
-            AnsiConsole.MarkupLine($"[green]TimeScale updated to {instance.GetTimeScale():0.0}x[/]");
+            instance.Engine.SetTimeScale(newSpeed);
+            AnsiConsole.MarkupLine($"[green]TimeScale updated to {instance.Engine.TimeScale:0.0}x[/]");
             break;
 
         case "Auto Login":
             await RunAutoLogin(controller);
             break;
 
-        case "Read GameMidlet":
-            PrintKV("VERSION", instance.Midlet.Version);
-            PrintKV("intVERSION", instance.Midlet.IntVersion.ToString());
-            PrintKV("IP", instance.Midlet.IP);
-            PrintKV("PORT", instance.Midlet.Port.ToString());
+        case "Read Client Info":
+            PrintKV("VERSION", instance.Engine.Version);
+            PrintKV("intVERSION", instance.Engine.IntVersion.ToString());
+            PrintKV("IP", instance.Engine.ServerIP);
+            PrintKV("PORT", instance.Engine.ServerPort.ToString());
             break;
 
-        case "Read MyChar":
-            if (!instance.MyChar.IsInGame)
+        case "Read Player":
+            if (!instance.Player.IsInGame)
             {
-                AnsiConsole.MarkupLine("[yellow]Character not in game (myChar pointer is null).[/]");
+                AnsiConsole.MarkupLine("[yellow]Character not in game (player pointer is null).[/]");
             }
             else
             {
-                PrintKV("Name", instance.MyChar.Name);
-                PrintKV("Power", instance.MyChar.Power.ToString("N0"));
+                PrintKV("Name", instance.Player.Name);
+                PrintKV("Power", instance.Player.Power.ToString("N0"));
             }
             break;
 
@@ -135,17 +136,17 @@ static void PrintStatus(GameInstance inst, GameController ctrl)
     PrintKV("PID", inst.ProcessId.ToString());
     PrintKV("Running", inst.IsRunning.ToString());
     PrintKV("RootDomain", $"0x{inst.MonoContext.RootDomain:X}");
-    PrintKV("In Game", inst.MyChar.IsInGame ? "Yes" : "No");
+    PrintKV("In Game", inst.Player.IsInGame ? "Yes" : "No");
     PrintKV("Loop Running", ctrl.IsRunning ? "Yes" : "No");
-    PrintKV("Canvas Alive", inst.Canvas.IsAlive ? "Yes" : "No");
-    PrintKV("Session Connected", inst.Session.IsConnected ? "Yes" : "No");
+    PrintKV("Canvas Alive", inst.UI.CanvasPointer != IntPtr.Zero ? "Yes" : "No");
+    PrintKV("Session Connected", inst.Network.IsConnected ? "Yes" : "No");
 }
 
 static void OnControllerTicked(GameInstance inst)
 {
-    if (inst.MyChar.IsInGame)
+    if (inst.Player.IsInGame)
     {
-        AnsiConsole.MarkupLine($"[dim][[Tick]][/] Char: [cyan]{Markup.Escape(inst.MyChar.Name)}[/] | Power: [yellow]{inst.MyChar.Power:N0}[/]");
+        AnsiConsole.MarkupLine($"[dim][[Tick]][/] Char: [cyan]{Markup.Escape(inst.Player.Name)}[/] | Power: [yellow]{inst.Player.Power:N0}[/]");
     }
 }
 
@@ -167,12 +168,12 @@ static async Task RunAutoLogin(GameController ctrl)
                 ctx.Status(Markup.Escape(msg));
                 AnsiConsole.MarkupLine($"[grey][[{DateTime.Now:HH:mm:ss}]][/] {Markup.Escape(msg)}");
             });
-            ok = await ctrl.ExecuteAsync(new AutoLoginAction(user, pass, serverId), progress);
+            ok = (await ctrl.ExecuteAsync(new AutoLoginAction(user, pass, serverId), progress)).IsSuccess;
         });
 
     if (ok)
     {
-        AnsiConsole.MarkupLine($"[green]Login successful![/] Character: [cyan]{Markup.Escape(ctrl.Instance.MyChar.Name)}[/]");
+        AnsiConsole.MarkupLine($"[green]Login successful![/] Character: [cyan]{Markup.Escape(ctrl.Instance.Player.Name)}[/]");
     }
     else
     {

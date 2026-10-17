@@ -1,4 +1,6 @@
-using DragonBoyAccountManager.Core.Game.Objects;
+using DragonBoyAccountManager.Core.Game.Models;
+using DragonBoyAccountManager.Core.Game.Modules;
+using DragonBoyAccountManager.Core.Game.Snapshots;
 using DragonBoyAccountManager.GUI.Models;
 
 namespace DragonBoyAccountManager.GUI.Services.GameEngine;
@@ -31,7 +33,7 @@ public interface IGameEngineService
     bool MoveToWaypoint(Guid accountId, int targetX, int targetY);
     Task<bool> AutoMoveAsync(Guid accountId, int targetX, int targetY, bool isFly = false);
     bool FocusOrClickObject(Guid accountId, string entityType, int entityId);
-    MapSnapshot? GetMapSnapshot(Guid accountId);
+    WorldSnapshot? GetWorldSnapshot(Guid accountId);
 
     bool SendChat(Guid accountId, string text, ChatType type = ChatType.Map);
 
@@ -40,6 +42,6 @@ public interface IGameEngineService
     (bool Success, string Message) UseSkill(Guid accountId, int slotIndex);
     IReadOnlyList<GameSkillInfo> GetSkills(Guid accountId);
 
-    event Action<Guid, GameSessionStatus, CharacterSnapshot?>? OnSessionUpdated;
+    event Action<Guid, GameSessionStatus, GameSessionSnapshot?>? OnSessionUpdated;
     event Action<Guid, string>? OnSessionMessageUpdated;
 }

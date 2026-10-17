@@ -2,7 +2,10 @@ using System.Collections.ObjectModel;
 using System.Windows.Threading;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
-using DragonBoyAccountManager.Core.Game.Objects;
+using DragonBoyAccountManager.Core.Game.Entities;
+using DragonBoyAccountManager.Core.Game.Models;
+using DragonBoyAccountManager.Core.Game.Modules;
+using DragonBoyAccountManager.Core.Game.Snapshots;
 using DragonBoyAccountManager.GUI.Models;
 using DragonBoyAccountManager.GUI.Services.GameEngine;
 using DragonBoyAccountManager.GUI.Services.Settings;
@@ -13,7 +16,7 @@ public sealed record WaypointButtonItem(
     string Name,
     int X,
     int Y,
-    MapWaypointInfo Waypoint
+    WorldWaypointInfo Waypoint
 );
 
 public sealed partial class UtilitiesTabViewModel : ObservableObject
@@ -134,17 +137,17 @@ public sealed partial class UtilitiesTabViewModel : ObservableObject
     private int _currentLineIndex = 0;
 
     public ObservableCollection<WaypointButtonItem> WaypointButtons { get; } = [];
-    public ObservableCollection<MapBossInfo> Bosses { get; } = [];
-    public ObservableCollection<MapPlayerInfo> Players { get; } = [];
-    public ObservableCollection<MapMobInfo> Mobs { get; } = [];
-    public ObservableCollection<MapWaypointInfo> Waypoints { get; } = [];
-    public ObservableCollection<MapNpcInfo> Npcs { get; } = [];
-    public ObservableCollection<MapZoneInfo> AvailableZones { get; } = [];
+    public ObservableCollection<WorldBossInfo> Bosses { get; } = [];
+    public ObservableCollection<WorldPlayerInfo> Players { get; } = [];
+    public ObservableCollection<WorldMobInfo> Mobs { get; } = [];
+    public ObservableCollection<WorldWaypointInfo> Waypoints { get; } = [];
+    public ObservableCollection<WorldNpcInfo> Npcs { get; } = [];
+    public ObservableCollection<WorldZoneInfo> AvailableZones { get; } = [];
     public ObservableCollection<int> QuickZones { get; } = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15];
 
     private bool _isRefreshingZones;
-    private MapZoneInfo? _selectedZone;
-    public MapZoneInfo? SelectedZone
+    private WorldZoneInfo? _selectedZone;
+    public WorldZoneInfo? SelectedZone
     {
         get => _selectedZone;
         set
@@ -274,7 +277,7 @@ public sealed partial class UtilitiesTabViewModel : ObservableObject
         }
 
         IsAccountRunning = true;
-        var snapshot = _gameEngine.GetMapSnapshot(ActiveAccount.Id);
+        var snapshot = _gameEngine.GetWorldSnapshot(ActiveAccount.Id);
         if (snapshot == null || snapshot.MapId < 0)
         {
             CurrentMapName = "Đang tải dữ liệu bản đồ...";
@@ -320,7 +323,7 @@ public sealed partial class UtilitiesTabViewModel : ObservableObject
         StatusText = $"Cập nhật lúc: {DateTime.Now:HH:mm:ss}";
     }
 
-    private void UpdateZones(IReadOnlyList<MapZoneInfo> newZones, int currentZoneId)
+    private void UpdateZones(IReadOnlyList<WorldZoneInfo> newZones, int currentZoneId)
     {
         _isRefreshingZones = true;
         try
@@ -471,7 +474,7 @@ public sealed partial class UtilitiesTabViewModel : ObservableObject
         {
             targetZone = zInt;
         }
-        else if (parameter is MapZoneInfo zoneInfo)
+        else if (parameter is WorldZoneInfo zoneInfo)
         {
             targetZone = zoneInfo.ZoneId;
         }
@@ -493,12 +496,12 @@ public sealed partial class UtilitiesTabViewModel : ObservableObject
     [RelayCommand]
     public async Task MoveToWaypoint(object? parameter)
     {
-        MapWaypointInfo? wp = null;
+        WorldWaypointInfo? wp = null;
         if (parameter is WaypointButtonItem btnItem)
         {
             wp = btnItem.Waypoint;
         }
-        else if (parameter is MapWaypointInfo wpInfo)
+        else if (parameter is WorldWaypointInfo wpInfo)
         {
             wp = wpInfo;
         }
@@ -535,7 +538,7 @@ public sealed partial class UtilitiesTabViewModel : ObservableObject
         int targetX = 0;
         int targetY = 0;
 
-        if (parameter is MapMobInfo mob)
+        if (parameter is WorldMobInfo mob)
         {
             entityType = "mob";
             entityId = mob.Id;
@@ -543,7 +546,7 @@ public sealed partial class UtilitiesTabViewModel : ObservableObject
             targetX = mob.X;
             targetY = mob.Y;
         }
-        else if (parameter is MapBossInfo boss)
+        else if (parameter is WorldBossInfo boss)
         {
             entityType = "boss";
             entityId = boss.Id;
@@ -551,7 +554,7 @@ public sealed partial class UtilitiesTabViewModel : ObservableObject
             targetX = boss.X;
             targetY = boss.Y;
         }
-        else if (parameter is MapPlayerInfo player)
+        else if (parameter is WorldPlayerInfo player)
         {
             entityType = "player";
             entityId = player.Id;
@@ -559,7 +562,7 @@ public sealed partial class UtilitiesTabViewModel : ObservableObject
             targetX = player.X;
             targetY = player.Y;
         }
-        else if (parameter is MapNpcInfo npc)
+        else if (parameter is WorldNpcInfo npc)
         {
             entityType = "npc";
             entityId = npc.Id;

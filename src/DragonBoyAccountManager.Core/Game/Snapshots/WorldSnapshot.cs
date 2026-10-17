@@ -1,6 +1,6 @@
-namespace DragonBoyAccountManager.Core.Game.Objects;
+namespace DragonBoyAccountManager.Core.Game.Snapshots;
 
-public sealed record MapMobInfo(
+public sealed record WorldMobInfo(
     int Id,
     int TemplateId,
     string Name,
@@ -13,7 +13,7 @@ public sealed record MapMobInfo(
     bool IsBoss
 );
 
-public sealed record MapBossInfo(
+public sealed record WorldBossInfo(
     int Id,
     string Name,
     long Hp,
@@ -22,7 +22,7 @@ public sealed record MapBossInfo(
     int Y
 );
 
-public sealed record MapPlayerInfo(
+public sealed record WorldPlayerInfo(
     int Id,
     string Name,
     long Hp,
@@ -31,7 +31,7 @@ public sealed record MapPlayerInfo(
     int Y
 );
 
-public sealed record MapWaypointInfo(
+public sealed record WorldWaypointInfo(
     string Name,
     int X,
     int Y,
@@ -41,21 +41,21 @@ public sealed record MapWaypointInfo(
     short MaxY
 );
 
-public sealed record MapNpcInfo(
+public sealed record WorldNpcInfo(
     int Id,
     string Name,
     int X,
     int Y
 );
 
-public sealed record MapZoneInfo(
+public sealed record WorldZoneInfo(
     int ZoneId,
     int NumPlayers,
     int MaxPlayers,
     int Status
 )
 {
-    public bool IsFull => Status == 1 || (MaxPlayers > 0 && NumPlayers >= MaxPlayers);
+    public bool IsFull => Status >= 2 || (MaxPlayers > 0 && NumPlayers >= MaxPlayers);
 
     public string DisplayText
     {
@@ -70,7 +70,7 @@ public sealed record MapZoneInfo(
     public override string ToString() => DisplayText;
 }
 
-public sealed record MapSnapshot(
+public sealed record WorldSnapshot(
     int MapId,
     int ZoneId,
     string MapName,
@@ -78,15 +78,15 @@ public sealed record MapSnapshot(
     int AliveMobs,
     int CurrentPlayers,
     int MaxPlayers,
-    IReadOnlyList<MapMobInfo> Mobs,
-    IReadOnlyList<MapBossInfo> Bosses,
-    IReadOnlyList<MapPlayerInfo> Players,
-    IReadOnlyList<MapWaypointInfo> Waypoints,
-    IReadOnlyList<MapNpcInfo> Npcs,
-    IReadOnlyList<MapZoneInfo> Zones
+    IReadOnlyList<WorldMobInfo> Mobs,
+    IReadOnlyList<WorldBossInfo> Bosses,
+    IReadOnlyList<WorldPlayerInfo> Players,
+    IReadOnlyList<WorldWaypointInfo> Waypoints,
+    IReadOnlyList<WorldNpcInfo> Npcs,
+    IReadOnlyList<WorldZoneInfo> Zones
 )
 {
-    public static MapSnapshot Empty => new(
+    public static WorldSnapshot Empty => new(
         MapId: -1,
         ZoneId: -1,
         MapName: string.Empty,

@@ -206,21 +206,25 @@ public sealed partial class AccountItemViewModel : ObservableObject
 
     public bool IsRunning => Status != GameSessionStatus.Offline || ProcessId.HasValue;
 
-    public void UpdateSnapshot(CharacterSnapshot? snapshot)
+    public void UpdateSnapshot(GameSessionSnapshot? snapshot)
     {
         if (snapshot != null)
         {
-            CharacterName = snapshot.Name;
-            CharacterPower = snapshot.Power;
-            CharacterHP = snapshot.Hp;
-            CharacterGender = snapshot.Gender;
-            MapId = snapshot.MapId >= 0 ? snapshot.MapId : null;
-            ZoneId = snapshot.ZoneId >= 0 ? snapshot.ZoneId : null;
-            MapName = !string.IsNullOrWhiteSpace(snapshot.MapName) ? snapshot.MapName : null;
-            CharX = snapshot.X;
-            CharY = snapshot.Y;
-            CurrentPlayers = snapshot.CurrentPlayers > 0 ? snapshot.CurrentPlayers : null;
-            MaxPlayers = snapshot.MaxPlayers > 0 ? snapshot.MaxPlayers : null;
+            var p = snapshot.Player;
+            var w = snapshot.World;
+
+            CharacterName = p.Name;
+            CharacterPower = p.Power;
+            CharacterHP = p.Hp;
+            CharacterGender = p.Gender;
+            CharX = p.X;
+            CharY = p.Y;
+
+            MapId = w.MapId >= 0 ? w.MapId : null;
+            ZoneId = w.ZoneId >= 0 ? w.ZoneId : null;
+            MapName = !string.IsNullOrWhiteSpace(w.MapName) ? w.MapName : null;
+            CurrentPlayers = w.CurrentPlayers > 0 ? w.CurrentPlayers : null;
+            MaxPlayers = w.MaxPlayers > 0 ? w.MaxPlayers : null;
         }
         else
         {

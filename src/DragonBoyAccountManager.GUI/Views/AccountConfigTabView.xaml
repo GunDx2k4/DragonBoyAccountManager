@@ -5,7 +5,7 @@
     xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
     xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
     xmlns:guiModels="clr-namespace:DragonBoyAccountManager.GUI.Models"
-    xmlns:models="clr-namespace:DragonBoyAccountManager.Core.Game.Objects;assembly=DragonBoyAccountManager.Core"
+    xmlns:models="clr-namespace:DragonBoyAccountManager.Core.Game.Snapshots;assembly=DragonBoyAccountManager.Core"
     xmlns:ui="clr-namespace:DragonBoyAccountManager.GUI.UI.Controls"
     xmlns:viewmodels="clr-namespace:DragonBoyAccountManager.GUI.ViewModels"
     d:DataContext="{d:DesignInstance Type=viewmodels:AccountFormViewModel}"
@@ -180,7 +180,7 @@
                             Style="{StaticResource GameComboBoxStyle}"
                             ToolTip="Chọn khu từ danh sách để chuyển map ngay lập tức">
                             <ComboBox.ItemTemplate>
-                                <DataTemplate DataType="{x:Type models:MapZoneInfo}">
+                                <DataTemplate DataType="{x:Type models:WorldZoneInfo}">
                                     <Grid Margin="2,1">
                                         <Grid.ColumnDefinitions>
                                             <ColumnDefinition Width="*" />

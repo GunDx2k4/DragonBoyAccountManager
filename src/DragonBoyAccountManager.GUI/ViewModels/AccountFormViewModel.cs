@@ -6,7 +6,9 @@ using System.Windows.Threading;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 
-using DragonBoyAccountManager.Core.Game.Objects;
+using DragonBoyAccountManager.Core.Game.Entities;
+using DragonBoyAccountManager.Core.Game.Models;
+using DragonBoyAccountManager.Core.Game.Snapshots;
 using DragonBoyAccountManager.GUI.Models;
 using DragonBoyAccountManager.GUI.Services.Dialog;
 using DragonBoyAccountManager.GUI.Services.GameEngine;
@@ -59,11 +61,11 @@ public sealed partial class AccountFormViewModel : ObservableObject
     public string GameSpeedText => $"{GameSpeed:0.0}x";
 
     public ObservableCollection<string> AvailableServers { get; } = [];
-    public ObservableCollection<MapZoneInfo> AvailableZones { get; } = [];
+    public ObservableCollection<WorldZoneInfo> AvailableZones { get; } = [];
     public ObservableCollection<SkillButtonItem> Skills { get; } = [];
 
-    private MapZoneInfo? _selectedZone;
-    public MapZoneInfo? SelectedZone
+    private WorldZoneInfo? _selectedZone;
+    public WorldZoneInfo? SelectedZone
     {
         get => _selectedZone;
         set
@@ -374,14 +376,14 @@ public sealed partial class AccountFormViewModel : ObservableObject
         if (accountId == null) return;
 
         _gameEngine.RequestZoneList(accountId.Value);
-        var snapshot = _gameEngine.GetMapSnapshot(accountId.Value);
+        var snapshot = _gameEngine.GetWorldSnapshot(accountId.Value);
         if (snapshot != null && snapshot.Zones.Count > 0)
         {
             UpdateZones(snapshot.Zones, snapshot.ZoneId);
         }
     }
 
-    public void UpdateZones(IReadOnlyList<MapZoneInfo> newZones, int currentZoneId)
+    public void UpdateZones(IReadOnlyList<WorldZoneInfo> newZones, int currentZoneId)
     {
         _isRefreshingZones = true;
         try

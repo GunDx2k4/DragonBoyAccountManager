@@ -1,50 +1,51 @@
-using DragonBoyAccountManager.Core.Game.Pathfinding;
+using DragonBoyAccountManager.Core.Game.Context;
+using DragonBoyAccountManager.Core.Game.Algorithms;
+using DragonBoyAccountManager.Core.Game.Schema;
 
 namespace DragonBoyAccountManager.Core.Game.Actions;
 
-public class AutoMoveAction(int targetX, int targetY, bool isFly = false) : IGameAction
+public class AutoMoveAction(int targetX, int targetY, bool isFly = false) 
+    : GameAction($"Auto Move to ({targetX}, {targetY})")
 {
-    public string Name => $"Auto Move to ({targetX}, {targetY})";
-
     public int TargetX => targetX;
     public int TargetY => targetY;
     public bool IsFly => isFly;
 
-    public async Task<bool> ExecuteAsync(
-        GameInstance instance, 
-        IProgress<string>? progress = null, 
-        CancellationToken cancellationToken = default)
+    protected override async Task<ActionResult> OnExecuteAsync(
+        IGameContext context, 
+        IProgress<string>? progress, 
+        CancellationToken cancellationToken)
     {
         try
         {
-            if (!instance.IsRunning || !instance.MyChar.IsInGame)
+            if (!context.IsRunning || !context.Player.IsInGame)
             {
                 progress?.Report("Game chưa sẵn sàng hoặc chưa đăng nhập.");
-                return false;
+                return ActionResult.Failure("Game chưa sẵn sàng hoặc chưa đăng nhập.");
             }
 
-            int curX = instance.MyChar.X;
-            int curY = instance.MyChar.Y;
+            int curX = context.Player.X;
+            int curY = context.Player.Y;
 
             // Nếu đã ở rất gần mục tiêu (<= 15px)
             if (Math.Abs(curX - TargetX) <= 15 && Math.Abs(curY - TargetY) <= 15)
             {
                 progress?.Report("Đã ở vị trí mục tiêu.");
-                return true;
+                return ActionResult.Success("Đã ở vị trí mục tiêu.");
             }
 
-            IntPtr myCharPtr = instance.Reflector.ReadStatic<IntPtr>("Char", "myChar");
+            IntPtr myCharPtr = context.Player.Pointer;
             if (myCharPtr == IntPtr.Zero)
             {
                 progress?.Report("Không tìm thấy con trỏ nhân vật myChar.");
-                return false;
+                return ActionResult.Failure("Không tìm thấy con trỏ nhân vật myChar.");
             }
 
             // Đọc dữ liệu TileMap để nhận diện địa hình
             (int Width, int Height, int[] Types)? mapData = null;
             for (int i = 0; i < 3; i++)
             {
-                mapData = instance.Map.GetTileMapCollisionData();
+                mapData = context.World.GetCollisionData();
                 if (mapData != null) break;
                 await Task.Delay(50, cancellationToken);
             }
@@ -65,37 +66,37 @@ public class AutoMoveAction(int targetX, int targetY, bool isFly = false) : IGam
             if (waypoints.Count <= 1)
             {
                 progress?.Report($"Di chuyển tới ({TargetX}, {TargetY})...");
-                bool ok = await MoveToPointAsync(instance, myCharPtr, TargetX, TargetY, 16, cancellationToken);
-                SendCharMove(instance);
-                return ok;
+                bool ok = await MoveToPointAsync(context, myCharPtr, TargetX, TargetY, 16, cancellationToken);
+                context.Network.CharMove();
+                return ok ? ActionResult.Success() : ActionResult.Failure($"Không thể di chuyển tới ({TargetX}, {TargetY}).");
             }
 
             // Nếu A* trả về 1 đoạn thẳng duy nhất không có vật cản
             if (waypoints.Count == 2)
             {
                 progress?.Report($"Đường đi thẳng tới ({TargetX}, {TargetY})...");
-                bool ok = await MoveToPointAsync(instance, myCharPtr, TargetX, TargetY, 16, cancellationToken);
-                SendCharMove(instance);
-                return ok;
+                bool ok = await MoveToPointAsync(context, myCharPtr, TargetX, TargetY, 16, cancellationToken);
+                context.Network.CharMove();
+                return ok ? ActionResult.Success() : ActionResult.Failure($"Không thể di chuyển tới ({TargetX}, {TargetY}).");
             }
 
             // 2. Di chuyển lần lượt qua các điểm mốc A* bằng Native Game Engine
             progress?.Report($"Đi theo lộ trình ({waypoints.Count} mốc) chuẩn engine game...");
             for (int i = 1; i < waypoints.Count; i++)
             {
-                if (cancellationToken.IsCancellationRequested || !instance.IsRunning)
-                    return false;
+                if (cancellationToken.IsCancellationRequested || !context.IsRunning)
+                    return ActionResult.Failure("Bị hủy hoặc game đã tắt.");
 
                 var wp = waypoints[i];
                 bool isLast = (i == waypoints.Count - 1);
                 int threshold = isLast ? 16 : 24;
 
-                bool stepOk = await MoveToPointAsync(instance, myCharPtr, wp.X, wp.Y, threshold, cancellationToken);
+                bool stepOk = await MoveToPointAsync(context, myCharPtr, wp.X, wp.Y, threshold, cancellationToken);
                 if (!stepOk && !isLast)
                 {
                     // Nếu kẹt giữa chừng, tính lại A* từ vị trí hiện tại
-                    int nowX = instance.MyChar.X;
-                    int nowY = instance.MyChar.Y;
+                    int nowX = context.Player.X;
+                    int nowY = context.Player.Y;
                     var recomputed = TileAStarFinder.FindPath(nowX, nowY, TargetX, TargetY, tmw, tmh, types!);
                     if (recomputed.Count > 1)
                     {
@@ -107,64 +108,44 @@ public class AutoMoveAction(int targetX, int targetY, bool isFly = false) : IGam
             }
 
             // Dọn dẹp con trỏ mục tiêu và đồng bộ trạng thái cuối
-            instance.Reflector.WriteField("Char", "currentMovePoint", myCharPtr, IntPtr.Zero);
-            SendCharMove(instance);
+            context.Reflector.WriteField(GameSchema.Char.ClassName, GameSchema.Char.FieldCurrentMovePoint, myCharPtr, IntPtr.Zero);
+            context.Network.CharMove();
 
-            progress?.Report($"Đã đến vị trí ({instance.MyChar.X}, {instance.MyChar.Y}) thành công.");
-            return true;
+            progress?.Report($"Đã đến vị trí ({context.Player.X}, {context.Player.Y}) thành công.");
+            return ActionResult.Success($"Đã đến vị trí ({context.Player.X}, {context.Player.Y}) thành công.");
         }
         catch (OperationCanceledException)
         {
             progress?.Report("Quá trình di chuyển bị hủy bỏ.");
-            return false;
+            return ActionResult.Failure("Quá trình di chuyển bị hủy bỏ.");
         }
         catch (Exception ex)
         {
             progress?.Report($"Lỗi khi di chuyển: {ex.Message}");
-            return false;
+            return ActionResult.Failure(ex.Message);
         }
     }
 
-    /// <summary>
-    /// Giao điểm đích cho engine game di chuyển tự nhiên qua currentMovePoint (như mod pk9r)
-    /// hoặc qua GameScr.checkClickMoveTo.
-    /// </summary>
-    private static bool SetNativeTarget(GameInstance instance, IntPtr myCharPtr, int targetX, int targetY)
+    private static bool SetNativeTarget(IGameContext context, IntPtr myCharPtr, int targetX, int targetY)
     {
         try
         {
-            // 1. Thử tạo MovePoint trực tiếp như pk9r
-            IntPtr mp = instance.Reflector.CreateInstance("MovePoint", targetX, targetY);
+            IntPtr mp = context.Reflector.CreateInstance(GameSchema.MovePoint.ClassName, targetX, targetY);
             if (mp != IntPtr.Zero)
             {
-                int curX = instance.MyChar.X;
-                instance.Reflector.WriteField("MovePoint", "xEnd", mp, targetX);
-                instance.Reflector.WriteField("MovePoint", "yEnd", mp, targetY);
-                instance.Reflector.WriteField("Char", "currentMovePoint", myCharPtr, mp);
-                instance.Reflector.WriteField("Char", "cdir", myCharPtr, targetX >= curX ? 1 : -1);
-                instance.Reflector.WriteField("Char", "endMovePointCommand", myCharPtr, IntPtr.Zero);
+                int curX = context.Player.X;
+                context.Reflector.WriteField(GameSchema.MovePoint.ClassName, GameSchema.MovePoint.FieldXEnd, mp, targetX);
+                context.Reflector.WriteField(GameSchema.MovePoint.ClassName, GameSchema.MovePoint.FieldYEnd, mp, targetY);
+                context.Reflector.WriteField(GameSchema.Char.ClassName, GameSchema.Char.FieldCurrentMovePoint, myCharPtr, mp);
+                context.Reflector.WriteField(GameSchema.Char.ClassName, GameSchema.Char.FieldCdir, myCharPtr, targetX >= curX ? 1 : -1);
+                context.Reflector.WriteField(GameSchema.Char.ClassName, GameSchema.Char.FieldEndMovePointCommand, myCharPtr, IntPtr.Zero);
 
-                IntPtr gameScr = instance.Reflector.CallMethod("GameScr", "gI", IntPtr.Zero);
-                if (gameScr == IntPtr.Zero)
-                    gameScr = instance.Reflector.ReadStatic<IntPtr>("GameScr", "instance");
-                if (gameScr != IntPtr.Zero)
-                    instance.Reflector.WriteField("GameScr", "clickMoving", gameScr, true);
-
+                context.World.ClickMoving = true;
                 return true;
             }
 
-            // 2. Dự phòng: gọi checkClickMoveTo của GameScr
-            IntPtr gs = instance.Reflector.CallMethod("GameScr", "gI", IntPtr.Zero);
-            if (gs == IntPtr.Zero)
-                gs = instance.Reflector.ReadStatic<IntPtr>("GameScr", "instance");
-
-            if (gs != IntPtr.Zero)
-            {
-                instance.Reflector.CallMethod("GameScr", "checkClickMoveTo", gs, targetX, targetY, 0);
-                return true;
-            }
-
-            return false;
+            context.World.CheckClickMoveTo(targetX, targetY);
+            return true;
         }
         catch
         {
@@ -172,12 +153,8 @@ public class AutoMoveAction(int targetX, int targetY, bool isFly = false) : IGam
         }
     }
 
-    /// <summary>
-    /// Cho engine game tự lái nhân vật đến điểm mốc (targetX, targetY).
-    /// Game engine tự tính toán va chạm, gia tốc, animation và tự gửi Service.charMove() chuẩn 100% server.
-    /// </summary>
     private static async Task<bool> MoveToPointAsync(
-        GameInstance instance, 
+        IGameContext context, 
         IntPtr myCharPtr, 
         int targetX, 
         int targetY, 
@@ -186,52 +163,42 @@ public class AutoMoveAction(int targetX, int targetY, bool isFly = false) : IGam
     {
         try
         {
-            SetNativeTarget(instance, myCharPtr, targetX, targetY);
+            SetNativeTarget(context, myCharPtr, targetX, targetY);
             await Task.Delay(40, cancellationToken);
 
-            int prevX = instance.MyChar.X;
-            int prevY = instance.MyChar.Y;
+            int prevX = context.Player.X;
+            int prevY = context.Player.Y;
             int stuckTicks = 0;
             var sw = System.Diagnostics.Stopwatch.StartNew();
 
-            while (!cancellationToken.IsCancellationRequested && instance.IsRunning)
+            while (!cancellationToken.IsCancellationRequested && context.IsRunning)
             {
-                int curX = instance.MyChar.X;
-                int curY = instance.MyChar.Y;
+                int curX = context.Player.X;
+                int curY = context.Player.Y;
 
-                // Nếu đã tới trong bán kính cho phép
                 int dist = Math.Abs(curX - targetX) + Math.Abs(curY - targetY);
                 if (dist <= targetDist)
-                {
                     return true;
-                }
 
-                // Nếu game engine đã hoàn thành chặng (currentMovePoint tự clear về null khi chạm đích)
-                IntPtr cmp = instance.Reflector.ReadFieldPtr("Char", "currentMovePoint", myCharPtr);
+                IntPtr cmp = context.Reflector.ReadFieldPtr(GameSchema.Char.ClassName, GameSchema.Char.FieldCurrentMovePoint, myCharPtr);
                 if (cmp == IntPtr.Zero)
                 {
                     if (Math.Abs(curX - targetX) <= 24)
                         return true;
 
-                    // Nếu game mất currentMovePoint nhưng chưa tới nơi, gán lại
-                    SetNativeTarget(instance, myCharPtr, targetX, targetY);
+                    SetNativeTarget(context, myCharPtr, targetX, targetY);
                 }
 
-                // Kiểm tra đứng yên (stuck)
                 if (Math.Abs(curX - prevX) <= 1 && Math.Abs(curY - prevY) <= 1)
                 {
                     stuckTicks++;
-                    if (stuckTicks > 25) // Đứng yên ~1s
+                    if (stuckTicks > 25)
                     {
-                        // Gán lại mốc
-                        SetNativeTarget(instance, myCharPtr, targetX, targetY);
+                        SetNativeTarget(context, myCharPtr, targetX, targetY);
                         stuckTicks = 0;
 
-                        // Nếu kẹt quá 3.5 giây ở điểm này
                         if (sw.ElapsedMilliseconds > 3500)
-                        {
                             return false;
-                        }
                     }
                 }
                 else
@@ -244,29 +211,11 @@ public class AutoMoveAction(int targetX, int targetY, bool isFly = false) : IGam
                 await Task.Delay(40, cancellationToken);
             }
 
-            return Math.Abs(instance.MyChar.X - targetX) <= targetDist;
+            return Math.Abs(context.Player.X - targetX) <= targetDist;
         }
         catch
         {
             return false;
         }
-    }
-
-    public static void SendCharMove(GameInstance instance)
-    {
-        try
-        {
-            IntPtr service = instance.Reflector.CallMethod("Service", "gI", IntPtr.Zero);
-            if (service == IntPtr.Zero)
-            {
-                service = instance.Reflector.ReadStatic<IntPtr>("Service", "instance");
-            }
-
-            if (service != IntPtr.Zero)
-            {
-                instance.Reflector.CallMethod("Service", "charMove", service);
-            }
-        }
-        catch { }
     }
 }

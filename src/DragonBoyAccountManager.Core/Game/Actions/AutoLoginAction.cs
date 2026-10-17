@@ -1,87 +1,86 @@
-namespace DragonBoyAccountManager.Core.Game;
+using DragonBoyAccountManager.Core.Game.Context;
+using DragonBoyAccountManager.Core.Game.Schema;
 
-public class AutoLoginAction(string username, string password, int serverId = 0, int maxAttempts = 10) : IGameAction
+namespace DragonBoyAccountManager.Core.Game.Actions;
+
+public class AutoLoginAction(string username, string password, int serverId = 0, int maxAttempts = 10) 
+    : GameAction("Auto Login")
 {
-    public string Name => "Auto Login";
-
     public string Username { get; } = username;
     public string Password { get; } = password;
     public int ServerId { get; } = serverId;
     public int MaxAttempts { get; } = maxAttempts;
 
-    public async Task<bool> ExecuteAsync(GameInstance instance, IProgress<string>? progress = null, CancellationToken cancellationToken = default)
+    protected override async Task<ActionResult> OnExecuteAsync(
+        IGameContext context, 
+        IProgress<string>? progress, 
+        CancellationToken cancellationToken)
     {
         try
         {
-            if (!instance.IsRunning || cancellationToken.IsCancellationRequested)
-                return false;
+            if (!context.IsRunning || cancellationToken.IsCancellationRequested)
+                return ActionResult.Failure("Game không hoạt động hoặc bị hủy.");
 
             // 1. Kiểm tra ngay nếu nhân vật đã vào game
-            if (instance.MyChar.IsInGame)
+            if (context.Player.IsInGame)
             {
-                progress?.Report($"Đã vào game: {instance.MyChar.Name}");
-                return true;
+                progress?.Report($"Đã vào game: {context.Player.Name}");
+                return ActionResult.Success($"Đã vào game: {context.Player.Name}");
             }
 
             // 2. Chờ GameCanvas khởi tạo (tối đa 20s)
             progress?.Report("Đang chờ GameCanvas khởi tạo...");
-            bool canvasReady = await WaitForGameCanvasAsync(instance, TimeSpan.FromSeconds(20), cancellationToken);
+            bool canvasReady = await WaitForGameCanvasAsync(context, TimeSpan.FromSeconds(20), cancellationToken);
             if (!canvasReady)
             {
                 progress?.Report("Không thể khởi tạo GameCanvas.");
-                return false;
+                return ActionResult.Failure("Không thể khởi tạo GameCanvas.");
             }
 
-            if (instance.MyChar.IsInGame) return true;
-
-            var canvas = instance.Canvas;
-            var session = instance.Session;
-            var serverListScreen = instance.ServerScreen;
-            var loginScreen = instance.LoginScreen;
+            if (context.Player.IsInGame) 
+                return ActionResult.Success();
 
             int attempt = 0;
 
-            // Vòng lặp State-Driven Auto-Login: Tự động phát hiện trạng thái thực tế và retry khi gặp lỗi
-            while (!cancellationToken.IsCancellationRequested && instance.IsRunning)
+            // Vòng lặp State-Driven Auto-Login
+            while (!cancellationToken.IsCancellationRequested && context.IsRunning)
             {
-                if (instance.MyChar.IsInGame)
+                if (context.Player.IsInGame)
                 {
-                    progress?.Report($"Đăng nhập thành công! Nhân vật: {instance.MyChar.Name}");
-                    return true;
+                    progress?.Report($"Đăng nhập thành công! Nhân vật: {context.Player.Name}");
+                    return ActionResult.Success($"Đăng nhập thành công! Nhân vật: {context.Player.Name}");
                 }
 
                 attempt++;
                 if (attempt > MaxAttempts)
                 {
                     progress?.Report($"Đã thử đăng nhập {MaxAttempts} lần nhưng không thành công.");
-                    return false;
+                    return ActionResult.Failure($"Đã thử đăng nhập {MaxAttempts} lần không thành công.");
                 }
 
                 progress?.Report($"[Lần {attempt}/{MaxAttempts}] Đang kiểm tra trạng thái game...");
 
                 // BƯỚC A: Kiểm tra và giải phóng Dialog lỗi / thông báo nếu có
-                if (canvas.CurrentDialog != IntPtr.Zero)
+                if (context.UI.HasDialog)
                 {
-                    bool isWait = canvas.IsWaitDialog;
-                    string? dlgText = canvas.GetDialogText();
+                    bool isWait = context.UI.IsWaitDialog;
+                    string? dlgText = context.UI.DialogText;
 
                     if (isWait)
                     {
                         progress?.Report($"Đang chờ phản hồi: {dlgText ?? "Vui lòng chờ..."}");
-                        // Chờ xem wait dialog có tự giải quyết hoặc vào game không (tối đa 4s)
                         var waitDeadline = DateTime.UtcNow.AddSeconds(4);
-                        while (DateTime.UtcNow < waitDeadline && !cancellationToken.IsCancellationRequested && instance.IsRunning)
+                        while (DateTime.UtcNow < waitDeadline && !cancellationToken.IsCancellationRequested && context.IsRunning)
                         {
                             await Task.Delay(300, cancellationToken);
-                            if (instance.MyChar.IsInGame) return true;
-                            if (canvas.CurrentDialog == IntPtr.Zero || !canvas.IsWaitDialog) break;
+                            if (context.Player.IsInGame) return ActionResult.Success();
+                            if (!context.UI.HasDialog || !context.UI.IsWaitDialog) break;
                         }
                     }
 
-                    // Nếu sau thời gian chờ vẫn còn dialog hoặc là dialog lỗi (OK dialog)
-                    if (canvas.CurrentDialog != IntPtr.Zero)
+                    if (context.UI.HasDialog)
                     {
-                        dlgText = canvas.GetDialogText();
+                        dlgText = context.UI.DialogText;
                         if (!string.IsNullOrWhiteSpace(dlgText))
                         {
                             progress?.Report($"Thông báo từ game: {dlgText}");
@@ -91,34 +90,32 @@ public class AutoLoginAction(string username, string password, int serverId = 0,
                             progress?.Report("Đang đóng hộp thoại thông báo...");
                         }
 
-                        canvas.EndDlg();
+                        context.UI.CloseDialog();
                         await Task.Delay(400, cancellationToken);
                     }
                 }
 
-                if (instance.MyChar.IsInGame) return true;
+                if (context.Player.IsInGame) return ActionResult.Success();
 
-                // BƯỚC B: Nhận diện màn hình hiện tại để có hành vi phù hợp
-                string? curScreen = canvas.CurrentScreenName;
+                // BƯỚC B: Nhận diện màn hình hiện tại
+                string? curScreen = context.UI.CurrentScreenName;
 
                 // TRƯỜNG HỢP 1: Đang ở màn hình đăng nhập (LoginScr)
-                if (curScreen == "LoginScr")
+                if (curScreen == GameSchema.LoginScr.ClassName)
                 {
-                    // Nếu đang chọn sai server, quay về ServerListScreen để chọn lại
-                    if (serverListScreen.IpSelect != ServerId)
+                    if (context.UI.SelectedServerId != ServerId)
                     {
                         progress?.Report("Đang ở màn hình đăng nhập sai máy chủ, quay lại chọn máy chủ...");
-                        loginScreen.Perform(101); // Quay lại ServerListScreen
+                        context.UI.CancelLogin();
                         await Task.Delay(500, cancellationToken);
                         continue;
                     }
 
-                    // Điền thông tin tài khoản và mật khẩu
                     progress?.Report("Điền thông tin tài khoản...");
                     bool credsSet = false;
                     for (int i = 0; i < 5 && !cancellationToken.IsCancellationRequested; i++)
                     {
-                        if (loginScreen.SetCredentials(Username, Password))
+                        if (context.UI.SetLoginCredentials(Username, Password))
                         {
                             credsSet = true;
                             break;
@@ -135,144 +132,125 @@ public class AutoLoginAction(string username, string password, int serverId = 0,
 
                     await Task.Delay(200, cancellationToken);
                     progress?.Report("Gửi thông tin đăng nhập...");
-                    loginScreen.Perform(2008);
+                    context.UI.SubmitLogin();
 
-                    // Chờ kết quả đăng nhập (tối đa 12s)
                     var loginWaitTimeout = DateTime.UtcNow.AddSeconds(12);
                     bool needRetry = false;
-                    while (DateTime.UtcNow < loginWaitTimeout && !cancellationToken.IsCancellationRequested && instance.IsRunning)
+                    while (DateTime.UtcNow < loginWaitTimeout && !cancellationToken.IsCancellationRequested && context.IsRunning)
                     {
                         await Task.Delay(300, cancellationToken);
-                        if (instance.MyChar.IsInGame)
+                        if (context.Player.IsInGame)
                         {
-                            progress?.Report($"Đăng nhập thành công! Nhân vật: {instance.MyChar.Name}");
-                            return true;
+                            progress?.Report($"Đăng nhập thành công! Nhân vật: {context.Player.Name}");
+                            return ActionResult.Success();
                         }
 
-                        // Nếu xuất hiện dialog lỗi từ máy chủ
-                        if (canvas.CurrentDialog != IntPtr.Zero && !canvas.IsWaitDialog)
+                        if (context.UI.HasDialog && !context.UI.IsWaitDialog)
                         {
                             needRetry = true;
                             break;
                         }
 
-                        // Nếu game chuyển về ServerListScreen sau khi xác thực
-                        string? screenNow = canvas.CurrentScreenName;
-                        if (screenNow is "ServerListScreen" or "ServerScr")
+                        string? screenNow = context.UI.CurrentScreenName;
+                        if (screenNow is GameSchema.ServerListScreen.ClassName or GameSchema.ServerListScreen.ClassNameAlt)
                         {
                             await Task.Delay(300, cancellationToken);
                             progress?.Report("Xác thực hoàn tất, đang vào game...");
-                            serverListScreen.Perform(3);
+                            context.UI.LoginWithSavedCredentials();
                             break;
                         }
                     }
 
-                    if (needRetry)
-                    {
-                        // Sẽ được vòng lặp tiếp theo xử lý dialog và retry
-                        continue;
-                    }
+                    if (needRetry) continue;
 
-                    // Tiếp tục chờ vào game thêm tối đa 8s
                     var inGameWait = DateTime.UtcNow.AddSeconds(8);
-                    while (DateTime.UtcNow < inGameWait && !cancellationToken.IsCancellationRequested && instance.IsRunning)
+                    while (DateTime.UtcNow < inGameWait && !cancellationToken.IsCancellationRequested && context.IsRunning)
                     {
                         await Task.Delay(300, cancellationToken);
-                        if (instance.MyChar.IsInGame)
+                        if (context.Player.IsInGame)
                         {
-                            progress?.Report($"Đăng nhập thành công! Nhân vật: {instance.MyChar.Name}");
-                            return true;
+                            progress?.Report($"Đăng nhập thành công! Nhân vật: {context.Player.Name}");
+                            return ActionResult.Success();
                         }
-                        if (canvas.CurrentDialog != IntPtr.Zero && !canvas.IsWaitDialog) break;
+                        if (context.UI.HasDialog && !context.UI.IsWaitDialog) break;
                     }
 
-                    if (instance.MyChar.IsInGame) return true;
+                    if (context.Player.IsInGame) return ActionResult.Success();
 
-                    // Nếu sau thời gian chờ vẫn chưa vào game và đang kẹt ở LoginScr, bấm quay lại để reset
-                    if (canvas.CurrentScreenName == "LoginScr")
+                    if (context.UI.CurrentScreenName == GameSchema.LoginScr.ClassName)
                     {
-                        loginScreen.Perform(101);
+                        context.UI.CancelLogin();
                         await Task.Delay(400, cancellationToken);
                     }
                     continue;
                 }
 
                 // TRƯỜNG HỢP 2: Đang ở màn hình chọn máy chủ (ServerListScreen hoặc ServerScr)
-                if (curScreen is "ServerListScreen" or "ServerScr")
+                if (curScreen is GameSchema.ServerListScreen.ClassName or GameSchema.ServerListScreen.ClassNameAlt)
                 {
-                    // 1. Kiểm tra máy chủ đã đúng chưa
-                    if (serverListScreen.IpSelect != ServerId)
+                    if (context.UI.SelectedServerId != ServerId)
                     {
                         progress?.Report($"Đổi sang máy chủ ID: {ServerId}...");
-                        if (canvas.MenuPointer != IntPtr.Zero)
-                        {
-                            canvas.SetMenuSelectedItem(ServerId);
-                        }
-                        serverListScreen.Perform(6);
+                        context.UI.SelectServer(ServerId);
                         await Task.Delay(500, cancellationToken);
                     }
 
-                    // 2. Kiểm tra kết nối mạng của Session
-                    if (!session.IsConnected)
+                    if (!context.Network.IsConnected)
                     {
                         progress?.Report("Đang kết nối tới máy chủ...");
-                        canvas.Connect();
+                        context.Network.Connect();
 
                         var connectDeadline = DateTime.UtcNow.AddSeconds(8);
-                        while (DateTime.UtcNow < connectDeadline && !cancellationToken.IsCancellationRequested && instance.IsRunning)
+                        while (DateTime.UtcNow < connectDeadline && !cancellationToken.IsCancellationRequested && context.IsRunning)
                         {
                             await Task.Delay(200, cancellationToken);
-                            if (session.IsConnected && session.IsKeyComplete) break;
-                            if (canvas.CurrentDialog != IntPtr.Zero && !canvas.IsWaitDialog) break;
+                            if (context.Network.IsConnected && context.Network.IsKeyComplete) break;
+                            if (context.UI.HasDialog && !context.UI.IsWaitDialog) break;
                         }
 
-                        if (!session.IsConnected)
+                        if (!context.Network.IsConnected)
                         {
                             progress?.Report("Chưa thể kết nối tới máy chủ, thử lại...");
                             await Task.Delay(1000, cancellationToken);
                             continue;
                         }
                     }
-                    else if (!session.IsKeyComplete)
+                    else if (!context.Network.IsKeyComplete)
                     {
                         var keyDeadline = DateTime.UtcNow.AddSeconds(5);
-                        while (DateTime.UtcNow < keyDeadline && !cancellationToken.IsCancellationRequested && instance.IsRunning)
+                        while (DateTime.UtcNow < keyDeadline && !cancellationToken.IsCancellationRequested && context.IsRunning)
                         {
                             await Task.Delay(200, cancellationToken);
-                            if (session.IsKeyComplete) break;
+                            if (context.Network.IsKeyComplete) break;
                         }
                     }
 
-                    // 3. Đóng dialog cũ nếu còn sót
-                    canvas.EndDlg();
+                    context.UI.CloseDialog();
                     await Task.Delay(200, cancellationToken);
 
-                    // 4. Mở bảng đăng nhập
                     progress?.Report("Mở bảng đăng nhập...");
-                    serverListScreen.Perform(7);
+                    context.UI.OpenLoginScreen();
 
-                    // Chờ màn hình LoginScr xuất hiện (tối đa 4s)
                     var openLoginDeadline = DateTime.UtcNow.AddSeconds(4);
                     bool loginOpened = false;
-                    while (DateTime.UtcNow < openLoginDeadline && !cancellationToken.IsCancellationRequested && instance.IsRunning)
+                    while (DateTime.UtcNow < openLoginDeadline && !cancellationToken.IsCancellationRequested && context.IsRunning)
                     {
                         await Task.Delay(200, cancellationToken);
-                        if (canvas.CurrentScreenName == "LoginScr")
+                        if (context.UI.CurrentScreenName == GameSchema.LoginScr.ClassName)
                         {
                             loginOpened = true;
                             break;
                         }
-                        if (instance.MyChar.IsInGame) return true;
+                        if (context.Player.IsInGame) return ActionResult.Success();
                     }
 
                     if (loginOpened)
                     {
-                        // Điền credentials
                         progress?.Report("Điền thông tin và gửi đăng nhập...");
                         bool credsSet = false;
                         for (int i = 0; i < 5 && !cancellationToken.IsCancellationRequested; i++)
                         {
-                            if (loginScreen.SetCredentials(Username, Password))
+                            if (context.UI.SetLoginCredentials(Username, Password))
                             {
                                 credsSet = true;
                                 break;
@@ -283,27 +261,26 @@ public class AutoLoginAction(string username, string password, int serverId = 0,
                         if (credsSet)
                         {
                             await Task.Delay(200, cancellationToken);
-                            loginScreen.Perform(2008);
+                            context.UI.SubmitLogin();
 
-                            // Chờ vào game hoặc phản hồi (tối đa 12s)
                             var waitLogin = DateTime.UtcNow.AddSeconds(12);
-                            while (DateTime.UtcNow < waitLogin && !cancellationToken.IsCancellationRequested && instance.IsRunning)
+                            while (DateTime.UtcNow < waitLogin && !cancellationToken.IsCancellationRequested && context.IsRunning)
                             {
                                 await Task.Delay(300, cancellationToken);
-                                if (instance.MyChar.IsInGame)
+                                if (context.Player.IsInGame)
                                 {
-                                    progress?.Report($"Đăng nhập thành công! Nhân vật: {instance.MyChar.Name}");
-                                    return true;
+                                    progress?.Report($"Đăng nhập thành công! Nhân vật: {context.Player.Name}");
+                                    return ActionResult.Success();
                                 }
 
-                                if (canvas.CurrentDialog != IntPtr.Zero && !canvas.IsWaitDialog)
+                                if (context.UI.HasDialog && !context.UI.IsWaitDialog)
                                     break;
 
-                                if (canvas.CurrentScreenName is "ServerListScreen" or "ServerScr")
+                                if (context.UI.CurrentScreenName is GameSchema.ServerListScreen.ClassName or GameSchema.ServerListScreen.ClassNameAlt)
                                 {
                                     await Task.Delay(300, cancellationToken);
                                     progress?.Report("Xác thực hoàn tất, đang vào game...");
-                                    serverListScreen.Perform(3);
+                                    context.UI.LoginWithSavedCredentials();
                                     break;
                                 }
                             }
@@ -311,59 +288,54 @@ public class AutoLoginAction(string username, string password, int serverId = 0,
                     }
                     else
                     {
-                        // Nếu không mở được LoginScr qua perform(7), thử perform(3) trực tiếp
-                        // vì nếu RMS đã lưu tài khoản thì perform(3) (Login_New) sẽ đăng nhập luôn
                         progress?.Report("Thử vào game bằng tài khoản đã lưu...");
-                        serverListScreen.Perform(3);
+                        context.UI.LoginWithSavedCredentials();
                         await Task.Delay(2000, cancellationToken);
                     }
 
-                    // Kiểm tra xem đã vào game chưa
                     var finalWait = DateTime.UtcNow.AddSeconds(6);
-                    while (DateTime.UtcNow < finalWait && !cancellationToken.IsCancellationRequested && instance.IsRunning)
+                    while (DateTime.UtcNow < finalWait && !cancellationToken.IsCancellationRequested && context.IsRunning)
                     {
                         await Task.Delay(300, cancellationToken);
-                        if (instance.MyChar.IsInGame)
+                        if (context.Player.IsInGame)
                         {
-                            progress?.Report($"Đăng nhập thành công! Nhân vật: {instance.MyChar.Name}");
-                            return true;
+                            progress?.Report($"Đăng nhập thành công! Nhân vật: {context.Player.Name}");
+                            return ActionResult.Success();
                         }
-                        if (canvas.CurrentDialog != IntPtr.Zero && !canvas.IsWaitDialog) break;
+                        if (context.UI.HasDialog && !context.UI.IsWaitDialog) break;
                     }
 
                     continue;
                 }
 
-                // TRƯỜNG HỢP 3: Màn hình khác (SplashScr, loading, v.v.)
                 progress?.Report($"Đang ở màn hình '{curScreen ?? "Chưa xác định"}', chờ nạp...");
                 await Task.Delay(1000, cancellationToken);
             }
 
-            return instance.MyChar.IsInGame;
+            return context.Player.IsInGame 
+                ? ActionResult.Success() 
+                : ActionResult.Failure("Không thể hoàn tất đăng nhập.");
         }
         catch (OperationCanceledException)
         {
-            return false;
+            return ActionResult.Failure("Đăng nhập bị hủy bỏ.");
         }
         catch (Exception ex)
         {
             progress?.Report($"Lỗi xử lý đăng nhập: {ex.Message}");
-            return false;
+            return ActionResult.Failure(ex.Message, ex);
         }
     }
 
-    private static async Task<bool> WaitForGameCanvasAsync(GameInstance instance, TimeSpan timeout, CancellationToken cancellationToken)
+    private static async Task<bool> WaitForGameCanvasAsync(IGameContext context, TimeSpan timeout, CancellationToken cancellationToken)
     {
         var startTime = DateTime.UtcNow;
         while (DateTime.UtcNow - startTime < timeout)
         {
-            if (cancellationToken.IsCancellationRequested || !instance.IsRunning)
+            if (cancellationToken.IsCancellationRequested || !context.IsRunning)
                 return false;
 
-            if (instance.MyChar.IsInGame)
-                return true;
-
-            if (instance.Canvas.IsAlive)
+            if (context.Player.IsInGame || context.UI.CanvasPointer != IntPtr.Zero)
                 return true;
 
             await Task.Delay(300, cancellationToken);

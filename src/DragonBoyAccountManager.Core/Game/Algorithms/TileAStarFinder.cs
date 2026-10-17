@@ -1,4 +1,4 @@
-namespace DragonBoyAccountManager.Core.Game.Pathfinding;
+namespace DragonBoyAccountManager.Core.Game.Algorithms;
 
 public static class TileAStarFinder
 {
