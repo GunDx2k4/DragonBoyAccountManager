@@ -1,5 +1,6 @@
 using System.Diagnostics;
 using DragonBoyAccountManager.Core.Common;
+using DragonBoyAccountManager.Core.Game.Schema;
 using DragonBoyAccountManager.Core.Mono;
 
 namespace DragonBoyAccountManager.Core.Game;
@@ -74,7 +75,7 @@ public class GameLauncher
             try
             {
                 instance.Reflector.CallUnityMethod("UnityEngine", "Application", "set_runInBackground", IntPtr.Zero, true);
-                instance.Reflector.WriteStatic("Main", "isQuitApp", false);
+                instance.Reflector.WriteStatic(GameSchema.Main.ClassName, GameSchema.Main.StaticIsQuitApp, false);
             }
             catch { }
 

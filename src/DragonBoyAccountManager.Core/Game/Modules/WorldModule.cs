@@ -37,6 +37,7 @@ public interface IWorldModule
 
     bool ChangeZone(int zoneId);
     void RequestZoneList();
+    void CloseZonePanel();
 
     WorldSnapshot GetSnapshot();
 }
@@ -350,6 +351,11 @@ public class WorldModule(MonoReflector reflector, IUIModule ui) : IWorldModule
         var zones = new List<WorldZoneInfo>();
         if (!_ui.IsGamePlayScreen) return zones;
 
+        if (_ui.IsZonePanelOpen)
+        {
+            _ui.CloseZonePanel();
+        }
+
         try
         {
             IntPtr gameScr = GameScrPointer;
@@ -545,9 +551,36 @@ public class WorldModule(MonoReflector reflector, IUIModule ui) : IWorldModule
         {
             IntPtr service = ServicePointer;
             if (service != IntPtr.Zero)
+            {
                 _reflector.CallMethod(GameSchema.Service.ClassName, GameSchema.Service.MethodOpenUIZone, service);
+                SuppressZonePanel();
+            }
         }
         catch { }
+    }
+
+    public void CloseZonePanel()
+    {
+        _ui.CloseZonePanel();
+    }
+
+    private void SuppressZonePanel()
+    {
+        _ = Task.Run(async () =>
+        {
+            try
+            {
+                for (int i = 0; i < 40; i++)
+                {
+                    if (_ui.IsZonePanelOpen)
+                    {
+                        _ui.CloseZonePanel();
+                    }
+                    await Task.Delay(50).ConfigureAwait(false);
+                }
+            }
+            catch { }
+        });
     }
 
     public WorldSnapshot GetSnapshot()

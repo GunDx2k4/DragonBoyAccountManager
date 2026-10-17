@@ -85,6 +85,9 @@ public class GameController(GameInstance instance) : IDisposable
                     if (!await timer.WaitForNextTickAsync(token))
                         break;
 
+                    if (!Instance.IsRunning || token.IsCancellationRequested)
+                        break;
+
                     if (_isPaused || IsExecutingAction) continue;
 
                     IGameAction[] actions;
@@ -98,6 +101,9 @@ public class GameController(GameInstance instance) : IDisposable
                         if (token.IsCancellationRequested || !Instance.IsRunning) break;
                         await action.ExecuteAsync(Instance.Context, null, token);
                     }
+
+                    if (!Instance.IsRunning || token.IsCancellationRequested)
+                        break;
 
                     Ticked?.Invoke(Instance);
                 }

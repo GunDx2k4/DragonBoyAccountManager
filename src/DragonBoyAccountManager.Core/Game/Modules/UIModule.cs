@@ -16,6 +16,13 @@ public interface IUIModule
     string? DialogText { get; }
     void CloseDialog();
 
+    IntPtr PanelPointer { get; }
+    bool IsPanelOpen { get; }
+    int PanelType { get; }
+    bool IsZonePanelOpen { get; }
+    void CloseZonePanel();
+    void ClosePanel();
+
     int SelectedServerId { get; set; }
     void SelectServer(int serverId);
     void OpenLoginScreen();
@@ -101,6 +108,101 @@ public class UIModule(MonoReflector reflector) : IUIModule
         try
         {
             _reflector.CallMethod(GameSchema.GameCanvas.ClassName, GameSchema.GameCanvas.MethodEndDlg, IntPtr.Zero);
+        }
+        catch { }
+    }
+
+    public IntPtr PanelPointer
+    {
+        get
+        {
+            try
+            {
+                return _reflector.ReadStatic<IntPtr>(GameSchema.GameCanvas.ClassName, GameSchema.GameCanvas.StaticPanel);
+            }
+            catch
+            {
+                return IntPtr.Zero;
+            }
+        }
+    }
+
+    public bool IsPanelOpen
+    {
+        get
+        {
+            IntPtr panel = PanelPointer;
+            if (panel == IntPtr.Zero) return false;
+            try
+            {
+                return _reflector.ReadField<bool>(GameSchema.Panel.ClassName, GameSchema.Panel.FieldIsShow, panel);
+            }
+            catch
+            {
+                return false;
+            }
+        }
+    }
+
+    public int PanelType
+    {
+        get
+        {
+            IntPtr panel = PanelPointer;
+            if (panel == IntPtr.Zero) return -1;
+            try
+            {
+                return _reflector.ReadField<int>(GameSchema.Panel.ClassName, GameSchema.Panel.FieldType, panel);
+            }
+            catch
+            {
+                return -1;
+            }
+        }
+    }
+
+    public bool IsZonePanelOpen
+    {
+        get
+        {
+            try
+            {
+                return IsPanelOpen && PanelType == GameSchema.Panel.TypeZone;
+            }
+            catch
+            {
+                return false;
+            }
+        }
+    }
+
+    public void CloseZonePanel()
+    {
+        IntPtr panel = PanelPointer;
+        if (panel == IntPtr.Zero) return;
+
+        try
+        {
+            if (IsZonePanelOpen)
+            {
+                _reflector.WriteField(GameSchema.Panel.ClassName, GameSchema.Panel.FieldIsShow, panel, false);
+                _reflector.WriteField(GameSchema.Panel.ClassName, GameSchema.Panel.FieldTimeShow, panel, 0);
+                _reflector.WriteField(GameSchema.Panel.ClassName, GameSchema.Panel.FieldIsClose, panel, false);
+            }
+        }
+        catch { }
+    }
+
+    public void ClosePanel()
+    {
+        IntPtr panel = PanelPointer;
+        if (panel == IntPtr.Zero) return;
+
+        try
+        {
+            _reflector.WriteField(GameSchema.Panel.ClassName, GameSchema.Panel.FieldIsShow, panel, false);
+            _reflector.WriteField(GameSchema.Panel.ClassName, GameSchema.Panel.FieldTimeShow, panel, 0);
+            _reflector.WriteField(GameSchema.Panel.ClassName, GameSchema.Panel.FieldIsClose, panel, false);
         }
         catch { }
     }

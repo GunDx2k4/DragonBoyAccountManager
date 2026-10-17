@@ -127,6 +127,9 @@ public static class GameSchema
         public const string FieldGender = "cgender";
         public const string FieldX = "cx";
         public const string FieldY = "cy";
+        public const string FieldCvx = "cvx";
+        public const string FieldCvy = "cvy";
+        public const string FieldStatusMe = "statusMe";
         public const string FieldCdir = "cdir";
         public const string FieldCTypePk = "cTypePk";
         public const string FieldIsPet = "isPet";
@@ -288,5 +291,18 @@ public static class GameSchema
     {
         public const string ClassName = "Panel";
         public const string FieldIsShow = "isShow";
+        public const string FieldType = "type";
+        public const string FieldTimeShow = "timeShow";
+        public const string FieldIsClose = "isClose";
+        public const string MethodHide = "hide";
+        public const string MethodHideNow = "hideNow";
+        public const int TypeZone = 3;
+    }
+
+    public static class Main
+    {
+        public const string ClassName = "Main";
+        public const string StaticIsQuitApp = "isQuitApp";
     }
 }
+
