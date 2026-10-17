@@ -3,8 +3,15 @@
 ##
 ## Get latest from `dotnet new gitignore`
 
-# agent files
+# AI Agent files, rules, and skills
 .agents/
+.agent/
+AGENTS.md
+GEMINI.md
+CLAUDE.md
+.cursorrules
+.cursor/
+
 
 # dotenv files
 .env
