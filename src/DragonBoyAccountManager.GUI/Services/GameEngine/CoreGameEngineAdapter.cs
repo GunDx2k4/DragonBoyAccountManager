@@ -67,6 +67,8 @@ public sealed class CoreGameEngineAdapter(ISettingsService? settingsService = nu
         {
             OnSessionUpdated?.Invoke(account.Id, GameSessionStatus.LoggingIn, null);
 
+            PreSetServerRms(account.ServerId);
+
             var options = new LaunchOptions
             {
                 GamePath = gamePath,
@@ -262,7 +264,7 @@ public sealed class CoreGameEngineAdapter(ISettingsService? settingsService = nu
         {
             while (instance.IsRunning && !session.Cts.IsCancellationRequested && !instance.Player.IsInGame)
             {
-                var loginAction = new AutoLoginAction(account.Username, account.Password, account.ServerId);
+                var loginAction = new AutoLoginAction(account.Username, account.Password, account.ServerId, account.ServerName);
                 bool success = await controller.ExecuteAsync(loginAction, progress, session.Cts.Token);
                 if (success || instance.Player.IsInGame)
                 {
@@ -658,6 +660,22 @@ public sealed class CoreGameEngineAdapter(ISettingsService? settingsService = nu
                 string title = $"DBAM - {session.Account.Username} ({session.Account.ServerName}) [{playerSnapshot.Name}]";
                 GameWindowHelper.UpdateWindowTitle(inst.Process, title);
             }
+        }
+        catch { }
+    }
+
+    private static void PreSetServerRms(int serverId)
+    {
+        try
+        {
+            string appData = Environment.GetFolderPath(Environment.SpecialFolder.UserProfile);
+            string svSelectPath = Path.Combine(appData, "AppData", "LocalLow", "Team", "DragonBoy250", "svselect");
+            string? dir = Path.GetDirectoryName(svSelectPath);
+            if (!string.IsNullOrEmpty(dir) && !Directory.Exists(dir))
+            {
+                Directory.CreateDirectory(dir);
+            }
+            File.WriteAllBytes(svSelectPath, [(byte)serverId]);
         }
         catch { }
     }
