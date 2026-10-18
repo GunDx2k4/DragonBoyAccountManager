@@ -134,6 +134,7 @@ public sealed partial class UtilitiesTabViewModel : ObservableObject
     private string _lastChatSentTime = string.Empty;
 
     private CancellationTokenSource? _autoChatCts;
+    private CancellationTokenSource? _moveWaypointCts;
     private int _currentLineIndex = 0;
 
     public ObservableCollection<WaypointButtonItem> WaypointButtons { get; } = [];
@@ -558,20 +559,66 @@ public sealed partial class UtilitiesTabViewModel : ObservableObject
         var targetIds = GetTargetAccountIds();
         if (targetIds.Count == 0) return;
 
+        // Hủy tiến trình di chuyển waypoint trước đó nếu đang chạy dở
+        _moveWaypointCts?.Cancel();
+        _moveWaypointCts?.Dispose();
+        var cts = new CancellationTokenSource();
+        _moveWaypointCts = cts;
+
         StatusText = $"Đang di chuyển tới {wp.Name}...";
 
         bool isTeleport = FastTeleport;
 
-        // Tự động tìm đường A* hoặc tele nhanh tới cổng, sau đó kích hoạt chuyển map
-        var tasks = targetIds.Select(async id =>
+        try
         {
-            await _gameEngine.AutoMoveAsync(id, wp.X, wp.Y, isTeleport);
-            await Task.Delay(100);
-            _gameEngine.MoveToWaypoint(id, wp.X, wp.Y);
-        });
+            // Tự động tìm đường A* hoặc tele nhanh tới cổng, sau đó kích hoạt chuyển map nếu cần
+            var tasks = targetIds.Select(async id =>
+            {
+                int startMapId = _gameEngine.GetWorldSnapshot(id)?.MapId ?? -1;
 
-        await Task.WhenAll(tasks);
-        StatusText = $"Đã chuyển tới {wp.Name} ({targetIds.Count} acc)";
+                await _gameEngine.AutoMoveAsync(id, wp.X, wp.Y, isTeleport, cts.Token);
+
+                if (cts.Token.IsCancellationRequested) return;
+
+                // Kiểm tra xem đã sang map mới hoặc đang trong quá trình chuyển map chưa
+                var currentWorld = _gameEngine.GetWorldSnapshot(id);
+                var currentMapId = currentWorld?.MapId ?? -1;
+                var isChangingMap = _gameEngine.GetPlayerSnapshot(id)?.IsChangingMap ?? false;
+
+                // Nếu đã đổi sang map khác hoặc đang loading map, KHÔNG gọi kích hoạt cổng nữa
+                if ((startMapId >= 0 && currentMapId >= 0 && currentMapId != startMapId) || isChangingMap)
+                {
+                    return;
+                }
+
+                await Task.Delay(100, cts.Token);
+
+                if (cts.Token.IsCancellationRequested) return;
+
+                // Kiểm tra lại lần nữa sau delay
+                currentWorld = _gameEngine.GetWorldSnapshot(id);
+                currentMapId = currentWorld?.MapId ?? -1;
+                isChangingMap = _gameEngine.GetPlayerSnapshot(id)?.IsChangingMap ?? false;
+
+                if ((startMapId >= 0 && currentMapId >= 0 && currentMapId != startMapId) || isChangingMap)
+                {
+                    return;
+                }
+
+                _gameEngine.MoveToWaypoint(id, wp.X, wp.Y);
+            });
+
+            await Task.WhenAll(tasks);
+
+            if (!cts.Token.IsCancellationRequested)
+            {
+                StatusText = $"Đã chuyển tới {wp.Name} ({targetIds.Count} acc)";
+            }
+        }
+        catch (OperationCanceledException)
+        {
+            // Bị hủy khi người dùng kích hoạt lệnh di chuyển khác
+        }
     }
 
     [RelayCommand]

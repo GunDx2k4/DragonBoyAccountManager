@@ -32,9 +32,10 @@ public interface IGameEngineService
     void RequestZoneList(Guid accountId);
     void CloseZonePanel(Guid accountId);
     bool MoveToWaypoint(Guid accountId, int targetX, int targetY);
-    Task<bool> AutoMoveAsync(Guid accountId, int targetX, int targetY, bool isFastTeleport = false);
+    Task<bool> AutoMoveAsync(Guid accountId, int targetX, int targetY, bool isFastTeleport = false, CancellationToken cancellationToken = default);
     bool FocusOrClickObject(Guid accountId, string entityType, int entityId);
     WorldSnapshot? GetWorldSnapshot(Guid accountId);
+    PlayerSnapshot? GetPlayerSnapshot(Guid accountId);
 
     bool SendChat(Guid accountId, string text, ChatType type = ChatType.Map);
 

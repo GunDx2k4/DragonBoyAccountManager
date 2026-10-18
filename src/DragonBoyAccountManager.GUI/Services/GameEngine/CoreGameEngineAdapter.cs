@@ -549,21 +549,23 @@ public sealed class CoreGameEngineAdapter(ISettingsService? settingsService = nu
         return false;
     }
 
-    public async Task<bool> AutoMoveAsync(Guid accountId, int targetX, int targetY, bool isFastTeleport = false)
+    public async Task<bool> AutoMoveAsync(Guid accountId, int targetX, int targetY, bool isFastTeleport = false, CancellationToken cancellationToken = default)
     {
         if (_sessions.TryGetValue(accountId, out var session) && session.Instance.IsRunning && session.Instance.Player.IsInGame)
         {
-            if (isFastTeleport && session.Instance.Player.IsChangingMap)
+            if (session.Instance.Player.IsChangingMap)
             {
                 return false;
             }
+
+            using var linkedCts = CancellationTokenSource.CreateLinkedTokenSource(session.Cts.Token, cancellationToken);
 
             var progress = new Progress<string>(_ =>
             {
                 PublishSessionUpdate(session);
             });
             var moveAction = new AutoMoveAction(targetX, targetY, isFastTeleport);
-            var result = await session.Controller.ExecuteAsync(moveAction, progress, cancellationToken: session.Cts.Token);
+            var result = await session.Controller.ExecuteAsync(moveAction, progress, cancellationToken: linkedCts.Token);
             PublishSessionUpdate(session);
             return result.IsSuccess;
         }
@@ -588,6 +590,22 @@ public sealed class CoreGameEngineAdapter(ISettingsService? settingsService = nu
             try
             {
                 return session.Instance.World.GetSnapshot();
+            }
+            catch
+            {
+                return null;
+            }
+        }
+        return null;
+    }
+
+    public PlayerSnapshot? GetPlayerSnapshot(Guid accountId)
+    {
+        if (_sessions.TryGetValue(accountId, out var session) && session.Instance.IsRunning && session.Instance.Player.IsInGame)
+        {
+            try
+            {
+                return session.Instance.Player.GetSnapshot();
             }
             catch
             {
