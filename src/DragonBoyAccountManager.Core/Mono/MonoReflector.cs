@@ -467,6 +467,30 @@ public class MonoReflector(MonoContext context)
         }
     }
 
+    public void WriteMonoPointerArrayElement(IntPtr monoArrayPtr, int index, IntPtr valuePtr)
+    {
+        if (monoArrayPtr == IntPtr.Zero) return;
+
+        try
+        {
+            int ptrSize = _context.Memory.PointerSize;
+            int length = _context.Memory.ReadInt(monoArrayPtr + ptrSize * 3);
+            if (index < 0 || index >= length) return;
+
+            int elemOffset = ptrSize * 4;
+            IntPtr targetAddr = monoArrayPtr + elemOffset + index * ptrSize;
+            if (_context.Memory.Is64Bit)
+            {
+                _context.Memory.Write(targetAddr, valuePtr.ToInt64());
+            }
+            else
+            {
+                _context.Memory.Write(targetAddr, unchecked((int)(long)valuePtr));
+            }
+        }
+        catch { }
+    }
+
     public void WriteStatic<T>(string className, string fieldName, T value) where T : unmanaged
     {
         var info = GetField(className, fieldName);

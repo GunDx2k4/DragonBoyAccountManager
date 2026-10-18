@@ -111,6 +111,7 @@ public static class GameSchema
         public const string StaticVCharInMap = "vCharInMap";
         public const string StaticVItemMap = "vItemMap";
         public const string StaticKeySkill = "keySkill";
+        public const string StaticOnScreenSkill = "onScreenSkill";
 
         public const string FieldZones = "zones";
         public const string FieldMaxPlayer = "maxPlayer";
@@ -122,6 +123,8 @@ public static class GameSchema
         public const string MethodCheckClickMoveTo = "checkClickMoveTo";
         public const string MethodDoDoubleClickToObj = "doDoubleClickToObj";
         public const string MethodDoSelectSkill = "doSelectSkill";
+        public const string MethodSaveKeySkillToRMS = "saveKeySkillToRMS";
+        public const string MethodSaveOnScreenSkillToRMS = "saveonScreenSkillToRMS";
     }
 
     public static class Char
@@ -148,6 +151,7 @@ public static class GameSchema
         public const string FieldIsMiniPet = "isMiniPet";
         public const string FieldArrItemBag = "arrItemBag";
         public const string FieldVSkillFight = "vSkillFight";
+        public const string FieldMySkill = "myskill";
 
         public const string FieldMobFocus = "mobFocus";
         public const string FieldCharFocus = "charFocus";
