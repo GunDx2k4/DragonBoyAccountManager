@@ -164,11 +164,6 @@ public sealed class CoreGameEngineAdapter(ISettingsService? settingsService = nu
                 {
                     if (inst.Player.IsInGame)
                     {
-                        if (inst.UI.IsZonePanelOpen)
-                        {
-                            inst.UI.CloseZonePanel();
-                        }
-
                         PublishSessionUpdate(session);
                     }
                     else
@@ -194,13 +189,6 @@ public sealed class CoreGameEngineAdapter(ISettingsService? settingsService = nu
             if (account.GameSpeed != 1.0f)
             {
                 instance.Engine.SetTimeScale(account.GameSpeed);
-            }
-
-            int customW = _settingsService?.Current.WindowCustomWidth ?? 0;
-            int customH = _settingsService?.Current.WindowCustomHeight ?? 0;
-            if (customW > 0 && customH > 0)
-            {
-                instance.Engine.SetResolution(customW, customH, false);
             }
 
             if (_settingsService?.Current.AutoArrangeWindows == true)
@@ -401,17 +389,10 @@ public sealed class CoreGameEngineAdapter(ISettingsService? settingsService = nu
         var targetIds = accountIds?.ToList() ?? _sessions.Keys.ToList();
         var processes = new List<Process>();
 
-        int customW = _settingsService?.Current.WindowCustomWidth ?? 0;
-        int customH = _settingsService?.Current.WindowCustomHeight ?? 0;
-
         foreach (var id in targetIds)
         {
             if (_sessions.TryGetValue(id, out var session) && session.Instance.IsRunning)
             {
-                if (customW > 0 && customH > 0)
-                {
-                    session.Instance.Engine.SetResolution(customW, customH, false);
-                }
                 processes.Add(session.Instance.Process);
             }
         }
