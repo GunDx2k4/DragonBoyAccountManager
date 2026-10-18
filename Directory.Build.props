@@ -1,6 +1,6 @@
 <Project>
   <PropertyGroup>
-    <!-- Language and Compilation Settings -->
+
     <TargetFramework>net10.0</TargetFramework>
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
@@ -10,7 +10,7 @@
   </PropertyGroup>
 
   <PropertyGroup>
-    <!-- Assembly and Package Metadata -->
+
     <Authors>GunDx2k4</Authors>
     <Product>DragonBoyAccountManager</Product>
     <Version>1.0.2</Version>
@@ -18,7 +18,6 @@
     <Copyright>Copyright © 2026 GunDx2k4. All rights reserved.</Copyright>
     <NeutralLanguage>en-US</NeutralLanguage>
 
-    <!-- Default: Projects are not packable unless explicitly enabled -->
     <IsPackable>false</IsPackable>
     <WarnOnPackingNonPackableProject>false</WarnOnPackingNonPackableProject>
     <IncludeSourceRevisionInInformationalVersion>true</IncludeSourceRevisionInInformationalVersion>
