@@ -27,8 +27,6 @@ public sealed partial class GuideViewModel : ObservableObject
     [ObservableProperty]
     private string _assemblyStatus = "Chưa chọn file game .exe";
 
-
-
     [ObservableProperty]
     private string _updateStatusMessage = "Vui lòng chọn đường dẫn game để kiểm tra phiên bản.";
 
@@ -102,7 +100,6 @@ public sealed partial class GuideViewModel : ObservableObject
     {
         try
         {
-            // 1. Thử đọc từ tệp RELEASE_NOTES.md ở thư mục chạy hoặc các thư mục cha
             string baseDir = AppDomain.CurrentDomain.BaseDirectory;
             string[] searchPaths =
             [
@@ -121,7 +118,6 @@ public sealed partial class GuideViewModel : ObservableObject
                 }
             }
 
-            // 2. Thử đọc từ EmbeddedResource trong assembly
             var asm = typeof(GuideViewModel).Assembly;
             var resourceName = asm.GetManifestResourceNames()
                 .FirstOrDefault(n => n.EndsWith("RELEASE_NOTES.md", StringComparison.OrdinalIgnoreCase));
@@ -147,7 +143,6 @@ public sealed partial class GuideViewModel : ObservableObject
     {
         try
         {
-            // Đợi 1.2s để cửa sổ chính MainWindow hiển thị đầy đủ và ổn định
             await Task.Delay(1200);
 
             var update = await _updaterService.CheckForUpdatesAsync("GunDx2k4/DragonBoyAccountManager", null, "GUI");
@@ -284,7 +279,6 @@ public sealed partial class GuideViewModel : ObservableObject
             await Task.Delay(200);
             await LoadSha256ChecksumsAsync();
 
-            // Kiểm tra cập nhật tool DBAM từ GitHub Releases
             AppUpdateInfo? update = null;
             try
             {

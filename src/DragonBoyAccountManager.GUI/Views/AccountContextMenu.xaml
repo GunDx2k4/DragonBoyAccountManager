@@ -45,8 +45,6 @@
         </ControlTemplate>
     </ContextMenu.Template>
 
-
-    <!--  Mục: Đăng nhập tài khoản  -->
     <MenuItem
         Command="{Binding PlacementTarget.Tag.LoginSelectedAccountsCommand, RelativeSource={RelativeSource AncestorType=ContextMenu}}"
         CommandParameter="{Binding PlacementTarget.DataContext, RelativeSource={RelativeSource AncestorType=ContextMenu}}"
@@ -64,7 +62,6 @@
         </MenuItem.Icon>
     </MenuItem>
 
-    <!--  Mục 2: Chọn vào game (chỉ hiện khi game đang chạy)  -->
     <MenuItem
         d:Visibility="Visible"
         Command="{Binding PlacementTarget.Tag.FocusGameWindowCommand, RelativeSource={RelativeSource AncestorType=ContextMenu}}"
@@ -90,7 +87,6 @@
         </MenuItem.Icon>
     </MenuItem>
 
-    <!--  Mục 3: Đóng game (chỉ hiện khi game đang chạy)  -->
     <MenuItem
         d:Visibility="Visible"
         Command="{Binding PlacementTarget.Tag.StopSelectedAccountsCommand, RelativeSource={RelativeSource AncestorType=ContextMenu}}"
@@ -116,7 +112,6 @@
         </MenuItem.Icon>
     </MenuItem>
 
-    <!--  Dải phân cách giữa nhóm lệnh chạy/dừng và xóa  -->
     <Separator>
         <Separator.Style>
             <Style BasedOn="{StaticResource GameMenuSeparatorStyle}" TargetType="Separator">
@@ -130,7 +125,6 @@
         </Separator.Style>
     </Separator>
 
-    <!--  Mục 4: Xóa tài khoản (chỉ hiện khi game chưa chạy)  -->
     <MenuItem
         Command="{Binding PlacementTarget.Tag.DeleteAccountCommand, RelativeSource={RelativeSource AncestorType=ContextMenu}}"
         CommandParameter="{Binding PlacementTarget.DataContext, RelativeSource={RelativeSource AncestorType=ContextMenu}}"
@@ -157,10 +151,8 @@
         </MenuItem.Icon>
     </MenuItem>
 
-    <!--  Dải phân cách  -->
     <Separator Style="{StaticResource GameMenuSeparatorStyle}" />
 
-    <!--  Mục 5: Sắp xếp cửa sổ  -->
     <MenuItem
         Command="{Binding PlacementTarget.Tag.ArrangeWindowsCommand, RelativeSource={RelativeSource AncestorType=ContextMenu}}"
         Header="Sắp xếp cửa sổ"

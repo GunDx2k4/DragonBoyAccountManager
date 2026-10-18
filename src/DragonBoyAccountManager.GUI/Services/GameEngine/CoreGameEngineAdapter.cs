@@ -84,7 +84,6 @@ public sealed class CoreGameEngineAdapter(ISettingsService? settingsService = nu
             string serverInfo = !string.IsNullOrWhiteSpace(account.ServerName) ? $" ({account.ServerName})" : "";
             string initialTitle = $"DBAM - {account.Username}{serverInfo}";
 
-            // Tự động đặt tiêu đề chuẩn ngay khi vừa bật game
             _ = Task.Run(() => GameWindowHelper.ApplyWindowStyleAsync(instance.Process, () =>
             {
                 if (session.Instance.IsRunning && session.Instance.Player.IsInGame && !string.IsNullOrWhiteSpace(session.Instance.Player.Name))
@@ -202,10 +201,8 @@ public sealed class CoreGameEngineAdapter(ISettingsService? settingsService = nu
                 ArrangeWindows(_sessions.Keys);
             }
 
-            // Thêm độ trễ ngắn để game window và các static pointer của instance game được nạp đầy đủ
             await Task.Delay(500);
 
-            // Execute auto login if account has credentials
             if (account.AutoLogin && !string.IsNullOrWhiteSpace(account.Username) && !string.IsNullOrWhiteSpace(account.Password))
             {
                 return await ExecuteLoginAsync(session);

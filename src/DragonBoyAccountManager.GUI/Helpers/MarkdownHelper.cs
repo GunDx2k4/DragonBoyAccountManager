@@ -25,12 +25,12 @@ public static class MarkdownHelper
         }
     }
 
-    private static readonly Brush Header1Brush = new SolidColorBrush(Color.FromRgb(139, 37, 0));      // #8B2500
-    private static readonly Brush Header2Brush = new SolidColorBrush(Color.FromRgb(180, 83, 9));       // #B45309
-    private static readonly Brush Header3Brush = new SolidColorBrush(Color.FromRgb(46, 125, 50));      // #2E7D32
-    private static readonly Brush TextDarkBrush = new SolidColorBrush(Color.FromRgb(38, 19, 2));       // #261302
-    private static readonly Brush TextMutedBrush = new SolidColorBrush(Color.FromRgb(107, 114, 128));  // #6B7280
-    private static readonly Brush DividerBrush = new SolidColorBrush(Color.FromRgb(229, 231, 235));    // #E5E7EB
+    private static readonly Brush Header1Brush = new SolidColorBrush(Color.FromRgb(139, 37, 0));
+    private static readonly Brush Header2Brush = new SolidColorBrush(Color.FromRgb(180, 83, 9));
+    private static readonly Brush Header3Brush = new SolidColorBrush(Color.FromRgb(46, 125, 50));
+    private static readonly Brush TextDarkBrush = new SolidColorBrush(Color.FromRgb(38, 19, 2));
+    private static readonly Brush TextMutedBrush = new SolidColorBrush(Color.FromRgb(107, 114, 128));
+    private static readonly Brush DividerBrush = new SolidColorBrush(Color.FromRgb(229, 231, 235));
 
     static MarkdownHelper()
     {
@@ -70,7 +70,6 @@ public static class MarkdownHelper
 
             string trimmed = line.Trim();
 
-            // Divider: --- or ***
             if (trimmed == "---" || trimmed == "***" || trimmed == "___")
             {
                 textBlock.Inlines.Add(new Run("──────────────────────────────────────────")
@@ -81,7 +80,6 @@ public static class MarkdownHelper
                 continue;
             }
 
-            // Heading 1: # Title
             if (trimmed.StartsWith("# ") && !trimmed.StartsWith("## "))
             {
                 string title = trimmed[2..].Trim();
@@ -94,7 +92,6 @@ public static class MarkdownHelper
                 continue;
             }
 
-            // Heading 2: ## Section
             if (trimmed.StartsWith("## ") && !trimmed.StartsWith("### "))
             {
                 string title = trimmed[3..].Trim();
@@ -107,7 +104,6 @@ public static class MarkdownHelper
                 continue;
             }
 
-            // Heading 3: ### Subsection
             if (trimmed.StartsWith("### "))
             {
                 string title = trimmed[4..].Trim();
@@ -120,7 +116,6 @@ public static class MarkdownHelper
                 continue;
             }
 
-            // Bullet points: - item or * item
             if (trimmed.StartsWith("- ") || trimmed.StartsWith("* "))
             {
                 int indent = line.Length - line.TrimStart().Length;
@@ -137,7 +132,6 @@ public static class MarkdownHelper
                 continue;
             }
 
-            // Regular paragraph text
             AppendFormattedInline(textBlock, trimmed, TextDarkBrush);
         }
     }

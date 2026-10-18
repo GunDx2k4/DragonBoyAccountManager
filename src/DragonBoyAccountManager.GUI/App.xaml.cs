@@ -26,7 +26,6 @@ public partial class App : Application
 
     private static void ConfigureServices(IServiceCollection services)
     {
-        // Core & GUI Services
         services.AddSingleton<IGameClientValidator, GameClientValidator>();
         services.AddSingleton<IAppUpdaterService, AppUpdaterService>();
         services.AddSingleton<IAccountStorageService, AccountStorageService>();
@@ -35,7 +34,6 @@ public partial class App : Application
         services.AddSingleton<IGameEngineService, CoreGameEngineAdapter>();
         services.AddSingleton<IFeedbackService, DiscordFeedbackService>();
 
-        // ViewModels
         services.AddSingleton<AccountsPanelViewModel>();
         services.AddSingleton<AccountFormViewModel>();
         services.AddSingleton<AppStatusBarViewModel>();
@@ -45,7 +43,6 @@ public partial class App : Application
         services.AddSingleton<FeedbackViewModel>();
         services.AddSingleton<MainViewModel>();
 
-        // Views
         services.AddSingleton<MainWindow>();
     }
 

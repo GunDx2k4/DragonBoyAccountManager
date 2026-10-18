@@ -12,9 +12,6 @@
 
     <converters:StatusToBrushConverter x:Key="StatusToBrushConverter" />
 
-    <!-- ========================================== -->
-    <!--  1. GameCard Style & Template              -->
-    <!-- ========================================== -->
     <Style TargetType="{x:Type controls:GameCard}">
         <Setter Property="Background" Value="{DynamicResource GameBgLightBrush}" />
         <Setter Property="BorderBrush" Value="{DynamicResource GameBorderBrush}" />
@@ -34,7 +31,7 @@
                         CornerRadius="{TemplateBinding CornerRadius}"
                         SnapsToDevicePixels="True">
                         <Grid>
-                            <!-- Viền sáng nổi 3D ở mép trên -->
+
                             <Border
                                 Height="6"
                                 VerticalAlignment="Top"
@@ -42,7 +39,6 @@
                                 CornerRadius="5,5,0,0"
                                 IsHitTestVisible="False" />
 
-                            <!-- Viền đổ bóng chìm ở mép đáy -->
                             <Border
                                 Height="3"
                                 VerticalAlignment="Bottom"
@@ -50,9 +46,8 @@
                                 CornerRadius="0,0,5,5"
                                 IsHitTestVisible="False" />
 
-                            <!-- Nội dung Card (Header + Body) -->
                             <DockPanel Margin="{TemplateBinding Padding}">
-                                <!-- Header nếu có Header hoặc Title -->
+
                                 <Border
                                     x:Name="PART_HeaderContainer"
                                     Margin="0,0,0,8"
@@ -88,7 +83,6 @@
                                     </Grid>
                                 </Border>
 
-                                <!-- Phần thân Content -->
                                 <ContentPresenter
                                     ContentSource="Content"
                                     SnapsToDevicePixels="{TemplateBinding SnapsToDevicePixels}" />
@@ -105,9 +99,6 @@
         </Setter>
     </Style>
 
-    <!-- ========================================== -->
-    <!--  2. GameButton Style & Template            -->
-    <!-- ========================================== -->
     <Style TargetType="{x:Type controls:GameButton}" BasedOn="{StaticResource GameSecondaryButton}">
         <Style.Triggers>
             <Trigger Property="Variant" Value="Primary">
@@ -146,9 +137,6 @@
         </Style.Triggers>
     </Style>
 
-    <!-- ========================================== -->
-    <!--  3. GameTextBox Style & Template           -->
-    <!-- ========================================== -->
     <Style TargetType="{x:Type controls:GameTextBox}">
         <Setter Property="Background" Value="{DynamicResource GameBgBrush}" />
         <Setter Property="BorderBrush" Value="{DynamicResource GameBorderDarkBrush}" />
@@ -209,9 +197,6 @@
         </Setter>
     </Style>
 
-    <!-- ========================================== -->
-    <!--  4. GamePasswordBox Style & Template       -->
-    <!-- ========================================== -->
     <Style TargetType="{x:Type controls:GamePasswordBox}">
         <Setter Property="Background" Value="{DynamicResource GameInputNormalBgBrush}" />
         <Setter Property="BorderBrush" Value="{DynamicResource GameInputNormalBorderBrush}" />
@@ -271,9 +256,6 @@
         </Setter>
     </Style>
 
-    <!-- ========================================== -->
-    <!--  5. GameStatusOrb Style & Template         -->
-    <!-- ========================================== -->
     <Style TargetType="{x:Type controls:GameStatusOrb}">
         <Setter Property="Size" Value="14" />
         <Setter Property="SnapsToDevicePixels" Value="True" />
@@ -281,7 +263,7 @@
             <Setter.Value>
                 <ControlTemplate TargetType="{x:Type controls:GameStatusOrb}">
                     <Grid Width="{TemplateBinding Size}" Height="{TemplateBinding Size}" SnapsToDevicePixels="True">
-                        <!-- Vòng hào quang sáng ngoài -->
+
                         <Ellipse
                             x:Name="orbHalo"
                             Fill="#00FA0B"
@@ -292,7 +274,6 @@
                             </Ellipse.Effect>
                         </Ellipse>
 
-                        <!-- Viền ngọc ngoài -->
                         <Ellipse
                             x:Name="orbRim"
                             Fill="#008E08"
@@ -300,7 +281,6 @@
                             StrokeThickness="1.0"
                             Stretch="Uniform" />
 
-                        <!-- Thân ngọc cầu gradient -->
                         <Ellipse x:Name="orbBody" Margin="1.2" Stretch="Uniform">
                             <Ellipse.Fill>
                                 <RadialGradientBrush Center="0.35,0.35" GradientOrigin="0.32,0.3" RadiusX="0.68" RadiusY="0.68">
@@ -312,7 +292,6 @@
                             </Ellipse.Fill>
                         </Ellipse>
 
-                        <!-- Đốm sáng phản quang ở góc trên bên trái -->
                         <Ellipse
                             x:Name="orbGlint"
                             Width="3"
@@ -324,7 +303,7 @@
                             Opacity="0.9" />
                     </Grid>
                     <ControlTemplate.Triggers>
-                        <!-- Running -->
+
                         <Trigger Property="StatusKey" Value="Running">
                             <Setter TargetName="orbHalo" Property="Fill" Value="#FA9C00" />
                             <Setter TargetName="orbRim" Property="Fill" Value="#8D5901" />
@@ -340,7 +319,7 @@
                                 </Setter.Value>
                             </Setter>
                         </Trigger>
-                        <!-- LoggingIn -->
+
                         <Trigger Property="StatusKey" Value="LoggingIn">
                             <Setter TargetName="orbHalo" Property="Fill" Value="#0091EA" />
                             <Setter TargetName="orbRim" Property="Fill" Value="#01579B" />
@@ -356,7 +335,7 @@
                                 </Setter.Value>
                             </Setter>
                         </Trigger>
-                        <!-- Waiting -->
+
                         <Trigger Property="StatusKey" Value="Waiting">
                             <Setter TargetName="orbHalo" Property="Fill" Value="#AB47BC" />
                             <Setter TargetName="orbRim" Property="Fill" Value="#4A148C" />
@@ -372,7 +351,7 @@
                                 </Setter.Value>
                             </Setter>
                         </Trigger>
-                        <!-- Offline -->
+
                         <Trigger Property="StatusKey" Value="Offline">
                             <Setter TargetName="orbHalo" Property="Fill" Value="#757575" />
                             <Setter TargetName="orbHalo" Property="Opacity" Value="0.2" />
@@ -389,7 +368,7 @@
                                 </Setter.Value>
                             </Setter>
                         </Trigger>
-                        <!-- Banned -->
+
                         <Trigger Property="StatusKey" Value="Banned">
                             <Setter TargetName="orbHalo" Property="Fill" Value="#FF1744" />
                             <Setter TargetName="orbRim" Property="Fill" Value="#990000" />
@@ -405,7 +384,7 @@
                                 </Setter.Value>
                             </Setter>
                         </Trigger>
-                        <!-- Error -->
+
                         <Trigger Property="StatusKey" Value="Error">
                             <Setter TargetName="orbHalo" Property="Fill" Value="#FF1744" />
                             <Setter TargetName="orbRim" Property="Fill" Value="#990000" />
@@ -421,7 +400,7 @@
                                 </Setter.Value>
                             </Setter>
                         </Trigger>
-                        <!-- Warning -->
+
                         <Trigger Property="StatusKey" Value="Warning">
                             <Setter TargetName="orbHalo" Property="Fill" Value="#FA9C00" />
                             <Setter TargetName="orbRim" Property="Fill" Value="#8D5901" />
@@ -443,9 +422,6 @@
         </Setter>
     </Style>
 
-    <!-- ========================================== -->
-    <!--  6. GameBadge Style & Template             -->
-    <!-- ========================================== -->
     <Style TargetType="{x:Type controls:GameBadge}">
         <Setter Property="Padding" Value="6,2.5" />
         <Setter Property="CornerRadius" Value="4" />

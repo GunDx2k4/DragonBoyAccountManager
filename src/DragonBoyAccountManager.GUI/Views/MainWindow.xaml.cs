@@ -23,7 +23,6 @@ public partial class MainWindow : Window
 
     private void Window_PreviewKeyDown(object sender, KeyEventArgs e)
     {
-        // Don't trigger shortcuts while user is typing in any text box or password box
         var focused = Keyboard.FocusedElement;
         if (focused is TextBox or PasswordBox or RichTextBox)
             return;
@@ -112,14 +111,14 @@ public partial class MainWindow : Window
             return;
         }
 
-        if (e.Key == Key.OemOpenBrackets) // '['
+        if (e.Key == Key.OemOpenBrackets)
         {
             vm.AccountForm.PreviousZoneCommand.Execute(null);
             e.Handled = true;
             return;
         }
 
-        if (e.Key == Key.OemCloseBrackets) // ']'
+        if (e.Key == Key.OemCloseBrackets)
         {
             vm.AccountForm.NextZoneCommand.Execute(null);
             e.Handled = true;

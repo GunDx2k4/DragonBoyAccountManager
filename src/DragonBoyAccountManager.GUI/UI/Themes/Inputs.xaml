@@ -4,7 +4,6 @@
     xmlns:controls="clr-namespace:DragonBoyAccountManager.GUI.UI.Controls"
     xmlns:models="clr-namespace:DragonBoyAccountManager.GUI.Models">
 
-    <!--  TextBox Style  -->
     <Style x:Key="GameTextBoxStyle" TargetType="TextBox">
         <Setter Property="Background" Value="{DynamicResource GameInputNormalBgBrush}" />
         <Setter Property="Foreground" Value="{DynamicResource GameInputNormalTextBrush}" />
@@ -59,7 +58,6 @@
         </Setter>
     </Style>
 
-    <!--  PasswordBox Style  -->
     <Style x:Key="GamePasswordBoxStyle" TargetType="PasswordBox">
         <Setter Property="Background" Value="{DynamicResource GameInputNormalBgBrush}" />
         <Setter Property="Foreground" Value="{DynamicResource GameInputNormalTextBrush}" />
@@ -111,7 +109,6 @@
         </Setter>
     </Style>
 
-    <!--  Eye Toggle Button Style  -->
     <Style x:Key="GameEyeButtonStyle" TargetType="Button">
         <Setter Property="Cursor" Value="Hand" />
         <Setter Property="Focusable" Value="False" />
@@ -143,7 +140,6 @@
         </Setter>
     </Style>
 
-    <!--  CheckBox Style  -->
     <Style x:Key="GameCheckBoxStyle" TargetType="CheckBox">
         <Setter Property="Foreground" Value="{DynamicResource GameTextDarkBrush}" />
         <Setter Property="FontWeight" Value="Bold" />
@@ -235,7 +231,6 @@
         </Setter>
     </Style>
 
-    <!--  Status Orb Template  -->
     <DataTemplate x:Key="StatusOrbTemplate">
         <Grid
             Width="15"
@@ -353,7 +348,6 @@
         </DataTemplate.Triggers>
     </DataTemplate>
 
-    <!--  ComboBox Style  -->
     <ControlTemplate x:Key="GameComboBoxToggleButtonTemplate" TargetType="ToggleButton">
         <Grid SnapsToDevicePixels="True">
             <Border
@@ -504,7 +498,6 @@
         </Setter>
     </Style>
 
-    <!--  TabControl Style  -->
     <Style x:Key="GameTabItemStyle" TargetType="TabItem">
         <Setter Property="Background" Value="{DynamicResource GameTabInactiveBrush}" />
         <Setter Property="Foreground" Value="{DynamicResource GameTextDarkBrush}" />
@@ -609,7 +602,6 @@
         </Setter>
     </Style>
 
-    <!--  ScrollBar Style  -->
     <Style x:Key="GameScrollBarPageButton" TargetType="{x:Type RepeatButton}">
         <Setter Property="OverridesDefaultStyle" Value="true" />
         <Setter Property="Background" Value="Transparent" />
@@ -705,7 +697,6 @@
         </Style.Triggers>
     </Style>
 
-    <!--  ProgressBar Style  -->
     <Style x:Key="GameRadarProgressBarStyle" TargetType="{x:Type ProgressBar}">
         <Setter Property="Height" Value="14" />
         <Setter Property="SnapsToDevicePixels" Value="True" />
@@ -738,7 +729,6 @@
         </Setter>
     </Style>
 
-    <!--  Slider Thumb Style  -->
     <Style x:Key="GameSliderThumbStyle" TargetType="{x:Type Thumb}">
         <Setter Property="SnapsToDevicePixels" Value="True" />
         <Setter Property="OverridesDefaultStyle" Value="True" />
@@ -801,7 +791,6 @@
         </Setter>
     </Style>
 
-    <!--  Game Slider Style  -->
     <Style x:Key="GameSliderStyle" TargetType="{x:Type Slider}">
         <Setter Property="Stylus.IsPressAndHoldEnabled" Value="False" />
         <Setter Property="Background" Value="Transparent" />
@@ -854,7 +843,6 @@
         </Setter>
     </Style>
 
-    <!--  Game Speed Quick Preset Button Style  -->
     <Style x:Key="GameSpeedQuickButtonStyle" TargetType="Button">
         <Setter Property="Height" Value="22" />
         <Setter Property="FontSize" Value="9" />
@@ -893,7 +881,6 @@
         </Setter>
     </Style>
 
-    <!--  Dragon Ball Icon Templates (Show/Hide Account & Password)  -->
     <ControlTemplate x:Key="DragonBallHideAccountIconTemplate" TargetType="Control">
         <Grid Width="{TemplateBinding Width}" Height="{TemplateBinding Height}">
             <Viewbox Stretch="Uniform">

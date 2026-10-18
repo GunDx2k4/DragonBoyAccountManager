@@ -90,7 +90,6 @@
                         </ui:GameBadge>
                     </Grid>
 
-                    <!-- Update Available Box with Scrollable Release Notes -->
                     <Border
                         Margin="0,4,0,8"
                         Padding="10,9"
@@ -134,7 +133,6 @@
                                     IsEnabled="{Binding CanApplyUpdate}" />
                             </Grid>
 
-                            <!-- Scrollable New Version Release Notes -->
                             <Border
                                 Background="#FEF3C7"
                                 BorderBrush="#FDE68A"
@@ -154,7 +152,6 @@
                                 </ScrollViewer>
                             </Border>
 
-                            <!-- Progress Bar when downloading -->
                             <StackPanel
                                 Margin="0,6,0,0"
                                 Visibility="{Binding IsUpdatingApp, Converter={StaticResource BooleanToVisibilityConverter}}">
@@ -204,10 +201,8 @@
                 </StackPanel>
             </ui:GameCard>
 
-            <!-- Card 2: GÓP Ý & BÁO CÁO LỖI -->
             <views:FeedbackView Margin="0,0,0,10" DataContext="{Binding Feedback}" />
 
-            <!-- Card 3: NHẬT KÝ & CHI TIẾT CẬP NHẬT PHIÊN BẢN -->
             <ui:GameCard
                 Margin="0,0,0,10"
                 Header="NHẬT KÝ CẬP NHẬT PHIÊN BẢN">

@@ -16,7 +16,6 @@
         <converters:ClientStatusToBrushConverter x:Key="ClientStatusToBrushConverter" />
     </UserControl.Resources>
 
-
     <Border
         Background="{DynamicResource GameBgAltBrush}"
         BorderBrush="{DynamicResource GameBorderBrush}"

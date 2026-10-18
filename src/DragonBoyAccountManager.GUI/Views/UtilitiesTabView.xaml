@@ -18,19 +18,18 @@
 
     <Grid Margin="10,8">
         <Grid.RowDefinitions>
-            <!-- 1. Khung Đổi Khu (Dropdown theo openzonemap) -->
+
             <RowDefinition Height="Auto" />
-            <!-- 2. Khung Tốc Độ Game (Time.timeScale) -->
+
             <RowDefinition Height="Auto" />
-            <!-- 3. Cụm phím tắt nhanh (Capsule, TDLT) -->
+
             <RowDefinition Height="Auto" />
-            <!-- 4. Cụm các nút chuyển Waypoint (Tối đa 3 cổng, tự ẩn nếu không có) -->
+
             <RowDefinition Height="Auto" />
-            <!-- 5. Danh sách chi tiết thực thể (Boss, Người, NPC, Auto Chat) -->
+
             <RowDefinition Height="*" />
         </Grid.RowDefinitions>
 
-        <!-- ==================== 1. KHUNG ĐỔI KHU ==================== -->
         <Border
             Grid.Row="0"
             Margin="0,0,0,8"
@@ -40,7 +39,7 @@
             BorderThickness="1.5"
             CornerRadius="6">
             <StackPanel>
-                <!-- Dòng hiển thị Map hiện tại & Khu (tổng người / max người) -->
+
                 <Grid Margin="0,0,0,6">
                     <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
                         <TextBlock
@@ -72,7 +71,6 @@
                     </StackPanel>
                 </Grid>
 
-                <!-- Dòng Dropdown Chọn & Đổi Khu và nút bấm chuyển khu nhanh -->
                 <Grid>
                     <Grid.ColumnDefinitions>
                         <ColumnDefinition Width="Auto" />
@@ -187,7 +185,6 @@
             </StackPanel>
         </Border>
 
-        <!-- ==================== 2. KHUNG TỐC ĐỘ GAME ==================== -->
         <Border
             Grid.Row="1"
             Margin="0,0,0,7"
@@ -252,7 +249,6 @@
                         <ColumnDefinition Width="150" />
                     </Grid.ColumnDefinitions>
 
-                    <!-- Thanh kéo Slider điều chỉnh Time.timeScale -->
                     <Slider
                         Grid.Column="0"
                         VerticalAlignment="Center"
@@ -265,7 +261,6 @@
                         ToolTip="Kéo để điều chỉnh Time.timeScale của game (0.1x - 5.0x)"
                         Value="{Binding GameSpeed, UpdateSourceTrigger=PropertyChanged}" />
 
-                    <!-- Các nút bấm chọn nhanh tốc độ -->
                     <UniformGrid Grid.Column="2" Columns="4">
                         <Button
                             Height="24"
@@ -300,7 +295,6 @@
             </StackPanel>
         </Border>
 
-        <!-- ==================== 3. CỤM PHÍM TẮT NHANH VẬT PHẨM (CAPSULE, TDLT) ==================== -->
         <Grid Grid.Row="2" Margin="0,0,0,7">
             <Grid.ColumnDefinitions>
                 <ColumnDefinition Width="*" />
@@ -337,7 +331,6 @@
             </Button>
         </Grid>
 
-        <!-- ==================== 4. CÁC NÚT DỊCH CHUYỂN WAYPOINT ==================== -->
         <StackPanel Grid.Row="3" Margin="0,0,0,8">
             <Grid Margin="2,0,2,4">
                 <Grid.ColumnDefinitions>
@@ -412,7 +405,6 @@
             </ItemsControl>
         </StackPanel>
 
-        <!-- ==================== 5. DANH SÁCH THỰC THỂ (SUB TABS) ==================== -->
         <Border
             Grid.Row="4"
             Background="{DynamicResource GameTabContentBrush}"
@@ -420,7 +412,7 @@
             BorderThickness="1.5"
             CornerRadius="6">
             <TabControl Style="{StaticResource GameTabControlStyle}">
-                <!-- SUB-TAB 1: BOSS & NGƯỜI CHƠI -->
+
                 <TabItem Style="{StaticResource GameTabItemStyle}" ToolTip="Boss và Người chơi trong khu">
                     <TabItem.Header>
                         <StackPanel Orientation="Horizontal">
@@ -433,7 +425,7 @@
                     </TabItem.Header>
                     <ScrollViewer FocusVisualStyle="{x:Null}" VerticalScrollBarVisibility="Auto">
                         <StackPanel Margin="6,4">
-                            <!-- BOSS SECTION -->
+
                             <TextBlock
                                 Margin="2,4,0,3"
                                 FontSize="10.5"
@@ -497,7 +489,6 @@
                                 </ItemsControl.ItemTemplate>
                             </ItemsControl>
 
-                            <!-- PLAYERS SECTION -->
                             <TextBlock
                                 Margin="2,8,0,3"
                                 FontSize="10.5"
@@ -566,7 +557,6 @@
                     </ScrollViewer>
                 </TabItem>
 
-                <!-- SUB-TAB 2: QUÁI TRONG BẢN ĐỒ -->
                 <TabItem Style="{StaticResource GameTabItemStyle}">
                     <TabItem.Header>
                         <StackPanel Orientation="Horizontal">
@@ -686,7 +676,6 @@
                     </ScrollViewer>
                 </TabItem>
 
-                <!-- SUB-TAB 3: NPC TRONG BẢN ĐỒ -->
                 <TabItem Style="{StaticResource GameTabItemStyle}">
                     <TabItem.Header>
                         <TextBlock>
@@ -756,7 +745,6 @@
                     </ScrollViewer>
                 </TabItem>
 
-                <!-- SUB-TAB 4: TỰ ĐỘNG CHAT (AUTO CHAT) -->
                 <TabItem Style="{StaticResource GameTabItemStyle}">
                     <TabItem.Header>
                         <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
@@ -773,7 +761,7 @@
                     </TabItem.Header>
                     <ScrollViewer FocusVisualStyle="{x:Null}" VerticalScrollBarVisibility="Auto">
                         <StackPanel Margin="10,8">
-                            <!-- Khung nhập nội dung chat -->
+
                             <TextBlock
                                 Margin="0,0,0,4"
                                 FontSize="11"
@@ -790,7 +778,6 @@
                                 TextWrapping="Wrap"
                                 VerticalScrollBarVisibility="Auto" />
 
-                            <!-- Tùy chọn gửi ngẫu nhiên & đồng bộ -->
                             <Grid Margin="0,6,0,8">
                                 <Grid.ColumnDefinitions>
                                     <ColumnDefinition Width="*" />
@@ -812,7 +799,6 @@
                                     IsChecked="{Binding AutoChatSyncAll}" />
                             </Grid>
 
-                            <!-- Cấu hình loại chat & giãn cách -->
                             <Grid Margin="0,0,0,8">
                                 <Grid.ColumnDefinitions>
                                     <ColumnDefinition Width="130" />
@@ -820,7 +806,6 @@
                                     <ColumnDefinition Width="*" />
                                 </Grid.ColumnDefinitions>
 
-                                <!-- Kênh chat -->
                                 <StackPanel Grid.Column="0">
                                     <TextBlock
                                         Margin="0,0,0,3"
@@ -837,7 +822,6 @@
                                     </ComboBox>
                                 </StackPanel>
 
-                                <!-- Giãn cách gửi (giây) -->
                                 <StackPanel Grid.Column="2">
                                     <TextBlock
                                         Margin="0,0,0,3"
@@ -907,7 +891,6 @@
                                 </StackPanel>
                             </Grid>
 
-                            <!-- Cụm nút thao tác -->
                             <Grid Margin="0,4,0,8">
                                 <Grid.ColumnDefinitions>
                                     <ColumnDefinition Width="110" />
@@ -915,7 +898,6 @@
                                     <ColumnDefinition Width="*" />
                                 </Grid.ColumnDefinitions>
 
-                                <!-- Nút test gửi 1 lần -->
                                 <Button
                                     Grid.Column="0"
                                     Height="32"
@@ -926,7 +908,6 @@
                                     Style="{StaticResource GameSecondaryButton}"
                                     ToolTip="Gửi ngay 1 tin nhắn mà không chạy vòng lặp" />
 
-                                <!-- Nút Bật / Tắt Auto Chat -->
                                 <Button
                                     Grid.Column="2"
                                     Height="32"
@@ -945,7 +926,6 @@
                                 </Button>
                             </Grid>
 
-                            <!-- Trạng thái & thống kê -->
                             <Border
                                 Padding="8,6"
                                 Background="{DynamicResource GameHeaderBrush}"

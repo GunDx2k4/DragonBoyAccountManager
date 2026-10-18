@@ -34,7 +34,7 @@
 
     <ScrollViewer FocusVisualStyle="{x:Null}" VerticalScrollBarVisibility="Auto">
         <StackPanel Margin="10,6">
-            <!-- THÔNG TIN TÀI KHOẢN (BỐ CỤC GỌN 2 CỘT) -->
+
             <Grid Margin="0,0,0,6">
                 <Grid.ColumnDefinitions>
                     <ColumnDefinition Width="*" />
@@ -46,7 +46,6 @@
                     <RowDefinition Height="Auto" />
                 </Grid.RowDefinitions>
 
-                <!-- DÒNG 1: TÀI KHOẢN & MẬT KHẨU -->
                 <StackPanel Grid.Row="0" Grid.Column="0" Margin="0,0,0,6">
                     <TextBlock
                         Margin="0,0,0,2"
@@ -117,7 +116,6 @@
                         IsPasswordVisible="{Binding IsPasswordVisible, Mode=TwoWay}" />
                 </StackPanel>
 
-                <!-- DÒNG 2: MÁY CHỦ & TỰ ĐỘNG ĐĂNG NHẬP -->
                 <StackPanel Grid.Row="1" Grid.Column="0">
                     <TextBlock
                         Margin="0,0,0,2"
@@ -144,7 +142,6 @@
                 </StackPanel>
             </Grid>
 
-            <!-- BẢNG ĐIỀU KHIỂN BÀN PHÍM & THAO TÁC NHANH -->
             <Border
                 Margin="0,2,0,0"
                 Padding="8,6"
@@ -153,7 +150,7 @@
                 BorderThickness="1.5"
                 CornerRadius="6">
                 <StackPanel>
-                    <!-- 1. ĐỔI KHU NHANH -->
+
                     <Grid Margin="0,0,0,6" SnapsToDevicePixels="True">
                         <Grid.ColumnDefinitions>
                             <ColumnDefinition Width="Auto" />
@@ -272,7 +269,6 @@
                         Background="{DynamicResource GameBorderBrush}"
                         Opacity="0.3" />
 
-                    <!-- 2. ĐIỀU HƯỚNG & PHÍM TẮT NHANH -->
                     <StackPanel
                         HorizontalAlignment="Center"
                         VerticalAlignment="Center"
@@ -474,7 +470,6 @@
                         Background="{DynamicResource GameBorderBrush}"
                         Opacity="0.3" />
 
-                    <!-- 3. HÀNG NÚT SỬ DỤNG KỸ NĂNG (SKILLS) -->
                     <Grid Margin="0,0,0,4" SnapsToDevicePixels="True">
                         <Grid.ColumnDefinitions>
                             <ColumnDefinition Width="Auto" />
@@ -544,7 +539,6 @@
                 </StackPanel>
             </Border>
 
-            <!-- Cụm nút Thao tác Cấu hình Tài khoản: LƯU / HỦY / XÓA -->
             <StackPanel
                 Margin="0,8,0,2"
                 HorizontalAlignment="Center"

@@ -8,7 +8,6 @@
     d:DesignWidth="1180"
     mc:Ignorable="d">
 
-
     <Border
         Background="{DynamicResource GameBgAltBrush}"
         BorderBrush="{DynamicResource GameBorderBrush}"
@@ -47,7 +46,7 @@
                     CornerRadius="5">
                     <Viewbox Stretch="Uniform">
                         <Canvas Width="40" Height="40">
-                            <!-- Quả cầu ngọc rồng cam vàng 3D -->
+
                             <Ellipse
                                 Canvas.Left="1"
                                 Canvas.Top="1"
@@ -65,7 +64,7 @@
                                     </RadialGradientBrush>
                                 </Ellipse.Fill>
                             </Ellipse>
-                            <!-- Vệt sáng phản quang góc trên trái -->
+
                             <Ellipse
                                 Canvas.Left="6.5"
                                 Canvas.Top="3.5"
@@ -83,7 +82,7 @@
                                     </RadialGradientBrush>
                                 </Ellipse.Fill>
                             </Ellipse>
-                            <!-- 4 Ngôi sao đỏ (Ngọc Rồng 4 Sao) -->
+
                             <Path Data="M 20,11.5 L 21.3,14.8 L 24.8,15.1 L 22.1,17.3 L 23,20.8 L 20,18.9 L 17,20.8 L 17.9,17.3 L 15.2,15.1 L 18.7,14.8 Z" Fill="#D81B00" />
                             <Path Data="M 14,17.5 L 15.3,20.8 L 18.8,21.1 L 16.1,23.3 L 17,26.8 L 14,24.9 L 11,26.8 L 11.9,23.3 L 9.2,21.1 L 12.7,20.8 Z" Fill="#D81B00" />
                             <Path Data="M 26,17.5 L 27.3,20.8 L 30.8,21.1 L 28.1,23.3 L 29,26.8 L 26,24.9 L 23,26.8 L 23.9,23.3 L 21.2,21.1 L 24.7,20.8 Z" Fill="#D81B00" />

@@ -29,7 +29,6 @@ public sealed partial class SettingsTabViewModel : ObservableObject
     {
         Groups.Clear();
 
-        // 1. Nhóm Cấu hình Kết nối Mạng & Đăng nhập
         var networkGroup = new SettingGroupViewModel(
             "network",
             "CẤU HÌNH TỰ ĐỘNG KẾT NỐI",
@@ -50,7 +49,6 @@ public sealed partial class SettingsTabViewModel : ObservableObject
 
         Groups.Add(networkGroup);
 
-        // 2. Nhóm Cấu hình Cửa sổ Game
         var windowGroup = new SettingGroupViewModel(
             "window",
             "CẤU HÌNH CỬA SỔ GAME",
@@ -81,7 +79,6 @@ public sealed partial class SettingsTabViewModel : ObservableObject
 
         Groups.Add(windowGroup);
 
-        // 3. Nhóm Cấu hình Di chuyển
         var movementGroup = new SettingGroupViewModel(
             "movement",
             "CẤU HÌNH DI CHUYỂN",
@@ -132,7 +129,6 @@ public sealed partial class SettingsTabViewModel : ObservableObject
             if (tele != null) tele.BoolValue = settings.FastTeleport;
         }
 
-        // Tải các giá trị tuỳ biến của Action trong tương lai
         if (settings.CustomValues != null)
         {
             foreach (var group in Groups)
@@ -185,9 +181,6 @@ public sealed partial class SettingsTabViewModel : ObservableObject
         return Groups.FirstOrDefault(g => string.Equals(g.Id, id, StringComparison.OrdinalIgnoreCase));
     }
 
-    /// <summary>
-    /// Đăng ký thêm một nhóm cấu hình mới vào Tab Settings
-    /// </summary>
     public void RegisterGroup(SettingGroupViewModel group)
     {
         if (Groups.Any(g => string.Equals(g.Id, group.Id, StringComparison.OrdinalIgnoreCase)))
@@ -195,7 +188,6 @@ public sealed partial class SettingsTabViewModel : ObservableObject
             return;
         }
 
-        // Kiểm tra xem đã có giá trị lưu từ trước cho nhóm này không
         if (_settingsService.Current.CustomValues != null)
         {
             foreach (var item in group.Settings)
@@ -211,9 +203,6 @@ public sealed partial class SettingsTabViewModel : ObservableObject
         Groups.Add(group);
     }
 
-    /// <summary>
-    /// Đăng ký nhanh một Action mới với nút Bật/Tắt và các tuỳ chọn con
-    /// </summary>
     public SettingGroupViewModel RegisterAction(
         string actionId,
         string actionTitle,
@@ -227,7 +216,6 @@ public sealed partial class SettingsTabViewModel : ObservableObject
             return existing;
         }
 
-        // Lấy trạng thái Bật/Tắt đã lưu (nếu có)
         bool isEnabled = defaultEnabled;
         if (_settingsService.Current.CustomValues != null &&
             _settingsService.Current.CustomValues.TryGetValue($"{actionId}.Enabled", out var rawEnabled) &&
@@ -297,7 +285,6 @@ public sealed partial class SettingsTabViewModel : ObservableObject
             _settingsService.Current.FastTeleport = moveGroup.GetBool("FastTeleport", _settingsService.Current.FastTeleport);
         }
 
-        // Lưu toàn bộ các cấu hình của các nhóm / action vào CustomValues
         _settingsService.Current.CustomValues ??= new(StringComparer.OrdinalIgnoreCase);
 
         foreach (var group in Groups)

@@ -32,8 +32,6 @@ public sealed partial class AppStatusBarViewModel : ObservableObject
     [ObservableProperty]
     private string _assemblyStatus = "Chưa chọn file game .exe";
 
-
-
     [ObservableProperty]
     private string _assemblyStatusTooltip = "Chưa cài đặt đường dẫn game hợp lệ.";
 

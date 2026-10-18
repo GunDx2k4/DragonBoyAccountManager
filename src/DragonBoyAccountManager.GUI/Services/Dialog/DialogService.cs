@@ -8,7 +8,7 @@ public sealed class DialogService : IDialogService
 {
     private static Window? GetActiveWindow()
     {
-        return Application.Current?.Windows.OfType<Window>().FirstOrDefault(w => w.IsActive) 
+        return Application.Current?.Windows.OfType<Window>().FirstOrDefault(w => w.IsActive)
                ?? Application.Current?.MainWindow;
     }
 

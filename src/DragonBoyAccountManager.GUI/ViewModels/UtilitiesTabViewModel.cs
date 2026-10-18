@@ -92,7 +92,6 @@ public sealed partial class UtilitiesTabViewModel : ObservableObject
     [ObservableProperty]
     private string _syncTargetDisplay = "1 tài khoản";
 
-    // Game Speed properties
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(GameSpeedText))]
     private float _gameSpeed = 1.0f;
@@ -105,7 +104,6 @@ public sealed partial class UtilitiesTabViewModel : ObservableObject
     private bool _isInternalSpeedUpdate;
     private Func<List<Guid>>? _speedTargetResolver;
 
-    // Auto Chat properties
     [ObservableProperty]
     private string _chatText = "Chào mọi người!";
 
@@ -113,7 +111,7 @@ public sealed partial class UtilitiesTabViewModel : ObservableObject
     private int _chatDelaySeconds = 5;
 
     [ObservableProperty]
-    private int _selectedChatTypeIndex = 0; // 0: Khu vực, 1: Thế giới
+    private int _selectedChatTypeIndex = 0;
 
     [ObservableProperty]
     private bool _isRandomChat;
@@ -322,17 +320,14 @@ public sealed partial class UtilitiesTabViewModel : ObservableObject
         WaypointCount = snapshot.Waypoints.Count;
         NpcCount = snapshot.Npcs.Count;
 
-        // Update collections
         UpdateCollection(Bosses, snapshot.Bosses);
         UpdateCollection(Players, snapshot.Players);
         UpdateCollection(Mobs, snapshot.Mobs);
         UpdateCollection(Waypoints, snapshot.Waypoints);
         UpdateCollection(Npcs, snapshot.Npcs);
 
-        // Update Zone Dropdown list (đồng bộ theo openzonemap trong panel code gốc)
         UpdateZones(snapshot.Zones, snapshot.ZoneId);
 
-        // Update Waypoint buttons (tối đa 3 nút, chỉ hiển thị tên đích đến và tọa độ, tự ẩn nếu không có)
         var sortedWps = snapshot.Waypoints.OrderBy(w => w.X).ToList();
         var newWaypointButtons = sortedWps.Take(3)
             .Select(wp => new WaypointButtonItem(wp.Name, wp.X, wp.Y, wp))
@@ -559,7 +554,6 @@ public sealed partial class UtilitiesTabViewModel : ObservableObject
         var targetIds = GetTargetAccountIds();
         if (targetIds.Count == 0) return;
 
-        // Hủy tiến trình di chuyển waypoint trước đó nếu đang chạy dở
         _moveWaypointCts?.Cancel();
         _moveWaypointCts?.Dispose();
         var cts = new CancellationTokenSource();
@@ -571,7 +565,6 @@ public sealed partial class UtilitiesTabViewModel : ObservableObject
 
         try
         {
-            // Tự động tìm đường A* hoặc tele nhanh tới cổng, sau đó kích hoạt chuyển map nếu cần
             var tasks = targetIds.Select(async id =>
             {
                 int startMapId = _gameEngine.GetWorldSnapshot(id)?.MapId ?? -1;
@@ -580,12 +573,10 @@ public sealed partial class UtilitiesTabViewModel : ObservableObject
 
                 if (cts.Token.IsCancellationRequested) return;
 
-                // Kiểm tra xem đã sang map mới hoặc đang trong quá trình chuyển map chưa
                 var currentWorld = _gameEngine.GetWorldSnapshot(id);
                 var currentMapId = currentWorld?.MapId ?? -1;
                 var isChangingMap = _gameEngine.GetPlayerSnapshot(id)?.IsChangingMap ?? false;
 
-                // Nếu đã đổi sang map khác hoặc đang loading map, KHÔNG gọi kích hoạt cổng nữa
                 if ((startMapId >= 0 && currentMapId >= 0 && currentMapId != startMapId) || isChangingMap)
                 {
                     return;
@@ -595,7 +586,6 @@ public sealed partial class UtilitiesTabViewModel : ObservableObject
 
                 if (cts.Token.IsCancellationRequested) return;
 
-                // Kiểm tra lại lần nữa sau delay
                 currentWorld = _gameEngine.GetWorldSnapshot(id);
                 currentMapId = currentWorld?.MapId ?? -1;
                 isChangingMap = _gameEngine.GetPlayerSnapshot(id)?.IsChangingMap ?? false;
@@ -617,7 +607,6 @@ public sealed partial class UtilitiesTabViewModel : ObservableObject
         }
         catch (OperationCanceledException)
         {
-            // Bị hủy khi người dùng kích hoạt lệnh di chuyển khác
         }
     }
 
@@ -674,7 +663,6 @@ public sealed partial class UtilitiesTabViewModel : ObservableObject
 
         bool isTeleport = FastTeleport;
 
-        // Tự động tìm đường A* hoặc tele nhanh tới gần mục tiêu trước khi chọn
         var tasks = targetIds.Select(async id =>
         {
             if (targetX > 0 && targetY > 0)

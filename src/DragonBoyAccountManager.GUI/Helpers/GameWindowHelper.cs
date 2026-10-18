@@ -7,17 +7,17 @@ namespace DragonBoyAccountManager.GUI.Helpers;
 
 public enum WindowArrangeMode
 {
-    Grid,       // Lưới tự động (xuống hàng khi chạm mép màn hình)
-    Tile,       // Chia đều khít màn hình (Auto Fit N tab)
-    Cascade     // Bậc thang thông minh
+    Grid,
+    Tile,
+    Cascade
 }
 
 public sealed class WindowArrangeOptions
 {
     public WindowArrangeMode Mode { get; set; } = WindowArrangeMode.Grid;
-    public int Columns { get; set; } = 0; // 0 = Tự động theo độ phân giải
-    public int CustomWidth { get; set; } = 0; // 0 = Giữ nguyên / tự động
-    public int CustomHeight { get; set; } = 0; // 0 = Giữ nguyên / tự động
+    public int Columns { get; set; } = 0;
+    public int CustomWidth { get; set; } = 0;
+    public int CustomHeight { get; set; } = 0;
     public int SpacingX { get; set; } = 0;
     public int SpacingY { get; set; } = 0;
 }
@@ -130,7 +130,6 @@ public static class GameWindowHelper
 
     public static bool RemoveWindowButtons(IntPtr hWnd)
     {
-        // Không can thiệp sửa style GWL_STYLE (WS_SYSMENU) của game vì sẽ khiến engine Unity 5.6 bị pause và văng ứng dụng
         return true;
     }
 

@@ -3,10 +3,8 @@
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
     xmlns:converters="clr-namespace:DragonBoyAccountManager.GUI.UI.Converters">
 
-    <!--  Status to Brush Converter  -->
     <converters:StatusToBrushConverter x:Key="StatusToBrushConverter" />
 
-    <!--  1. Column Header Style  -->
     <Style x:Key="GameDataGridColumnHeaderStyle" TargetType="DataGridColumnHeader">
         <Setter Property="Background" Value="{DynamicResource GameDataGridHeaderBgBrush}" />
         <Setter Property="Foreground" Value="{DynamicResource GameTextDarkBrush}" />
@@ -19,7 +17,6 @@
         <Setter Property="SnapsToDevicePixels" Value="True" />
     </Style>
 
-    <!--  2. Cell Style  -->
     <Style x:Key="GameDataGridCellStyle" TargetType="DataGridCell">
         <Setter Property="Foreground" Value="{DynamicResource GameTextDarkBrush}" />
         <Setter Property="FontWeight" Value="SemiBold" />
@@ -48,7 +45,6 @@
         </Style.Triggers>
     </Style>
 
-    <!--  3. Row Style  -->
     <Style x:Key="GameDataGridRowStyle" TargetType="DataGridRow">
         <Setter Property="BorderThickness" Value="0,0,0,1" />
         <Setter Property="BorderBrush" Value="{DynamicResource GameDataGridGridLineBrush}" />
@@ -63,7 +59,6 @@
         </Style.Triggers>
     </Style>
 
-    <!--  4. Full DataGrid Style  -->
     <Style x:Key="GameDataGridStyle" TargetType="DataGrid">
         <Setter Property="Background" Value="{DynamicResource GameDataGridBgBrush}" />
         <Setter Property="RowBackground" Value="{DynamicResource GameDataGridBgBrush}" />
@@ -90,7 +85,6 @@
         <Setter Property="RowStyle" Value="{StaticResource GameDataGridRowStyle}" />
     </Style>
 
-    <!--  5. Game ContextMenu Styles  -->
     <Style x:Key="GameMenuSeparatorStyle" TargetType="Separator">
         <Setter Property="OverridesDefaultStyle" Value="True" />
         <Setter Property="Template">

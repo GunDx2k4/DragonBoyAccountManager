@@ -39,7 +39,6 @@ public sealed partial class MainViewModel : ObservableObject
         _storageService = storageService;
         _dialogService = dialogService;
 
-        // Wire target resolution for movement/enter controls in AccountForm
         AccountForm.SetKeyTargetResolver(() =>
         {
             var targets = AccountsPanel.GetTargetAccounts();
@@ -54,7 +53,6 @@ public sealed partial class MainViewModel : ObservableObject
             return [];
         });
 
-        // Wire target resolution for speed controls in AccountForm
         AccountForm.SetSpeedTargetResolver(() =>
         {
             if (AccountForm.IsApplySpeedToAll)
@@ -75,7 +73,6 @@ public sealed partial class MainViewModel : ObservableObject
             return [];
         });
 
-        // Wire target resolution for UtilitiesTab zone change
         UtilitiesTab.SetTargetResolver(() =>
         {
             var targets = AccountsPanel.GetTargetAccounts();
@@ -90,7 +87,6 @@ public sealed partial class MainViewModel : ObservableObject
             return [];
         });
 
-        // Wire target resolution for UtilitiesTab speed controls
         UtilitiesTab.SetSpeedTargetResolver(() =>
         {
             if (UtilitiesTab.IsApplySpeedToAll)
@@ -111,7 +107,6 @@ public sealed partial class MainViewModel : ObservableObject
             return [];
         });
 
-        // Wire selection coordination between accounts panel and edit form / utilities tab
         AccountsPanel.OnAccountSelectionChanged += selected =>
         {
             AccountForm.SetEditingAccount(selected);
@@ -119,7 +114,6 @@ public sealed partial class MainViewModel : ObservableObject
             UtilitiesTab.UpdateSyncTargetDisplay();
         };
 
-        // When switching tabs, manage polling and trigger immediate refresh
         PropertyChanged += (_, e) =>
         {
             if (e.PropertyName == nameof(SelectedTabIndex))
@@ -153,13 +147,11 @@ public sealed partial class MainViewModel : ObservableObject
             StatusBar.StatusMessage = msg;
         };
 
-        // Re-validate game version whenever GamePath changes
         StatusBar.GamePathChanged += _ =>
         {
             Guide.CheckAssemblyStatus();
         };
 
-        // Navigate to Guide tab when update is applied from startup dialog
         Guide.OnRequestNavigateToGuide += () =>
         {
             SelectedTabIndex = 3;
@@ -173,7 +165,6 @@ public sealed partial class MainViewModel : ObservableObject
             }
         };
 
-        // Sync hide account status across list and form
         AccountsPanel.PropertyChanged += (_, e) =>
         {
             if (e.PropertyName == nameof(AccountsPanelViewModel.IsHideAccounts))
@@ -230,7 +221,6 @@ public sealed partial class MainViewModel : ObservableObject
             }
         };
 
-        // Load data on startup
         _ = InitializeAsync();
     }
 

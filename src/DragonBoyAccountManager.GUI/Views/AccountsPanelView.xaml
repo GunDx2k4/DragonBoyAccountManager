@@ -26,7 +26,6 @@
                 <RowDefinition Height="Auto" />
             </Grid.RowDefinitions>
 
-            <!-- Thanh tìm kiếm & bộ lọc máy chủ -->
             <Grid Grid.Row="0" Margin="0,0,0,10">
                 <Grid.ColumnDefinitions>
                     <ColumnDefinition Width="Auto" />
@@ -87,7 +86,7 @@
                         Style="{StaticResource GameSecondaryButton}"
                         ToolTip="Ẩn hoặc hiển thị tên tài khoản">
                         <StackPanel VerticalAlignment="Center" Orientation="Horizontal">
-                            <!-- Biểu tượng Ngọc Rồng 1 Sao dạng vector XML -->
+
                             <Control
                                 Width="15"
                                 Height="15"
@@ -130,7 +129,6 @@
                 </StackPanel>
             </Grid>
 
-            <!-- Bảng danh sách tài khoản (DataGrid) -->
             <DataGrid
                 x:Name="AccountsDataGrid"
                 Grid.Row="1"
@@ -379,7 +377,6 @@
                 </DataGrid.Columns>
             </DataGrid>
 
-            <!-- Thanh thống kê & thao tác hàng loạt (Bật / Tắt / Sắp xếp) -->
             <Grid Grid.Row="2" Margin="0,8,0,0">
                 <Grid.ColumnDefinitions>
                     <ColumnDefinition Width="*" />

@@ -5,7 +5,6 @@
     xmlns:po="http://schemas.microsoft.com/winfx/2006/xaml/presentation/options"
     mc:Ignorable="po">
 
-    <!--  Backgrounds  -->
     <SolidColorBrush
         x:Key="GameBgBrush"
         po:Freeze="True"
@@ -27,7 +26,6 @@
         po:Freeze="True"
         Color="#E5CAAA" />
 
-    <!--  Borders  -->
     <SolidColorBrush
         x:Key="GameBorderBrush"
         po:Freeze="True"
@@ -41,13 +39,11 @@
         po:Freeze="True"
         Color="#B8863A" />
 
-    <!--  Headers  -->
     <SolidColorBrush
         x:Key="GameHeaderBrush"
         po:Freeze="True"
         Color="#FAD7A0" />
 
-    <!--  DataGrid  -->
     <SolidColorBrush
         x:Key="GameDataGridBgBrush"
         po:Freeze="True"
@@ -73,7 +69,6 @@
         po:Freeze="True"
         Color="#E0B782" />
 
-    <!--  TabControl  -->
     <SolidColorBrush
         x:Key="GameTabInactiveBrush"
         po:Freeze="True"
@@ -95,7 +90,6 @@
         po:Freeze="True"
         Color="#6C4A00" />
 
-    <!--  Text Colors  -->
     <SolidColorBrush
         x:Key="GameTextDarkBrush"
         po:Freeze="True"
@@ -109,7 +103,6 @@
         po:Freeze="True"
         Color="#7D5534" />
 
-    <!--  Interactions & Highlights  -->
     <SolidColorBrush
         x:Key="GameFocusBrush"
         po:Freeze="True"
@@ -135,7 +128,6 @@
         po:Freeze="True"
         Color="#6C4A00" />
 
-    <!--  Button Colors  -->
     <SolidColorBrush
         x:Key="GameBtnOrangeBorderBrush"
         po:Freeze="True"
@@ -241,7 +233,6 @@
         po:Freeze="True"
         Color="#F38C16" />
 
-    <!--  Checkbox Palette  -->
     <SolidColorBrush
         x:Key="GameCheckBgBrush"
         po:Freeze="True"
@@ -263,7 +254,6 @@
         po:Freeze="True"
         Color="#254E28" />
 
-    <!--  TextBox Palette  -->
     <SolidColorBrush
         x:Key="GameInputNormalBgBrush"
         po:Freeze="True"
@@ -293,7 +283,6 @@
         po:Freeze="True"
         Color="#FFFFFF" />
 
-    <!--  Status Accents  -->
     <SolidColorBrush
         x:Key="GameGreenBrush"
         po:Freeze="True"
@@ -311,7 +300,6 @@
         po:Freeze="True"
         Color="#757575" />
 
-    <!--  Radar & Capsule Accents  -->
     <SolidColorBrush
         x:Key="GameRadarScreenBrush"
         po:Freeze="True"

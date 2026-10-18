@@ -65,7 +65,6 @@ public partial class AccountsPanelView : UserControl
             var selectedList = grid.SelectedItems.OfType<AccountItemViewModel>().ToList();
             ViewModel.UpdateSelectedRows(selectedList);
 
-            // Bôi đen = Tích chọn: Đồng bộ IsSelected của các item theo dòng đang được bôi đen trong DataGrid
             var selectedSet = new HashSet<AccountItemViewModel>(selectedList);
             foreach (var item in ViewModel.Accounts)
             {
@@ -162,9 +161,6 @@ public partial class AccountsPanelView : UserControl
     {
         if (sender is DataGridRow row && row.Item is AccountItemViewModel item)
         {
-            // Nếu click chuột phải vào hàng chưa nằm trong nhóm được chọn,
-            // thì chuyển sang chọn riêng hàng này.
-            // Nếu hàng này ĐÃ được chọn (trong nhóm 2+ hàng), giữ nguyên cả nhóm để menu áp dụng cho tất cả.
             if (!row.IsSelected)
             {
                 AccountsDataGrid.SelectedItems.Clear();

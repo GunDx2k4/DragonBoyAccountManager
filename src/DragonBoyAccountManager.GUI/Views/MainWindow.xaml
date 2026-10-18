@@ -28,7 +28,7 @@
     mc:Ignorable="d">
 
     <Grid>
-        <!-- Shadow border (hidden when maximized) -->
+
         <Border Background="#261302">
             <Border.Style>
                 <Style TargetType="Border">
@@ -44,7 +44,6 @@
             </Border.Style>
         </Border>
 
-        <!-- Main Outer Frame -->
         <Border
             Padding="1.8"
             Background="{DynamicResource GameBorderBrush}"
@@ -116,10 +115,8 @@
                                 <RowDefinition Height="34" />
                             </Grid.RowDefinitions>
 
-                            <!-- ==================== 1. THANH TIÊU ĐỀ (TITLE BAR) ==================== -->
                             <views:AppTitleBarView Grid.Row="0" />
 
-                            <!-- ==================== 2. NỘI DUNG CHÍNH (MAIN CONTENT) ==================== -->
                             <Border Grid.Row="1" Background="{DynamicResource GameBgBrush}">
                                 <Grid>
                                     <Border
@@ -133,10 +130,8 @@
                                             <ColumnDefinition Width="465" MinWidth="415" MaxWidth="720" />
                                         </Grid.ColumnDefinitions>
 
-                                        <!-- ========== CỘT TRÁI: DANH SÁCH TÀI KHOẢN ========== -->
                                         <views:AccountsPanelView Grid.Column="0" DataContext="{Binding AccountsPanel}" />
 
-                                        <!-- ========== THANH KÉO CO GIÃN (GRID SPLITTER) ========== -->
                                         <Grid Grid.Column="1" HorizontalAlignment="Center" VerticalAlignment="Stretch">
                                             <Rectangle Width="1.5" Fill="{DynamicResource GameBorderBrush}" HorizontalAlignment="Center" />
                                             <Border
@@ -162,7 +157,6 @@
                                                 ShowsPreview="False" />
                                         </Grid>
 
-                                        <!-- ========== CỘT PHẢI: BẢNG CẤU HÌNH ========== -->
                                         <Border
                                             Grid.Column="2"
                                             Background="{DynamicResource GameBgLightBrush}"
@@ -236,22 +230,18 @@
                                                             SelectedIndex="{Binding SelectedTabIndex}"
                                                             Style="{StaticResource GameTabControlStyle}">
 
-                                                            <!-- TAB 1: CẤU HÌNH TÀI KHOẢN & ĐIỀU KHIỂN NHANH -->
                                                             <TabItem Header="TÀI KHOẢN" Style="{StaticResource GameTabItemStyle}">
                                                                 <views:AccountConfigTabView DataContext="{Binding AccountForm}" />
                                                             </TabItem>
 
-                                                            <!-- TAB 2: TIỆN ÍCH -->
                                                             <TabItem Header="TIỆN ÍCH" Style="{StaticResource GameTabItemStyle}">
                                                                 <views:UtilitiesTabView DataContext="{Binding UtilitiesTab}" />
                                                             </TabItem>
 
-                                                            <!-- TAB 3: CẤU HÌNH HỆ THỐNG -->
                                                             <TabItem Header="CÀI ĐẶT" Style="{StaticResource GameTabItemStyle}">
                                                                 <views:SettingsTabView DataContext="{Binding Settings}" />
                                                             </TabItem>
 
-                                                            <!-- TAB 4: HƯỚNG DẪN & THÔNG TIN PHIÊN BẢN -->
                                                             <TabItem Style="{StaticResource GameTabItemStyle}" ToolTip="Hướng dẫn sử dụng &amp; Thông tin phiên bản">
                                                                 <TabItem.Header>
                                                                     <StackPanel VerticalAlignment="Center" Orientation="Horizontal">
@@ -287,7 +277,6 @@
                                 </Grid>
                             </Border>
 
-                            <!-- ==================== 3. THANH TRẠNG THÁI DƯỚI CÙNG (STATUS BAR) ==================== -->
                             <views:AppStatusBarView Grid.Row="2" DataContext="{Binding StatusBar}" />
                         </Grid>
                     </Border>

@@ -1,6 +1,5 @@
 ﻿<ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
 
-    <!--  Dragon Boy Dialog Pill Button  -->
     <Style x:Key="GameDialogButtonStyle" TargetType="Button">
         <Setter Property="Height" Value="34" />
         <Setter Property="MinWidth" Value="108" />
@@ -15,20 +14,20 @@
             <Setter.Value>
                 <ControlTemplate TargetType="Button">
                     <Grid x:Name="rootGrid" SnapsToDevicePixels="True">
-                        <!--  Outer dark border  -->
+
                         <Border
                             x:Name="outerBorder"
                             Padding="1.8"
                             Background="#501500"
                             CornerRadius="13">
-                            <!--  Inner gold highlight rim  -->
+
                             <Border
                                 x:Name="innerRim"
                                 Padding="1.2"
                                 Background="#FEE599"
                                 CornerRadius="11.2">
                                 <Grid>
-                                    <!--  Orange button face gradient  -->
+
                                     <Border x:Name="faceBase" CornerRadius="10">
                                         <Border.Background>
                                             <LinearGradientBrush StartPoint="0,0" EndPoint="0,1">
@@ -39,7 +38,6 @@
                                         </Border.Background>
                                     </Border>
 
-                                    <!--  Top gloss highlight  -->
                                     <Border
                                         x:Name="faceGloss"
                                         Height="8"
@@ -101,7 +99,6 @@
         </Setter>
     </Style>
 
-    <!-- ==================== DRAGON BOY DIALOG TOOLTIP STYLE ==================== -->
     <Style x:Key="GameToolTipStyle" TargetType="ToolTip">
         <Setter Property="OverridesDefaultStyle" Value="True" />
         <Setter Property="HasDropShadow" Value="False" />

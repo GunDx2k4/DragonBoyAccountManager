@@ -13,7 +13,7 @@
     mc:Ignorable="d">
 
     <UserControl.Resources>
-        <!--  Template cho Setting kiểu Boolean (Checkbox)  -->
+
         <DataTemplate x:Key="BooleanSettingTemplate" DataType="{x:Type viewmodels:SettingItemViewModel}">
             <Border
                 Margin="0,2,0,6"
@@ -53,7 +53,6 @@
             </Border>
         </DataTemplate>
 
-        <!--  Template cho Setting kiểu Number (Slider + Badge giá trị)  -->
         <DataTemplate x:Key="NumberSettingTemplate" DataType="{x:Type viewmodels:SettingItemViewModel}">
             <Border
                 Margin="0,2,0,6"
@@ -132,7 +131,6 @@
             </Border>
         </DataTemplate>
 
-        <!--  Template cho Setting kiểu Text (TextBox)  -->
         <DataTemplate x:Key="TextSettingTemplate" DataType="{x:Type viewmodels:SettingItemViewModel}">
             <Border
                 Margin="0,2,0,6"
@@ -176,7 +174,6 @@
             </Border>
         </DataTemplate>
 
-        <!--  Template cho Setting kiểu Select (ComboBox)  -->
         <DataTemplate x:Key="SelectSettingTemplate" DataType="{x:Type viewmodels:SettingItemViewModel}">
             <Border
                 Margin="0,2,0,6"
@@ -223,13 +220,13 @@
 
     <ScrollViewer FocusVisualStyle="{x:Null}" VerticalScrollBarVisibility="Auto">
         <StackPanel Margin="12,10">
-            <!--  Danh sách các Card nhóm cấu hình / Action linh hoạt  -->
+
             <ItemsControl ItemsSource="{Binding Groups}">
                 <ItemsControl.ItemTemplate>
                     <DataTemplate DataType="{x:Type viewmodels:SettingGroupViewModel}">
                         <ui:GameCard Margin="0,0,0,10" Header="{Binding Title}">
                             <StackPanel>
-                                <!--  Header Action tuỳ chọn có nút Bật/Tắt  -->
+
                                 <Grid Margin="0,0,0,6">
                                     <Grid.Style>
                                         <Style TargetType="Grid">
@@ -265,7 +262,6 @@
                                         Style="{StaticResource GameCheckBoxStyle}" />
                                 </Grid>
 
-                                <!--  Danh sách các Options/Settings con  -->
                                 <ItemsControl ItemsSource="{Binding Settings}">
                                     <ItemsControl.Style>
                                         <Style TargetType="ItemsControl">
@@ -306,7 +302,6 @@
                 </ItemsControl.ItemTemplate>
             </ItemsControl>
 
-            <!--  Nút Lưu Cài Đặt  -->
             <Button
                 Height="30"
                 MinWidth="130"
