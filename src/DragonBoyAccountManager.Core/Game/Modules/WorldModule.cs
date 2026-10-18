@@ -494,14 +494,33 @@ public class WorldModule(MonoReflector reflector, IUIModule ui, INetworkModule n
 
     public bool MoveToWaypoint(int targetX, int targetY)
     {
-        var waypoints = GetWaypoints();
-        if (waypoints.Count == 0) return false;
-
-        var bestWp = waypoints.OrderBy(wp => wp.DistanceTo(targetX, targetY)).FirstOrDefault();
-        if (bestWp != null)
+        try
         {
-            try
+            bool isChanging = _reflector.ReadStatic<bool>(GameSchema.Char.ClassName, GameSchema.Char.StaticIsChangingMap);
+            bool isLoading = _reflector.ReadStatic<bool>(GameSchema.Char.ClassName, GameSchema.Char.StaticIsLoadingMap);
+            if (isChanging || isLoading) return false;
+
+            var waypoints = GetWaypoints();
+            if (waypoints.Count == 0) return false;
+
+            var bestWp = waypoints.OrderBy(wp => wp.DistanceTo(targetX, targetY)).FirstOrDefault();
+            if (bestWp != null)
             {
+                IntPtr myCharPtr = _reflector.ReadStatic<IntPtr>(GameSchema.Char.ClassName, GameSchema.Char.StaticMyChar);
+                if (myCharPtr != IntPtr.Zero)
+                {
+                    int curX = _reflector.ReadField<int>(GameSchema.Char.ClassName, GameSchema.Char.FieldX, myCharPtr);
+                    int curY = _reflector.ReadField<int>(GameSchema.Char.ClassName, GameSchema.Char.FieldY, myCharPtr);
+                    double distToChar = bestWp.DistanceTo(curX, curY);
+                    double distToTarget = bestWp.DistanceTo(targetX, targetY);
+
+                    // Chỉ gửi packet nếu nhân vật hoặc đích thực sự gần waypoint này (<= 100px)
+                    if (distToChar > 100 && distToTarget > 100)
+                    {
+                        return false;
+                    }
+                }
+
                 if (bestWp.IsOffline)
                 {
                     _network.GetMapOffline();
@@ -512,8 +531,9 @@ public class WorldModule(MonoReflector reflector, IUIModule ui, INetworkModule n
                 }
                 return true;
             }
-            catch { }
         }
+        catch { }
+
         return false;
     }
 

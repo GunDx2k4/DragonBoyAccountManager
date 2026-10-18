@@ -37,6 +37,14 @@ public class AutoMoveAction(int targetX, int targetY, bool isFastTeleport = fals
                 return ActionResult.Failure("Không tìm thấy con trỏ nhân vật myChar.");
             }
 
+            int startMapId = context.World.MapId;
+            if (context.Player.IsChangingMap)
+            {
+                ClearMoveTarget(context, myCharPtr);
+                progress?.Report("Đang đổi map, dừng lộ trình di chuyển.");
+                return ActionResult.Success("Đang đổi map, dừng lộ trình di chuyển.");
+            }
+
             int curX = context.Reflector.ReadField<int>(GameSchema.Char.ClassName, GameSchema.Char.FieldX, myCharPtr);
             int curY = context.Reflector.ReadField<int>(GameSchema.Char.ClassName, GameSchema.Char.FieldY, myCharPtr);
 
@@ -52,17 +60,11 @@ public class AutoMoveAction(int targetX, int targetY, bool isFastTeleport = fals
             // 1. Chế độ Dịch chuyển nhanh (Teleport tức thời 3 bước đồng bộ Server chuẩn Xmap)
             if (IsFastTeleport)
             {
-                if (context.Player.IsChangingMap)
-                {
-                    progress?.Report("Đang đổi map, không thể dịch chuyển nhanh.");
-                    return ActionResult.Failure("Đang đổi map, không thể dịch chuyển nhanh.");
-                }
-
-                return await ExecuteFastTeleportAsync(context, myCharPtr, effectiveTargetY, progress, cancellationToken);
+                return await ExecuteFastTeleportAsync(context, myCharPtr, effectiveTargetY, startMapId, progress, cancellationToken);
             }
 
             // 2. Chế độ Di chuyển thông minh A*
-            return await ExecuteAStarMovementAsync(context, myCharPtr, curX, curY, effectiveTargetY, progress, cancellationToken);
+            return await ExecuteAStarMovementAsync(context, myCharPtr, curX, curY, effectiveTargetY, startMapId, progress, cancellationToken);
         }
         catch (OperationCanceledException)
         {
@@ -83,13 +85,15 @@ public class AutoMoveAction(int targetX, int targetY, bool isFastTeleport = fals
         IGameContext context,
         IntPtr myCharPtr,
         int destY,
+        int startMapId,
         IProgress<string>? progress,
         CancellationToken cancellationToken)
     {
-        if (context.Player.IsChangingMap)
+        if (context.Player.IsChangingMap || (startMapId >= 0 && context.World.MapId != startMapId))
         {
-            progress?.Report("Đang đổi map, không thể dịch chuyển nhanh.");
-            return ActionResult.Failure("Đang đổi map, không thể dịch chuyển nhanh.");
+            ClearMoveTarget(context, myCharPtr);
+            progress?.Report("Đang đổi map, dừng lộ trình di chuyển.");
+            return ActionResult.Success("Đang đổi map hoặc đã sang map mới, dừng lộ trình di chuyển.");
         }
 
         progress?.Report($"Dịch chuyển nhanh tới ({TargetX}, {destY})...");
@@ -130,6 +134,7 @@ public class AutoMoveAction(int targetX, int targetY, bool isFastTeleport = fals
         int curX,
         int curY,
         int destY,
+        int startMapId,
         IProgress<string>? progress,
         CancellationToken cancellationToken)
     {
@@ -168,17 +173,26 @@ public class AutoMoveAction(int targetX, int targetY, bool isFastTeleport = fals
             if (cancellationToken.IsCancellationRequested || !context.IsRunning)
                 return ActionResult.Failure("Bị hủy hoặc game đã tắt.");
 
-            if (context.Player.IsChangingMap)
+            if (context.Player.IsChangingMap || (startMapId >= 0 && context.World.MapId != startMapId))
             {
+                ClearMoveTarget(context, myCharPtr);
                 progress?.Report("Đang đổi map, dừng lộ trình di chuyển.");
-                return ActionResult.Success("Đang đổi map, dừng lộ trình di chuyển.");
+                return ActionResult.Success("Đang đổi map hoặc đã sang map mới, dừng lộ trình di chuyển.");
             }
 
             var wp = waypoints[i];
             bool isLast = (i == waypoints.Count - 1);
             int threshold = isLast ? 16 : 24;
 
-            bool stepOk = await MoveToPointAsync(context, myCharPtr, wp.X, wp.Y, threshold, tmw, tmh, types, cancellationToken, progress);
+            bool stepOk = await MoveToPointAsync(context, myCharPtr, wp.X, wp.Y, threshold, tmw, tmh, types, startMapId, cancellationToken, progress);
+
+            if (context.Player.IsChangingMap || (startMapId >= 0 && context.World.MapId != startMapId))
+            {
+                ClearMoveTarget(context, myCharPtr);
+                progress?.Report("Đang đổi map, dừng lộ trình di chuyển.");
+                return ActionResult.Success("Đang đổi map hoặc đã sang map mới, dừng lộ trình di chuyển.");
+            }
+
             if (!stepOk && !isLast && types != null)
             {
                 // Nếu kẹt giữa chừng, tính lại A* từ vị trí hiện tại
@@ -195,6 +209,13 @@ public class AutoMoveAction(int targetX, int targetY, bool isFastTeleport = fals
 
         // Dọn dẹp con trỏ mục tiêu và đồng bộ trạng thái cuối
         ClearMoveTarget(context, myCharPtr);
+
+        if (context.Player.IsChangingMap || (startMapId >= 0 && context.World.MapId != startMapId))
+        {
+            progress?.Report("Đang đổi map, dừng lộ trình di chuyển.");
+            return ActionResult.Success("Đang đổi map hoặc đã sang map mới, dừng lộ trình di chuyển.");
+        }
+
         context.Network.CharMove();
 
         int finalX = context.Reflector.ReadField<int>(GameSchema.Char.ClassName, GameSchema.Char.FieldX, myCharPtr);
@@ -215,11 +236,18 @@ public class AutoMoveAction(int targetX, int targetY, bool isFastTeleport = fals
         int tmw,
         int tmh,
         int[]? types,
+        int startMapId,
         CancellationToken cancellationToken,
         IProgress<string>? progress = null)
     {
         try
         {
+            if (context.Player.IsChangingMap || (startMapId >= 0 && context.World.MapId != startMapId))
+            {
+                ClearMoveTarget(context, myCharPtr);
+                return true;
+            }
+
             SetNativeTarget(context, myCharPtr, targetX, targetY);
 
             // Nếu mục tiêu ở trên cao: kích hoạt xung lực nâng cvy = -10 và statusMe = 3 (Jump)
@@ -243,6 +271,12 @@ public class AutoMoveAction(int targetX, int targetY, bool isFastTeleport = fals
                 if (context.Player.Hp <= 0)
                     return false;
 
+                if (context.Player.IsChangingMap || (startMapId >= 0 && context.World.MapId != startMapId))
+                {
+                    ClearMoveTarget(context, myCharPtr);
+                    return true;
+                }
+
                 int curX = context.Reflector.ReadField<int>(GameSchema.Char.ClassName, GameSchema.Char.FieldX, myCharPtr);
                 int curY = context.Reflector.ReadField<int>(GameSchema.Char.ClassName, GameSchema.Char.FieldY, myCharPtr);
 
@@ -265,6 +299,12 @@ public class AutoMoveAction(int targetX, int targetY, bool isFastTeleport = fals
                     if (Math.Abs(curX - targetX) <= targetDist && Math.Abs(curY - targetY) <= targetDist)
                     {
                         progress?.Report($"Pos: {curX}, {curY}");
+                        return true;
+                    }
+
+                    if (context.Player.IsChangingMap || (startMapId >= 0 && context.World.MapId != startMapId))
+                    {
+                        ClearMoveTarget(context, myCharPtr);
                         return true;
                     }
 
@@ -301,8 +341,19 @@ public class AutoMoveAction(int targetX, int targetY, bool isFastTeleport = fals
                 await Task.Delay(40, cancellationToken);
             }
 
+            if (context.Player.IsChangingMap || (startMapId >= 0 && context.World.MapId != startMapId))
+            {
+                ClearMoveTarget(context, myCharPtr);
+                return true;
+            }
+
             int finalX = context.Reflector.ReadField<int>(GameSchema.Char.ClassName, GameSchema.Char.FieldX, myCharPtr);
             return Math.Abs(finalX - targetX) <= targetDist;
+        }
+        catch (OperationCanceledException)
+        {
+            ClearMoveTarget(context, myCharPtr);
+            throw;
         }
         catch
         {
