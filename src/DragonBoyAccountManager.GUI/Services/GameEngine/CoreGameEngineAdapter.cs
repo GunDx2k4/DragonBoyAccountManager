@@ -23,6 +23,7 @@ public sealed class CoreGameEngineAdapter(ISettingsService? settingsService = nu
         public GameController Controller { get; } = controller;
         public Account Account { get; } = account;
         public CancellationTokenSource Cts { get; } = new();
+        public AutoChatAction? CurrentAutoChatAction { get; set; }
 
         private int _isLoggingIn;
         public bool IsLoggingIn => Volatile.Read(ref _isLoggingIn) == 1;
@@ -33,6 +34,11 @@ public sealed class CoreGameEngineAdapter(ISettingsService? settingsService = nu
         {
             try { Cts.Cancel(); } catch { }
             Cts.Dispose();
+            if (CurrentAutoChatAction != null)
+            {
+                Controller.RemovePeriodicAction(CurrentAutoChatAction);
+                CurrentAutoChatAction = null;
+            }
             Controller.Stop();
             Controller.Dispose();
             Instance.Kill();
@@ -48,6 +54,7 @@ public sealed class CoreGameEngineAdapter(ISettingsService? settingsService = nu
 
     public event Action<Guid, GameSessionStatus, GameSessionSnapshot?>? OnSessionUpdated;
     public event Action<Guid, string>? OnSessionMessageUpdated;
+    public event Action<Guid, string, int>? OnChatSent;
 
     public async Task<bool> StartAsync(Account account, string gamePath)
     {
@@ -619,6 +626,47 @@ public sealed class CoreGameEngineAdapter(ISettingsService? settingsService = nu
             return session.Instance.Network.SendChat(text, type);
         }
         return false;
+    }
+
+    public async Task<bool> SendChatAsync(Guid accountId, string text, ChatType type = ChatType.Map, CancellationToken cancellationToken = default)
+    {
+        if (_sessions.TryGetValue(accountId, out var session) && session.Instance.IsRunning && session.Instance.Player.IsInGame)
+        {
+            using var linkedCts = CancellationTokenSource.CreateLinkedTokenSource(session.Cts.Token, cancellationToken);
+            var action = new SendChatAction(text, type);
+            var result = await session.Controller.ExecuteAsync(action, cancellationToken: linkedCts.Token);
+            return result.IsSuccess;
+        }
+        return false;
+    }
+
+    public void StartAutoChat(Guid accountId, IReadOnlyList<string> messages, TimeSpan interval, ChatType type = ChatType.Map, bool isRandom = false)
+    {
+        if (_sessions.TryGetValue(accountId, out var session) && session.Instance.IsRunning)
+        {
+            StopAutoChat(accountId);
+            var action = new AutoChatAction(messages, interval, type, isRandom);
+            action.ChatSent += (msg, count) => OnChatSent?.Invoke(accountId, msg, count);
+            session.CurrentAutoChatAction = action;
+            session.Controller.AddPeriodicAction(action);
+        }
+    }
+
+    public void StopAutoChat(Guid accountId)
+    {
+        if (_sessions.TryGetValue(accountId, out var session))
+        {
+            if (session.CurrentAutoChatAction != null)
+            {
+                session.Controller.RemovePeriodicAction(session.CurrentAutoChatAction);
+                session.CurrentAutoChatAction = null;
+            }
+        }
+    }
+
+    public bool IsAutoChatRunning(Guid accountId)
+    {
+        return _sessions.TryGetValue(accountId, out var session) && session.CurrentAutoChatAction != null;
     }
 
     public (bool Success, string Message) UseCapsule(Guid accountId)

@@ -38,6 +38,10 @@ public interface IGameEngineService
     PlayerSnapshot? GetPlayerSnapshot(Guid accountId);
 
     bool SendChat(Guid accountId, string text, ChatType type = ChatType.Map);
+    Task<bool> SendChatAsync(Guid accountId, string text, ChatType type = ChatType.Map, CancellationToken cancellationToken = default);
+    void StartAutoChat(Guid accountId, IReadOnlyList<string> messages, TimeSpan interval, ChatType type = ChatType.Map, bool isRandom = false);
+    void StopAutoChat(Guid accountId);
+    bool IsAutoChatRunning(Guid accountId);
 
     (bool Success, string Message) UseCapsule(Guid accountId);
     (bool Success, string Message) UseTdlt(Guid accountId);
@@ -46,4 +50,5 @@ public interface IGameEngineService
 
     event Action<Guid, GameSessionStatus, GameSessionSnapshot?>? OnSessionUpdated;
     event Action<Guid, string>? OnSessionMessageUpdated;
+    event Action<Guid, string, int>? OnChatSent;
 }
