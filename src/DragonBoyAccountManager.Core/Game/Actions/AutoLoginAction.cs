@@ -43,7 +43,6 @@ public class AutoLoginAction(string username, string password, int serverId = 0,
 
             if (context.Player.IsInGame)
             {
-                context.UI.SwitchToGameScreen();
                 progress?.Report($"Đã vào game: {context.Player.Name}");
                 return ActionResult.Success($"Đã vào game: {context.Player.Name}");
             }
@@ -58,7 +57,6 @@ public class AutoLoginAction(string username, string password, int serverId = 0,
 
             if (context.Player.IsInGame)
             {
-                context.UI.SwitchToGameScreen();
                 return ActionResult.Success();
             }
 
@@ -68,8 +66,6 @@ public class AutoLoginAction(string username, string password, int serverId = 0,
             {
                 if (context.Player.IsInGame)
                 {
-                    context.UI.SwitchToGameScreen();
-                    context.UI.CloseDialog();
                     progress?.Report($"Đăng nhập thành công! Nhân vật: {context.Player.Name}");
                     return ActionResult.Success($"Đăng nhập thành công! Nhân vật: {context.Player.Name}");
                 }
@@ -123,7 +119,6 @@ public class AutoLoginAction(string username, string password, int serverId = 0,
 
                 if (context.Player.IsInGame)
                 {
-                    context.UI.SwitchToGameScreen();
                     return ActionResult.Success();
                 }
 
@@ -170,8 +165,6 @@ public class AutoLoginAction(string username, string password, int serverId = 0,
                         await Task.Delay(300, cancellationToken);
                         if (context.Player.IsInGame)
                         {
-                            context.UI.SwitchToGameScreen();
-                            context.UI.CloseDialog();
                             progress?.Report($"Đăng nhập thành công! Nhân vật: {context.Player.Name}");
                             return ActionResult.Success();
                         }
@@ -190,8 +183,6 @@ public class AutoLoginAction(string username, string password, int serverId = 0,
 
                     if (context.Player.IsInGame)
                     {
-                        context.UI.SwitchToGameScreen();
-                        context.UI.CloseDialog();
                         return ActionResult.Success();
                     }
 
@@ -242,9 +233,6 @@ public class AutoLoginAction(string username, string password, int serverId = 0,
                         }
                     }
 
-                    context.UI.CloseDialog();
-                    await Task.Delay(200, cancellationToken);
-
                     progress?.Report("Mở bảng đăng nhập...");
                     context.UI.OpenLoginScreen();
 
@@ -260,7 +248,6 @@ public class AutoLoginAction(string username, string password, int serverId = 0,
                         }
                         if (context.Player.IsInGame)
                         {
-                            context.UI.SwitchToGameScreen();
                             return ActionResult.Success();
                         }
                     }
@@ -290,8 +277,6 @@ public class AutoLoginAction(string username, string password, int serverId = 0,
                                 await Task.Delay(300, cancellationToken);
                                 if (context.Player.IsInGame)
                                 {
-                                    context.UI.SwitchToGameScreen();
-                                    context.UI.CloseDialog();
                                     progress?.Report($"Đăng nhập thành công! Nhân vật: {context.Player.Name}");
                                     return ActionResult.Success();
                                 }
@@ -322,8 +307,6 @@ public class AutoLoginAction(string username, string password, int serverId = 0,
                         await Task.Delay(300, cancellationToken);
                         if (context.Player.IsInGame)
                         {
-                            context.UI.SwitchToGameScreen();
-                            context.UI.CloseDialog();
                             progress?.Report($"Đăng nhập thành công! Nhân vật: {context.Player.Name}");
                             return ActionResult.Success();
                         }
@@ -339,8 +322,6 @@ public class AutoLoginAction(string username, string password, int serverId = 0,
 
             if (context.Player.IsInGame)
             {
-                context.UI.SwitchToGameScreen();
-                context.UI.CloseDialog();
                 return ActionResult.Success();
             }
 
