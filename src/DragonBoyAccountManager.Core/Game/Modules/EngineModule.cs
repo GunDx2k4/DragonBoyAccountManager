@@ -102,7 +102,6 @@ public class EngineModule(MonoReflector reflector) : IEngineModule
         {
             _reflector.CallUnityMethod("UnityEngine", "Screen", "SetResolution", IntPtr.Zero, width, height, fullscreen);
 
-            // Đồng bộ giá trị levelScreenKN vào RMS của Dragon Boy
             try
             {
                 int level = (width <= 720) ? 1 : 0;

@@ -109,11 +109,9 @@ public sealed class AppUpdaterService : IAppUpdaterService
         string rawTag = tagProp.GetString()?.Trim() ?? "";
         string tag = rawTag.TrimStart('v', 'V');
 
-        // Lấy phần số phiên bản nếu tag có hậu tố (vd: 1.0.0-beta)
         var match = Regex.Match(tag, @"^\d+(\.\d+)+");
         string verStr = match.Success ? match.Value : tag;
 
-        // Trích xuất remote commit SHA nếu có trong target_commitish
         string? remoteCommitSha = null;
         if (json.TryGetProperty("target_commitish", out var commitProp))
         {
@@ -126,7 +124,6 @@ public sealed class AppUpdaterService : IAppUpdaterService
 
         string notes = json.TryGetProperty("body", out var bodyProp) ? bodyProp.GetString() ?? "" : "";
 
-        // Thử trích xuất commit SHA từ release notes nếu target_commitish là tên branch
         if (string.IsNullOrEmpty(remoteCommitSha) && !string.IsNullOrWhiteSpace(notes))
         {
             var commitMatch = Regex.Match(notes, @"(?:Commit|Rev)[\s:=]+([a-fA-F0-9]{40})", RegexOptions.IgnoreCase);
@@ -136,7 +133,6 @@ public sealed class AppUpdaterService : IAppUpdaterService
             }
         }
 
-        // Thử trích xuất SHA256 từ release notes
         string? remoteSha256 = null;
         if (!string.IsNullOrWhiteSpace(notes))
         {
@@ -156,7 +152,6 @@ public sealed class AppUpdaterService : IAppUpdaterService
         {
             var assetList = assetsProp.EnumerateArray().ToList();
 
-            // 1. Tìm asset chính chứa từ khóa chỉ định (vd: "GUI" hoặc "CLI") và có đuôi .exe
             foreach (var asset in assetList)
             {
                 string name = asset.GetProperty("name").GetString() ?? "";
@@ -173,7 +168,6 @@ public sealed class AppUpdaterService : IAppUpdaterService
                 }
             }
 
-            // 2. Dự phòng: Lấy bất kỳ asset .exe nào nếu không tìm thấy từ khóa
             if (string.IsNullOrEmpty(downloadUrl))
             {
                 foreach (var asset in assetList)
@@ -192,7 +186,6 @@ public sealed class AppUpdaterService : IAppUpdaterService
                 }
             }
 
-            // 3. Tìm companion checksum/sha256 asset nếu chưa có SHA256 từ notes
             if (!string.IsNullOrEmpty(assetName))
             {
                 foreach (var asset in assetList)
@@ -215,7 +208,6 @@ public sealed class AppUpdaterService : IAppUpdaterService
             return null;
         }
 
-        // Tải SHA256 từ companion asset nếu có
         if (string.IsNullOrEmpty(remoteSha256) && !string.IsNullOrEmpty(shaAssetUrl))
         {
             try
@@ -233,7 +225,6 @@ public sealed class AppUpdaterService : IAppUpdaterService
             }
         }
 
-        // Kiểm tra phiên bản và mã SHA
         bool hasNewerVersion = false;
         bool isSameVersion = false;
 
@@ -252,7 +243,6 @@ public sealed class AppUpdaterService : IAppUpdaterService
         bool isShaMismatch = false;
         if (isSameVersion)
         {
-            // Kiểm tra Git commit SHA nếu có
             if (!string.IsNullOrEmpty(remoteCommitSha) && !string.IsNullOrEmpty(localCommitSha))
             {
                 if (!string.Equals(remoteCommitSha, localCommitSha, StringComparison.OrdinalIgnoreCase))
@@ -260,7 +250,7 @@ public sealed class AppUpdaterService : IAppUpdaterService
                     isShaMismatch = true;
                 }
             }
-            // Hoặc kiểm tra file SHA256 nếu có
+
             else if (!string.IsNullOrEmpty(remoteSha256) && !string.IsNullOrEmpty(localExeSha))
             {
                 if (!string.Equals(remoteSha256, localExeSha, StringComparison.OrdinalIgnoreCase))
@@ -270,7 +260,6 @@ public sealed class AppUpdaterService : IAppUpdaterService
             }
         }
 
-        // Nếu không có phiên bản mới hơn và mã SHA cũng trùng khớp -> Đang ở bản mới nhất
         if (!hasNewerVersion && !isShaMismatch)
         {
             return null;
@@ -319,7 +308,6 @@ public sealed class AppUpdaterService : IAppUpdaterService
                 }
             }
 
-            // Xác thực mã SHA256 của file tải về nếu có thông tin SHA từ release
             if (!string.IsNullOrEmpty(update.RemoteSha256))
             {
                 string downloadedSha256;
@@ -344,7 +332,6 @@ public sealed class AppUpdaterService : IAppUpdaterService
                 }
             }
 
-            // Hoán đổi file: current -> old, temp -> current
             if (File.Exists(oldExe))
             {
                 try { File.Delete(oldExe); } catch { }
@@ -353,7 +340,6 @@ public sealed class AppUpdaterService : IAppUpdaterService
             File.Move(currentExe, oldExe);
             File.Move(tempExe, currentExe);
 
-            // Khởi động lại ứng dụng mới
             Process.Start(new ProcessStartInfo(currentExe)
             {
                 UseShellExecute = false,

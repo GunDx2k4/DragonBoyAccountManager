@@ -89,7 +89,6 @@ public static class WindowsJobManager
         }
         catch
         {
-            // Graceful fallback nếu môi trường sandbox không cho phép Job Object
         }
     }
 

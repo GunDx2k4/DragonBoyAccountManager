@@ -22,9 +22,6 @@ public record ActionResult(ActionStatus Status, string Message = "", Exception? 
     public static implicit operator bool(ActionResult result) => result != null && result.IsSuccess;
 }
 
-/// <summary>
-/// Giao diện chuẩn cho mọi Action trong hệ thống.
-/// </summary>
 public interface IGameAction
 {
     string Name { get; }

@@ -2,9 +2,6 @@ using DragonBoyAccountManager.Core.Game.Context;
 
 namespace DragonBoyAccountManager.Core.Game.Actions;
 
-/// <summary>
-/// Định nghĩa một Interrupter phản xạ tình huống khẩn cấp (như bị quái đánh chết, dialog bất ngờ xuất hiện, dis mạng).
-/// </summary>
 public interface IActionInterrupter
 {
     string Name { get; }
@@ -13,9 +10,6 @@ public interface IActionInterrupter
     Task<ActionResult> HandleAsync(IGameContext context, CancellationToken cancellationToken = default);
 }
 
-/// <summary>
-/// Pipeline quản lý và kích hoạt các phản xạ ưu tiên cao trước khi Action chính được chạy.
-/// </summary>
 public class InterrupterPipeline
 {
     private readonly List<IActionInterrupter> _interrupters = [];

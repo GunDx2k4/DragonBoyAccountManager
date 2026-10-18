@@ -3,10 +3,7 @@ using DragonBoyAccountManager.Core.Mono;
 
 namespace DragonBoyAccountManager.Core.Game.Entities;
 
-/// <summary>
-/// Đại diện cho một điểm chuyển map (Cổng dịch chuyển / Waypoint) trên bản đồ.
-/// </summary>
-public sealed class WaypointEntity(MonoReflector reflector, IntPtr pointer, int pxw = 2400, string name = "Cổng sang map") 
+public sealed class WaypointEntity(MonoReflector reflector, IntPtr pointer, int pxw = 2400, string name = "Cổng sang map")
     : WorldEntity(reflector, pointer)
 {
     public override string ClassName => GameSchema.Waypoint.ClassName;

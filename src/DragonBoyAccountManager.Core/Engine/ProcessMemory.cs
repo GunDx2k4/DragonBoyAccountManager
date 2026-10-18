@@ -137,7 +137,6 @@ public class ProcessMemory(IntPtr handle) : IDisposable
         return AllocateAndWrite(bytes);
     }
 
-
     public void Dispose()
     {
         foreach (var address in _allocations.Keys.ToList())
@@ -148,7 +147,6 @@ public class ProcessMemory(IntPtr handle) : IDisposable
             }
             catch (Exception ex) when (ex is InvalidOperationException or Win32Exception)
             {
-
             }
         }
         _allocations.Clear();

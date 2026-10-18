@@ -4,13 +4,7 @@ using DragonBoyAccountManager.Core.Game.Schema;
 
 namespace DragonBoyAccountManager.Core.Game.Actions;
 
-/// <summary>
-/// Hành động di chuyển tự động tới tọa độ (TargetX, TargetY).
-/// Hỗ trợ 2 chế độ:
-/// 1. FastTeleport: Dịch chuyển tức thời 3 bước đồng bộ Server (bỏ qua tìm đường).
-/// 2. Native A* Navigation: Tìm đường A* trực giao 4 hướng tránh vật cản, kết hợp động cơ engine game và cơ chế chống kẹt góc.
-/// </summary>
-public class AutoMoveAction(int targetX, int targetY, bool isFastTeleport = false) 
+public class AutoMoveAction(int targetX, int targetY, bool isFastTeleport = false)
     : GameAction($"Auto Move to ({targetX}, {targetY})")
 {
     public int TargetX => targetX;
@@ -18,8 +12,8 @@ public class AutoMoveAction(int targetX, int targetY, bool isFastTeleport = fals
     public bool IsFastTeleport => isFastTeleport;
 
     protected override async Task<ActionResult> OnExecuteAsync(
-        IGameContext context, 
-        IProgress<string>? progress, 
+        IGameContext context,
+        IProgress<string>? progress,
         CancellationToken cancellationToken)
     {
         try
@@ -50,20 +44,17 @@ public class AutoMoveAction(int targetX, int targetY, bool isFastTeleport = fals
 
             int effectiveTargetY = TargetY <= 0 ? context.World.GetYGround(TargetX) : TargetY;
 
-            // Nếu đã ở rất gần mục tiêu (<= 15px)
             if (Math.Abs(curX - TargetX) <= 15 && Math.Abs(curY - effectiveTargetY) <= 15)
             {
                 progress?.Report("Đã ở vị trí mục tiêu.");
                 return ActionResult.Success("Đã ở vị trí mục tiêu.");
             }
 
-            // 1. Chế độ Dịch chuyển nhanh (Teleport tức thời 3 bước đồng bộ Server chuẩn Xmap)
             if (IsFastTeleport)
             {
                 return await ExecuteFastTeleportAsync(context, myCharPtr, effectiveTargetY, startMapId, progress, cancellationToken);
             }
 
-            // 2. Chế độ Di chuyển thông minh A*
             return await ExecuteAStarMovementAsync(context, myCharPtr, curX, curY, effectiveTargetY, startMapId, progress, cancellationToken);
         }
         catch (OperationCanceledException)
@@ -78,9 +69,6 @@ public class AutoMoveAction(int targetX, int targetY, bool isFastTeleport = fals
         }
     }
 
-    /// <summary>
-    /// Thực thi dịch chuyển tức thời chuẩn Xmap (3 bước đồng bộ Server liên tiếp không delay).
-    /// </summary>
     private async Task<ActionResult> ExecuteFastTeleportAsync(
         IGameContext context,
         IntPtr myCharPtr,
@@ -98,26 +86,20 @@ public class AutoMoveAction(int targetX, int targetY, bool isFastTeleport = fals
 
         progress?.Report($"Dịch chuyển nhanh tới ({TargetX}, {destY})...");
 
-        // 1. Dọn dẹp target di chuyển và triệt tiêu vận tốc dư thừa
         ClearMoveTarget(context, myCharPtr);
 
-        // 2. Thuật toán Fast Teleport 3 bước đồng bộ Server chuẩn Xmap (không delay để tránh frame update làm trôi tọa độ)
-        // Bước 1: Đặt vị trí tới (TargetX, destY) và gửi packet charMove
         context.Reflector.WriteField(GameSchema.Char.ClassName, GameSchema.Char.FieldX, myCharPtr, TargetX);
         context.Reflector.WriteField(GameSchema.Char.ClassName, GameSchema.Char.FieldY, myCharPtr, destY);
         context.Network.CharMove();
 
-        // Bước 2: Đặt vị trí đệm (TargetX, destY + 1) và gửi packet charMove
         context.Reflector.WriteField(GameSchema.Char.ClassName, GameSchema.Char.FieldX, myCharPtr, TargetX);
         context.Reflector.WriteField(GameSchema.Char.ClassName, GameSchema.Char.FieldY, myCharPtr, destY + 1);
         context.Network.CharMove();
 
-        // Bước 3: Chốt lại vị trí đích chính xác (TargetX, destY) và gửi packet charMove
         context.Reflector.WriteField(GameSchema.Char.ClassName, GameSchema.Char.FieldX, myCharPtr, TargetX);
         context.Reflector.WriteField(GameSchema.Char.ClassName, GameSchema.Char.FieldY, myCharPtr, destY);
         context.Network.CharMove();
 
-        // 3. Đảm bảo nhân vật dừng hẳn và xóa MovePoint
         ClearMoveTarget(context, myCharPtr);
         progress?.Report($"Pos: {TargetX}, {destY}");
 
@@ -125,9 +107,6 @@ public class AutoMoveAction(int targetX, int targetY, bool isFastTeleport = fals
         return ActionResult.Success($"Đã dịch chuyển nhanh tới ({TargetX}, {destY}).");
     }
 
-    /// <summary>
-    /// Thực thi di chuyển theo lộ trình A* kết hợp Engine Game native.
-    /// </summary>
     private async Task<ActionResult> ExecuteAStarMovementAsync(
         IGameContext context,
         IntPtr myCharPtr,
@@ -138,7 +117,6 @@ public class AutoMoveAction(int targetX, int targetY, bool isFastTeleport = fals
         IProgress<string>? progress,
         CancellationToken cancellationToken)
     {
-        // Đọc dữ liệu TileMap để nhận diện địa hình
         (int Width, int Height, int[] Types)? mapData = null;
         for (int i = 0; i < 3; i++)
         {
@@ -151,7 +129,6 @@ public class AutoMoveAction(int targetX, int targetY, bool isFastTeleport = fals
         int tmh = mapData?.Height ?? 0;
         int[]? types = mapData?.Types;
 
-        // Tính toán lộ trình A*
         List<(int X, int Y)> waypoints = [];
         if (types != null && tmw > 0 && tmh > 0)
         {
@@ -159,7 +136,6 @@ public class AutoMoveAction(int targetX, int targetY, bool isFastTeleport = fals
             waypoints = TileAStarFinder.FindPath(curX, curY, TargetX, destY, tmw, tmh, types);
         }
 
-        // Nếu không có lộ trình A*, fallback đi thẳng tới mục tiêu
         if (waypoints.Count <= 1)
         {
             waypoints = [(curX, curY), (TargetX, destY)];
@@ -167,7 +143,6 @@ public class AutoMoveAction(int targetX, int targetY, bool isFastTeleport = fals
 
         progress?.Report($"Đi theo lộ trình ({waypoints.Count} mốc)...");
 
-        // Di chuyển lần lượt qua các điểm mốc
         for (int i = 1; i < waypoints.Count; i++)
         {
             if (cancellationToken.IsCancellationRequested || !context.IsRunning)
@@ -195,7 +170,6 @@ public class AutoMoveAction(int targetX, int targetY, bool isFastTeleport = fals
 
             if (!stepOk && !isLast && types != null)
             {
-                // Nếu kẹt giữa chừng, tính lại A* từ vị trí hiện tại
                 int nowX = context.Reflector.ReadField<int>(GameSchema.Char.ClassName, GameSchema.Char.FieldX, myCharPtr);
                 int nowY = context.Reflector.ReadField<int>(GameSchema.Char.ClassName, GameSchema.Char.FieldY, myCharPtr);
                 var recomputed = TileAStarFinder.FindPath(nowX, nowY, TargetX, destY, tmw, tmh, types);
@@ -207,7 +181,6 @@ public class AutoMoveAction(int targetX, int targetY, bool isFastTeleport = fals
             }
         }
 
-        // Dọn dẹp con trỏ mục tiêu và đồng bộ trạng thái cuối
         ClearMoveTarget(context, myCharPtr);
 
         if (context.Player.IsChangingMap || (startMapId >= 0 && context.World.MapId != startMapId))
@@ -224,14 +197,11 @@ public class AutoMoveAction(int targetX, int targetY, bool isFastTeleport = fals
         return ActionResult.Success($"Đã đến vị trí ({finalX}, {finalY}) thành công.");
     }
 
-    /// <summary>
-    /// Điều khiển nhân vật di chuyển tới 1 điểm cụ thể bằng Native Engine và xử lý chống kẹt.
-    /// </summary>
     private static async Task<bool> MoveToPointAsync(
-        IGameContext context, 
-        IntPtr myCharPtr, 
-        int targetX, 
-        int targetY, 
+        IGameContext context,
+        IntPtr myCharPtr,
+        int targetX,
+        int targetY,
         int targetDist,
         int tmw,
         int tmh,
@@ -250,7 +220,6 @@ public class AutoMoveAction(int targetX, int targetY, bool isFastTeleport = fals
 
             SetNativeTarget(context, myCharPtr, targetX, targetY);
 
-            // Nếu mục tiêu ở trên cao: kích hoạt xung lực nâng cvy = -10 và statusMe = 3 (Jump)
             int initialY = context.Reflector.ReadField<int>(GameSchema.Char.ClassName, GameSchema.Char.FieldY, myCharPtr);
             if (targetY < initialY - 12)
             {
@@ -316,8 +285,6 @@ public class AutoMoveAction(int targetX, int targetY, bool isFastTeleport = fals
                     }
                 }
 
-                // Kiểm tra tiến độ di chuyển dựa trên điểm neo (Anchor).
-                // Chỉ reset khi nhân vật đã thực sự tiến xa hơn 1 ô tile (> 24px)
                 int distFromAnchor = Math.Abs(curX - anchorX) + Math.Abs(curY - anchorY);
                 if (distFromAnchor > 24)
                 {
@@ -361,9 +328,6 @@ public class AutoMoveAction(int targetX, int targetY, bool isFastTeleport = fals
         }
     }
 
-    /// <summary>
-    /// Xử lý thoát kẹt khi nhân vật đứng yên hoặc dao động nhỏ tại 1 vị trí quá 2 giây.
-    /// </summary>
     private static async Task HandleUnstuckAsync(
         IGameContext context,
         IntPtr myCharPtr,
@@ -405,7 +369,6 @@ public class AutoMoveAction(int targetX, int targetY, bool isFastTeleport = fals
             escapeY = curY;
         }
 
-        // Chờ nhân vật dịch chuyển thoát góc kẹp
         var liftSw = System.Diagnostics.Stopwatch.StartNew();
         while (liftSw.ElapsedMilliseconds < 600 && !cancellationToken.IsCancellationRequested && context.IsRunning)
         {

@@ -514,7 +514,6 @@ public class WorldModule(MonoReflector reflector, IUIModule ui, INetworkModule n
                     double distToChar = bestWp.DistanceTo(curX, curY);
                     double distToTarget = bestWp.DistanceTo(targetX, targetY);
 
-                    // Chỉ gửi packet nếu nhân vật hoặc đích thực sự gần waypoint này (<= 100px)
                     if (distToChar > 100 && distToTarget > 100)
                     {
                         return false;

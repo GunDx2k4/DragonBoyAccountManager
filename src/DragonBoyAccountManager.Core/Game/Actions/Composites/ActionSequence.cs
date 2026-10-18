@@ -2,10 +2,6 @@ using DragonBoyAccountManager.Core.Game.Context;
 
 namespace DragonBoyAccountManager.Core.Game.Actions.Composites;
 
-/// <summary>
-/// Thực hiện tuần tự danh sách các action.
-/// Dừng lại ngay lập tức và trả về Failure nếu có bất kỳ action con nào thất bại.
-/// </summary>
 public class ActionSequence(string name, params IGameAction[] actions) : GameAction(name)
 {
     private readonly List<IGameAction> _actions = [.. actions];
@@ -17,8 +13,8 @@ public class ActionSequence(string name, params IGameAction[] actions) : GameAct
     public void Add(IGameAction action) => _actions.Add(action);
 
     protected override async Task<ActionResult> OnExecuteAsync(
-        IGameContext context, 
-        IProgress<string>? progress, 
+        IGameContext context,
+        IProgress<string>? progress,
         CancellationToken cancellationToken)
     {
         for (int i = 0; i < _actions.Count; i++)

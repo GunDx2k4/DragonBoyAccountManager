@@ -143,7 +143,6 @@ public class GameClientValidator : IGameClientValidator, IDisposable
         }
         catch (Exception ex) when (ex is HttpRequestException or JsonException or TaskCanceledException)
         {
-
         }
 
         return new Dictionary<string, string>(_versionChecksums, StringComparer.OrdinalIgnoreCase);
@@ -205,7 +204,6 @@ public class GameClientValidator : IGameClientValidator, IDisposable
             var actualHash = ComputeFileSha256(resolvedAssembly);
             metadata.ActualSha256 = actualHash;
 
-            // 1. Kiểm tra đối chiếu mã SHA256 với bảng mã checksum chính thức
             string? matchedVersionBySha = null;
             foreach (var (ver, hash) in checksums)
             {
@@ -218,7 +216,6 @@ public class GameClientValidator : IGameClientValidator, IDisposable
 
             if (!string.IsNullOrEmpty(matchedVersionBySha))
             {
-                // Khớp chính xác mã SHA256 chính thức!
                 metadata.DetectedVersion = matchedVersionBySha;
                 metadata.IsShaMatch = true;
                 metadata.ExpectedSha256 = checksums[matchedVersionBySha];
@@ -230,11 +227,9 @@ public class GameClientValidator : IGameClientValidator, IDisposable
             }
             else
             {
-                // Không khớp mã SHA256 nào trong bảng -> Bản Mod hoặc phiên bản tùy biến/khác
                 metadata.IsShaMatch = false;
                 metadata.IsModified = true;
 
-                // Thử nhận diện phiên bản của client qua FileVersionInfo hoặc tên tệp/thư mục
                 string? detectedVer = TryDetectVersionFromGame(resolvedExe, resolvedAssembly);
                 metadata.DetectedVersion = detectedVer;
 
@@ -249,18 +244,15 @@ public class GameClientValidator : IGameClientValidator, IDisposable
 
                     if (isTarget)
                     {
-                        // Đúng phiên bản hiện tại (vd: 2.5.0) nhưng SHA256 đã bị mod/thay đổi
                         metadata.Status = ClientStatus.ModifiedOrMod;
                     }
                     else
                     {
-                        // Phiên bản cũ hơn và SHA256 cũng không khớp
                         metadata.Status = ClientStatus.OutdatedVersion;
                     }
                 }
                 else
                 {
-                    // Hoàn toàn không nhận diện được phiên bản
                     metadata.IsCorrectVersion = false;
                     metadata.ExpectedSha256 = checksums.TryGetValue(latestOfficialVersion, out var expLatest) ? expLatest : null;
                     metadata.Status = ClientStatus.ModifiedOrMod;
@@ -306,7 +298,6 @@ public class GameClientValidator : IGameClientValidator, IDisposable
     {
         try
         {
-            // 1. Kiểm tra FileVersionInfo của Assembly-CSharp.dll
             if (File.Exists(assemblyPath))
             {
                 var fvi = FileVersionInfo.GetVersionInfo(assemblyPath);
@@ -314,7 +305,6 @@ public class GameClientValidator : IGameClientValidator, IDisposable
                 if (!string.IsNullOrEmpty(ver)) return ver;
             }
 
-            // 2. Kiểm tra FileVersionInfo của file game .exe
             if (File.Exists(exePath))
             {
                 var fvi = FileVersionInfo.GetVersionInfo(exePath);
@@ -322,7 +312,6 @@ public class GameClientValidator : IGameClientValidator, IDisposable
                 if (!string.IsNullOrEmpty(ver)) return ver;
             }
 
-            // 3. Phân tích tên file exe hoặc thư mục chứa game (vd: DragonBoy250.exe, DragonBoy_2.5.0)
             var exeName = Path.GetFileNameWithoutExtension(exePath);
             var verFromName = ExtractVersionFromText(exeName);
             if (!string.IsNullOrEmpty(verFromName)) return verFromName;

@@ -209,7 +209,6 @@ public class PlayerModule(MonoReflector reflector) : IPlayerModule
 
         try
         {
-            // 1. Try reading GameScr.keySkill
             IntPtr keySkillArray = _reflector.ReadStatic<IntPtr>(GameSchema.GameScr.ClassName, GameSchema.GameScr.StaticKeySkill);
             if (keySkillArray != IntPtr.Zero)
             {
@@ -224,7 +223,6 @@ public class PlayerModule(MonoReflector reflector) : IPlayerModule
                 }
             }
 
-            // 2. Fallback to Char.myChar.vSkillFight if keySkill was empty
             if (list.Count == 0 && Pointer != IntPtr.Zero)
             {
                 IntPtr vSkillFightPtr = _reflector.ReadFieldPtr(GameSchema.Char.ClassName, GameSchema.Char.FieldVSkillFight, Pointer);
@@ -255,7 +253,6 @@ public class PlayerModule(MonoReflector reflector) : IPlayerModule
         {
             IntPtr skillPtr = IntPtr.Zero;
 
-            // 1. Try reading GameScr.keySkill
             IntPtr keySkillArray = _reflector.ReadStatic<IntPtr>(GameSchema.GameScr.ClassName, GameSchema.GameScr.StaticKeySkill);
             if (keySkillArray != IntPtr.Zero)
             {
@@ -266,7 +263,6 @@ public class PlayerModule(MonoReflector reflector) : IPlayerModule
                 }
             }
 
-            // 2. Fallback to Char.myChar.vSkillFight
             if (skillPtr == IntPtr.Zero && Pointer != IntPtr.Zero)
             {
                 IntPtr vSkillFightPtr = _reflector.ReadFieldPtr(GameSchema.Char.ClassName, GameSchema.Char.FieldVSkillFight, Pointer);

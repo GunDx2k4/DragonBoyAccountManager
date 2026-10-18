@@ -2,17 +2,13 @@ using DragonBoyAccountManager.Core.Game.Context;
 
 namespace DragonBoyAccountManager.Core.Game.Actions;
 
-/// <summary>
-/// Lớp cơ sở chuẩn cho tất cả các Action trong hệ thống.
-/// Tự động bao bọc ngoại lệ, hỗ trợ hủy an toàn, báo cáo tiến độ và vòng đời thực thi.
-/// </summary>
 public abstract class GameAction(string name) : IGameAction
 {
     public string Name { get; } = name;
 
     public async Task<ActionResult> ExecuteAsync(
-        IGameContext context, 
-        IProgress<string>? progress = null, 
+        IGameContext context,
+        IProgress<string>? progress = null,
         CancellationToken cancellationToken = default)
     {
         if (cancellationToken.IsCancellationRequested || !context.IsRunning)
@@ -42,8 +38,8 @@ public abstract class GameAction(string name) : IGameAction
     protected virtual void OnEnter(IGameContext context) { }
 
     protected abstract Task<ActionResult> OnExecuteAsync(
-        IGameContext context, 
-        IProgress<string>? progress, 
+        IGameContext context,
+        IProgress<string>? progress,
         CancellationToken cancellationToken);
 
     protected virtual void OnExit(IGameContext context, ActionResult result) { }

@@ -1,9 +1,5 @@
 namespace DragonBoyAccountManager.Core.Game.Schema;
 
-/// <summary>
-/// Tập trung toàn bộ tên Class, Field và Method của game engine Mono (Assembly-CSharp).
-/// Giúp loại bỏ hoàn toàn magic strings, ngăn ngừa lỗi chính tả (typo) khi runtime và dễ bảo trì khi game update.
-/// </summary>
 public static class GameSchema
 {
     public static class GameCanvas
@@ -343,4 +339,3 @@ public static class GameSchema
         public const string StaticIsQuitApp = "isQuitApp";
     }
 }
-

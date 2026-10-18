@@ -3,9 +3,6 @@ using DragonBoyAccountManager.Core.Game.Context;
 
 namespace DragonBoyAccountManager.Core.Game.Actions.Fluent;
 
-/// <summary>
-/// Fluent API xây dựng chuỗi kịch bản Action một cách trực quan, ngắn gọn, dễ đọc.
-/// </summary>
 public class ActionBuilder
 {
     private readonly List<IGameAction> _steps = [];
@@ -55,8 +52,8 @@ public class ActionBuilder
 public class DelayAction(int milliseconds) : GameAction($"Delay({milliseconds}ms)")
 {
     protected override async Task<ActionResult> OnExecuteAsync(
-        IGameContext context, 
-        IProgress<string>? progress, 
+        IGameContext context,
+        IProgress<string>? progress,
         CancellationToken cancellationToken)
     {
         await Task.Delay(milliseconds, cancellationToken);
@@ -70,8 +67,8 @@ public class WaitConditionAction(string conditionName, Func<IGameContext, bool> 
     private readonly TimeSpan _timeout = timeout ?? TimeSpan.FromSeconds(10);
 
     protected override async Task<ActionResult> OnExecuteAsync(
-        IGameContext context, 
-        IProgress<string>? progress, 
+        IGameContext context,
+        IProgress<string>? progress,
         CancellationToken cancellationToken)
     {
         var sw = System.Diagnostics.Stopwatch.StartNew();
@@ -89,12 +86,12 @@ public class WaitConditionAction(string conditionName, Func<IGameContext, bool> 
     }
 }
 
-public class DelegateAction(string name, Func<IGameContext, CancellationToken, Task<bool>> func) 
+public class DelegateAction(string name, Func<IGameContext, CancellationToken, Task<bool>> func)
     : GameAction(name)
 {
     protected override async Task<ActionResult> OnExecuteAsync(
-        IGameContext context, 
-        IProgress<string>? progress, 
+        IGameContext context,
+        IProgress<string>? progress,
         CancellationToken cancellationToken)
     {
         bool ok = await func(context, cancellationToken);

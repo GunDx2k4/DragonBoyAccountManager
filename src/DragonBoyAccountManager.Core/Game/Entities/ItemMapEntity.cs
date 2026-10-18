@@ -3,9 +3,6 @@ using DragonBoyAccountManager.Core.Mono;
 
 namespace DragonBoyAccountManager.Core.Game.Entities;
 
-/// <summary>
-/// Đại diện cho một vật phẩm đang rơi trên mặt đất (ItemMap).
-/// </summary>
 public sealed class ItemMapEntity(MonoReflector reflector, IntPtr pointer, string name = "") : WorldEntity(reflector, pointer)
 {
     public override string ClassName => GameSchema.ItemMap.ClassName;

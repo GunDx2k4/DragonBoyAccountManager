@@ -3,9 +3,6 @@ using DragonBoyAccountManager.Core.Mono;
 
 namespace DragonBoyAccountManager.Core.Game.Entities;
 
-/// <summary>
-/// Đại diện cho một con quái vật (Mob) hoặc Boss trên bản đồ.
-/// </summary>
 public sealed class MobEntity(MonoReflector reflector, IntPtr pointer, string name = "") : WorldEntity(reflector, pointer)
 {
     public override string ClassName => GameSchema.Mob.ClassName;
@@ -18,7 +15,7 @@ public sealed class MobEntity(MonoReflector reflector, IntPtr pointer, string na
     public override int Y => GetField<int>(GameSchema.Mob.FieldY);
     public int Status => GetField<int>(GameSchema.Mob.FieldStatus);
     public bool IsBoss => GetField<bool>(GameSchema.Mob.FieldIsBoss) || GetField<sbyte>(GameSchema.Mob.FieldLevelBoss) > 0;
-    
+
     public override bool IsAlive => base.IsAlive && Status != 0 && Status != 1 && Hp > 0;
     public string Name { get; set; } = name;
 

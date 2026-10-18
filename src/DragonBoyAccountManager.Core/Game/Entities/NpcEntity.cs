@@ -3,9 +3,6 @@ using DragonBoyAccountManager.Core.Mono;
 
 namespace DragonBoyAccountManager.Core.Game.Entities;
 
-/// <summary>
-/// Đại diện cho một NPC (Non-Player Character) trên bản đồ.
-/// </summary>
 public sealed class NpcEntity(MonoReflector reflector, IntPtr pointer, string name = "") : WorldEntity(reflector, pointer)
 {
     public override string ClassName => GameSchema.Npc.ClassName;

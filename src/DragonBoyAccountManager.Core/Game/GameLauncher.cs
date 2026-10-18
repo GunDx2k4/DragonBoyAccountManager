@@ -67,11 +67,9 @@ public class GameLauncher
 
             var instance = new GameInstance(process, monoContext);
 
-            // Đợi Assembly-CSharp được nạp vào Mono domain và thêm delay ngắn để các static pointer khởi tạo
             await instance.Reflector.WaitForAssemblyAsync("Assembly-CSharp", 15000, cancellationToken);
             await Task.Delay(500, cancellationToken);
 
-            // Bật runInBackground và reset cờ isQuitApp của game ngay khi attach Mono để game không bị pause khi mất focus
             try
             {
                 instance.Reflector.CallUnityMethod("UnityEngine", "Application", "set_runInBackground", IntPtr.Zero, true);

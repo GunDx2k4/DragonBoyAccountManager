@@ -79,7 +79,6 @@ public class MonoReflector(MonoContext context)
             _context.Memory.Free(namePtr);
         }
 
-        // Nếu mở không thành công, thử thêm hoặc bớt đuôi .dll
         string alternateName = assemblyName.EndsWith(".dll", StringComparison.OrdinalIgnoreCase)
             ? assemblyName[..^4]
             : assemblyName + ".dll";
@@ -329,7 +328,6 @@ public class MonoReflector(MonoContext context)
                 }
             }
 
-            // Fallback using method invocation if memory layout differed
             IntPtr sizeMethod = ResolveMethod("MyVector", "size", 0);
             IntPtr elemMethod = ResolveMethod("MyVector", "elementAt", 1);
             if (sizeMethod != IntPtr.Zero && elemMethod != IntPtr.Zero)
@@ -351,7 +349,6 @@ public class MonoReflector(MonoContext context)
         }
         catch
         {
-            // Suppress exceptions during collection read
         }
 
         return result;

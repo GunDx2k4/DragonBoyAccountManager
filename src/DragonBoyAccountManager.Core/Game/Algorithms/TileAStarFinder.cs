@@ -1,50 +1,40 @@
 namespace DragonBoyAccountManager.Core.Game.Algorithms;
 
-/// <summary>
-/// Thuật toán tìm đường A* trên lưới ô TileMap của game Dragon Boy (NRO).
-/// Hỗ trợ tìm đường trực giao 4 hướng (Orthogonal 4-way), phân biệt mặt đất/không khí và nén góc ngoặt.
-/// </summary>
 public static class TileAStarFinder
 {
     public const int TileSize = 24;
 
-    // Bitmask constants từ TileMap.cs của game NRO
     public const int T_EMPTY = 0;
-    public const int T_TOP = 2;            // Mép trên là nền đất / sàn để đứng
-    public const int T_LEFT = 4;           // Vách tường bên trái
-    public const int T_RIGHT = 8;          // Vách tường bên phải
-    public const int T_SOLIDGROUND = 4096; // Khối đất đặc trong lòng đất
-    public const int T_BOTTOM = 8192;      // Trần đá
-    public const int T_DIE = 16384;        // Gai / bẫy chết
-    public const int T_HEBI = 32768;       // Đá cản
-    public const int T_BANG = 65536;       // Khối băng cản
-    public const int T_CENTER = 1;         // Tâm khối đất đặc
-    public const int T_BRIDGE = 1024;      // Cầu ván gỗ
+    public const int T_TOP = 2;
+    public const int T_LEFT = 4;
+    public const int T_RIGHT = 8;
+    public const int T_SOLIDGROUND = 4096;
+    public const int T_BOTTOM = 8192;
+    public const int T_DIE = 16384;
+    public const int T_HEBI = 32768;
+    public const int T_BANG = 65536;
+    public const int T_CENTER = 1;
+    public const int T_BRIDGE = 1024;
 
-    // Toàn bộ các cờ biến ô tile thành BỨC TƯỜNG CHẮN (Wall) không thể đi xuyên qua
-    public const int WallMask = T_SOLIDGROUND | T_DIE | T_HEBI | T_BANG | 
-                                T_TOP | T_LEFT | T_RIGHT | T_BOTTOM | 
+    public const int WallMask = T_SOLIDGROUND | T_DIE | T_HEBI | T_BANG |
+                                T_TOP | T_LEFT | T_RIGHT | T_BOTTOM |
                                 T_CENTER | T_BRIDGE;
 
-    // 4 hướng di chuyển trực giao (Orthogonal 4-way): Up, Down, Right, Left.
-    // Tuyệt đối không dùng 8 hướng chéo để loại bỏ triệt để lỗi bay chéo quẹt vai vào góc tường.
     private static readonly int[] Dx = [0, 0, 1, -1];
     private static readonly int[] Dy = [-1, 1, 0, 0];
 
     public static List<(int X, int Y)> FindPath(
-        int startPx, int startPy, 
-        int targetPx, int targetPy, 
+        int startPx, int startPy,
+        int targetPx, int targetPy,
         int tmw, int tmh, int[] types)
     {
         var result = new List<(int X, int Y)>();
         if (tmw <= 0 || tmh <= 0 || types == null || types.Length < tmw * tmh)
             return result;
 
-        // 1. Chuyển đổi tọa độ pixel thành ô lưới (Cell)
         var (startTx, startTy) = PixelToCell(startPx, startPy, tmw, tmh, types);
         var (targetTx, targetTy) = PixelToCell(targetPx, targetPy, tmw, tmh, types);
 
-        // 2. Nếu Start hoặc Target nằm trong tường chắn, tìm ô trống gần nhất (ưu tiên có nền đất bên dưới)
         if (!IsOpenSpace(startTx, startTy, tmw, tmh, types))
         {
             var nearestStart = FindNearestOpenSpace(startTx, startTy, tmw, tmh, types, 6);
@@ -117,7 +107,6 @@ public static class TileAStarFinder
                 if (nx < 0 || nx >= tmw || ny < 1 || ny >= tmh)
                     continue;
 
-                // Tuyệt đối không đi vào tường chắn
                 if (!IsOpenSpace(nx, ny, tmw, tmh, types))
                     continue;
 
@@ -126,26 +115,21 @@ public static class TileAStarFinder
 
                 if (curHasGround && neighborHasGround && ny == curY)
                 {
-                    // Chạy ngang trên mặt sàn: chi phí thấp nhất để ưu tiên chạy bộ
                     stepCost = 1.0f;
                 }
                 else if (Dx[i] == 0 && Dy[i] == -1)
                 {
-                    // Bay thẳng đứng lên trên: chi phí 1.3f
                     stepCost = 1.3f;
                 }
                 else if (Dx[i] == 0 && Dy[i] == 1)
                 {
-                    // Rơi / hạ thẳng đứng xuống dưới: chi phí 1.2f
                     stepCost = 1.2f;
                 }
                 else
                 {
-                    // Bay ngang trong không khí: chi phí 1.8f
                     stepCost = 1.8f;
                 }
 
-                // Phạt đổi hướng nhỏ để A* ưu tiên đi thẳng tắp thay vì ziczac
                 if (prevDirX != 0 || prevDirY != 0)
                 {
                     if (Dx[i] != prevDirX || Dy[i] != prevDirY)
@@ -170,7 +154,6 @@ public static class TileAStarFinder
         if (!found)
             return result;
 
-        // Tái tạo đường đi từ target về start
         var cellPath = new List<(int X, int Y)>();
         int currIdx = targetIndex;
         while (currIdx != -1)
@@ -180,10 +163,8 @@ public static class TileAStarFinder
         }
         cellPath.Reverse();
 
-        // 3. Nén các đoạn thẳng trực giao thành các điểm ngoặt (Corner Waypoints)
         var waypoints = CompressCollinearPath(cellPath);
 
-        // 4. Chuyển sang tọa độ pixel bàn chân chuẩn
         result.Add((startPx, startPy));
         for (int i = 1; i < waypoints.Count - 1; i++)
         {
@@ -196,9 +177,6 @@ public static class TileAStarFinder
         return result;
     }
 
-    /// <summary>
-    /// Nén các ô di chuyển cùng hàng hoặc cùng cột thành các điểm ngoặt (Corner Waypoints).
-    /// </summary>
     private static List<(int X, int Y)> CompressCollinearPath(List<(int X, int Y)> cellPath)
     {
         if (cellPath.Count <= 2)
@@ -217,7 +195,6 @@ public static class TileAStarFinder
             int dx2 = next.X - curr.X;
             int dy2 = next.Y - curr.Y;
 
-            // Nếu đổi hướng -> giữ lại làm Waypoint
             if (dx1 != dx2 || dy1 != dy2)
             {
                 compressed.Add(curr);
@@ -228,9 +205,6 @@ public static class TileAStarFinder
         return compressed;
     }
 
-    /// <summary>
-    /// Kiểm tra xem ô (tx, ty) có phải là bức tường chắn không thể đi vào không.
-    /// </summary>
     public static bool IsWall(int tx, int ty, int tmw, int tmh, int[] types)
     {
         if (tx < 0 || tx >= tmw || ty < 0 || ty >= tmh)
@@ -243,9 +217,6 @@ public static class TileAStarFinder
         return (types[index] & WallMask) != 0;
     }
 
-    /// <summary>
-    /// Kiểm tra xem vị trí ô (tx, ty) có phải là khoảng trống thoáng để nhân vật đứng/đi qua không.
-    /// </summary>
     public static bool IsOpenSpace(int tx, int ty, int tmw, int tmh, int[] types)
     {
         if (IsWall(tx, ty, tmw, tmh, types)) return false;
@@ -253,9 +224,6 @@ public static class TileAStarFinder
         return true;
     }
 
-    /// <summary>
-    /// Kiểm tra xem ngay dưới chân ô (tx, ty) có phải là nền đất để đặt chân chạy không.
-    /// </summary>
     public static bool IsGroundBelow(int tx, int ty, int tmw, int tmh, int[] types)
     {
         if (ty + 1 >= tmh) return false;
@@ -266,9 +234,6 @@ public static class TileAStarFinder
         return (belowType & WallMask) != 0 && (belowType & T_DIE) == 0;
     }
 
-    /// <summary>
-    /// Chuyển đổi từ tọa độ ô lưới (Cell) sang tọa độ pixel bàn chân chuẩn của nhân vật.
-    /// </summary>
     public static (int X, int Y) CellToFootPixel(int tx, int ty)
     {
         int px = tx * TileSize + (TileSize / 2);
@@ -276,9 +241,6 @@ public static class TileAStarFinder
         return (px, py);
     }
 
-    /// <summary>
-    /// Chuyển đổi tọa độ pixel nhân vật (px, py) thành ô lưới (tx, ty) chứa thân người.
-    /// </summary>
     public static (int X, int Y) PixelToCell(int px, int py, int tmw, int tmh, int[] types)
     {
         int tx = Math.Clamp(px / TileSize, 0, tmw - 1);
@@ -298,12 +260,8 @@ public static class TileAStarFinder
         return (tx, Math.Clamp(rawTy, 0, tmh - 1));
     }
 
-    /// <summary>
-    /// Tìm ô trống hợp lệ gần nhất trong bán kính radius (ưu tiên ô có nền đất bên dưới).
-    /// </summary>
     public static (int X, int Y)? FindNearestOpenSpace(int cx, int cy, int tmw, int tmh, int[] types, int radius)
     {
-        // Vòng 1: Tìm ô trống có nền đất bên dưới (Ground)
         for (int r = 0; r <= radius; r++)
         {
             for (int dy = -r; dy <= r; dy++)
@@ -318,7 +276,6 @@ public static class TileAStarFinder
             }
         }
 
-        // Vòng 2: Nếu không có nền đất, tìm ô trống không khí (Air)
         for (int r = 1; r <= radius; r++)
         {
             for (int dy = -r; dy <= r; dy++)

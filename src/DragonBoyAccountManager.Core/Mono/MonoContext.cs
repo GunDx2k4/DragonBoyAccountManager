@@ -57,7 +57,6 @@ public class MonoContext : IDisposable
                 return null;
             }
 
-            // Đợi Unity hoàn tất nạp mscorlib.dll và khởi tạo mono_defaults / thread_class
             await Task.Delay(1000, cancellationToken);
 
             var context = new MonoContext(process, handle, memory, monoModule);

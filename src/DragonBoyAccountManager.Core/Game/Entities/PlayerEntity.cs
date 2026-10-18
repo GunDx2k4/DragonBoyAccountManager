@@ -3,9 +3,6 @@ using DragonBoyAccountManager.Core.Mono;
 
 namespace DragonBoyAccountManager.Core.Game.Entities;
 
-/// <summary>
-/// Đại diện cho một nhân vật (Char) trong game: bản thân (myChar), người chơi khác, đệ tử, hoặc Boss.
-/// </summary>
 public sealed class PlayerEntity(MonoReflector reflector, IntPtr pointer) : WorldEntity(reflector, pointer)
 {
     public override string ClassName => GameSchema.Char.ClassName;

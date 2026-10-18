@@ -3,7 +3,7 @@ using DragonBoyAccountManager.Core.Game.Schema;
 
 namespace DragonBoyAccountManager.Core.Game.Actions;
 
-public class AutoLoginAction(string username, string password, int serverId = 0, string? serverName = null, int maxAttempts = 10) 
+public class AutoLoginAction(string username, string password, int serverId = 0, string? serverName = null, int maxAttempts = 10)
     : GameAction("Auto Login")
 {
     public string Username { get; } = username;
@@ -32,8 +32,8 @@ public class AutoLoginAction(string username, string password, int serverId = 0,
     }
 
     protected override async Task<ActionResult> OnExecuteAsync(
-        IGameContext context, 
-        IProgress<string>? progress, 
+        IGameContext context,
+        IProgress<string>? progress,
         CancellationToken cancellationToken)
     {
         try
@@ -41,7 +41,6 @@ public class AutoLoginAction(string username, string password, int serverId = 0,
             if (!context.IsRunning || cancellationToken.IsCancellationRequested)
                 return ActionResult.Failure("Game không hoạt động hoặc bị hủy.");
 
-            // 1. Kiểm tra ngay nếu nhân vật đã vào game
             if (context.Player.IsInGame)
             {
                 context.UI.SwitchToGameScreen();
@@ -49,7 +48,6 @@ public class AutoLoginAction(string username, string password, int serverId = 0,
                 return ActionResult.Success($"Đã vào game: {context.Player.Name}");
             }
 
-            // 2. Chờ GameCanvas khởi tạo (tối đa 15s)
             progress?.Report("Đang chờ GameCanvas khởi tạo...");
             bool canvasReady = await WaitForGameCanvasAsync(context, TimeSpan.FromSeconds(15), cancellationToken);
             if (!canvasReady)
@@ -58,7 +56,7 @@ public class AutoLoginAction(string username, string password, int serverId = 0,
                 return ActionResult.Failure("Không thể khởi tạo GameCanvas.");
             }
 
-            if (context.Player.IsInGame) 
+            if (context.Player.IsInGame)
             {
                 context.UI.SwitchToGameScreen();
                 return ActionResult.Success();
@@ -66,7 +64,6 @@ public class AutoLoginAction(string username, string password, int serverId = 0,
 
             int attempt = 0;
 
-            // Vòng lặp State-Driven UI Auto-Login
             while (!cancellationToken.IsCancellationRequested && context.IsRunning)
             {
                 if (context.Player.IsInGame)
@@ -86,7 +83,6 @@ public class AutoLoginAction(string username, string password, int serverId = 0,
 
                 progress?.Report($"[Lần {attempt}/{MaxAttempts}] Đang kiểm tra trạng thái game...");
 
-                // BƯỚC A: Kiểm tra và giải phóng Dialog lỗi / thông báo nếu có
                 if (context.UI.HasDialog)
                 {
                     bool isWait = context.UI.IsWaitDialog;
@@ -133,10 +129,8 @@ public class AutoLoginAction(string username, string password, int serverId = 0,
 
                 int targetServerId = ResolveTargetServerId(context);
 
-                // BƯỚC B: Nhận diện màn hình hiện tại
                 string? curScreen = context.UI.CurrentScreenName;
 
-                // TRƯỜNG HỢP 1: Đang ở màn hình đăng nhập (LoginScr)
                 if (curScreen == GameSchema.LoginScr.ClassName)
                 {
                     if (context.UI.SelectedServerId != targetServerId)
@@ -209,7 +203,6 @@ public class AutoLoginAction(string username, string password, int serverId = 0,
                     continue;
                 }
 
-                // TRƯỜNG HỢP 2: Đang ở màn hình chọn máy chủ (ServerListScreen hoặc ServerScr)
                 if (curScreen is GameSchema.ServerListScreen.ClassName or GameSchema.ServerListScreen.ClassNameAlt)
                 {
                     if (context.UI.SelectedServerId != targetServerId)

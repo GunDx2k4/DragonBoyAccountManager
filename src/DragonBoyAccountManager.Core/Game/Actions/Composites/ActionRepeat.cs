@@ -2,19 +2,16 @@ using DragonBoyAccountManager.Core.Game.Context;
 
 namespace DragonBoyAccountManager.Core.Game.Actions.Composites;
 
-/// <summary>
-/// Lặp lại một action con với số lần xác định hoặc lặp vô tận (cho đến khi bị hủy).
-/// </summary>
-public class ActionRepeat(IGameAction action, int repeatCount = -1, TimeSpan? delayBetween = null) 
+public class ActionRepeat(IGameAction action, int repeatCount = -1, TimeSpan? delayBetween = null)
     : GameAction($"Repeat({action?.Name})")
 {
     private readonly IGameAction _action = action ?? throw new ArgumentNullException(nameof(action));
-    private readonly int _repeatCount = repeatCount; // -1: vô tận
+    private readonly int _repeatCount = repeatCount;
     private readonly TimeSpan _delayBetween = delayBetween ?? TimeSpan.FromMilliseconds(100);
 
     protected override async Task<ActionResult> OnExecuteAsync(
-        IGameContext context, 
-        IProgress<string>? progress, 
+        IGameContext context,
+        IProgress<string>? progress,
         CancellationToken cancellationToken)
     {
         int count = 0;
