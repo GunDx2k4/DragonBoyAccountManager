@@ -14,5 +14,6 @@ public sealed class AppSettings
     public int WindowCustomWidth { get; set; } = 0;
     public int WindowCustomHeight { get; set; } = 0;
     public bool FastTeleport { get; set; } = false;
+    public bool AutoAssignSkills { get; set; } = true;
     public Dictionary<string, string> CustomValues { get; set; } = new(StringComparer.OrdinalIgnoreCase);
 }

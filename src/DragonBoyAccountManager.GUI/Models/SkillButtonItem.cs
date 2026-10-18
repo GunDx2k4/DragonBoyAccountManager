@@ -10,13 +10,25 @@ public sealed partial class SkillButtonItem : ObservableObject
     [NotifyPropertyChangedFor(nameof(ToolTipText))]
     private string _name;
 
-    public string ShortcutBadge => $"[{SlotIndex + 1}]";
+    [ObservableProperty]
+    private bool _isSelected;
 
-    public string ToolTipText => $"Sử dụng {Name} (Phím {SlotIndex + 1})";
+    public string ShortcutBadge => SlotIndex switch
+    {
+        9 => "[0]",
+        _ => $"[{SlotIndex + 1}]"
+    };
 
-    public SkillButtonItem(int slotIndex, string name)
+    public string ToolTipText => SlotIndex switch
+    {
+        9 => $"Sử dụng {Name} (Phím 0)",
+        _ => $"Sử dụng {Name} (Phím {SlotIndex + 1})"
+    };
+
+    public SkillButtonItem(int slotIndex, string name, bool isSelected = false)
     {
         SlotIndex = slotIndex;
         _name = name;
+        _isSelected = isSelected;
     }
 }

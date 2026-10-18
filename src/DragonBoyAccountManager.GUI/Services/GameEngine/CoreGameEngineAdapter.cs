@@ -24,6 +24,7 @@ public sealed class CoreGameEngineAdapter(ISettingsService? settingsService = nu
         public Account Account { get; } = account;
         public CancellationTokenSource Cts { get; } = new();
         public AutoChatAction? CurrentAutoChatAction { get; set; }
+        public bool HasAssignedSkills { get; set; }
 
         private int _isLoggingIn;
         public bool IsLoggingIn => Volatile.Read(ref _isLoggingIn) == 1;
@@ -164,10 +165,24 @@ public sealed class CoreGameEngineAdapter(ISettingsService? settingsService = nu
                 {
                     if (inst.Player.IsInGame)
                     {
+                        if (!session.HasAssignedSkills && _settingsService?.Current.AutoAssignSkills == true)
+                        {
+                            session.HasAssignedSkills = true;
+                            _ = Task.Run(() =>
+                            {
+                                try
+                                {
+                                    inst.Player.AutoAssignSkills();
+                                }
+                                catch { }
+                            });
+                        }
+
                         PublishSessionUpdate(session);
                     }
                     else
                     {
+                        session.HasAssignedSkills = false;
                         if (account.AutoLogin && !session.IsLoggingIn && inst.IsRunning && !session.Cts.IsCancellationRequested)
                         {
                             _ = Task.Run(async () =>
@@ -263,6 +278,19 @@ public sealed class CoreGameEngineAdapter(ISettingsService? settingsService = nu
                     OnSessionMessageUpdated?.Invoke(account.Id, "Đăng nhập thành công!");
                     if (instance.Player.IsInGame)
                     {
+                        if (!session.HasAssignedSkills && _settingsService?.Current.AutoAssignSkills == true)
+                        {
+                            session.HasAssignedSkills = true;
+                            _ = Task.Run(() =>
+                            {
+                                try
+                                {
+                                    instance.Player.AutoAssignSkills();
+                                }
+                                catch { }
+                            });
+                        }
+
                         var worldSnapshot = instance.World.GetSnapshot();
                         var playerSnapshot = instance.Player.GetSnapshot();
                         var sessionSnapshot = new GameSessionSnapshot(playerSnapshot, worldSnapshot);
@@ -684,6 +712,15 @@ public sealed class CoreGameEngineAdapter(ISettingsService? settingsService = nu
             return session.Instance.Player.GetSkills();
         }
         return [];
+    }
+
+    public (bool Success, string Message) AutoAssignSkills(Guid accountId)
+    {
+        if (_sessions.TryGetValue(accountId, out var session) && session.Instance.IsRunning && session.Instance.Player.IsInGame)
+        {
+            return session.Instance.Player.AutoAssignSkills();
+        }
+        return (false, "Tài khoản chưa vào game");
     }
 
     private void PublishSessionUpdate(ActiveSession session)

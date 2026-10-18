@@ -76,37 +76,24 @@ public partial class MainWindow : Window
             return;
         }
 
-        if (e.Key is Key.D1 or Key.NumPad1)
+        int? skillSlot = e.Key switch
         {
-            vm.AccountForm.UseSkillCommand.Execute(0);
-            e.Handled = true;
-            return;
-        }
+            Key.D1 or Key.NumPad1 => 0,
+            Key.D2 or Key.NumPad2 => 1,
+            Key.D3 or Key.NumPad3 => 2,
+            Key.D4 or Key.NumPad4 => 3,
+            Key.D5 or Key.NumPad5 => 4,
+            Key.D6 or Key.NumPad6 => 5,
+            Key.D7 or Key.NumPad7 => 6,
+            Key.D8 or Key.NumPad8 => 7,
+            Key.D9 or Key.NumPad9 => 8,
+            Key.D0 or Key.NumPad0 => 9,
+            _ => null
+        };
 
-        if (e.Key is Key.D2 or Key.NumPad2)
+        if (skillSlot.HasValue)
         {
-            vm.AccountForm.UseSkillCommand.Execute(1);
-            e.Handled = true;
-            return;
-        }
-
-        if (e.Key is Key.D3 or Key.NumPad3)
-        {
-            vm.AccountForm.UseSkillCommand.Execute(2);
-            e.Handled = true;
-            return;
-        }
-
-        if (e.Key is Key.D4 or Key.NumPad4)
-        {
-            vm.AccountForm.UseSkillCommand.Execute(3);
-            e.Handled = true;
-            return;
-        }
-
-        if (e.Key is Key.D5 or Key.NumPad5)
-        {
-            vm.AccountForm.UseSkillCommand.Execute(4);
+            vm.AccountForm.UseSkillCommand.Execute(skillSlot.Value);
             e.Handled = true;
             return;
         }

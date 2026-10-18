@@ -63,6 +63,8 @@ public sealed partial class AccountFormViewModel : ObservableObject
     public ObservableCollection<string> AvailableServers { get; } = [];
     public ObservableCollection<WorldZoneInfo> AvailableZones { get; } = [];
     public ObservableCollection<SkillButtonItem> Skills { get; } = [];
+    public ObservableCollection<SkillButtonItem> TopSkills { get; } = [];
+    public ObservableCollection<SkillButtonItem> BottomSkills { get; } = [];
 
     private WorldZoneInfo? _selectedZone;
     public WorldZoneInfo? SelectedZone
@@ -112,9 +114,18 @@ public sealed partial class AccountFormViewModel : ObservableObject
             AvailableServers.Add(server.ServerName);
         }
 
-        for (int i = 0; i < 5; i++)
+        for (int i = 0; i < 10; i++)
         {
-            Skills.Add(new SkillButtonItem(i, $"Skill {i + 1}"));
+            var item = new SkillButtonItem(i, i == 9 ? "Skill 0" : $"Skill {i + 1}");
+            Skills.Add(item);
+            if (i >= 5)
+            {
+                TopSkills.Add(item);
+            }
+            else
+            {
+                BottomSkills.Add(item);
+            }
         }
 
         _skillRefreshTimer = new DispatcherTimer
@@ -227,7 +238,8 @@ public sealed partial class AccountFormViewModel : ObservableObject
         AvailableZones.Clear();
         for (int i = 0; i < Skills.Count; i++)
         {
-            Skills[i].Name = $"Skill {i + 1}";
+            Skills[i].Name = i == 9 ? "Skill 0" : $"Skill {i + 1}";
+            Skills[i].IsSelected = false;
         }
         IsEditing = false;
         OnPropertyChanged(nameof(CanDelete));
@@ -316,6 +328,17 @@ public sealed partial class AccountFormViewModel : ObservableObject
         }
     }
 
+    [RelayCommand]
+    public void AutoAssignSkills()
+    {
+        var targets = ResolveKeyTargets();
+        foreach (var id in targets)
+        {
+            _gameEngine.AutoAssignSkills(id);
+        }
+        RefreshSkills();
+    }
+
     public void RefreshSkills()
     {
         var accountId = _editingAccount?.Id;
@@ -326,16 +349,34 @@ public sealed partial class AccountFormViewModel : ObservableObject
         if (accountId == null) return;
 
         var skills = _gameEngine.GetSkills(accountId.Value);
-        if (skills.Count > 0)
+        var skillMap = skills.ToDictionary(s => s.Slot, s => s);
+        for (int i = 0; i < Skills.Count; i++)
         {
-            foreach (var s in skills)
+            if (skillMap.TryGetValue(i, out var sInfo))
             {
-                if (s.Slot >= 0 && s.Slot < Skills.Count && !string.IsNullOrWhiteSpace(s.Name))
+                string expectedName = !string.IsNullOrWhiteSpace(sInfo.Name)
+                    ? sInfo.Name
+                    : (i == 9 ? "Skill 0" : $"Skill {i + 1}");
+
+                if (Skills[i].Name != expectedName)
                 {
-                    if (Skills[s.Slot].Name != s.Name)
-                    {
-                        Skills[s.Slot].Name = s.Name;
-                    }
+                    Skills[i].Name = expectedName;
+                }
+                if (Skills[i].IsSelected != sInfo.IsSelected)
+                {
+                    Skills[i].IsSelected = sInfo.IsSelected;
+                }
+            }
+            else
+            {
+                string defaultName = i == 9 ? "Skill 0" : $"Skill {i + 1}";
+                if (Skills[i].Name != defaultName)
+                {
+                    Skills[i].Name = defaultName;
+                }
+                if (Skills[i].IsSelected)
+                {
+                    Skills[i].IsSelected = false;
                 }
             }
         }

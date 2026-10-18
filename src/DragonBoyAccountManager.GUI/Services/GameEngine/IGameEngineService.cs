@@ -47,6 +47,7 @@ public interface IGameEngineService
     (bool Success, string Message) UseTdlt(Guid accountId);
     (bool Success, string Message) UseSkill(Guid accountId, int slotIndex);
     IReadOnlyList<GameSkillInfo> GetSkills(Guid accountId);
+    (bool Success, string Message) AutoAssignSkills(Guid accountId);
 
     event Action<Guid, GameSessionStatus, GameSessionSnapshot?>? OnSessionUpdated;
     event Action<Guid, string>? OnSessionMessageUpdated;

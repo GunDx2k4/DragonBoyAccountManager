@@ -90,6 +90,18 @@ public sealed partial class SettingsTabViewModel : ObservableObject
                 "Dịch chuyển tức thời đến tọa độ đích (bỏ qua tìm đường và di chuyển từng bước)."));
 
         Groups.Add(movementGroup);
+
+        var skillGroup = new SettingGroupViewModel(
+            "skills",
+            "CẤU HÌNH KỸ NĂNG & PHÍM TẮT",
+            "Thiết lập tự động nạp và gán phím tắt cho tất cả kỹ năng")
+            .Add(SettingItemViewModel.CreateBoolean(
+                "AutoAssignSkills",
+                "Tự động gán toàn bộ kỹ năng vào phím tắt (1 - 0)",
+                _settingsService.Current.AutoAssignSkills,
+                "Tự động nạp toàn bộ danh sách kỹ năng hiện có vào các ô phím tắt từ 1 đến 0 khi nhân vật vào game."));
+
+        Groups.Add(skillGroup);
     }
 
     private void LoadValuesFromSettings()
@@ -127,6 +139,13 @@ public sealed partial class SettingsTabViewModel : ObservableObject
         {
             var tele = moveGroup.Find("FastTeleport");
             if (tele != null) tele.BoolValue = settings.FastTeleport;
+        }
+
+        var skillGroup = FindGroup("skills");
+        if (skillGroup != null)
+        {
+            var autoAssign = skillGroup.Find("AutoAssignSkills");
+            if (autoAssign != null) autoAssign.BoolValue = settings.AutoAssignSkills;
         }
 
         if (settings.CustomValues != null)
@@ -283,6 +302,12 @@ public sealed partial class SettingsTabViewModel : ObservableObject
         if (moveGroup != null)
         {
             _settingsService.Current.FastTeleport = moveGroup.GetBool("FastTeleport", _settingsService.Current.FastTeleport);
+        }
+
+        var skillGroup = FindGroup("skills");
+        if (skillGroup != null)
+        {
+            _settingsService.Current.AutoAssignSkills = skillGroup.GetBool("AutoAssignSkills", _settingsService.Current.AutoAssignSkills);
         }
 
         _settingsService.Current.CustomValues ??= new(StringComparer.OrdinalIgnoreCase);
