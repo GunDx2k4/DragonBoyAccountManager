@@ -3,6 +3,7 @@ using System.Windows;
 using DragonBoyAccountManager.Core.Game;
 using DragonBoyAccountManager.Core.Updater;
 using DragonBoyAccountManager.GUI.Services.Dialog;
+using DragonBoyAccountManager.GUI.Services.Feedback;
 using DragonBoyAccountManager.GUI.Services.GameEngine;
 using DragonBoyAccountManager.GUI.Services.Settings;
 using DragonBoyAccountManager.GUI.Services.Storage;
@@ -32,6 +33,7 @@ public partial class App : Application
         services.AddSingleton<ISettingsService, SettingsService>();
         services.AddSingleton<IDialogService, DialogService>();
         services.AddSingleton<IGameEngineService, CoreGameEngineAdapter>();
+        services.AddSingleton<IFeedbackService, DiscordFeedbackService>();
 
         // ViewModels
         services.AddSingleton<AccountsPanelViewModel>();
@@ -40,6 +42,7 @@ public partial class App : Application
         services.AddSingleton<SettingsTabViewModel>();
         services.AddSingleton<GuideViewModel>();
         services.AddSingleton<UtilitiesTabViewModel>();
+        services.AddSingleton<FeedbackViewModel>();
         services.AddSingleton<MainViewModel>();
 
         // Views

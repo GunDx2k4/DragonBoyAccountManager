@@ -130,7 +130,7 @@
                                         <Grid.ColumnDefinitions>
                                             <ColumnDefinition Width="*" MinWidth="520" />
                                             <ColumnDefinition Width="8" />
-                                            <ColumnDefinition Width="455" MinWidth="410" MaxWidth="720" />
+                                            <ColumnDefinition Width="465" MinWidth="415" MaxWidth="720" />
                                         </Grid.ColumnDefinitions>
 
                                         <!-- ========== CỘT TRÁI: DANH SÁCH TÀI KHOẢN ========== -->
