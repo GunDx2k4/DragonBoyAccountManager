@@ -422,6 +422,30 @@ public class MonoReflector(MonoContext context)
         }
     }
 
+    public short[] ReadMonoShortArray(IntPtr monoArrayPtr, int maxElements = 200_000)
+    {
+        if (monoArrayPtr == IntPtr.Zero) return [];
+
+        try
+        {
+            int ptrSize = _context.Memory.PointerSize;
+            int length = _context.Memory.ReadInt(monoArrayPtr + ptrSize * 3);
+            if (length <= 0 || length > maxElements) return [];
+
+            int elemOffset = ptrSize * 4;
+            byte[] rawBytes = _context.Memory.ReadBytes(monoArrayPtr + elemOffset, length * 2);
+            if (rawBytes.Length < length * 2) return [];
+
+            var arr = new short[length];
+            Buffer.BlockCopy(rawBytes, 0, arr, 0, rawBytes.Length);
+            return arr;
+        }
+        catch
+        {
+            return [];
+        }
+    }
+
     public IntPtr[] ReadMonoPointerArray(IntPtr monoArrayPtr)
     {
         if (monoArrayPtr == IntPtr.Zero) return [];

@@ -30,7 +30,9 @@ public static class GameSchema
 
     public static class Screen
     {
+        public const string ClassName = "mScreen";
         public const string MethodPerform = "perform";
+        public const string MethodSwitchToMe = "switchToMe";
     }
 
     public static class LoginScr
@@ -38,8 +40,10 @@ public static class GameSchema
         public const string ClassName = "LoginScr";
         public const string FieldTfUser = "tfUser";
         public const string FieldTfPass = "tfPass";
+        public const string StaticServerName = "serverName";
+        public const string MethodDoLogin = "doLogin";
 
-        public const int ActionSubmit = 2008;
+        public const int ActionSubmit = 888393;
         public const int ActionCancel = 101;
     }
 
@@ -48,7 +52,12 @@ public static class GameSchema
         public const string ClassName = "ServerListScreen";
         public const string ClassNameAlt = "ServerScr";
         public const string StaticIpSelect = "ipSelect";
+        public const string StaticNameServer = "nameServer";
+        public const string StaticAddress = "address";
+        public const string StaticPort = "port";
         public const string MethodSetIpSelect = "SetIpSelect";
+        public const string MethodSelectServer = "selectServer";
+        public const string MethodConnectIP = "ConnectIP";
 
         public const int ActionSelectServer = 6;
         public const int ActionOpenLogin = 7;
@@ -73,6 +82,7 @@ public static class GameSchema
         public const string MethodSaveRMSInt = "saveRMSInt";
         public const string KeyAcc = "acc";
         public const string KeyPass = "pass";
+        public const string KeySvSelect = "svselect";
         public const string KeyLevelScreenKN = "levelScreenKN";
     }
 
@@ -91,6 +101,9 @@ public static class GameSchema
         public const string StaticConnected = "connected";
         public const string StaticConnecting = "connecting";
         public const string StaticGetKeyComplete = "getKeyComplete";
+        public const string MethodGI = "gI";
+        public const string MethodClose = "close";
+        public const string MethodConnect = "connect";
     }
 
     public static class GameScr
@@ -301,6 +314,8 @@ public static class GameSchema
         public const string MethodUseItem = "useItem";
         public const string MethodChat = "chat";
         public const string MethodChatGlobal = "chatGlobal";
+        public const string MethodSetClientType = "setClientType";
+        public const string MethodLogin = "login";
     }
 
     public static class MsgDlg

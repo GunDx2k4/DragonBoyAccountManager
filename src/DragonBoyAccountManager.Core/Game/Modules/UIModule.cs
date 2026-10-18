@@ -27,10 +27,13 @@ public interface IUIModule
     void SelectServer(int serverId);
     void OpenLoginScreen();
     void LoginWithSavedCredentials();
-    bool SetLoginCredentials(string username, string password);
     void SubmitLogin();
     void CancelLogin();
     void PerformScreenAction(string screenClassName, int actionId);
+    bool SetLoginCredentials(string username, string password);
+
+    void SwitchToLoginScreen();
+    void SwitchToGameScreen();
 
     void KeyPressed(int keyCode);
     void KeyReleased(int keyCode);
@@ -223,15 +226,75 @@ public class UIModule(MonoReflector reflector) : IUIModule
 
     public void SelectServer(int serverId)
     {
-        SelectedServerId = serverId;
-        PerformScreenAction(GameSchema.ServerListScreen.ClassName, GameSchema.ServerListScreen.ActionSelectServer);
+        try
+        {
+            _reflector.CallMethod(
+                GameSchema.ServerListScreen.ClassName,
+                GameSchema.ServerListScreen.MethodSetIpSelect,
+                IntPtr.Zero,
+                serverId,
+                true);
+
+            IntPtr serverScreen = _reflector.ReadStatic<IntPtr>(GameSchema.GameCanvas.ClassName, GameSchema.GameCanvas.StaticServerScreen);
+            if (serverScreen == IntPtr.Zero)
+            {
+                serverScreen = CurrentScreenPointer;
+            }
+            if (serverScreen != IntPtr.Zero)
+            {
+                _reflector.CallMethod(GameSchema.ServerListScreen.ClassName, GameSchema.ServerListScreen.MethodSelectServer, serverScreen);
+            }
+        }
+        catch
+        {
+            SelectedServerId = serverId;
+        }
     }
 
-    public void OpenLoginScreen() => PerformScreenAction(GameSchema.ServerListScreen.ClassName, GameSchema.ServerListScreen.ActionOpenLogin);
+    public void OpenLoginScreen()
+    {
+        try
+        {
+            IntPtr serverScreen = _reflector.ReadStatic<IntPtr>(GameSchema.GameCanvas.ClassName, GameSchema.GameCanvas.StaticServerScreen);
+            if (serverScreen != IntPtr.Zero)
+            {
+                _reflector.CallMethod(GameSchema.ServerListScreen.ClassName, GameSchema.Screen.MethodPerform, serverScreen, GameSchema.ServerListScreen.ActionOpenLogin, null);
+                return;
+            }
+        }
+        catch { }
+        PerformScreenAction(GameSchema.ServerListScreen.ClassName, GameSchema.ServerListScreen.ActionOpenLogin);
+    }
 
-    public void LoginWithSavedCredentials() => PerformScreenAction(GameSchema.ServerListScreen.ClassName, GameSchema.ServerListScreen.ActionLoginSaved);
+    public void LoginWithSavedCredentials()
+    {
+        try
+        {
+            IntPtr serverScreen = _reflector.ReadStatic<IntPtr>(GameSchema.GameCanvas.ClassName, GameSchema.GameCanvas.StaticServerScreen);
+            if (serverScreen != IntPtr.Zero)
+            {
+                _reflector.CallMethod(GameSchema.ServerListScreen.ClassName, GameSchema.Screen.MethodPerform, serverScreen, GameSchema.ServerListScreen.ActionLoginSaved, null);
+                return;
+            }
+        }
+        catch { }
+        PerformScreenAction(GameSchema.ServerListScreen.ClassName, GameSchema.ServerListScreen.ActionLoginSaved);
+    }
 
-    public void SubmitLogin() => PerformScreenAction(GameSchema.LoginScr.ClassName, GameSchema.LoginScr.ActionSubmit);
+    public void SubmitLogin()
+    {
+        IntPtr loginScr = LoginScreenPointer;
+        if (loginScr != IntPtr.Zero)
+        {
+            try
+            {
+                _reflector.CallMethod(GameSchema.LoginScr.ClassName, GameSchema.LoginScr.MethodDoLogin, loginScr);
+                return;
+            }
+            catch { }
+        }
+        PerformScreenAction(GameSchema.LoginScr.ClassName, GameSchema.LoginScr.ActionSubmit);
+    }
 
     public void CancelLogin() => PerformScreenAction(GameSchema.LoginScr.ClassName, GameSchema.LoginScr.ActionCancel);
 
@@ -335,6 +398,45 @@ public class UIModule(MonoReflector reflector) : IUIModule
 
         try { return _reflector.ReadStringField(GameSchema.TField.ClassName, GameSchema.TField.FieldText, tfieldPtr); }
         catch { return null; }
+    }
+
+    public void SwitchToLoginScreen()
+    {
+        try
+        {
+            IntPtr loginScr = _reflector.ReadStatic<IntPtr>(GameSchema.GameCanvas.ClassName, GameSchema.GameCanvas.StaticLoginScr);
+            if (loginScr == IntPtr.Zero)
+            {
+                loginScr = _reflector.CreateInstance(GameSchema.LoginScr.ClassName);
+                if (loginScr != IntPtr.Zero)
+                {
+                    _reflector.WriteStatic(GameSchema.GameCanvas.ClassName, GameSchema.GameCanvas.StaticLoginScr, loginScr);
+                }
+            }
+            if (loginScr != IntPtr.Zero)
+            {
+                _reflector.CallMethod(GameSchema.LoginScr.ClassName, GameSchema.Screen.MethodSwitchToMe, loginScr);
+            }
+        }
+        catch { }
+    }
+
+    public void SwitchToGameScreen()
+    {
+        try
+        {
+            IntPtr gameScr = _reflector.ReadStatic<IntPtr>(GameSchema.GameScr.ClassName, GameSchema.GameScr.StaticInstance);
+            if (gameScr == IntPtr.Zero)
+            {
+                gameScr = _reflector.CallMethod(GameSchema.GameScr.ClassName, GameSchema.GameScr.MethodGI, IntPtr.Zero);
+            }
+            if (gameScr != IntPtr.Zero)
+            {
+                _reflector.CallMethod(GameSchema.GameScr.ClassName, GameSchema.Screen.MethodSwitchToMe, gameScr);
+            }
+            CloseDialog();
+        }
+        catch { }
     }
 
     public void KeyPressed(int keyCode)
