@@ -1,119 +1,80 @@
-# 🐉 DragonBoy Account Manager (DBAM)
+# DragonBoy Account Manager (DBAM)
 
-> **Tool hỗ trợ game DragonBoy (Chú Bé Rồng Online)**  
-> 🎨 **Thiết kế bởi:** `l7ungdz`  
-> 🤖 **Thực hiện bởi:** `Gehihi AI`
+> Bộ công cụ quản lý tài khoản, điều khiển và tiện ích hỗ trợ game DragonBoy (Chú Bé Rồng Online).
 
 [![.NET 10](https://img.shields.io/badge/.NET-10.0-512BD4?logo=dotnet&logoColor=white)](https://dotnet.microsoft.com/)
 [![Platform](https://img.shields.io/badge/Platform-Windows%20x64-0078D6?logo=windows&logoColor=white)](https://github.com/)
 [![License: GPL-3.0](https://img.shields.io/badge/License-GPL--3.0-blue.svg)](LICENSE)
-[![GitHub Release](https://img.shields.io/badge/Release-v1.0.1-green.svg)](https://github.com/)
 
 ---
 
-## 📌 Giới thiệu
+## Giới thiệu tổng quan
 
-**DragonBoy Account Manager (DBAM)** là bộ công cụ toàn diện hỗ trợ quản lý tài khoản, điều khiển và tiện ích cho tựa game **DragonBoy (Chú Bé Rồng Online - Ngọc Rồng Online)**.
+**DragonBoy Account Manager (DBAM)** là ứng dụng mã nguồn mở hỗ trợ quản trị đa tài khoản, điều phối cửa sổ và cung cấp các tiện ích thời gian thực cho tựa game **DragonBoy (Chú Bé Rồng Online)** trên nền tảng Windows.
 
-Dự án được xây dựng trên nền tảng **.NET 10.0** hiện đại nhất, chú trọng vào tính an toàn, hiệu năng cao và **tuyệt đối không can thiệp hay chỉnh sửa tệp gốc của game** (`Assembly-CSharp.dll`). Toàn bộ cơ chế tương tác đều thông qua bộ nhớ tiến trình (Mono Runtime & Win32 API).
-
----
-
-## ✨ Tính năng nổi bật
-
-### 1. 📋 Quản lý tài khoản thông minh
-- **Lưu trữ bảo mật**: Thêm, sửa, xóa tài khoản, ẩn/hiện mật khẩu, chọn máy chủ theo danh sách chuẩn.
-- **Thao tác nhanh**: Nhấp đúp chuột (Double-Click) vào tài khoản để mở/đóng game tức thì.
-- **Menu ngữ cảnh**: Chuột phải vào tài khoản để tự động đăng nhập, sao chép thông tin hoặc đóng cửa sổ tương ứng.
-
-### 2. 🎮 Điều khiển & Tùy biến cửa sổ
-- **Bảng điều khiển phím ảo**: Hỗ trợ cụm phím điều hướng (Lên, Xuống, Trái, Phải, Chọn) tương tác trực tiếp với nhân vật.
-- **Điều chỉnh tốc độ (TimeScale)**: Thanh kéo tùy chỉnh tốc độ game từ `0.1x` đến `5.0x` mượt mà.
-- **Sắp xếp cửa sổ tự động**: Tự động dàn trang các cửa sổ game theo dạng Grid (lưới), Tile hoặc Cascade; tùy chỉnh kích thước cửa sổ game.
-
-### 3. 🗺️ Radar & Tiện ích bản đồ
-- **Giám sát thời gian thực**: Quét và hiển thị chi tiết danh sách **Người chơi**, **Boss**, **Quái vật (Mob)** và **NPC** trên cùng bản đồ.
-- **Tương tác thông minh**: Nhấp đúp chuột vào bất kỳ thực thể nào (Player, Boss, Mob, NPC) để nhân vật tự động di chuyển đến và chọn mục tiêu đó.
-- **Kiểm tra phiên bản Client**: Tự động quét và đối soát mã băm SHA256 để đảm bảo client game tương thích tốt nhất.
-
-### 4. 🔄 Tự động cập nhật (In-App Auto-Update)
-- Tự động kiểm tra bản cập nhật mới từ **GitHub Releases**.
-- Cơ chế hoán đổi tệp đang chạy trên Windows không gián đoạn, tự động tải về với thanh tiến trình trực quan và khởi động lại phiên bản mới ngay lập tức.
-- Tự động dọn dẹp tệp cũ sau khi nâng cấp thành công.
-
-### 5. 💻 Đa nền tảng giao diện
-- **GUI (WPF)**: Giao diện đồ họa mang đậm phong cách pixel cổ điển của DragonBoy kết hợp nét hiện đại, trực quan và dễ sử dụng.
-- **CLI (Console)**: Giao diện dòng lệnh chuyên nghiệp với `Spectre.Console`, tối ưu cho quản trị viên và máy chủ không cần màn hình.
+Dự án tuân thủ nghiêm ngặt nguyên tắc **"Zero Client Patching"** (không can thiệp hoặc chỉnh sửa tệp gốc `Assembly-CSharp.dll` của game). Toàn bộ thao tác đọc trạng thái và điều khiển đều được thực hiện từ tiến trình ngoài (out-of-process) thông qua Win32 API và Mono Runtime C-API.
 
 ---
 
-## 🛠️ Cấu trúc dự án
+## Tính năng chính
+
+- **Quản lý tài khoản:** Lưu trữ an toàn, thêm/sửa/xóa, chọn máy chủ và thao tác mở/đóng game nhanh theo từng tài khoản.
+- **Điều khiển & Tinh chỉnh cửa sổ:** Tích hợp cụm phím điều hướng ảo, tùy chỉnh TimeScale (tốc độ game) và tự động sắp xếp cửa sổ (Grid, Tile, Cascade).
+- **Radar thế giới thời gian thực:** Quét danh sách người chơi, Boss, quái vật và NPC trong cùng bản đồ; hỗ trợ tương tác tự động tới mục tiêu.
+- **Tự động cập nhật:** Kiểm tra và nâng cấp phiên bản ứng dụng liền mạch trực tiếp từ GitHub Releases.
+- **Đa dạng giao diện:**
+  - **GUI (WPF):** Giao diện đồ họa thiết kế theo phong cách Retro Pixel, hỗ trợ đầy đủ thao tác trực quan.
+  - **CLI (Console):** Giao diện dòng lệnh nhẹ, tối ưu cho môi trường điều hành nhanh hoặc máy chủ.
+
+---
+
+## Cấu trúc dự án
 
 ```text
 DBAM/
-├── .github/workflows/
-│   ├── build.yml               # CI build & kiểm thử tự động
-│   └── release.yml             # Tự động đóng gói & phát hành GitHub Release
 ├── src/
-│   ├── DragonBoyAccountManager.Core/   # Thư viện lõi (Mono runtime, Game Engine, Memory, Auto-Update)
-│   ├── DragonBoyAccountManager.GUI/    # Giao diện đồ họa WPF (.NET 10 Windows x64)
+│   ├── DragonBoyAccountManager.Core/   # Thư viện lõi: Mono runtime, Win32 P/Invoke, Game Engine, Auto-Update
+│   ├── DragonBoyAccountManager.GUI/    # Giao diện đồ họa WPF (.NET 10, MVVM, Retro Pixel Design)
 │   └── DragonBoyAccountManager.CLI/    # Giao diện dòng lệnh Console (Spectre.Console)
-├── DBAM.slnx                   # Solution file định dạng mới (.slnx)
-└── README.md                   # Tài liệu dự án
+├── DBAM.slnx                           # Solution định dạng hiện đại (.slnx)
+└── README.md                           # Tài liệu tổng quan dự án
 ```
 
 ---
 
-## 🚀 Hướng dẫn cài đặt & Chạy
+## Yêu cầu & Cài đặt
 
 ### Yêu cầu hệ thống
-- Hệ điều hành: **Windows 10 / 11 (64-bit)**.
-- Khi tải bản phát hành đóng gói sẵn (`Single-File`): **Không cần cài đặt thêm .NET Runtime** (đã tích hợp sẵn).
-- Nếu tự biên dịch từ mã nguồn: Cần cài đặt [.NET 10.0 SDK](https://dotnet.microsoft.com/download/dotnet/10.0).
 
-### Tự biên dịch từ mã nguồn
+- **Hệ điều hành:** Windows 10 / 11 (64-bit).
+- **Bản chạy sẵn (Pre-built):** Tải bản phát hành tại mục Releases (gói Single-File tự chứa runtime, không cần cài đặt thêm .NET).
+- **Biên dịch từ mã nguồn:** Yêu cầu cài đặt [.NET 10.0 SDK](https://dotnet.microsoft.com/download/dotnet/10.0).
+
+### Biên dịch nhanh
 
 ```powershell
-# 1. Clone repository
+# Clone mã nguồn
 git clone https://github.com/GunDx2k4/DragonBoyAccountManager.git
 cd DragonBoyAccountManager
 
-# 2. Khôi phục các gói phụ thuộc
-dotnet restore DBAM.slnx
-
-# 3. Biên dịch toàn bộ solution
+# Biên dịch toàn bộ solution
 dotnet build DBAM.slnx -c Release
 
-# 4. Xuất bản tệp thực thi duy nhất (Single-File) cho GUI
-dotnet publish src/DragonBoyAccountManager.GUI/DragonBoyAccountManager.GUI.csproj -c Release -r win-x64 --self-contained true -p:PublishSingleFile=true -p:EnableCompressionInSingleFile=true -o ./publish/gui
+# Xuất bản gói GUI dạng tệp thực thi duy nhất
+dotnet publish src/DragonBoyAccountManager.GUI/DragonBoyAccountManager.GUI.csproj -c Release -r win-x64 --self-contained true -p:PublishSingleFile=true -o ./publish/gui
 ```
 
 ---
 
-## 📖 Hướng dẫn sử dụng nhanh
+## Đội ngũ & Đóng góp
 
-1. **Chọn tệp game**:
-   - Ở thanh trạng thái dưới cùng của ứng dụng GUI, bấm **"Chọn file..."** và chọn tệp thực thi (`.exe`) của game Chú Bé Rồng Online.
-2. **Thêm tài khoản**:
-   - Nhập Tên đăng nhập, Mật khẩu, chọn Máy chủ mong muốn rồi nhấn **LƯU**.
-3. **Mở game**:
-   - Nhấp đúp chuột vào tài khoản trong danh sách để mở game và điều khiển trực tiếp qua DBAM.
-4. **Kiểm tra phiên bản & Cập nhật**:
-   - Vào tab **HƯỚNG DẪN / TIỆN ÍCH**, bấm **"Kiểm tra phiên bản"** để kiểm tra client game cũng như cập nhật tool khi có bản phát hành mới.
-
----
-
-## 👥 Đội ngũ & Đóng góp (Credits)
-
-Dự án này là thành quả hợp tác sáng tạo:
-
-| Vai trò | Thành viên | Ghi chú |
+| Vai trò | Thành viên | Nhiệm vụ |
 | :--- | :--- | :--- |
-| **Thiết kế & Ý tưởng** | **`l7ungdz`** | Định hình tính năng, trải nghiệm người dùng và giao diện |
-| **Phát triển kỹ thuật** | **`Gehihi AI`** | Hiện thực hóa kiến trúc, mã nguồn, thuật toán và hệ thống CI/CD |
+| **Thiết kế & Ý tưởng** | **`l7ungdz`** | Định hình tính năng, trải nghiệm người dùng và phong cách giao diện |
+| **Phát triển kỹ thuật** | **`Gehihi AI`** | Hiện thực hóa kiến trúc hệ thống, mã nguồn, thuật toán và CI/CD |
 
 ---
 
-## ⚖️ Giấy phép (License)
+## Giấy phép
 
-Dự án được phân phối dưới giấy phép **[GNU General Public License v3.0 (GPL-3.0)](LICENSE)**. Bạn được tự do sử dụng, chỉnh sửa và phân phối lại mã nguồn với điều kiện giữ nguyên giấy phép và ghi nhận quyền tác giả.
+Dự án được phân phối dưới giấy phép **[GNU General Public License v3.0 (GPL-3.0)](LICENSE)**.
