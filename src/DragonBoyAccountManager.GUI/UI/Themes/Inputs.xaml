@@ -892,7 +892,7 @@
                     <Style TargetType="Viewbox">
                         <Setter Property="Visibility" Value="Collapsed" />
                         <Style.Triggers>
-                            <DataTrigger Binding="{Binding IsHideAccounts}" Value="True">
+                            <DataTrigger Binding="{Binding IsMasked}" Value="True">
                                 <Setter Property="Visibility" Value="Visible" />
                             </DataTrigger>
                         </Style.Triggers>
@@ -950,7 +950,7 @@
                     <Style TargetType="Viewbox">
                         <Setter Property="Visibility" Value="Visible" />
                         <Style.Triggers>
-                            <DataTrigger Binding="{Binding IsHideAccounts}" Value="True">
+                            <DataTrigger Binding="{Binding IsMasked}" Value="True">
                                 <Setter Property="Visibility" Value="Collapsed" />
                             </DataTrigger>
                         </Style.Triggers>
