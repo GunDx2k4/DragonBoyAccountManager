@@ -44,7 +44,7 @@
                                 VerticalAlignment="Center"
                                 FontSize="11.5"
                                 FontWeight="ExtraBold"
-                                Foreground="{DynamicResource GameGreenBrush}"
+                                Foreground="{DynamicResource GameTextGreenBrush}"
                                 Text="{Binding AppVersion, StringFormat='v{0}'}" />
                             <Border
                                 Margin="8,1,0,1"
@@ -109,7 +109,7 @@
                                     <TextBlock
                                         FontSize="11.5"
                                         FontWeight="ExtraBold"
-                                        Foreground="{DynamicResource GameDangerBrush}"
+                                        Foreground="{DynamicResource GameTextRedBrush}"
                                         Text="{Binding AvailableAppUpdate.Version, StringFormat='[MỚI] CÓ BẢN MỚI: v{0}'}"
                                         TextTrimming="CharacterEllipsis" />
                                     <TextBlock
@@ -191,7 +191,7 @@
                                     <TextBlock
                                         FontSize="11.5"
                                         FontWeight="ExtraBold"
-                                        Foreground="{DynamicResource GameDangerBrush}"
+                                        Foreground="{DynamicResource GameTextRedBrush}"
                                         Text="[CẦN THIẾT LẬP] CHƯA KẾT NỐI FILE GAME"
                                         TextTrimming="CharacterEllipsis" />
                                     <TextBlock
@@ -292,7 +292,7 @@
                             <TextBlock
                                 FontSize="11"
                                 FontWeight="ExtraBold"
-                                Foreground="{DynamicResource GameDangerBrush}"
+                                Foreground="{DynamicResource GameTextRedBrush}"
                                 Text="LƯU Ý QUAN TRỌNG:" />
                             <TextBlock
                                 Margin="0,3,0,0"
@@ -453,7 +453,7 @@
                             <TextBlock
                                 FontSize="11.5"
                                 FontWeight="ExtraBold"
-                                Foreground="{DynamicResource GameGreenBrush}"
+                                Foreground="{DynamicResource GameTextGreenBrush}"
                                 Text="{Binding AppVersion, StringFormat='v{0}'}" />
                         </StackPanel>
                         <TextBlock

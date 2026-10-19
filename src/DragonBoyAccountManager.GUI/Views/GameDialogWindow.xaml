@@ -67,7 +67,7 @@
                             FontFamily="{DynamicResource GameFont}"
                             FontSize="14"
                             FontWeight="ExtraBold"
-                            Foreground="{DynamicResource GameDangerBrush}"
+                            Foreground="{DynamicResource GameTextRedBrush}"
                             Visibility="Collapsed" />
 
                         <ScrollViewer

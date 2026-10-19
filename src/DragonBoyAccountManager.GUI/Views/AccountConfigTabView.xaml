@@ -246,12 +246,12 @@
                                                 Margin="4,0,0,0"
                                                 FontSize="9"
                                                 FontWeight="SemiBold"
-                                                Foreground="{DynamicResource GameStatusSuccessBrush}"
+                                                Foreground="{DynamicResource GameTextGreenBrush}"
                                                 Text="{Binding NumPlayers, StringFormat='({0}'}" />
                                             <TextBlock
                                                 FontSize="9"
                                                 FontWeight="SemiBold"
-                                                Foreground="{DynamicResource GameStatusSuccessBrush}"
+                                                Foreground="{DynamicResource GameTextGreenBrush}"
                                                 Text="{Binding MaxPlayers, StringFormat='/{0})'}" />
                                         </StackPanel>
                                         <TextBlock
@@ -259,7 +259,7 @@
                                             Margin="6,0,0,0"
                                             FontSize="8.5"
                                             FontWeight="ExtraBold"
-                                            Foreground="{DynamicResource GameStatusDangerBrush}"
+                                            Foreground="{DynamicResource GameTextRedBrush}"
                                             Text="ĐẦY"
                                             VerticalAlignment="Center">
                                             <TextBlock.Style>

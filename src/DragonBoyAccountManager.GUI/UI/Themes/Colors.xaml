@@ -126,6 +126,22 @@
         x:Key="GameTextGreyBrush"
         po:Freeze="True"
         Color="#555555" />
+    <SolidColorBrush
+        x:Key="GameTextPlanetEarthBrush"
+        po:Freeze="True"
+        Color="#D35400" />
+    <SolidColorBrush
+        x:Key="GameTextPlanetNamecBrush"
+        po:Freeze="True"
+        Color="#2E7D32" />
+    <SolidColorBrush
+        x:Key="GameTextPlanetSaiyanBrush"
+        po:Freeze="True"
+        Color="#880E4F" />
+    <SolidColorBrush
+        x:Key="GameBtnDangerTextBrush"
+        po:Freeze="True"
+        Color="#FFEAEA" />
 
     <SolidColorBrush
         x:Key="GameFocusBrush"

@@ -865,7 +865,7 @@
     </ControlTemplate>
 
     <Style x:Key="GameDangerButton" BasedOn="{StaticResource GameSecondaryButton}" TargetType="Button">
-        <Setter Property="Foreground" Value="#FFEAEA" />
+        <Setter Property="Foreground" Value="{DynamicResource GameBtnDangerTextBrush}" />
         <Setter Property="Template" Value="{StaticResource GameDangerButtonTemplate}" />
     </Style>
 
@@ -916,7 +916,7 @@
     </ControlTemplate>
 
     <Style x:Key="GameSuccessButton" BasedOn="{StaticResource GamePrimaryButton}" TargetType="Button">
-        <Setter Property="Foreground" Value="#FFFFFF" />
+        <Setter Property="Foreground" Value="{DynamicResource GameTextLightBrush}" />
         <Setter Property="Template" Value="{StaticResource GameSuccessButtonTemplate}" />
     </Style>
 

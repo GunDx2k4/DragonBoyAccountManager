@@ -108,12 +108,12 @@
                                             Margin="6,0,0,0"
                                             FontSize="10"
                                             FontWeight="SemiBold"
-                                            Foreground="{DynamicResource GameGreenBrush}"
+                                            Foreground="{DynamicResource GameTextGreenBrush}"
                                             Text="{Binding NumPlayers, StringFormat='({0}'}" />
                                         <TextBlock
                                             FontSize="10"
                                             FontWeight="SemiBold"
-                                            Foreground="{DynamicResource GameGreenBrush}"
+                                            Foreground="{DynamicResource GameTextGreenBrush}"
                                             Text="{Binding MaxPlayers, StringFormat='/{0})'}" />
                                     </StackPanel>
                                     <TextBlock
@@ -121,7 +121,7 @@
                                         Margin="8,0,0,0"
                                         FontSize="9.5"
                                         FontWeight="ExtraBold"
-                                        Foreground="{DynamicResource GameDangerBrush}"
+                                        Foreground="{DynamicResource GameTextRedBrush}"
                                         Text="ĐẦY"
                                         VerticalAlignment="Center">
                                         <TextBlock.Style>
@@ -386,7 +386,7 @@
                                     HorizontalAlignment="Center"
                                     FontSize="8.5"
                                     FontWeight="Bold"
-                                    Foreground="{DynamicResource GameGoldLightBrush}">
+                                    Foreground="{DynamicResource GameTextYellowBrush}">
                                     <Run Text="(" />
                                     <Run Text="{Binding X}" />
                                     <Run Text=", " />
@@ -450,7 +450,7 @@
                                                     <TextBlock
                                                         FontSize="11.5"
                                                         FontWeight="ExtraBold"
-                                                        Foreground="{DynamicResource GameDangerBrush}"
+                                                        Foreground="{DynamicResource GameTextRedBrush}"
                                                         Text="{Binding Name}"
                                                         TextTrimming="CharacterEllipsis"
                                                         ToolTip="{Binding Name}" />
@@ -556,7 +556,7 @@
                     <TabItem.Header>
                         <StackPanel Orientation="Horizontal">
                             <TextBlock Text="QUÁI (" />
-                            <TextBlock Foreground="{DynamicResource GameGreenBrush}" Text="{Binding AliveMobs}" TextTrimming="CharacterEllipsis" ToolTip="{Binding AliveMobs}" />
+                            <TextBlock Foreground="{DynamicResource GameTextGreenBrush}" Text="{Binding AliveMobs}" TextTrimming="CharacterEllipsis" ToolTip="{Binding AliveMobs}" />
                             <TextBlock Text="/" />
                             <TextBlock Text="{Binding TotalMobs}" TextTrimming="CharacterEllipsis" ToolTip="{Binding TotalMobs}" />
                             <TextBlock Text=")" />

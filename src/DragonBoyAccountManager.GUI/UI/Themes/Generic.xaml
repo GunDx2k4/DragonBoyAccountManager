@@ -117,13 +117,13 @@
             </Trigger>
             <Trigger Property="Variant" Value="Danger">
                 <Setter Property="Template" Value="{StaticResource GameDangerButtonTemplate}" />
-                <Setter Property="Foreground" Value="#FFEAEA" />
+                <Setter Property="Foreground" Value="{DynamicResource GameBtnDangerTextBrush}" />
                 <Setter Property="MinWidth" Value="72" />
                 <Setter Property="Height" Value="28" />
             </Trigger>
             <Trigger Property="Variant" Value="Success">
                 <Setter Property="Template" Value="{StaticResource GameSuccessButtonTemplate}" />
-                <Setter Property="Foreground" Value="#FFFFFF" />
+                <Setter Property="Foreground" Value="{DynamicResource GameTextLightBrush}" />
                 <Setter Property="MinWidth" Value="80" />
                 <Setter Property="Height" Value="28" />
             </Trigger>

@@ -542,7 +542,7 @@
                             <Setter TargetName="TabBorder" Property="BorderThickness" Value="1.8,1.8,1.8,0" />
                             <Setter TargetName="TabBorder" Property="Margin" Value="0,-2,0,-1.8" />
                             <Setter TargetName="TabHighlight" Property="Visibility" Value="Visible" />
-                            <Setter Property="Foreground" Value="{DynamicResource GameGreenBrush}" />
+                            <Setter Property="Foreground" Value="{DynamicResource GameTextGreenBrush}" />
                             <Setter Property="Panel.ZIndex" Value="10" />
                         </Trigger>
                         <MultiTrigger>
@@ -877,7 +877,7 @@
                         <Trigger Property="IsPressed" Value="True">
                             <Setter TargetName="OuterBorder" Property="Padding" Value="1,2,1,1" />
                             <Setter TargetName="InnerFace" Property="Background" Value="#EDA23C" />
-                            <Setter Property="Foreground" Value="#FFFFFF" />
+                            <Setter Property="Foreground" Value="{DynamicResource GameTextLightBrush}" />
                         </Trigger>
                     </ControlTemplate.Triggers>
                 </ControlTemplate>
