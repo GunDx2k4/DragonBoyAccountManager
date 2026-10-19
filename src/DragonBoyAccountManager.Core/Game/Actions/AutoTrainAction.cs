@@ -21,11 +21,36 @@ public sealed class AutoTrainOptions
 public class AutoTrainAction(AutoTrainOptions options) : GameAction("Auto Train")
 {
     private readonly AutoTrainOptions _options = options;
+    private readonly Dictionary<int, DateTime> _mobDeathTimes = new();
     private int _skillRotationIndex = 0;
     private DateTime _lastPeanTime = DateTime.MinValue;
     private DateTime _lastTdltCheckTime = DateTime.MinValue;
+    private int _currentSelectedSkillSlot = -1;
 
     public AutoTrainOptions Options => _options;
+
+    private bool MatchesFilter(MobEntity m)
+    {
+        if (_options.AvoidSuperMobs && m.IsSuperMob) return false;
+        if (_options.IgnoreBosses && m.IsBoss) return false;
+        if (_options.TargetMobTemplateIds.Count > 0 && !_options.TargetMobTemplateIds.Contains(m.TemplateId)) return false;
+        if (_options.TargetMobIds.Count > 0 && !_options.TargetMobIds.Contains(m.Id)) return false;
+        return true;
+    }
+
+    private static void SuppressGameAutoLoop(IGameContext context)
+    {
+        try
+        {
+            context.Reflector.WriteStatic(GameSchema.GameScr.ClassName, GameSchema.GameScr.StaticIsAutoPlay, false);
+            IntPtr gameScrPtr = context.Reflector.ReadStatic<IntPtr>(GameSchema.GameScr.ClassName, GameSchema.GameScr.StaticInstance);
+            if (gameScrPtr != IntPtr.Zero)
+            {
+                context.Reflector.WriteField(GameSchema.GameScr.ClassName, GameSchema.GameScr.FieldAuto, gameScrPtr, 0);
+            }
+        }
+        catch { }
+    }
 
     protected override async Task<ActionResult> OnExecuteAsync(
         IGameContext context,
@@ -40,22 +65,13 @@ public class AutoTrainAction(AutoTrainOptions options) : GameAction("Auto Train"
 
         progress?.Report("[Auto Train] Đang khởi động tự động luyện tập...");
 
-        try
-        {
-            context.Reflector.WriteStatic(GameSchema.GameScr.ClassName, GameSchema.GameScr.StaticIsAutoPlay, false);
-        }
-        catch { }
+        SuppressGameAutoLoop(context);
 
         while (!cancellationToken.IsCancellationRequested && context.IsRunning)
         {
             try
             {
-                context.Reflector.WriteStatic(GameSchema.GameScr.ClassName, GameSchema.GameScr.StaticIsAutoPlay, false);
-                IntPtr gameScrPtr = context.Reflector.ReadStatic<IntPtr>(GameSchema.GameScr.ClassName, GameSchema.GameScr.StaticInstance);
-                if (gameScrPtr != IntPtr.Zero)
-                {
-                    context.Reflector.WriteField(GameSchema.GameScr.ClassName, GameSchema.GameScr.FieldAuto, gameScrPtr, 0);
-                }
+                SuppressGameAutoLoop(context);
 
                 if (!context.Player.IsInGame || !context.Player.IsAlive || context.Player.IsChangingMap)
                 {
@@ -139,6 +155,7 @@ public class AutoTrainAction(AutoTrainOptions options) : GameAction("Auto Train"
 
                             context.Network.PickItem(itemToPick.Id);
                             progress?.Report($"[Auto Train] Đã gửi message nhặt {itemToPick.Name} #{itemToPick.Id}");
+                            SuppressGameAutoLoop(context);
                             await Task.Delay(200, cancellationToken);
                             continue;
                         }
@@ -146,6 +163,25 @@ public class AutoTrainAction(AutoTrainOptions options) : GameAction("Auto Train"
                 }
 
                 var monsters = context.World.GetMonsters();
+
+                var currentIds = new HashSet<int>(monsters.Select(m => m.Id));
+                var staleKeys = _mobDeathTimes.Keys.Where(id => !currentIds.Contains(id)).ToList();
+                foreach (var stale in staleKeys)
+                {
+                    _mobDeathTimes.Remove(stale);
+                }
+
+                foreach (var m in monsters)
+                {
+                    if (m.IsAlive)
+                    {
+                        _mobDeathTimes.Remove(m.Id);
+                    }
+                    else if (!_mobDeathTimes.ContainsKey(m.Id))
+                    {
+                        _mobDeathTimes[m.Id] = DateTime.UtcNow;
+                    }
+                }
 
                 if (_options.AvoidSuperMobs)
                 {
@@ -187,76 +223,144 @@ public class AutoTrainAction(AutoTrainOptions options) : GameAction("Auto Train"
                             await moveAction.ExecuteAsync(context, progress, cancellationToken);
                         }
 
+                        SuppressGameAutoLoop(context);
                         await Task.Delay(300, cancellationToken);
                         continue;
                     }
                 }
 
-                var candidateMobs = monsters.Where(m => m.IsAlive && m.Hp > 0 && m.Status != 0 && m.Status != 1);
-
-                if (_options.AvoidSuperMobs)
-                {
-                    candidateMobs = candidateMobs.Where(m => !m.IsSuperMob);
-                }
-
-                if (_options.IgnoreBosses)
-                {
-                    candidateMobs = candidateMobs.Where(m => !m.IsBoss);
-                }
-
-                if (_options.TargetMobTemplateIds.Count > 0 || _options.TargetMobIds.Count > 0)
-                {
-                    candidateMobs = candidateMobs.Where(m =>
-                        (_options.TargetMobTemplateIds.Count > 0 && _options.TargetMobTemplateIds.Contains(m.TemplateId)) ||
-                        (_options.TargetMobIds.Count > 0 && _options.TargetMobIds.Contains(m.Id)));
-                }
-
+                var candidateMobs = monsters.Where(m => m.IsAlive && MatchesFilter(m)).ToList();
                 playerX = context.Player.X;
                 playerY = context.Player.Y;
 
-                var targetMob = candidateMobs
-                    .OrderBy(m => m.DistanceTo(playerX, playerY))
-                    .FirstOrDefault();
+                MobEntity? targetMob = null;
+                IntPtr currentFocusPtr = context.Player.MobFocusPtr;
+                if (currentFocusPtr != IntPtr.Zero)
+                {
+                    var focused = candidateMobs.FirstOrDefault(m => m.Pointer == currentFocusPtr);
+                    if (focused != null)
+                    {
+                        long fHp = context.Reflector.ReadField<long>(GameSchema.Mob.ClassName, GameSchema.Mob.FieldHp, focused.Pointer);
+                        int fStatus = context.Reflector.ReadField<int>(GameSchema.Mob.ClassName, GameSchema.Mob.FieldStatus, focused.Pointer);
+                        if (fHp > 0 && fStatus != 0 && fStatus != 1)
+                        {
+                            targetMob = focused;
+                        }
+                        else
+                        {
+                            _mobDeathTimes[focused.Id] = DateTime.UtcNow;
+                        }
+                    }
+                }
 
                 if (targetMob == null)
                 {
-                    progress?.Report("[Auto Train] Không tìm thấy quái phù hợp trong map. Đang đợi quái hồi sinh...");
-                    await Task.Delay(500, cancellationToken);
-                    continue;
+                    targetMob = candidateMobs
+                        .OrderBy(m => m.DistanceTo(playerX, playerY))
+                        .FirstOrDefault();
+
+                    if (targetMob != null)
+                    {
+                        context.World.Focus(targetMob);
+                    }
                 }
 
-                context.World.Focus(targetMob);
+                if (targetMob == null)
+                {
+                    var deadCandidateMobs = monsters
+                        .Where(m => !m.IsAlive && MatchesFilter(m))
+                        .ToList();
+
+                    if (deadCandidateMobs.Count > 0)
+                    {
+                        var earliestMob = deadCandidateMobs
+                            .OrderBy(m => _mobDeathTimes.TryGetValue(m.Id, out var dt) ? dt : DateTime.MinValue)
+                            .First();
+
+                        int spawnX = earliestMob.XFirst != 0 ? earliestMob.XFirst : earliestMob.X;
+                        int spawnY = earliestMob.YFirst != 0 ? earliestMob.YFirst : earliestMob.Y;
+                        int distToSpawn = (int)Math.Sqrt(Math.Pow(spawnX - playerX, 2) + Math.Pow(spawnY - playerY, 2));
+
+                        if (distToSpawn > 35)
+                        {
+                            if (_options.UseTdlt)
+                            {
+                                context.Reflector.WriteField(GameSchema.Char.ClassName, GameSchema.Char.FieldX, myCharPtr, spawnX);
+                                context.Reflector.WriteField(GameSchema.Char.ClassName, GameSchema.Char.FieldY, myCharPtr, spawnY);
+                                context.Reflector.WriteField(GameSchema.Char.ClassName, GameSchema.Char.FieldCvx, myCharPtr, 0);
+                                context.Reflector.WriteField(GameSchema.Char.ClassName, GameSchema.Char.FieldCvy, myCharPtr, 0);
+                                context.Reflector.WriteField(GameSchema.Char.ClassName, GameSchema.Char.FieldStatusMe, myCharPtr, 1);
+                                context.Network.CharMove();
+                            }
+                            else
+                            {
+                                var moveAction = new AutoMoveAction(spawnX, spawnY, isFastTeleport: false);
+                                await moveAction.ExecuteAsync(context, progress, cancellationToken);
+                            }
+                            progress?.Report($"[Auto Train] Quái #{earliestMob.Id} ({earliestMob.Name}) dự kiến hồi sinh sớm nhất, đang đón đầu tại ({spawnX}, {spawnY})...");
+                        }
+                        else
+                        {
+                            progress?.Report($"[Auto Train] Đang chờ quái #{earliestMob.Id} ({earliestMob.Name}) hồi sinh tại ({spawnX}, {spawnY})...");
+                        }
+                    }
+                    else
+                    {
+                        progress?.Report("[Auto Train] Không tìm thấy quái phù hợp trong map. Đang đợi quái hồi sinh...");
+                    }
+
+                    SuppressGameAutoLoop(context);
+                    await Task.Delay(350, cancellationToken);
+                    continue;
+                }
 
                 int mobX = targetMob.X;
                 int mobY = targetMob.Y;
                 int cdir = mobX >= playerX ? 1 : -1;
                 int attackStandX = mobX - (cdir * 24);
                 int attackStandY = mobY;
+                int distToMob = (int)targetMob.DistanceTo(playerX, playerY);
 
-                if (_options.UseTdlt)
+                if (distToMob > 45)
                 {
-                    context.Reflector.WriteField(GameSchema.Char.ClassName, GameSchema.Char.FieldX, myCharPtr, attackStandX);
-                    context.Reflector.WriteField(GameSchema.Char.ClassName, GameSchema.Char.FieldY, myCharPtr, attackStandY);
-                    context.Reflector.WriteField(GameSchema.Char.ClassName, GameSchema.Char.FieldCvx, myCharPtr, 0);
-                    context.Reflector.WriteField(GameSchema.Char.ClassName, GameSchema.Char.FieldCvy, myCharPtr, 0);
-                    context.Reflector.WriteField(GameSchema.Char.ClassName, GameSchema.Char.FieldStatusMe, myCharPtr, 1);
-                    context.Reflector.WriteField(GameSchema.Char.ClassName, GameSchema.Char.FieldCdir, myCharPtr, cdir);
-                    context.Network.CharMove();
-                }
-                else
-                {
-                    int dist = (int)targetMob.DistanceTo(playerX, playerY);
-                    if (dist > 45)
+                    if (_options.UseTdlt)
+                    {
+                        context.Reflector.WriteField(GameSchema.Char.ClassName, GameSchema.Char.FieldX, myCharPtr, attackStandX);
+                        context.Reflector.WriteField(GameSchema.Char.ClassName, GameSchema.Char.FieldY, myCharPtr, attackStandY);
+                        context.Reflector.WriteField(GameSchema.Char.ClassName, GameSchema.Char.FieldCvx, myCharPtr, 0);
+                        context.Reflector.WriteField(GameSchema.Char.ClassName, GameSchema.Char.FieldCvy, myCharPtr, 0);
+                        context.Reflector.WriteField(GameSchema.Char.ClassName, GameSchema.Char.FieldStatusMe, myCharPtr, 1);
+                        context.Reflector.WriteField(GameSchema.Char.ClassName, GameSchema.Char.FieldCdir, myCharPtr, cdir);
+                        context.Network.CharMove();
+                    }
+                    else
                     {
                         var moveAction = new AutoMoveAction(attackStandX, attackStandY, isFastTeleport: false);
                         await moveAction.ExecuteAsync(context, progress, cancellationToken);
+                        context.Reflector.WriteField(GameSchema.Char.ClassName, GameSchema.Char.FieldCdir, myCharPtr, cdir);
                     }
+                }
+                else
+                {
                     context.Reflector.WriteField(GameSchema.Char.ClassName, GameSchema.Char.FieldCdir, myCharPtr, cdir);
+                }
+
+                long curMobHp = context.Reflector.ReadField<long>(GameSchema.Mob.ClassName, GameSchema.Mob.FieldHp, targetMob.Pointer);
+                int curMobStatus = context.Reflector.ReadField<int>(GameSchema.Mob.ClassName, GameSchema.Mob.FieldStatus, targetMob.Pointer);
+                if (curMobHp <= 0 || curMobStatus == 0 || curMobStatus == 1)
+                {
+                    _mobDeathTimes[targetMob.Id] = DateTime.UtcNow;
+                    progress?.Report($"[Auto Train] Quái #{targetMob.Id} ({targetMob.Name}) đã chết, chuyển mục tiêu...");
+                    continue;
                 }
 
                 int chosenSlot = SelectNextSkillSlot(context);
 
-                context.Player.UseSkill(chosenSlot);
+                if (_currentSelectedSkillSlot != chosenSlot)
+                {
+                    context.Player.SelectSkill(chosenSlot);
+                    _currentSelectedSkillSlot = chosenSlot;
+                }
 
                 if (targetMob.Pointer != IntPtr.Zero)
                 {
@@ -265,10 +369,27 @@ public class AutoTrainAction(AutoTrainOptions options) : GameAction("Auto Train"
                     {
                         progress?.Report($"[Auto Train] Gửi đòn đánh thất bại tới {targetMob.Name} #{targetMob.Id}");
                     }
+                    else
+                    {
+                        IntPtr mySkillPtr = context.Reflector.ReadFieldPtr(GameSchema.Char.ClassName, GameSchema.Char.FieldMySkill, myCharPtr);
+                        if (mySkillPtr != IntPtr.Zero)
+                        {
+                            long nowMs = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
+                            context.Reflector.WriteField(GameSchema.Skill.ClassName, GameSchema.Skill.FieldLastTimeUseThisSkill, mySkillPtr, nowMs);
+                        }
+
+                        long hpAfter = context.Reflector.ReadField<long>(GameSchema.Mob.ClassName, GameSchema.Mob.FieldHp, targetMob.Pointer);
+                        int statusAfter = context.Reflector.ReadField<int>(GameSchema.Mob.ClassName, GameSchema.Mob.FieldStatus, targetMob.Pointer);
+                        if (hpAfter <= 0 || statusAfter == 0 || statusAfter == 1)
+                        {
+                            _mobDeathTimes[targetMob.Id] = DateTime.UtcNow;
+                        }
+                    }
                 }
 
                 progress?.Report($"[Auto Train] Đang đánh {targetMob.Name} #{targetMob.Id} [HP: {targetMob.Hp}/{targetMob.MaxHp}] bằng skill {chosenSlot + 1} (gửi message)");
 
+                SuppressGameAutoLoop(context);
                 await Task.Delay(350, cancellationToken);
             }
             catch (OperationCanceledException)
@@ -278,20 +399,12 @@ public class AutoTrainAction(AutoTrainOptions options) : GameAction("Auto Train"
             catch (Exception ex)
             {
                 progress?.Report($"[Auto Train] Ngoại lệ bước luyện tập: {ex.Message}");
+                SuppressGameAutoLoop(context);
                 await Task.Delay(500, cancellationToken);
             }
         }
 
-        try
-        {
-            context.Reflector.WriteStatic(GameSchema.GameScr.ClassName, GameSchema.GameScr.StaticIsAutoPlay, false);
-            IntPtr gameScrPtr = context.Reflector.ReadStatic<IntPtr>(GameSchema.GameScr.ClassName, GameSchema.GameScr.StaticInstance);
-            if (gameScrPtr != IntPtr.Zero)
-            {
-                context.Reflector.WriteField(GameSchema.GameScr.ClassName, GameSchema.GameScr.FieldAuto, gameScrPtr, 0);
-            }
-        }
-        catch { }
+        SuppressGameAutoLoop(context);
 
         progress?.Report("[Auto Train] Đã dừng tự động luyện tập.");
         return ActionResult.Success("Đã dừng tự động luyện tập.");

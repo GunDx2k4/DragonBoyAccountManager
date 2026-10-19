@@ -446,6 +446,7 @@ public class PlayerModule(MonoReflector reflector) : IPlayerModule
             if (gameScr != IntPtr.Zero)
             {
                 _reflector.CallMethod(GameSchema.GameScr.ClassName, GameSchema.GameScr.MethodDoSelectSkill, gameScr, skillPtr, true);
+                _reflector.WriteStatic(GameSchema.GameScr.ClassName, GameSchema.GameScr.StaticIsAutoPlay, false);
             }
 
             var info = ReadSkillInfo(skillPtr, slotIndex);
