@@ -261,7 +261,7 @@
                     </Style>
                 </DataGrid.RowStyle>
                 <DataGrid.Columns>
-                    <DataGridTemplateColumn Width="46">
+                    <DataGridTemplateColumn Width="40">
                         <DataGridTemplateColumn.Header>
                             <CheckBox
                                 HorizontalAlignment="Center"
@@ -283,7 +283,7 @@
                         </DataGridTemplateColumn.CellTemplate>
                     </DataGridTemplateColumn>
 
-                    <DataGridTemplateColumn Width="105" MinWidth="80" Header="MÁY CHỦ">
+                    <DataGridTemplateColumn Width="95" MinWidth="75" Header="MÁY CHỦ">
                         <DataGridTemplateColumn.CellTemplate>
                             <DataTemplate>
                                 <ui:GameBadge Content="{Binding Server}" />
@@ -291,7 +291,7 @@
                         </DataGridTemplateColumn.CellTemplate>
                     </DataGridTemplateColumn>
 
-                    <DataGridTemplateColumn Width="*" MinWidth="160" Header="TÀI KHOẢN">
+                    <DataGridTemplateColumn Width="*" MinWidth="220" Header="TÀI KHOẢN">
                         <DataGridTemplateColumn.CellTemplate>
                             <DataTemplate>
                                 <StackPanel Margin="0,2" VerticalAlignment="Center">
@@ -409,12 +409,35 @@
                                             </TextBlock.Style>
                                         </TextBlock>
                                     </StackPanel>
+                                    <StackPanel Margin="0,2,0,0" Orientation="Horizontal">
+                                        <StackPanel.Style>
+                                            <Style TargetType="StackPanel">
+                                                <Setter Property="Visibility" Value="Collapsed" />
+                                                <Style.Triggers>
+                                                    <DataTrigger Binding="{Binding HasHpMp}" Value="True">
+                                                        <Setter Property="Visibility" Value="Visible" />
+                                                    </DataTrigger>
+                                                </Style.Triggers>
+                                            </Style>
+                                        </StackPanel.Style>
+                                        <TextBlock
+                                            FontSize="9.5"
+                                            FontWeight="Bold"
+                                            Foreground="{DynamicResource GameTextRedBrush}"
+                                            Text="{Binding DisplayHp, StringFormat='HP: {0}', Mode=OneWay}" />
+                                        <TextBlock
+                                            Margin="8,0,0,0"
+                                            FontSize="9.5"
+                                            FontWeight="Bold"
+                                            Foreground="{DynamicResource GameTextBlueBrush}"
+                                            Text="{Binding DisplayMp, StringFormat='MP: {0}', Mode=OneWay}" />
+                                    </StackPanel>
                                 </StackPanel>
                             </DataTemplate>
                         </DataGridTemplateColumn.CellTemplate>
                     </DataGridTemplateColumn>
 
-                    <DataGridTemplateColumn Width="145" MinWidth="100" Header="BẢN ĐỒ / KHU">
+                    <DataGridTemplateColumn Width="180" MinWidth="135" Header="BẢN ĐỒ / KHU">
                         <DataGridTemplateColumn.CellTemplate>
                             <DataTemplate>
                                 <StackPanel Margin="6,2" VerticalAlignment="Center">
@@ -439,7 +462,7 @@
                                         <TextBlock
                                             FontSize="9.5"
                                             FontWeight="ExtraBold"
-                                            Foreground="{DynamicResource GameTextYellowBrush}"
+                                            Foreground="{DynamicResource GameTextGreenBrush}"
                                             Text="{Binding DisplayZone}" />
                                         <TextBlock
                                             Margin="4,0,0,0"
@@ -453,7 +476,7 @@
                         </DataGridTemplateColumn.CellTemplate>
                     </DataGridTemplateColumn>
 
-                    <DataGridTemplateColumn Width="115" MinWidth="90" Header="TRẠNG THÁI">
+                    <DataGridTemplateColumn Width="115" MinWidth="95" Header="TRẠNG THÁI">
                         <DataGridTemplateColumn.CellTemplate>
                             <DataTemplate>
                                 <Border

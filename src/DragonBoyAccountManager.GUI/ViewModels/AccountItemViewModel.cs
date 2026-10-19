@@ -49,7 +49,24 @@ public sealed partial class AccountItemViewModel : ObservableObject
     private long? _characterPower;
 
     [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(DisplayHp))]
+    [NotifyPropertyChangedFor(nameof(HasHpMp))]
     private long? _characterHP;
+
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(DisplayHp))]
+    [NotifyPropertyChangedFor(nameof(HasHpMp))]
+    private long? _characterMaxHP;
+
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(DisplayMp))]
+    [NotifyPropertyChangedFor(nameof(HasHpMp))]
+    private long? _characterMP;
+
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(DisplayMp))]
+    [NotifyPropertyChangedFor(nameof(HasHpMp))]
+    private long? _characterMaxMP;
 
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(GenderDisplayName))]
@@ -152,6 +169,30 @@ public sealed partial class AccountItemViewModel : ObservableObject
     };
 
     public bool HasCharacterName => !string.IsNullOrWhiteSpace(CharacterName);
+    public bool HasHpMp => CharacterHP.HasValue || CharacterMP.HasValue;
+
+    public string DisplayHp
+    {
+        get
+        {
+            if (!CharacterHP.HasValue) return "--";
+            if (CharacterMaxHP.HasValue && CharacterMaxHP.Value > 0)
+                return $"{CharacterHP.Value:N0}/{CharacterMaxHP.Value:N0}";
+            return $"{CharacterHP.Value:N0}";
+        }
+    }
+
+    public string DisplayMp
+    {
+        get
+        {
+            if (!CharacterMP.HasValue) return "--";
+            if (CharacterMaxMP.HasValue && CharacterMaxMP.Value > 0)
+                return $"{CharacterMP.Value:N0}/{CharacterMaxMP.Value:N0}";
+            return $"{CharacterMP.Value:N0}";
+        }
+    }
+
     public bool HasMapInfo => !string.IsNullOrWhiteSpace(MapName) || (MapId.HasValue && MapId.Value >= 0);
 
     public string DisplayMapName
@@ -216,6 +257,9 @@ public sealed partial class AccountItemViewModel : ObservableObject
             CharacterName = p.Name;
             CharacterPower = p.Power;
             CharacterHP = p.Hp;
+            CharacterMaxHP = p.MaxHp;
+            CharacterMP = p.Mp;
+            CharacterMaxMP = p.MaxMp;
             CharacterGender = p.Gender;
             CharX = p.X;
             CharY = p.Y;
@@ -231,6 +275,9 @@ public sealed partial class AccountItemViewModel : ObservableObject
             CharacterName = null;
             CharacterPower = null;
             CharacterHP = null;
+            CharacterMaxHP = null;
+            CharacterMP = null;
+            CharacterMaxMP = null;
             CharacterGender = null;
             MapId = null;
             ZoneId = null;

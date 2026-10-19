@@ -76,7 +76,7 @@
         <Setter Property="AutoGenerateColumns" Value="False" />
         <Setter Property="CanUserAddRows" Value="False" />
         <Setter Property="SelectionMode" Value="Single" />
-        <Setter Property="RowHeight" Value="40" />
+        <Setter Property="MinRowHeight" Value="36" />
         <Setter Property="ScrollViewer.CanContentScroll" Value="True" />
         <Setter Property="ScrollViewer.HorizontalScrollBarVisibility" Value="Disabled" />
         <Setter Property="ScrollViewer.VerticalScrollBarVisibility" Value="Auto" />

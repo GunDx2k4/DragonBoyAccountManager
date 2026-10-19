@@ -7,10 +7,10 @@
     xmlns:viewmodels="clr-namespace:DragonBoyAccountManager.GUI.ViewModels"
     xmlns:views="clr-namespace:DragonBoyAccountManager.GUI.Views"
     Title="{Binding Guide.AppVersion, StringFormat='Dragon Boy Account Manager (DBAM) v{0}'}"
-    Width="1180"
-    Height="660"
+    Width="1280"
+    Height="720"
     MinWidth="1060"
-    MinHeight="560"
+    MinHeight="580"
     ResizeMode="CanResize"
     d:DataContext="{d:DesignInstance Type=viewmodels:MainViewModel}"
     AllowsTransparency="True"
@@ -125,9 +125,9 @@
                                         Background="{DynamicResource GamePanelShadowBrush}" />
                                     <Grid Margin="10,6">
                                         <Grid.ColumnDefinitions>
-                                            <ColumnDefinition Width="*" MinWidth="520" />
+                                            <ColumnDefinition Width="*" MinWidth="560" />
                                             <ColumnDefinition Width="8" />
-                                            <ColumnDefinition Width="475" MinWidth="435" MaxWidth="720" />
+                                            <ColumnDefinition Width="440" MinWidth="410" MaxWidth="720" />
                                         </Grid.ColumnDefinitions>
 
                                         <views:AccountsPanelView Grid.Column="0" DataContext="{Binding AccountsPanel}" />
