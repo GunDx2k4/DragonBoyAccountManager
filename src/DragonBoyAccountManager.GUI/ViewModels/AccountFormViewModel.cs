@@ -136,14 +136,35 @@ public sealed partial class AccountFormViewModel : ObservableObject
                 RefreshSkills();
             }
         };
-        _skillRefreshTimer.Start();
-
         _cooldownTimer = new DispatcherTimer
         {
             Interval = TimeSpan.FromMilliseconds(100)
         };
         _cooldownTimer.Tick += (_, _) => UpdateCooldowns();
-        _cooldownTimer.Start();
+    }
+
+    public void StartPolling()
+    {
+        if (!_skillRefreshTimer.IsEnabled)
+        {
+            _skillRefreshTimer.Start();
+        }
+        if (!_cooldownTimer.IsEnabled)
+        {
+            _cooldownTimer.Start();
+        }
+    }
+
+    public void StopPolling()
+    {
+        if (_skillRefreshTimer.IsEnabled)
+        {
+            _skillRefreshTimer.Stop();
+        }
+        if (_cooldownTimer.IsEnabled)
+        {
+            _cooldownTimer.Stop();
+        }
     }
 
     public void SetTargetResolver(Func<IEnumerable<Guid>> resolver)

@@ -68,11 +68,13 @@ public sealed partial class MainViewModel : ObservableObject
                 {
                     UtilitiesTab.StopPolling();
                     AutoTab.StopPolling();
+                    AccountForm.StartPolling();
                     AccountForm.RefreshSkills();
                     AccountForm.RequestZoneList();
                 }
                 else if (SelectedTabIndex == 1)
                 {
+                    AccountForm.StopPolling();
                     AutoTab.StopPolling();
                     UtilitiesTab.StartPolling();
                     UtilitiesTab.RefreshMapData();
@@ -80,6 +82,7 @@ public sealed partial class MainViewModel : ObservableObject
                 }
                 else if (SelectedTabIndex == 2)
                 {
+                    AccountForm.StopPolling();
                     UtilitiesTab.StopPolling();
                     AutoTab.StartPolling();
                     AutoTab.RefreshData();
@@ -87,13 +90,18 @@ public sealed partial class MainViewModel : ObservableObject
                 }
                 else
                 {
+                    AccountForm.StopPolling();
                     UtilitiesTab.StopPolling();
                     AutoTab.StopPolling();
                 }
             }
         };
 
-        if (SelectedTabIndex == 1)
+        if (SelectedTabIndex == 0)
+        {
+            AccountForm.StartPolling();
+        }
+        else if (SelectedTabIndex == 1)
         {
             UtilitiesTab.StartPolling();
         }
