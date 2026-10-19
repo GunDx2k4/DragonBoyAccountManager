@@ -28,108 +28,128 @@
                 <RowDefinition Height="Auto" />
             </Grid.RowDefinitions>
 
-            <WrapPanel Grid.Row="0" Margin="0,0,0,10" VerticalAlignment="Center">
-                <StackPanel Orientation="Horizontal" Margin="0,0,10,4" VerticalAlignment="Center">
-                    <TextBlock
-                        Margin="0,0,6,0"
-                        VerticalAlignment="Center"
-                        FontWeight="Bold"
-                        Foreground="{DynamicResource GameTextDarkBrush}"
-                        Text="Tìm:" />
-                    <TextBox
-                        Width="120"
-                        VerticalAlignment="Center"
-                        Style="{StaticResource GameTextBoxStyle}"
-                        Text="{Binding SearchKeyword, UpdateSourceTrigger=PropertyChanged}" />
-
-                    <TextBlock
-                        Margin="8,0,6,0"
-                        VerticalAlignment="Center"
-                        FontWeight="Bold"
-                        Foreground="{DynamicResource GameTextDarkBrush}"
-                        Text="Server:" />
-                    <ComboBox
-                        Width="100"
-                        VerticalAlignment="Center"
-                        ItemsSource="{Binding FilterServers}"
-                        SelectedItem="{Binding SelectedServerFilter}"
-                        Style="{StaticResource GameComboBoxStyle}" />
-
-                    <Button
-                        Height="28"
-                        MinWidth="50"
-                        Margin="6,0,0,0"
-                        VerticalAlignment="Center"
-                        Command="{Binding ClearFilterCommand}"
-                        Content="Lọc lại"
-                        Style="{StaticResource GameSecondaryButton}" />
-                </StackPanel>
-
-                <StackPanel Orientation="Horizontal" Margin="0,0,0,4" VerticalAlignment="Center">
-                    <Button
-                        Height="28"
-                        Margin="0,0,6,0"
-                        Padding="8,0"
-                        Command="{Binding ShowGuidanceCommand}"
-                        Style="{StaticResource GameSecondaryButton}"
-                        ToolTip="Xem lại chỉ dẫn kết nối game &amp; Assembly"
-                        Visibility="{Binding ShowGuidanceButtonVisible, Converter={StaticResource BooleanToVisibilityConverter}}">
+            <Border
+                Grid.Row="0"
+                Margin="0,0,0,10"
+                Padding="8,5"
+                Background="{DynamicResource GameBgAltBrush}"
+                BorderBrush="{DynamicResource GameBorderBrush}"
+                BorderThickness="1.5"
+                CornerRadius="5"
+                SnapsToDevicePixels="True">
+                <WrapPanel VerticalAlignment="Center">
+                    <StackPanel
+                        Orientation="Horizontal"
+                        Margin="0,2,10,2"
+                        VerticalAlignment="Center">
                         <TextBlock
+                            Margin="0,0,6,0"
+                            VerticalAlignment="Center"
                             FontSize="11"
-                            FontWeight="Bold"
-                            Foreground="{DynamicResource GameTextRedBrush}"
-                            Text="CHỈ DẪN [!]" />
-                    </Button>
+                            FontWeight="ExtraBold"
+                            Foreground="{DynamicResource GameTextDarkBrush}"
+                            Text="Tìm:" />
+                        <TextBox
+                            Width="120"
+                            Height="28"
+                            VerticalAlignment="Center"
+                            Style="{StaticResource GameTextBoxStyle}"
+                            Text="{Binding SearchKeyword, UpdateSourceTrigger=PropertyChanged}" />
 
-                    <Button
-                        Height="28"
-                        Margin="0,0,6,0"
-                        Padding="8,0"
-                        Command="{Binding ToggleHideAccountsCommand}"
-                        Style="{StaticResource GameSecondaryButton}"
-                        ToolTip="Ẩn hoặc hiển thị tên tài khoản">
-                        <StackPanel VerticalAlignment="Center" Orientation="Horizontal">
-                            <Control
-                                Width="15"
-                                Height="15"
-                                Margin="0,0,5,0"
-                                Focusable="False"
-                                IsHitTestVisible="False"
-                                Template="{StaticResource DragonBallHideAccountIconTemplate}" />
+                        <TextBlock
+                            Margin="8,0,6,0"
+                            VerticalAlignment="Center"
+                            FontSize="11"
+                            FontWeight="ExtraBold"
+                            Foreground="{DynamicResource GameTextDarkBrush}"
+                            Text="Server:" />
+                        <ComboBox
+                            Width="100"
+                            Height="28"
+                            VerticalAlignment="Center"
+                            ItemsSource="{Binding FilterServers}"
+                            SelectedItem="{Binding SelectedServerFilter}"
+                            Style="{StaticResource GameComboBoxStyle}" />
+
+                        <Button
+                            Height="28"
+                            MinWidth="52"
+                            Margin="6,0,0,0"
+                            VerticalAlignment="Center"
+                            Command="{Binding ClearFilterCommand}"
+                            Content="Lọc lại"
+                            Style="{StaticResource GameSecondaryButton}" />
+                    </StackPanel>
+
+                    <StackPanel
+                        Orientation="Horizontal"
+                        Margin="0,2,0,2"
+                        VerticalAlignment="Center">
+                        <Button
+                            Height="28"
+                            Margin="0,0,6,0"
+                            Padding="8,0"
+                            Command="{Binding ShowGuidanceCommand}"
+                            Style="{StaticResource GameSecondaryButton}"
+                            ToolTip="Xem lại chỉ dẫn kết nối game &amp; Assembly"
+                            Visibility="{Binding ShowGuidanceButtonVisible, Converter={StaticResource BooleanToVisibilityConverter}}">
                             <TextBlock
                                 FontSize="11"
                                 FontWeight="ExtraBold"
-                                Foreground="{DynamicResource GameTextDarkBrush}">
-                                <TextBlock.Style>
-                                    <Style TargetType="TextBlock">
-                                        <Setter Property="Text" Value="ẨN ACC" />
-                                        <Style.Triggers>
-                                            <DataTrigger Binding="{Binding IsMasked}" Value="True">
-                                                <Setter Property="Text" Value="HIỆN ACC" />
-                                            </DataTrigger>
-                                        </Style.Triggers>
-                                    </Style>
-                                </TextBlock.Style>
-                            </TextBlock>
-                        </StackPanel>
-                    </Button>
+                                Foreground="{DynamicResource GameTextRedBrush}"
+                                Text="CHỈ DẪN [!]" />
+                        </Button>
 
-                    <Button
-                        Height="28"
-                        MinWidth="85"
-                        Margin="0,0,6,0"
-                        Command="{Binding OpenAddAccountCommand}"
-                        Content="THÊM ACC"
-                        Style="{StaticResource GamePrimaryButton}" />
+                        <Button
+                            Height="28"
+                            Margin="0,0,6,0"
+                            Padding="8,0"
+                            Command="{Binding ToggleHideAccountsCommand}"
+                            Style="{StaticResource GameSecondaryButton}"
+                            ToolTip="Ẩn hoặc hiển thị tên tài khoản">
+                            <StackPanel VerticalAlignment="Center" Orientation="Horizontal">
+                                <Control
+                                    Width="15"
+                                    Height="15"
+                                    Margin="0,0,5,0"
+                                    Focusable="False"
+                                    IsHitTestVisible="False"
+                                    Template="{StaticResource DragonBallHideAccountIconTemplate}" />
+                                <TextBlock
+                                    FontSize="11"
+                                    FontWeight="ExtraBold"
+                                    Foreground="{DynamicResource GameTextDarkBrush}">
+                                    <TextBlock.Style>
+                                        <Style TargetType="TextBlock">
+                                            <Setter Property="Text" Value="ẨN ACC" />
+                                            <Style.Triggers>
+                                                <DataTrigger Binding="{Binding IsMasked}" Value="True">
+                                                    <Setter Property="Text" Value="HIỆN ACC" />
+                                                </DataTrigger>
+                                            </Style.Triggers>
+                                        </Style>
+                                    </TextBlock.Style>
+                                </TextBlock>
+                            </StackPanel>
+                        </Button>
 
-                    <Button
-                        Width="28"
-                        Height="28"
-                        Command="{Binding LoadAccountsCommand}"
-                        Style="{StaticResource GameRadarRefreshButton}"
-                        ToolTip="Làm mới danh sách" />
-                </StackPanel>
-            </WrapPanel>
+                        <Button
+                            Height="28"
+                            MinWidth="85"
+                            Margin="0,0,6,0"
+                            Command="{Binding OpenAddAccountCommand}"
+                            Content="THÊM ACC"
+                            Style="{StaticResource GamePrimaryButton}" />
+
+                        <Button
+                            Width="28"
+                            Height="28"
+                            Command="{Binding LoadAccountsCommand}"
+                            Style="{StaticResource GameRadarRefreshButton}"
+                            ToolTip="Làm mới danh sách" />
+                    </StackPanel>
+                </WrapPanel>
+            </Border>
 
             <Border
                 Grid.Row="1"
@@ -286,7 +306,21 @@
                     <DataGridTemplateColumn Width="95" MinWidth="75" Header="MÁY CHỦ">
                         <DataGridTemplateColumn.CellTemplate>
                             <DataTemplate>
-                                <ui:GameBadge Content="{Binding Server}" />
+                                <Border
+                                    Padding="7,2"
+                                    HorizontalAlignment="Left"
+                                    VerticalAlignment="Center"
+                                    Background="{DynamicResource GameBgAltBrush}"
+                                    BorderBrush="{DynamicResource GameBorderBrush}"
+                                    BorderThickness="1"
+                                    CornerRadius="3.5"
+                                    SnapsToDevicePixels="True">
+                                    <TextBlock
+                                        FontSize="11"
+                                        FontWeight="ExtraBold"
+                                        Foreground="{DynamicResource GameTextDarkBrush}"
+                                        Text="{Binding Server}" />
+                                </Border>
                             </DataTemplate>
                         </DataGridTemplateColumn.CellTemplate>
                     </DataGridTemplateColumn>
@@ -389,9 +423,10 @@
                                         </TextBlock>
 
                                         <TextBlock
-                                            Margin="2,0,0,0"
+                                            Margin="3,0,0,0"
                                             VerticalAlignment="Center"
-                                            FontSize="9.5"
+                                            FontSize="10"
+                                            FontWeight="Bold"
                                             Foreground="{DynamicResource GameTextMutedBrush}"
                                             Text="{Binding CharacterPower, StringFormat=' ({0:N0})'}">
                                             <TextBlock.Style>
@@ -422,15 +457,15 @@
                                         </StackPanel.Style>
                                         <TextBlock
                                             FontSize="9.5"
-                                            FontWeight="Bold"
+                                            FontWeight="ExtraBold"
                                             Foreground="{DynamicResource GameTextRedBrush}"
                                             Text="{Binding DisplayHp, StringFormat='HP: {0}', Mode=OneWay}" />
                                         <TextBlock
                                             Margin="8,0,0,0"
                                             FontSize="9.5"
-                                            FontWeight="Bold"
+                                            FontWeight="ExtraBold"
                                             Foreground="{DynamicResource GameTextBlueBrush}"
-                                            Text="{Binding DisplayMp, StringFormat='MP: {0}', Mode=OneWay}" />
+                                            Text="{Binding DisplayMp, StringFormat='KI: {0}', Mode=OneWay}" />
                                     </StackPanel>
                                 </StackPanel>
                             </DataTemplate>
@@ -513,78 +548,76 @@
                     <ColumnDefinition Width="Auto" />
                 </Grid.ColumnDefinitions>
 
-                <WrapPanel
+                <Border
                     Grid.Column="0"
+                    HorizontalAlignment="Left"
                     VerticalAlignment="Center"
-                    Orientation="Horizontal">
-                    <Border
-                        Margin="0,0,6,0"
-                        Padding="8,3"
-                        Background="{DynamicResource GameBgBrush}"
-                        BorderBrush="{DynamicResource GameBorderBrush}"
-                        BorderThickness="1.2"
-                        CornerRadius="6">
+                    Padding="10,4"
+                    Background="{DynamicResource GameBgAltBrush}"
+                    BorderBrush="{DynamicResource GameBorderBrush}"
+                    BorderThickness="1.2"
+                    CornerRadius="4"
+                    SnapsToDevicePixels="True">
+                    <StackPanel VerticalAlignment="Center" Orientation="Horizontal">
                         <StackPanel VerticalAlignment="Center" Orientation="Horizontal">
                             <TextBlock
-                                FontSize="11"
-                                FontWeight="Bold"
+                                FontSize="10.5"
+                                FontWeight="ExtraBold"
                                 Foreground="{DynamicResource GameTextMutedBrush}"
-                                Text="Tổng: " />
+                                Text="TỔNG: " />
                             <TextBlock
                                 FontSize="11"
-                                FontWeight="ExtraBold"
+                                FontWeight="Black"
                                 Foreground="{DynamicResource GameTextDarkBrush}"
                                 Text="{Binding TotalAccountsCount}" />
                         </StackPanel>
-                    </Border>
 
-                    <Border
-                        Margin="0,0,6,0"
-                        Padding="8,3"
-                        Background="{DynamicResource GameBgBrush}"
-                        BorderBrush="{DynamicResource GameBorderBrush}"
-                        BorderThickness="1.2"
-                        CornerRadius="6">
+                        <Rectangle
+                            Width="1"
+                            Height="12"
+                            Margin="9,0"
+                            Fill="{DynamicResource GameBorderBrush}"
+                            SnapsToDevicePixels="True" />
+
                         <StackPanel VerticalAlignment="Center" Orientation="Horizontal">
                             <ui:GameStatusOrb
                                 Margin="0,0,5,0"
                                 VerticalAlignment="Center"
                                 Status="Active"
-                                Size="13" />
+                                Size="9" />
                             <TextBlock
-                                FontSize="11"
-                                FontWeight="Bold"
-                                Foreground="{DynamicResource GameTextMutedBrush}"
-                                Text="Online: " />
-                            <TextBlock
-                                FontSize="11"
+                                FontSize="10.5"
                                 FontWeight="ExtraBold"
+                                Foreground="{DynamicResource GameTextMutedBrush}"
+                                Text="ONLINE: " />
+                            <TextBlock
+                                FontSize="11"
+                                FontWeight="Black"
                                 Foreground="{DynamicResource GameTextGreenBrush}"
                                 Text="{Binding RunningAccountsCount}" />
                         </StackPanel>
-                    </Border>
 
-                    <Border
-                        Margin="0,0,6,0"
-                        Padding="8,3"
-                        Background="{DynamicResource GameBgBrush}"
-                        BorderBrush="{DynamicResource GameBorderBrush}"
-                        BorderThickness="1.2"
-                        CornerRadius="6">
+                        <Rectangle
+                            Width="1"
+                            Height="12"
+                            Margin="9,0"
+                            Fill="{DynamicResource GameBorderBrush}"
+                            SnapsToDevicePixels="True" />
+
                         <StackPanel VerticalAlignment="Center" Orientation="Horizontal">
                             <TextBlock
-                                FontSize="11"
-                                FontWeight="Bold"
+                                FontSize="10.5"
+                                FontWeight="ExtraBold"
                                 Foreground="{DynamicResource GameTextMutedBrush}"
-                                Text="Đã chọn: " />
+                                Text="ĐÃ CHỌN: " />
                             <TextBlock
                                 FontSize="11"
-                                FontWeight="ExtraBold"
+                                FontWeight="Black"
                                 Foreground="{DynamicResource GameTextDarkBrush}"
                                 Text="{Binding SelectedAccountsCount}" />
                         </StackPanel>
-                    </Border>
-                </WrapPanel>
+                    </StackPanel>
+                </Border>
 
                 <StackPanel
                     Grid.Column="1"
@@ -596,7 +629,8 @@
                         Margin="0,0,6,0"
                         Command="{Binding LoginSelectedAccountsCommand}"
                         Content="ĐĂNG NHẬP"
-                        FontSize="11"
+                        FontSize="11.5"
+                        FontWeight="Black"
                         Style="{StaticResource GamePrimaryButton}"
                         ToolTip="Mở game và đăng nhập tự động cho các tài khoản đang được chọn" />
 
