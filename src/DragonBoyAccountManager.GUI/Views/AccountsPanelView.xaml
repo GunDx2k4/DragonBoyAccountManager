@@ -176,15 +176,9 @@
                     <Button
                         Grid.Row="0"
                         Grid.Column="1"
-                        Width="22"
-                        Height="22"
-                        Padding="0"
-                        VerticalAlignment="Top"
+                        VerticalAlignment="Center"
                         Command="{Binding DismissGuidanceCommand}"
-                        Content="×"
-                        FontSize="14"
-                        FontWeight="Bold"
-                        Style="{StaticResource GameGhostButton}"
+                        Style="{StaticResource GameCloseButton}"
                         ToolTip="Tạm thời ẩn thông báo này" />
 
                     <StackPanel Grid.Row="1" Grid.Column="0" Grid.ColumnSpan="2" Margin="0,6,0,8">
