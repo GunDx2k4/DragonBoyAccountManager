@@ -1,5 +1,14 @@
 # DragonBoy Account Manager (DBAM) - Release Notes
 
+## Phiên bản v1.0.4
+
+- **Giao diện Retro Pixel Ngọc Rồng**: Đại tu toàn diện giao diện theo phong cách game gốc với thanh tiêu đề biển hiệu, thanh trạng thái chuẩn HUD và khay tài khoản hoài cổ
+- **Bảng kỹ năng & Hồi chiêu trực quan**: Thu gọn ô kỹ năng với hiệu ứng phủ thời gian hồi chiêu mượt mà, hỗ trợ nhấn đúp gán chiêu và bổ sung bảng tra cứu phím tắt nhanh
+- **Hiển thị chỉ số HP & KI chi tiết**: Bổ sung hiển thị lượng máu HP và năng lượng KI trực tiếp trên danh sách tài khoản kèm cấp độ sức mạnh nhân vật
+- **Tự động luyện tập & Đánh quái mượt mà**: Khắc phục lỗi hồi chiêu từng ô kỹ năng, cải thiện khả năng chọn mục tiêu quái và dừng đánh an toàn không kẹt nhân vật
+
+---
+
 ## Phiên bản v1.0.3
 
 - **Tab Tự động luyện tập**: Bổ sung tab Tự động với tùy chọn chọn quái mục tiêu, tự động nhặt đồ và né siêu quái tránh đột tử
