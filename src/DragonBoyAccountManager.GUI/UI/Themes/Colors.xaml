@@ -481,4 +481,37 @@
         x:Key="GameShadowBackdropColor"
         po:Freeze="True">#2E1400</Color>
 
+    <SolidColorBrush
+        x:Key="GameDragonBallBorderBrush"
+        po:Freeze="True"
+        Color="#261405" />
+    <SolidColorBrush
+        x:Key="GameDragonBallStarBrush"
+        po:Freeze="True"
+        Color="#D81B00" />
+    <RadialGradientBrush
+        x:Key="GameDragonBallBallBrush"
+        po:Freeze="True"
+        Center="0.5,0.5"
+        GradientOrigin="0.32,0.26"
+        RadiusX="0.54"
+        RadiusY="0.54">
+        <GradientStop Offset="0.0" Color="#FFFEE8" />
+        <GradientStop Offset="0.18" Color="#FFE750" />
+        <GradientStop Offset="0.46" Color="#FFA200" />
+        <GradientStop Offset="0.76" Color="#EE5800" />
+        <GradientStop Offset="1.0" Color="#9C1E00" />
+    </RadialGradientBrush>
+    <RadialGradientBrush
+        x:Key="GameDragonBallGlintBrush"
+        po:Freeze="True"
+        Center="0.5,0.5"
+        GradientOrigin="0.5,0.5"
+        RadiusX="0.5"
+        RadiusY="0.5">
+        <GradientStop Offset="0.0" Color="#95FFFFFF" />
+        <GradientStop Offset="0.6" Color="#25FFFFFF" />
+        <GradientStop Offset="1.0" Color="#00FFFFFF" />
+    </RadialGradientBrush>
+
 </ResourceDictionary>
