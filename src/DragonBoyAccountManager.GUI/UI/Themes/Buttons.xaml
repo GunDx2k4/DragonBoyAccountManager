@@ -389,39 +389,105 @@
                                     Background="#B88A50"
                                     CornerRadius="0,0,2,2" />
 
-                                <Grid Width="12" Height="12">
+                                <Grid HorizontalAlignment="Center" VerticalAlignment="Center">
                                     <Viewbox
                                         x:Name="maximizeIcon"
-                                        Width="12"
-                                        Height="12"
-                                        HorizontalAlignment="Center"
-                                        VerticalAlignment="Center">
-                                        <Border
-                                            Width="11"
-                                            Height="11"
-                                            BorderBrush="#250200"
-                                            BorderThickness="2"
-                                            CornerRadius="1" />
+                                        Width="15.5"
+                                        Height="16.5">
+                                        <Canvas Width="27" Height="38">
+                                            <Path
+                                                Canvas.Top="5.4"
+                                                Data="M 2,3.5 H 25 V 26.5 H 2 Z M 7,8.5 H 20 V 21.5 H 7 Z"
+                                                Fill="#140002"
+                                                Stroke="#140002"
+                                                StrokeEndLineCap="Round"
+                                                StrokeLineJoin="Round"
+                                                StrokeStartLineCap="Round"
+                                                StrokeThickness="4.2" />
+
+                                            <Path
+                                                Canvas.Top="3.6"
+                                                Data="M 2,3.5 H 25 V 26.5 H 2 Z M 7,8.5 H 20 V 21.5 H 7 Z"
+                                                Fill="#250200"
+                                                Stroke="#250200"
+                                                StrokeEndLineCap="Round"
+                                                StrokeLineJoin="Round"
+                                                StrokeStartLineCap="Round"
+                                                StrokeThickness="3.4" />
+
+                                            <Path
+                                                Canvas.Top="1.8"
+                                                Data="M 2,3.5 H 25 V 26.5 H 2 Z M 7,8.5 H 20 V 21.5 H 7 Z"
+                                                Fill="#2F0302"
+                                                Stroke="#2F0302"
+                                                StrokeEndLineCap="Round"
+                                                StrokeLineJoin="Round"
+                                                StrokeStartLineCap="Round"
+                                                StrokeThickness="2.6" />
+
+                                            <Path
+                                                Data="M 2,3.5 H 25 V 26.5 H 2 Z M 7,8.5 H 20 V 21.5 H 7 Z"
+                                                Fill="#390801"
+                                                Stroke="#390801"
+                                                StrokeEndLineCap="Round"
+                                                StrokeLineJoin="Round"
+                                                StrokeStartLineCap="Round"
+                                                StrokeThickness="1.6" />
+
+                                            <Path
+                                                Data="M 2,3.5 H 25 V 26.5 H 2 Z M 7,8.5 H 20 V 21.5 H 7 Z"
+                                                Fill="#FFFFFF" />
+                                        </Canvas>
                                     </Viewbox>
+
                                     <Viewbox
                                         x:Name="restoreIcon"
-                                        Width="12"
-                                        Height="12"
-                                        HorizontalAlignment="Center"
-                                        VerticalAlignment="Center"
+                                        Width="15.5"
+                                        Height="16.5"
                                         Visibility="Collapsed">
-                                        <Canvas Width="12" Height="12">
+                                        <Canvas Width="27" Height="38">
                                             <Path
-                                                Data="M 3,0 L 11,0 L 11,8 L 9,8 L 9,2 L 3,2 Z"
-                                                Fill="#250200" />
-                                            <Border
-                                                Canvas.Left="0"
-                                                Canvas.Top="3"
-                                                Width="9"
-                                                Height="9"
-                                                BorderBrush="#250200"
-                                                BorderThickness="1.8"
-                                                CornerRadius="1" />
+                                                Canvas.Top="5.4"
+                                                Data="M 7,2 H 25 V 20 H 20 V 7 H 7 Z M 2,8 H 20 V 26 H 2 Z M 7,13 H 15 V 21 H 7 Z"
+                                                Fill="#140002"
+                                                Stroke="#140002"
+                                                StrokeEndLineCap="Round"
+                                                StrokeLineJoin="Round"
+                                                StrokeStartLineCap="Round"
+                                                StrokeThickness="4.2" />
+
+                                            <Path
+                                                Canvas.Top="3.6"
+                                                Data="M 7,2 H 25 V 20 H 20 V 7 H 7 Z M 2,8 H 20 V 26 H 2 Z M 7,13 H 15 V 21 H 7 Z"
+                                                Fill="#250200"
+                                                Stroke="#250200"
+                                                StrokeEndLineCap="Round"
+                                                StrokeLineJoin="Round"
+                                                StrokeStartLineCap="Round"
+                                                StrokeThickness="3.4" />
+
+                                            <Path
+                                                Canvas.Top="1.8"
+                                                Data="M 7,2 H 25 V 20 H 20 V 7 H 7 Z M 2,8 H 20 V 26 H 2 Z M 7,13 H 15 V 21 H 7 Z"
+                                                Fill="#2F0302"
+                                                Stroke="#2F0302"
+                                                StrokeEndLineCap="Round"
+                                                StrokeLineJoin="Round"
+                                                StrokeStartLineCap="Round"
+                                                StrokeThickness="2.6" />
+
+                                            <Path
+                                                Data="M 7,2 H 25 V 20 H 20 V 7 H 7 Z M 2,8 H 20 V 26 H 2 Z M 7,13 H 15 V 21 H 7 Z"
+                                                Fill="#390801"
+                                                Stroke="#390801"
+                                                StrokeEndLineCap="Round"
+                                                StrokeLineJoin="Round"
+                                                StrokeStartLineCap="Round"
+                                                StrokeThickness="1.6" />
+
+                                            <Path
+                                                Data="M 7,2 H 25 V 20 H 20 V 7 H 7 Z M 2,8 H 20 V 26 H 2 Z M 7,13 H 15 V 21 H 7 Z"
+                                                Fill="#FFFFFF" />
                                         </Canvas>
                                     </Viewbox>
                                 </Grid>
