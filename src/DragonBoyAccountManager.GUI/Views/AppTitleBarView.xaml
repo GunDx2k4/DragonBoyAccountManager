@@ -142,18 +142,8 @@
                     <Button
                         x:Name="MaximizeButton"
                         Margin="0,0,6,0"
-                        Click="MaximizeButton_Click">
-                        <Button.Style>
-                            <Style BasedOn="{StaticResource GameMaximizeButton}" TargetType="Button">
-                                <Setter Property="ToolTip" Value="Phóng to" />
-                                <Style.Triggers>
-                                    <DataTrigger Binding="{Binding WindowState, RelativeSource={RelativeSource AncestorType=Window}}" Value="Maximized">
-                                        <Setter Property="ToolTip" Value="Khôi phục" />
-                                    </DataTrigger>
-                                </Style.Triggers>
-                            </Style>
-                        </Button.Style>
-                    </Button>
+                        Click="MaximizeButton_Click"
+                        Style="{StaticResource GameMaximizeButton}" />
                     <Button
                         Click="CloseButton_Click"
                         Style="{StaticResource GameCloseButton}"

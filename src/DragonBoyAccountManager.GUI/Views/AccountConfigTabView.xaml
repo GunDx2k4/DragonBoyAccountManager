@@ -16,73 +16,6 @@
 
     <UserControl.Resources>
         <converters:BooleanToVisibilityConverter x:Key="BooleanToVisibilityConverter" />
-        <ControlTemplate x:Key="DpadArrowRightTemplate">
-            <Grid Width="54" Height="54">
-                <Path
-                    Data="M 13.5,14 L 23.5,14 L 22.5,2 L 46.5,27 L 22.5,52 L 23.5,40 L 13.5,40 A 6,6 0 0 1 7.5,34 L 7.5,20 A 6,6 0 0 1 13.5,14 Z"
-                    Fill="{DynamicResource GameGoldAccentBrush}"
-                    Stroke="{DynamicResource GameDarkBrownBrush}"
-                    StrokeEndLineCap="Round"
-                    StrokeLineJoin="Round"
-                    StrokeStartLineCap="Round"
-                    StrokeThickness="3.8" />
-                <Path
-                    Data="M 12.5,16 L 15.5,16 L 15.5,38 L 12.5,38 A 4,4 0 0 1 9.5,34 L 9.5,20 A 4,4 0 0 1 12.5,16 Z"
-                    Fill="{DynamicResource GameGoldDarkBrush}"
-                    Opacity="0.95" />
-            </Grid>
-        </ControlTemplate>
-
-        <ControlTemplate x:Key="DpadArrowLeftTemplate">
-            <Grid Width="54" Height="54">
-                <Path
-                    Data="M 40.5,14 L 30.5,14 L 31.5,2 L 7.5,27 L 31.5,52 L 30.5,40 L 40.5,40 A 6,6 0 0 0 46.5,34 L 46.5,20 A 6,6 0 0 0 40.5,14 Z"
-                    Fill="{DynamicResource GameGoldAccentBrush}"
-                    Stroke="{DynamicResource GameDarkBrownBrush}"
-                    StrokeEndLineCap="Round"
-                    StrokeLineJoin="Round"
-                    StrokeStartLineCap="Round"
-                    StrokeThickness="3.8" />
-                <Path
-                    Data="M 41.5,16 L 38.5,16 L 38.5,38 L 41.5,38 A 4,4 0 0 0 44.5,34 L 44.5,20 A 4,4 0 0 0 41.5,16 Z"
-                    Fill="{DynamicResource GameGoldDarkBrush}"
-                    Opacity="0.95" />
-            </Grid>
-        </ControlTemplate>
-
-        <ControlTemplate x:Key="DpadArrowUpTemplate">
-            <Grid Width="54" Height="54">
-                <Path
-                    Data="M 14,40.5 L 14,30.5 L 2,31.5 L 27,7.5 L 52,31.5 L 40,30.5 L 40,40.5 A 6,6 0 0 1 34,46.5 L 20,46.5 A 6,6 0 0 1 14,40.5 Z"
-                    Fill="{DynamicResource GameGoldAccentBrush}"
-                    Stroke="{DynamicResource GameDarkBrownBrush}"
-                    StrokeEndLineCap="Round"
-                    StrokeLineJoin="Round"
-                    StrokeStartLineCap="Round"
-                    StrokeThickness="3.8" />
-                <Path
-                    Data="M 16,41.5 L 16,38.5 L 38,38.5 L 38,41.5 A 4,4 0 0 1 34,44.5 L 20,44.5 A 4,4 0 0 1 16,41.5 Z"
-                    Fill="{DynamicResource GameGoldDarkBrush}"
-                    Opacity="0.95" />
-            </Grid>
-        </ControlTemplate>
-
-        <ControlTemplate x:Key="DpadArrowDownTemplate">
-            <Grid Width="54" Height="54">
-                <Path
-                    Data="M 14,13.5 L 14,23.5 L 2,22.5 L 27,46.5 L 52,22.5 L 40,23.5 L 40,13.5 A 6,6 0 0 0 34,7.5 L 20,7.5 A 6,6 0 0 0 14,13.5 Z"
-                    Fill="{DynamicResource GameGoldAccentBrush}"
-                    Stroke="{DynamicResource GameDarkBrownBrush}"
-                    StrokeEndLineCap="Round"
-                    StrokeLineJoin="Round"
-                    StrokeStartLineCap="Round"
-                    StrokeThickness="3.8" />
-                <Path
-                    Data="M 16,12.5 L 16,15.5 L 38,15.5 L 38,12.5 A 4,4 0 0 0 34,9.5 L 20,9.5 A 4,4 0 0 0 16,12.5 Z"
-                    Fill="{DynamicResource GameGoldDarkBrush}"
-                    Opacity="0.95" />
-            </Grid>
-        </ControlTemplate>
     </UserControl.Resources>
 
     <ScrollViewer FocusVisualStyle="{x:Null}" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
@@ -111,31 +44,15 @@
                             Padding="8,1,25,1"
                             Cursor="Arrow"
                             IsReadOnly="True"
-                            Text="{Binding DisplayUsername, Mode=OneWay}">
-                            <TextBox.Style>
-                                <Style BasedOn="{StaticResource GameTextBoxStyle}" TargetType="TextBox">
-                                    <Setter Property="Visibility" Value="Collapsed" />
-                                    <Style.Triggers>
-                                        <DataTrigger Binding="{Binding IsMasked}" Value="True">
-                                            <Setter Property="Visibility" Value="Visible" />
-                                        </DataTrigger>
-                                    </Style.Triggers>
-                                </Style>
-                            </TextBox.Style>
-                        </TextBox>
+                            Style="{StaticResource GameTextBoxStyle}"
+                            Text="{Binding DisplayUsername, Mode=OneWay}"
+                            Visibility="{Binding IsMasked, Converter={StaticResource BooleanToVisibilityConverter}}" />
 
-                        <TextBox Padding="8,1,25,1" Text="{Binding Username, UpdateSourceTrigger=PropertyChanged}">
-                            <TextBox.Style>
-                                <Style BasedOn="{StaticResource GameTextBoxStyle}" TargetType="TextBox">
-                                    <Setter Property="Visibility" Value="Visible" />
-                                    <Style.Triggers>
-                                        <DataTrigger Binding="{Binding IsMasked}" Value="True">
-                                            <Setter Property="Visibility" Value="Collapsed" />
-                                        </DataTrigger>
-                                    </Style.Triggers>
-                                </Style>
-                            </TextBox.Style>
-                        </TextBox>
+                        <TextBox
+                            Padding="8,1,25,1"
+                            Style="{StaticResource GameTextBoxStyle}"
+                            Text="{Binding Username, UpdateSourceTrigger=PropertyChanged}"
+                            Visibility="{Binding IsMasked, Converter={StaticResource BooleanToVisibilityConverter}, ConverterParameter=Invert}" />
 
                         <Button
                             Width="18"

@@ -39,21 +39,9 @@
 
                 <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
                     <Ellipse
-                        Width="8"
-                        Height="8"
                         Margin="0,0,6,0"
-                        VerticalAlignment="Center">
-                        <Ellipse.Style>
-                            <Style TargetType="Ellipse">
-                                <Setter Property="Fill" Value="{DynamicResource GameGrayBrush}" />
-                                <Style.Triggers>
-                                    <DataTrigger Binding="{Binding IsAccountRunning}" Value="True">
-                                        <Setter Property="Fill" Value="{DynamicResource GameGreenBrush}" />
-                                    </DataTrigger>
-                                </Style.Triggers>
-                            </Style>
-                        </Ellipse.Style>
-                    </Ellipse>
+                        VerticalAlignment="Center"
+                        Style="{StaticResource GameStatusIndicatorEllipseStyle}" />
 
                     <TextBlock
                         VerticalAlignment="Center"
@@ -502,19 +490,8 @@
                             <Button
                                 Height="34"
                                 Margin="0,0,0,8"
-                                Command="{Binding ToggleAutoTrainCommand}">
-                                <Button.Style>
-                                    <Style BasedOn="{StaticResource GamePrimaryButton}" TargetType="Button">
-                                        <Setter Property="Content" Value="BẬT AUTO ĐÁNH" />
-                                        <Style.Triggers>
-                                            <DataTrigger Binding="{Binding IsAutoTrainRunning}" Value="True">
-                                                <Setter Property="Content" Value="DỪNG AUTO ĐÁNH" />
-                                                <Setter Property="Background" Value="{DynamicResource GameDangerBrush}" />
-                                            </DataTrigger>
-                                        </Style.Triggers>
-                                    </Style>
-                                </Button.Style>
-                            </Button>
+                                Command="{Binding ToggleAutoTrainCommand}"
+                                Style="{StaticResource GameAutoTrainToggleButtonStyle}" />
 
                             <Border
                                 Padding="8,6"
@@ -718,19 +695,8 @@
                                 <Button
                                     Grid.Column="2"
                                     Height="32"
-                                    Command="{Binding ToggleAutoChatCommand}">
-                                    <Button.Style>
-                                        <Style BasedOn="{StaticResource GamePrimaryButton}" TargetType="Button">
-                                            <Setter Property="Content" Value="BẬT AUTO CHAT" />
-                                            <Style.Triggers>
-                                                <DataTrigger Binding="{Binding IsAutoChatRunning}" Value="True">
-                                                    <Setter Property="Content" Value="DỪNG AUTO CHAT" />
-                                                    <Setter Property="Background" Value="{DynamicResource GameDangerBrush}" />
-                                                </DataTrigger>
-                                            </Style.Triggers>
-                                        </Style>
-                                    </Button.Style>
-                                </Button>
+                                    Command="{Binding ToggleAutoChatCommand}"
+                                    Style="{StaticResource GameAutoChatToggleButtonStyle}" />
                             </Grid>
 
                             <Border

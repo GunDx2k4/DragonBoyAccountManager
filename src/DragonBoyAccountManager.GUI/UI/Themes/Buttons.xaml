@@ -355,6 +355,7 @@
         <Setter Property="Height" Value="28" />
         <Setter Property="Cursor" Value="Hand" />
         <Setter Property="FocusVisualStyle" Value="{x:Null}" />
+        <Setter Property="ToolTip" Value="Phóng to" />
         <Setter Property="Template">
             <Setter.Value>
                 <ControlTemplate TargetType="Button">
@@ -448,6 +449,11 @@
                 </ControlTemplate>
             </Setter.Value>
         </Setter>
+        <Style.Triggers>
+            <DataTrigger Binding="{Binding WindowState, RelativeSource={RelativeSource AncestorType=Window}}" Value="Maximized">
+                <Setter Property="ToolTip" Value="Khôi phục" />
+            </DataTrigger>
+        </Style.Triggers>
     </Style>
 
     <Style x:Key="GameMiniButton" TargetType="Button">
@@ -603,6 +609,74 @@
             </Setter.Value>
         </Setter>
     </Style>
+
+    <ControlTemplate x:Key="DpadArrowRightTemplate">
+        <Grid Width="54" Height="54">
+            <Path
+                Data="M 13.5,14 L 23.5,14 L 22.5,2 L 46.5,27 L 22.5,52 L 23.5,40 L 13.5,40 A 6,6 0 0 1 7.5,34 L 7.5,20 A 6,6 0 0 1 13.5,14 Z"
+                Fill="{DynamicResource GameGoldAccentBrush}"
+                Stroke="{DynamicResource GameDarkBrownBrush}"
+                StrokeEndLineCap="Round"
+                StrokeLineJoin="Round"
+                StrokeStartLineCap="Round"
+                StrokeThickness="3.8" />
+            <Path
+                Data="M 12.5,16 L 15.5,16 L 15.5,38 L 12.5,38 A 4,4 0 0 1 9.5,34 L 9.5,20 A 4,4 0 0 1 12.5,16 Z"
+                Fill="{DynamicResource GameGoldDarkBrush}"
+                Opacity="0.95" />
+        </Grid>
+    </ControlTemplate>
+
+    <ControlTemplate x:Key="DpadArrowLeftTemplate">
+        <Grid Width="54" Height="54">
+            <Path
+                Data="M 40.5,14 L 30.5,14 L 31.5,2 L 7.5,27 L 31.5,52 L 30.5,40 L 40.5,40 A 6,6 0 0 0 46.5,34 L 46.5,20 A 6,6 0 0 0 40.5,14 Z"
+                Fill="{DynamicResource GameGoldAccentBrush}"
+                Stroke="{DynamicResource GameDarkBrownBrush}"
+                StrokeEndLineCap="Round"
+                StrokeLineJoin="Round"
+                StrokeStartLineCap="Round"
+                StrokeThickness="3.8" />
+            <Path
+                Data="M 41.5,16 L 38.5,16 L 38.5,38 L 41.5,38 A 4,4 0 0 0 44.5,34 L 44.5,20 A 4,4 0 0 0 41.5,16 Z"
+                Fill="{DynamicResource GameGoldDarkBrush}"
+                Opacity="0.95" />
+        </Grid>
+    </ControlTemplate>
+
+    <ControlTemplate x:Key="DpadArrowUpTemplate">
+        <Grid Width="54" Height="54">
+            <Path
+                Data="M 14,40.5 L 14,30.5 L 2,31.5 L 27,7.5 L 52,31.5 L 40,30.5 L 40,40.5 A 6,6 0 0 1 34,46.5 L 20,46.5 A 6,6 0 0 1 14,40.5 Z"
+                Fill="{DynamicResource GameGoldAccentBrush}"
+                Stroke="{DynamicResource GameDarkBrownBrush}"
+                StrokeEndLineCap="Round"
+                StrokeLineJoin="Round"
+                StrokeStartLineCap="Round"
+                StrokeThickness="3.8" />
+            <Path
+                Data="M 16,41.5 L 16,38.5 L 38,38.5 L 38,41.5 A 4,4 0 0 1 34,44.5 L 20,44.5 A 4,4 0 0 1 16,41.5 Z"
+                Fill="{DynamicResource GameGoldDarkBrush}"
+                Opacity="0.95" />
+        </Grid>
+    </ControlTemplate>
+
+    <ControlTemplate x:Key="DpadArrowDownTemplate">
+        <Grid Width="54" Height="54">
+            <Path
+                Data="M 14,13.5 L 14,23.5 L 2,22.5 L 27,46.5 L 52,22.5 L 40,23.5 L 40,13.5 A 6,6 0 0 0 34,7.5 L 20,7.5 A 6,6 0 0 0 14,13.5 Z"
+                Fill="{DynamicResource GameGoldAccentBrush}"
+                Stroke="{DynamicResource GameDarkBrownBrush}"
+                StrokeEndLineCap="Round"
+                StrokeLineJoin="Round"
+                StrokeStartLineCap="Round"
+                StrokeThickness="3.8" />
+            <Path
+                Data="M 16,12.5 L 16,15.5 L 38,15.5 L 38,12.5 A 4,4 0 0 0 34,9.5 L 20,9.5 A 4,4 0 0 0 16,12.5 Z"
+                Fill="{DynamicResource GameGoldDarkBrush}"
+                Opacity="0.95" />
+        </Grid>
+    </ControlTemplate>
 
     <Style x:Key="GameArrowVectorButtonStyle" TargetType="Button">
         <Setter Property="Width" Value="34" />
@@ -822,6 +896,28 @@
     <Style x:Key="GameDangerButton" BasedOn="{StaticResource GameSecondaryButton}" TargetType="Button">
         <Setter Property="Foreground" Value="{DynamicResource GameBtnDangerTextBrush}" />
         <Setter Property="Template" Value="{StaticResource GameDangerButtonTemplate}" />
+    </Style>
+
+    <Style x:Key="GameAutoTrainToggleButtonStyle" BasedOn="{StaticResource GamePrimaryButton}" TargetType="Button">
+        <Setter Property="Content" Value="BẬT AUTO ĐÁNH" />
+        <Style.Triggers>
+            <DataTrigger Binding="{Binding IsAutoTrainRunning}" Value="True">
+                <Setter Property="Content" Value="DỪNG AUTO ĐÁNH" />
+                <Setter Property="Template" Value="{StaticResource GameDangerButtonTemplate}" />
+                <Setter Property="Foreground" Value="{DynamicResource GameBtnDangerTextBrush}" />
+            </DataTrigger>
+        </Style.Triggers>
+    </Style>
+
+    <Style x:Key="GameAutoChatToggleButtonStyle" BasedOn="{StaticResource GamePrimaryButton}" TargetType="Button">
+        <Setter Property="Content" Value="BẬT AUTO CHAT" />
+        <Style.Triggers>
+            <DataTrigger Binding="{Binding IsAutoChatRunning}" Value="True">
+                <Setter Property="Content" Value="DỪNG AUTO CHAT" />
+                <Setter Property="Template" Value="{StaticResource GameDangerButtonTemplate}" />
+                <Setter Property="Foreground" Value="{DynamicResource GameBtnDangerTextBrush}" />
+            </DataTrigger>
+        </Style.Triggers>
     </Style>
 
     <ControlTemplate x:Key="GameSuccessButtonTemplate" TargetType="Button">

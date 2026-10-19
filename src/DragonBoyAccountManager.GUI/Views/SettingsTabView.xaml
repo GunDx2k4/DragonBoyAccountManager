@@ -15,13 +15,7 @@
     <UserControl.Resources>
 
         <DataTemplate x:Key="BooleanSettingTemplate" DataType="{x:Type viewmodels:SettingItemViewModel}">
-            <Border
-                Margin="0,2,0,6"
-                Padding="8,6"
-                Background="{DynamicResource GameBgBrush}"
-                BorderBrush="{DynamicResource GameBorderBrush}"
-                BorderThickness="1"
-                CornerRadius="4">
+            <Border Style="{StaticResource GameSettingRowBorderStyle}">
                 <StackPanel>
                     <CheckBox
                         Content="{Binding Label}"
@@ -33,34 +27,15 @@
                         Margin="22,2,0,0"
                         FontSize="9.5"
                         Foreground="{DynamicResource GameTextMutedBrush}"
+                        Style="{StaticResource GameCollapsibleDescriptionTextBlockStyle}"
                         Text="{Binding Description}"
-                        TextWrapping="Wrap">
-                        <TextBlock.Style>
-                            <Style TargetType="TextBlock">
-                                <Setter Property="Visibility" Value="Visible" />
-                                <Style.Triggers>
-                                    <DataTrigger Binding="{Binding Description}" Value="{x:Null}">
-                                        <Setter Property="Visibility" Value="Collapsed" />
-                                    </DataTrigger>
-                                    <DataTrigger Binding="{Binding Description}" Value="">
-                                        <Setter Property="Visibility" Value="Collapsed" />
-                                    </DataTrigger>
-                                </Style.Triggers>
-                            </Style>
-                        </TextBlock.Style>
-                    </TextBlock>
+                        TextWrapping="Wrap" />
                 </StackPanel>
             </Border>
         </DataTemplate>
 
         <DataTemplate x:Key="NumberSettingTemplate" DataType="{x:Type viewmodels:SettingItemViewModel}">
-            <Border
-                Margin="0,2,0,6"
-                Padding="8,6"
-                Background="{DynamicResource GameBgBrush}"
-                BorderBrush="{DynamicResource GameBorderBrush}"
-                BorderThickness="1"
-                CornerRadius="4">
+            <Border Style="{StaticResource GameSettingRowBorderStyle}">
                 <StackPanel>
                     <Grid Margin="0,0,0,3">
                         <Grid.ColumnDefinitions>
@@ -77,22 +52,9 @@
                             <TextBlock
                                 FontSize="9"
                                 Foreground="{DynamicResource GameTextMutedBrush}"
+                                Style="{StaticResource GameCollapsibleDescriptionTextBlockStyle}"
                                 Text="{Binding Description}"
-                                TextWrapping="Wrap">
-                                <TextBlock.Style>
-                                    <Style TargetType="TextBlock">
-                                        <Setter Property="Visibility" Value="Visible" />
-                                        <Style.Triggers>
-                                            <DataTrigger Binding="{Binding Description}" Value="{x:Null}">
-                                                <Setter Property="Visibility" Value="Collapsed" />
-                                            </DataTrigger>
-                                            <DataTrigger Binding="{Binding Description}" Value="">
-                                                <Setter Property="Visibility" Value="Collapsed" />
-                                            </DataTrigger>
-                                        </Style.Triggers>
-                                    </Style>
-                                </TextBlock.Style>
-                            </TextBlock>
+                                TextWrapping="Wrap" />
                         </StackPanel>
 
                         <Border
@@ -132,13 +94,7 @@
         </DataTemplate>
 
         <DataTemplate x:Key="TextSettingTemplate" DataType="{x:Type viewmodels:SettingItemViewModel}">
-            <Border
-                Margin="0,2,0,6"
-                Padding="8,6"
-                Background="{DynamicResource GameBgBrush}"
-                BorderBrush="{DynamicResource GameBorderBrush}"
-                BorderThickness="1"
-                CornerRadius="4">
+            <Border Style="{StaticResource GameSettingRowBorderStyle}">
                 <StackPanel>
                     <TextBlock
                         FontSize="11"
@@ -149,22 +105,9 @@
                         Margin="0,1,0,4"
                         FontSize="9"
                         Foreground="{DynamicResource GameTextMutedBrush}"
+                        Style="{StaticResource GameCollapsibleDescriptionTextBlockStyle}"
                         Text="{Binding Description}"
-                        TextWrapping="Wrap">
-                        <TextBlock.Style>
-                            <Style TargetType="TextBlock">
-                                <Setter Property="Visibility" Value="Visible" />
-                                <Style.Triggers>
-                                    <DataTrigger Binding="{Binding Description}" Value="{x:Null}">
-                                        <Setter Property="Visibility" Value="Collapsed" />
-                                    </DataTrigger>
-                                    <DataTrigger Binding="{Binding Description}" Value="">
-                                        <Setter Property="Visibility" Value="Collapsed" />
-                                    </DataTrigger>
-                                </Style.Triggers>
-                            </Style>
-                        </TextBlock.Style>
-                    </TextBlock>
+                        TextWrapping="Wrap" />
                     <TextBox
                         Height="28"
                         MaxLength="{Binding MaxLength}"
@@ -175,13 +118,7 @@
         </DataTemplate>
 
         <DataTemplate x:Key="SelectSettingTemplate" DataType="{x:Type viewmodels:SettingItemViewModel}">
-            <Border
-                Margin="0,2,0,6"
-                Padding="8,6"
-                Background="{DynamicResource GameBgBrush}"
-                BorderBrush="{DynamicResource GameBorderBrush}"
-                BorderThickness="1"
-                CornerRadius="4">
+            <Border Style="{StaticResource GameSettingRowBorderStyle}">
                 <StackPanel>
                     <TextBlock
                         FontSize="11"
@@ -192,22 +129,9 @@
                         Margin="0,1,0,4"
                         FontSize="9"
                         Foreground="{DynamicResource GameTextMutedBrush}"
+                        Style="{StaticResource GameCollapsibleDescriptionTextBlockStyle}"
                         Text="{Binding Description}"
-                        TextWrapping="Wrap">
-                        <TextBlock.Style>
-                            <Style TargetType="TextBlock">
-                                <Setter Property="Visibility" Value="Visible" />
-                                <Style.Triggers>
-                                    <DataTrigger Binding="{Binding Description}" Value="{x:Null}">
-                                        <Setter Property="Visibility" Value="Collapsed" />
-                                    </DataTrigger>
-                                    <DataTrigger Binding="{Binding Description}" Value="">
-                                        <Setter Property="Visibility" Value="Collapsed" />
-                                    </DataTrigger>
-                                </Style.Triggers>
-                            </Style>
-                        </TextBlock.Style>
-                    </TextBlock>
+                        TextWrapping="Wrap" />
                     <ComboBox
                         Height="28"
                         ItemsSource="{Binding Options}"

@@ -4,13 +4,7 @@
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
     xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
     xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
-    Width="190"
-    Padding="0"
-    Background="Transparent"
-    BorderThickness="0"
-    Grid.IsSharedSizeScope="True"
-    HasDropShadow="False"
-    SnapsToDevicePixels="True"
+    Style="{StaticResource GameContextMenuStyle}"
     d:DesignHeight="230"
     d:DesignWidth="190"
     d:Visibility="Visible"
@@ -24,27 +18,6 @@
         </ResourceDictionary>
     </ContextMenu.Resources>
 
-    <ContextMenu.Template>
-        <ControlTemplate TargetType="ContextMenu">
-            <Border
-                Padding="4,4"
-                Background="{DynamicResource GameBgLightBrush}"
-                BorderBrush="{DynamicResource GameBorderDarkBrush}"
-                BorderThickness="1.8"
-                CornerRadius="6">
-                <Border.Effect>
-                    <DropShadowEffect
-                        BlurRadius="8"
-                        Direction="315"
-                        Opacity="0.3"
-                        ShadowDepth="2"
-                        Color="{StaticResource GameShadowDarkColor}" />
-                </Border.Effect>
-                <StackPanel IsItemsHost="True" KeyboardNavigation.DirectionalNavigation="Cycle" />
-            </Border>
-        </ControlTemplate>
-    </ContextMenu.Template>
-
     <MenuItem
         Command="{Binding PlacementTarget.Tag.LoginSelectedAccountsCommand, RelativeSource={RelativeSource AncestorType=ContextMenu}}"
         CommandParameter="{Binding PlacementTarget.DataContext, RelativeSource={RelativeSource AncestorType=ContextMenu}}"
@@ -54,7 +27,7 @@
             <Path
                 Width="11"
                 Height="11"
-                Data="M 1,6 L 7,6 M 5,3 L 8,6 L 5,9 M 9,1 L 11,1 L 11,11 L 9,11"
+                Data="{StaticResource GameMenuLoginGeometry}"
                 Stroke="{DynamicResource GameMenuIconGreenBrush}"
                 StrokeEndLineCap="Round"
                 StrokeStartLineCap="Round"
@@ -66,22 +39,13 @@
         d:Visibility="Visible"
         Command="{Binding PlacementTarget.Tag.FocusGameWindowCommand, RelativeSource={RelativeSource AncestorType=ContextMenu}}"
         CommandParameter="{Binding PlacementTarget.DataContext, RelativeSource={RelativeSource AncestorType=ContextMenu}}"
-        Header="Chọn vào game">
-        <MenuItem.Style>
-            <Style BasedOn="{StaticResource GameMenuItemStyle}" TargetType="MenuItem">
-                <Setter Property="Visibility" Value="Collapsed" />
-                <Style.Triggers>
-                    <DataTrigger Binding="{Binding PlacementTarget.DataContext.IsRunning, RelativeSource={RelativeSource AncestorType=ContextMenu}}" Value="True">
-                        <Setter Property="Visibility" Value="Visible" />
-                    </DataTrigger>
-                </Style.Triggers>
-            </Style>
-        </MenuItem.Style>
+        Header="Chọn vào game"
+        Style="{StaticResource GameRunningAccountMenuItemStyle}">
         <MenuItem.Icon>
             <Path
                 Width="11"
                 Height="11"
-                Data="M 1,1 L 9,5 L 5,6 L 4,10 Z"
+                Data="{StaticResource GameMenuFocusGeometry}"
                 Fill="{DynamicResource GameMenuIconOrangeBrush}"
                 Stretch="Uniform" />
         </MenuItem.Icon>
@@ -91,17 +55,8 @@
         d:Visibility="Visible"
         Command="{Binding PlacementTarget.Tag.StopSelectedAccountsCommand, RelativeSource={RelativeSource AncestorType=ContextMenu}}"
         CommandParameter="{Binding PlacementTarget.DataContext, RelativeSource={RelativeSource AncestorType=ContextMenu}}"
-        Header="Đóng game">
-        <MenuItem.Style>
-            <Style BasedOn="{StaticResource GameMenuItemStyle}" TargetType="MenuItem">
-                <Setter Property="Visibility" Value="Collapsed" />
-                <Style.Triggers>
-                    <DataTrigger Binding="{Binding PlacementTarget.DataContext.IsRunning, RelativeSource={RelativeSource AncestorType=ContextMenu}}" Value="True">
-                        <Setter Property="Visibility" Value="Visible" />
-                    </DataTrigger>
-                </Style.Triggers>
-            </Style>
-        </MenuItem.Style>
+        Header="Đóng game"
+        Style="{StaticResource GameRunningAccountMenuItemStyle}">
         <MenuItem.Icon>
             <Rectangle
                 Width="10"
@@ -112,38 +67,18 @@
         </MenuItem.Icon>
     </MenuItem>
 
-    <Separator>
-        <Separator.Style>
-            <Style BasedOn="{StaticResource GameMenuSeparatorStyle}" TargetType="Separator">
-                <Setter Property="Visibility" Value="Visible" />
-                <Style.Triggers>
-                    <DataTrigger Binding="{Binding PlacementTarget.DataContext.IsRunning, RelativeSource={RelativeSource AncestorType=ContextMenu}}" Value="True">
-                        <Setter Property="Visibility" Value="Collapsed" />
-                    </DataTrigger>
-                </Style.Triggers>
-            </Style>
-        </Separator.Style>
-    </Separator>
+    <Separator Style="{StaticResource GameStoppedAccountSeparatorStyle}" />
 
     <MenuItem
         Command="{Binding PlacementTarget.Tag.DeleteAccountCommand, RelativeSource={RelativeSource AncestorType=ContextMenu}}"
         CommandParameter="{Binding PlacementTarget.DataContext, RelativeSource={RelativeSource AncestorType=ContextMenu}}"
-        Header="Xóa tài khoản">
-        <MenuItem.Style>
-            <Style BasedOn="{StaticResource GameMenuItemStyle}" TargetType="MenuItem">
-                <Setter Property="Visibility" Value="Visible" />
-                <Style.Triggers>
-                    <DataTrigger Binding="{Binding PlacementTarget.DataContext.IsRunning, RelativeSource={RelativeSource AncestorType=ContextMenu}}" Value="True">
-                        <Setter Property="Visibility" Value="Collapsed" />
-                    </DataTrigger>
-                </Style.Triggers>
-            </Style>
-        </MenuItem.Style>
+        Header="Xóa tài khoản"
+        Style="{StaticResource GameStoppedAccountMenuItemStyle}">
         <MenuItem.Icon>
             <Path
                 Width="10"
                 Height="10"
-                Data="M 1,1 L 9,9 M 1,9 L 9,1"
+                Data="{StaticResource GameMenuDeleteGeometry}"
                 Stroke="{DynamicResource GameMenuIconRedBrush}"
                 StrokeEndLineCap="Round"
                 StrokeStartLineCap="Round"
@@ -161,7 +96,7 @@
             <Path
                 Width="11"
                 Height="11"
-                Data="M 1,1 H 7 V 7 H 1 Z M 4,4 H 10 V 10 H 4 Z"
+                Data="{StaticResource GameMenuArrangeGeometry}"
                 Stretch="Uniform"
                 Stroke="{DynamicResource GameMenuIconDarkOrangeBrush}"
                 StrokeThickness="1.2" />
