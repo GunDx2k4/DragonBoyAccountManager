@@ -31,6 +31,9 @@ public interface INetworkModule
     bool Chat(string text);
     bool ChatGlobal(string text);
     bool SendChat(string text, ChatType type = ChatType.Map);
+    bool PickItem(int itemMapId);
+    bool SendPlayerAttack(IntPtr mobPtr);
+    bool SelectSkill(int skillTemplateId);
 }
 
 public class NetworkModule(MonoReflector reflector) : INetworkModule
@@ -406,4 +409,49 @@ public class NetworkModule(MonoReflector reflector) : INetworkModule
 
     public bool SendChat(string text, ChatType type = ChatType.Map)
         => type == ChatType.Global ? ChatGlobal(text) : Chat(text);
+
+    public bool PickItem(int itemMapId)
+    {
+        try
+        {
+            IntPtr service = ServicePointer;
+            if (service == IntPtr.Zero) return false;
+            _reflector.CallMethod(GameSchema.Service.ClassName, GameSchema.Service.MethodPickItem, service, itemMapId);
+            return true;
+        }
+        catch { return false; }
+    }
+
+    public bool SendPlayerAttack(IntPtr mobPtr)
+    {
+        try
+        {
+            if (mobPtr == IntPtr.Zero) return false;
+            IntPtr service = ServicePointer;
+            if (service == IntPtr.Zero) return false;
+
+            IntPtr vMob = _reflector.CreateInstance(GameSchema.MyVector.ClassName);
+            if (vMob == IntPtr.Zero) return false;
+            _reflector.CallMethod(GameSchema.MyVector.ClassName, GameSchema.MyVector.MethodAddElement, vMob, mobPtr);
+
+            IntPtr vChar = _reflector.CreateInstance(GameSchema.MyVector.ClassName);
+            if (vChar == IntPtr.Zero) return false;
+
+            _reflector.CallMethod(GameSchema.Service.ClassName, GameSchema.Service.MethodSendPlayerAttack, service, vMob, vChar, 1);
+            return true;
+        }
+        catch { return false; }
+    }
+
+    public bool SelectSkill(int skillTemplateId)
+    {
+        try
+        {
+            IntPtr service = ServicePointer;
+            if (service == IntPtr.Zero) return false;
+            _reflector.CallMethod(GameSchema.Service.ClassName, GameSchema.Service.MethodSelectSkill, service, skillTemplateId);
+            return true;
+        }
+        catch { return false; }
+    }
 }

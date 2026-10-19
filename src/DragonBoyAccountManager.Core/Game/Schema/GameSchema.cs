@@ -112,12 +112,16 @@ public static class GameSchema
         public const string StaticVItemMap = "vItemMap";
         public const string StaticKeySkill = "keySkill";
         public const string StaticOnScreenSkill = "onScreenSkill";
+        public const string StaticIsAutoPlay = "isAutoPlay";
+        public const string StaticCanAutoPlay = "canAutoPlay";
 
         public const string FieldZones = "zones";
         public const string FieldMaxPlayer = "maxPlayer";
         public const string FieldNumPlayer = "numPlayer";
         public const string FieldPts = "pts";
         public const string FieldClickMoving = "clickMoving";
+        public const string FieldAuto = "auto";
+        public const string FieldLastSkill = "lastSkill";
 
         public const string MethodGI = "gI";
         public const string MethodCheckClickMoveTo = "checkClickMoveTo";
@@ -136,6 +140,8 @@ public static class GameSchema
         public const string FieldName = "cName";
         public const string FieldHp = "cHP";
         public const string FieldHpFull = "cHPFull";
+        public const string FieldMp = "cMP";
+        public const string FieldMpFull = "cMPFull";
         public const string FieldPower = "cPower";
         public const string FieldGender = "cgender";
         public const string FieldX = "cx";
@@ -190,6 +196,7 @@ public static class GameSchema
     {
         public const string ClassName = "SkillTemplate";
         public const string FieldName = "name";
+        public const string FieldId = "id";
     }
 
     public static class Mob
@@ -204,6 +211,9 @@ public static class GameSchema
         public const string FieldStatus = "status";
         public const string FieldX = "x";
         public const string FieldY = "y";
+        public const string FieldXFirst = "xFirst";
+        public const string FieldYFirst = "yFirst";
+        public const string FieldIsDontMove = "isDontMove";
         public const string FieldIsBoss = "isBoss";
         public const string FieldLevelBoss = "levelBoss";
     }
@@ -212,6 +222,7 @@ public static class GameSchema
     {
         public const string ClassName = "MobTemplate";
         public const string FieldName = "name";
+        public const string FieldType = "type";
     }
 
     public static class Npc
@@ -237,7 +248,7 @@ public static class GameSchema
     {
         public const string ClassName = "ItemMap";
         public const string FieldItemMapId = "itemMapID";
-        public const string FieldTemplateId = "templateId";
+        public const string FieldTemplate = "template";
         public const string FieldX = "x";
         public const string FieldY = "y";
         public const string FieldPlayerId = "playerId";
@@ -254,6 +265,7 @@ public static class GameSchema
     {
         public const string ClassName = "ItemTemplate";
         public const string FieldId = "id";
+        public const string FieldType = "type";
         public const string FieldName = "name";
     }
 
@@ -316,6 +328,17 @@ public static class GameSchema
         public const string MethodChatGlobal = "chatGlobal";
         public const string MethodSetClientType = "setClientType";
         public const string MethodLogin = "login";
+        public const string MethodPickItem = "pickItem";
+        public const string MethodSendPlayerAttack = "sendPlayerAttack";
+        public const string MethodSelectSkill = "selectSkill";
+    }
+
+    public static class MyVector
+    {
+        public const string ClassName = "MyVector";
+        public const string MethodAddElement = "addElement";
+        public const string MethodSize = "size";
+        public const string MethodElementAt = "elementAt";
     }
 
     public static class MsgDlg

@@ -693,6 +693,10 @@ public class MonoReflector(MonoContext context)
             {
                 CallMethod(className, ".ctor", monoObject, args);
             }
+            else
+            {
+                CallMethod(className, ".ctor", monoObject);
+            }
             return monoObject;
         }
         catch

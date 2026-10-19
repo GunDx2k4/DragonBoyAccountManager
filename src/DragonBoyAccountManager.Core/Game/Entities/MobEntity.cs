@@ -13,8 +13,13 @@ public sealed class MobEntity(MonoReflector reflector, IntPtr pointer, string na
     public long MaxHp => GetField<long>(GameSchema.Mob.FieldMaxHp);
     public override int X => GetField<int>(GameSchema.Mob.FieldX);
     public override int Y => GetField<int>(GameSchema.Mob.FieldY);
+    public int XFirst => GetField<int>(GameSchema.Mob.FieldXFirst);
+    public int YFirst => GetField<int>(GameSchema.Mob.FieldYFirst);
     public int Status => GetField<int>(GameSchema.Mob.FieldStatus);
-    public bool IsBoss => GetField<bool>(GameSchema.Mob.FieldIsBoss) || GetField<sbyte>(GameSchema.Mob.FieldLevelBoss) > 0;
+    public sbyte LevelBoss => GetField<sbyte>(GameSchema.Mob.FieldLevelBoss);
+    public bool IsBoss => GetField<bool>(GameSchema.Mob.FieldIsBoss) || LevelBoss > 0;
+    public bool IsSuperMob => LevelBoss > 0;
+    public bool IsFlying { get; set; }
 
     public override bool IsAlive => base.IsAlive && Status != 0 && Status != 1 && Hp > 0;
     public string Name { get; set; } = name;

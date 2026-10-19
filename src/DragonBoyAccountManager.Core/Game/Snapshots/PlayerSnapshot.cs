@@ -11,8 +11,10 @@ public sealed record PlayerSnapshot(
     int Y,
     bool IsAlive,
     bool IsInGame,
-    bool IsChangingMap = false
+    bool IsChangingMap = false,
+    long Mp = 0,
+    long MaxMp = 0
 )
 {
-    public static PlayerSnapshot Empty => new(0, string.Empty, 0, 0, 0, 0, 0, 0, false, false, false);
+    public static PlayerSnapshot Empty => new(0, string.Empty, 0, 0, 0, 0, 0, 0, false, false, false, 0, 0);
 }

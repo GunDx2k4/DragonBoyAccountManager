@@ -15,10 +15,13 @@ public interface IPlayerModule
     string Name { get; }
     long Hp { get; }
     long MaxHp { get; }
+    long Mp { get; }
+    long MaxMp { get; }
     long Power { get; }
     int Gender { get; }
     int X { get; }
     int Y { get; }
+    IntPtr MobFocusPtr { get; }
 
     PlayerSnapshot GetSnapshot();
 
@@ -27,6 +30,8 @@ public interface IPlayerModule
     (bool Success, string Message) UseItem(sbyte index, short templateId = -1);
     (bool Success, string Message) UseCapsule();
     (bool Success, string Message) UseTdlt();
+    (bool Success, string Message) UsePean();
+    bool IsTdltActive { get; }
 
     IReadOnlyList<GameSkillInfo> GetSkills();
     (bool Success, string Message) UseSkill(int slotIndex);
@@ -92,10 +97,25 @@ public class PlayerModule(MonoReflector reflector) : IPlayerModule
     public string Name => IsAlive ? _reflector.ReadStringField(GameSchema.Char.ClassName, GameSchema.Char.FieldName, Pointer) : string.Empty;
     public long Hp => IsAlive ? _reflector.ReadField<long>(GameSchema.Char.ClassName, GameSchema.Char.FieldHp, Pointer) : 0;
     public long MaxHp => IsAlive ? _reflector.ReadField<long>(GameSchema.Char.ClassName, GameSchema.Char.FieldHpFull, Pointer) : 0;
+    public long Mp => IsAlive ? _reflector.ReadField<long>(GameSchema.Char.ClassName, GameSchema.Char.FieldMp, Pointer) : 0;
+    public long MaxMp => IsAlive ? _reflector.ReadField<long>(GameSchema.Char.ClassName, GameSchema.Char.FieldMpFull, Pointer) : 0;
     public long Power => IsAlive ? _reflector.ReadField<long>(GameSchema.Char.ClassName, GameSchema.Char.FieldPower, Pointer) : 0;
     public int Gender => IsAlive ? _reflector.ReadField<int>(GameSchema.Char.ClassName, GameSchema.Char.FieldGender, Pointer) : 0;
     public int X => IsAlive ? _reflector.ReadField<int>(GameSchema.Char.ClassName, GameSchema.Char.FieldX, Pointer) : 0;
     public int Y => IsAlive ? _reflector.ReadField<int>(GameSchema.Char.ClassName, GameSchema.Char.FieldY, Pointer) : 0;
+    public IntPtr MobFocusPtr => IsAlive ? _reflector.ReadFieldPtr(GameSchema.Char.ClassName, GameSchema.Char.FieldMobFocus, Pointer) : IntPtr.Zero;
+
+    public bool IsTdltActive
+    {
+        get
+        {
+            try
+            {
+                return _reflector.ReadStatic<bool>(GameSchema.GameScr.ClassName, GameSchema.GameScr.StaticCanAutoPlay);
+            }
+            catch { return false; }
+        }
+    }
 
     public PlayerSnapshot GetSnapshot()
     {
@@ -108,13 +128,15 @@ public class PlayerModule(MonoReflector reflector) : IPlayerModule
             string name = _reflector.ReadStringField(GameSchema.Char.ClassName, GameSchema.Char.FieldName, ptr);
             long hp = _reflector.ReadField<long>(GameSchema.Char.ClassName, GameSchema.Char.FieldHp, ptr);
             long maxHp = _reflector.ReadField<long>(GameSchema.Char.ClassName, GameSchema.Char.FieldHpFull, ptr);
+            long mp = _reflector.ReadField<long>(GameSchema.Char.ClassName, GameSchema.Char.FieldMp, ptr);
+            long maxMp = _reflector.ReadField<long>(GameSchema.Char.ClassName, GameSchema.Char.FieldMpFull, ptr);
             long power = _reflector.ReadField<long>(GameSchema.Char.ClassName, GameSchema.Char.FieldPower, ptr);
             int gender = _reflector.ReadField<int>(GameSchema.Char.ClassName, GameSchema.Char.FieldGender, ptr);
             int x = _reflector.ReadField<int>(GameSchema.Char.ClassName, GameSchema.Char.FieldX, ptr);
             int y = _reflector.ReadField<int>(GameSchema.Char.ClassName, GameSchema.Char.FieldY, ptr);
 
             bool isInGame = !string.IsNullOrWhiteSpace(name);
-            return new PlayerSnapshot(id, name, hp, maxHp, power, gender, x, y, true, isInGame, IsChangingMap);
+            return new PlayerSnapshot(id, name, hp, maxHp, power, gender, x, y, true, isInGame, IsChangingMap, mp, maxMp);
         }
         catch
         {
@@ -201,6 +223,43 @@ public class PlayerModule(MonoReflector reflector) : IPlayerModule
         if (item == null) return (false, "Không tìm thấy Tự Động Luyện Tập (521) trong hành trang!");
 
         return UseItem(-1, item.TemplateId);
+    }
+
+    public (bool Success, string Message) UsePean()
+    {
+        if (!IsAlive) return (false, "Nhân vật chưa vào game!");
+
+        var pean = FindItem(13, 60, 61, 62, 63, 64, 65, 352, 523, 595);
+        if (pean != null)
+        {
+            return UseItem(-1, pean.TemplateId);
+        }
+
+        var bag = GetBagItems();
+        foreach (var item in bag)
+        {
+            IntPtr bagArrayPtr = _reflector.ReadFieldPtr(GameSchema.Char.ClassName, GameSchema.Char.FieldArrItemBag, Pointer);
+            if (bagArrayPtr == IntPtr.Zero) break;
+            IntPtr[] itemPtrs = _reflector.ReadMonoPointerArray(bagArrayPtr);
+            if (item.Index >= 0 && item.Index < itemPtrs.Length)
+            {
+                IntPtr itemPtr = itemPtrs[item.Index];
+                if (itemPtr != IntPtr.Zero)
+                {
+                    IntPtr templatePtr = _reflector.ReadFieldPtr(GameSchema.Item.ClassName, GameSchema.Item.FieldTemplate, itemPtr);
+                    if (templatePtr != IntPtr.Zero)
+                    {
+                        sbyte type = _reflector.ReadField<sbyte>(GameSchema.ItemTemplate.ClassName, GameSchema.ItemTemplate.FieldType, templatePtr);
+                        if (type == 6)
+                        {
+                            return UseItem(-1, item.TemplateId);
+                        }
+                    }
+                }
+            }
+        }
+
+        return (false, "Hết đậu thần trong hành trang!");
     }
 
     public IReadOnlyList<GameSkillInfo> GetSkills()
@@ -290,18 +349,39 @@ public class PlayerModule(MonoReflector reflector) : IPlayerModule
                 return (false, $"Không tìm thấy kỹ năng ở ô phím {slotLabel}!");
             }
 
+            if (Pointer != IntPtr.Zero)
+            {
+                _reflector.WriteField(GameSchema.Char.ClassName, GameSchema.Char.FieldMySkill, Pointer, skillPtr);
+            }
+
             IntPtr gameScr = _reflector.ReadStatic<IntPtr>(GameSchema.GameScr.ClassName, GameSchema.GameScr.StaticInstance);
             if (gameScr == IntPtr.Zero)
             {
                 gameScr = _reflector.CallMethod(GameSchema.GameScr.ClassName, GameSchema.GameScr.MethodGI, IntPtr.Zero);
             }
 
-            if (gameScr == IntPtr.Zero)
+            if (gameScr != IntPtr.Zero)
             {
-                return (false, "Không thể truy cập GameScr!");
+                _reflector.WriteField(GameSchema.GameScr.ClassName, GameSchema.GameScr.FieldLastSkill, gameScr, skillPtr);
+                _reflector.WriteField(GameSchema.GameScr.ClassName, GameSchema.GameScr.FieldAuto, gameScr, 0);
             }
 
-            _reflector.CallMethod(GameSchema.GameScr.ClassName, GameSchema.GameScr.MethodDoSelectSkill, gameScr, skillPtr, true);
+            _reflector.WriteStatic(GameSchema.GameScr.ClassName, GameSchema.GameScr.StaticIsAutoPlay, false);
+
+            IntPtr templatePtr = _reflector.ReadFieldPtr(GameSchema.Skill.ClassName, GameSchema.Skill.FieldTemplate, skillPtr);
+            if (templatePtr != IntPtr.Zero)
+            {
+                sbyte templateId = _reflector.ReadField<sbyte>(GameSchema.SkillTemplate.ClassName, GameSchema.SkillTemplate.FieldId, templatePtr);
+                IntPtr service = _reflector.ReadStatic<IntPtr>(GameSchema.Service.ClassName, GameSchema.Service.StaticInstance);
+                if (service == IntPtr.Zero)
+                {
+                    service = _reflector.CallMethod(GameSchema.Service.ClassName, GameSchema.Service.MethodGI, IntPtr.Zero);
+                }
+                if (service != IntPtr.Zero)
+                {
+                    _reflector.CallMethod(GameSchema.Service.ClassName, GameSchema.Service.MethodSelectSkill, service, (int)templateId);
+                }
+            }
 
             var info = ReadSkillInfo(skillPtr, slotIndex);
             string skillName = info?.Name ?? (slotIndex == 9 ? "Skill 0" : $"Skill {slotIndex + 1}");

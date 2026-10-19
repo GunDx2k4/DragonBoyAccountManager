@@ -49,7 +49,7 @@ public class WorldModule(MonoReflector reflector, IUIModule ui, INetworkModule n
     private readonly IUIModule _ui = ui;
     private readonly INetworkModule _network = network;
 
-    private readonly ConcurrentDictionary<int, string> _mobTemplateCache = new();
+    private readonly ConcurrentDictionary<int, (string Name, bool IsFlying)> _mobTemplateCache = new();
     private readonly ConcurrentDictionary<int, string> _npcTemplateCache = new();
 
     private int _cachedCollisionMapId = -1;
@@ -212,10 +212,9 @@ public class WorldModule(MonoReflector reflector, IUIModule ui, INetworkModule n
             {
                 if (ptr == IntPtr.Zero) continue;
                 var mob = new MobEntity(_reflector, ptr);
-                if (string.IsNullOrEmpty(mob.Name))
-                {
-                    mob.Name = GetMobTemplateName(mob.TemplateId);
-                }
+                var info = GetMobTemplateInfo(mob.TemplateId);
+                mob.Name = info.Name;
+                mob.IsFlying = info.IsFlying;
                 result.Add(mob);
             }
         }
@@ -409,22 +408,26 @@ public class WorldModule(MonoReflector reflector, IUIModule ui, INetworkModule n
 
             if (entity is MobEntity)
             {
-                _reflector.CallMethod(GameSchema.Char.ClassName, GameSchema.Char.MethodFocusManualTo, myCharPtr, 0, entity.Pointer);
+                _reflector.WriteField(GameSchema.Char.ClassName, GameSchema.Char.FieldMobFocus, myCharPtr, entity.Pointer);
+                _reflector.CallMethod(GameSchema.Char.ClassName, GameSchema.Char.MethodFocusManualTo, myCharPtr, entity.Pointer);
                 return true;
             }
             if (entity is PlayerEntity)
             {
-                _reflector.CallMethod(GameSchema.Char.ClassName, GameSchema.Char.MethodFocusManualTo, myCharPtr, 1, entity.Pointer);
+                _reflector.WriteField(GameSchema.Char.ClassName, GameSchema.Char.FieldCharFocus, myCharPtr, entity.Pointer);
+                _reflector.CallMethod(GameSchema.Char.ClassName, GameSchema.Char.MethodFocusManualTo, myCharPtr, entity.Pointer);
                 return true;
             }
             if (entity is NpcEntity)
             {
-                _reflector.CallMethod(GameSchema.Char.ClassName, GameSchema.Char.MethodFocusManualTo, myCharPtr, 2, entity.Pointer);
+                _reflector.WriteField(GameSchema.Char.ClassName, GameSchema.Char.FieldNpcFocus, myCharPtr, entity.Pointer);
+                _reflector.CallMethod(GameSchema.Char.ClassName, GameSchema.Char.MethodFocusManualTo, myCharPtr, entity.Pointer);
                 return true;
             }
             if (entity is ItemMapEntity)
             {
-                _reflector.CallMethod(GameSchema.Char.ClassName, GameSchema.Char.MethodFocusManualTo, myCharPtr, 3, entity.Pointer);
+                _reflector.WriteField(GameSchema.Char.ClassName, GameSchema.Char.FieldItemFocus, myCharPtr, entity.Pointer);
+                _reflector.CallMethod(GameSchema.Char.ClassName, GameSchema.Char.MethodFocusManualTo, myCharPtr, entity.Pointer);
                 return true;
             }
 
@@ -661,7 +664,7 @@ public class WorldModule(MonoReflector reflector, IUIModule ui, INetworkModule n
             var rawZones = GetZones();
 
             var mobs = rawMobs.Select(m => new WorldMobInfo(
-                m.Id, m.TemplateId, m.Name, m.Hp, m.MaxHp, m.X, m.Y, m.Status, m.IsAlive, m.IsBoss
+                m.Id, m.TemplateId, m.Name, m.Hp, m.MaxHp, m.X, m.Y, m.Status, m.IsAlive, m.IsBoss, m.IsSuperMob, m.IsFlying
             )).ToList();
 
             var bosses = rawPlayers.Where(p => p.IsBoss).Select(b => new WorldBossInfo(
@@ -709,31 +712,31 @@ public class WorldModule(MonoReflector reflector, IUIModule ui, INetworkModule n
         }
     }
 
-    private string GetMobTemplateName(int templateId)
+    private (string Name, bool IsFlying) GetMobTemplateInfo(int templateId)
     {
-        if (templateId < 0) return string.Empty;
-        if (_mobTemplateCache.TryGetValue(templateId, out var cachedName))
-            return cachedName;
+        if (templateId < 0) return (string.Empty, false);
+        if (_mobTemplateCache.TryGetValue(templateId, out var cachedInfo))
+            return cachedInfo;
 
         try
         {
             IntPtr arrMobTemplatePtr = _reflector.ReadStatic<IntPtr>(GameSchema.Mob.ClassName, GameSchema.Mob.StaticArrMobTemplate);
-            if (arrMobTemplatePtr == IntPtr.Zero) return string.Empty;
+            if (arrMobTemplatePtr == IntPtr.Zero) return (string.Empty, false);
 
             IntPtr[] templates = _reflector.ReadMonoPointerArray(arrMobTemplatePtr);
             if (templateId < templates.Length && templates[templateId] != IntPtr.Zero)
             {
                 string name = _reflector.ReadStringField(GameSchema.MobTemplate.ClassName, GameSchema.MobTemplate.FieldName, templates[templateId]);
-                if (!string.IsNullOrWhiteSpace(name))
-                {
-                    _mobTemplateCache[templateId] = name;
-                    return name;
-                }
+                sbyte type = _reflector.ReadField<sbyte>(GameSchema.MobTemplate.ClassName, GameSchema.MobTemplate.FieldType, templates[templateId]);
+                bool isFlying = type == 4 || type == 5;
+                var info = (name ?? string.Empty, isFlying);
+                _mobTemplateCache[templateId] = info;
+                return info;
             }
         }
         catch { }
 
-        return string.Empty;
+        return (string.Empty, false);
     }
 
     private string GetNpcTemplateName(int templateId)

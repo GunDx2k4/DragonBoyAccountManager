@@ -10,7 +10,9 @@ public sealed record WorldMobInfo(
     int Y,
     int Status,
     bool IsAlive,
-    bool IsBoss
+    bool IsBoss,
+    bool IsSuperMob = false,
+    bool IsFlying = false
 );
 
 public sealed record WorldBossInfo(
