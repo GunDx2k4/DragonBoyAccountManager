@@ -14,7 +14,7 @@
     mc:Ignorable="d">
 
     <UserControl.Resources>
-        <ControlTemplate x:Key="DpadArrowIconTemplate">
+        <ControlTemplate x:Key="DpadArrowRightTemplate">
             <Grid Width="54" Height="54">
                 <Path
                     Data="M 13.5,14 L 23.5,14 L 22.5,2 L 46.5,27 L 22.5,52 L 23.5,40 L 13.5,40 A 6,6 0 0 1 7.5,34 L 7.5,20 A 6,6 0 0 1 13.5,14 Z"
@@ -26,6 +26,57 @@
                     StrokeThickness="3.8" />
                 <Path
                     Data="M 12.5,16 L 15.5,16 L 15.5,38 L 12.5,38 A 4,4 0 0 1 9.5,34 L 9.5,20 A 4,4 0 0 1 12.5,16 Z"
+                    Fill="#D49B1C"
+                    Opacity="0.95" />
+            </Grid>
+        </ControlTemplate>
+
+        <ControlTemplate x:Key="DpadArrowLeftTemplate">
+            <Grid Width="54" Height="54">
+                <Path
+                    Data="M 40.5,14 L 30.5,14 L 31.5,2 L 7.5,27 L 31.5,52 L 30.5,40 L 40.5,40 A 6,6 0 0 0 46.5,34 L 46.5,20 A 6,6 0 0 0 40.5,14 Z"
+                    Fill="#F7C934"
+                    Stroke="#350C03"
+                    StrokeEndLineCap="Round"
+                    StrokeLineJoin="Round"
+                    StrokeStartLineCap="Round"
+                    StrokeThickness="3.8" />
+                <Path
+                    Data="M 41.5,16 L 38.5,16 L 38.5,38 L 41.5,38 A 4,4 0 0 0 44.5,34 L 44.5,20 A 4,4 0 0 0 41.5,16 Z"
+                    Fill="#D49B1C"
+                    Opacity="0.95" />
+            </Grid>
+        </ControlTemplate>
+
+        <ControlTemplate x:Key="DpadArrowUpTemplate">
+            <Grid Width="54" Height="54">
+                <Path
+                    Data="M 14,40.5 L 14,30.5 L 2,31.5 L 27,7.5 L 52,31.5 L 40,30.5 L 40,40.5 A 6,6 0 0 1 34,46.5 L 20,46.5 A 6,6 0 0 1 14,40.5 Z"
+                    Fill="#F7C934"
+                    Stroke="#350C03"
+                    StrokeEndLineCap="Round"
+                    StrokeLineJoin="Round"
+                    StrokeStartLineCap="Round"
+                    StrokeThickness="3.8" />
+                <Path
+                    Data="M 16,41.5 L 16,38.5 L 38,38.5 L 38,41.5 A 4,4 0 0 1 34,44.5 L 20,44.5 A 4,4 0 0 1 16,41.5 Z"
+                    Fill="#D49B1C"
+                    Opacity="0.95" />
+            </Grid>
+        </ControlTemplate>
+
+        <ControlTemplate x:Key="DpadArrowDownTemplate">
+            <Grid Width="54" Height="54">
+                <Path
+                    Data="M 14,13.5 L 14,23.5 L 2,22.5 L 27,46.5 L 52,22.5 L 40,23.5 L 40,13.5 A 6,6 0 0 0 34,7.5 L 20,7.5 A 6,6 0 0 0 14,13.5 Z"
+                    Fill="#F7C934"
+                    Stroke="#350C03"
+                    StrokeEndLineCap="Round"
+                    StrokeLineJoin="Round"
+                    StrokeStartLineCap="Round"
+                    StrokeThickness="3.8" />
+                <Path
+                    Data="M 16,12.5 L 16,15.5 L 38,15.5 L 38,12.5 A 4,4 0 0 0 34,9.5 L 20,9.5 A 4,4 0 0 0 16,12.5 Z"
                     Fill="#D49B1C"
                     Opacity="0.95" />
             </Grid>
@@ -281,23 +332,23 @@
                             Orientation="Horizontal">
                             <Grid HorizontalAlignment="Center" VerticalAlignment="Center">
                                 <Grid.RowDefinitions>
-                                    <RowDefinition Height="28" />
+                                    <RowDefinition Height="34" />
                                     <RowDefinition Height="2" />
-                                    <RowDefinition Height="28" />
+                                    <RowDefinition Height="34" />
                                 </Grid.RowDefinitions>
                                 <Grid.ColumnDefinitions>
-                                    <ColumnDefinition Width="28" />
+                                    <ColumnDefinition Width="34" />
                                     <ColumnDefinition Width="2" />
-                                    <ColumnDefinition Width="28" />
+                                    <ColumnDefinition Width="34" />
                                     <ColumnDefinition Width="2" />
-                                    <ColumnDefinition Width="28" />
+                                    <ColumnDefinition Width="34" />
                                 </Grid.ColumnDefinitions>
 
                                 <Button
                                     Grid.Row="0"
                                     Grid.Column="2"
-                                    Width="28"
-                                    Height="28"
+                                    Width="34"
+                                    Height="34"
                                     MouseLeave="DpadButton_MouseLeave"
                                     PreviewMouseDown="DpadButton_PreviewMouseDown"
                                     PreviewMouseUp="DpadButton_PreviewMouseUp"
@@ -305,23 +356,19 @@
                                     Tag="Up"
                                     ToolTip="Di chuyển Lên (Phím mũi tên Lên / Phím W)">
                                     <Viewbox
-                                        Width="16"
-                                        Height="16"
+                                        Width="20"
+                                        Height="20"
                                         HorizontalAlignment="Center"
                                         VerticalAlignment="Center">
-                                        <Control RenderTransformOrigin="0.5,0.5" Template="{StaticResource DpadArrowIconTemplate}">
-                                            <Control.RenderTransform>
-                                                <RotateTransform Angle="-90" />
-                                            </Control.RenderTransform>
-                                        </Control>
+                                        <Control Template="{StaticResource DpadArrowUpTemplate}" />
                                     </Viewbox>
                                 </Button>
 
                                 <Button
                                     Grid.Row="2"
                                     Grid.Column="0"
-                                    Width="28"
-                                    Height="28"
+                                    Width="34"
+                                    Height="34"
                                     MouseLeave="DpadButton_MouseLeave"
                                     PreviewMouseDown="DpadButton_PreviewMouseDown"
                                     PreviewMouseUp="DpadButton_PreviewMouseUp"
@@ -329,23 +376,19 @@
                                     Tag="Left"
                                     ToolTip="Di chuyển Trái (Phím mũi tên Trái / Phím A)">
                                     <Viewbox
-                                        Width="16"
-                                        Height="16"
+                                        Width="20"
+                                        Height="20"
                                         HorizontalAlignment="Center"
                                         VerticalAlignment="Center">
-                                        <Control RenderTransformOrigin="0.5,0.5" Template="{StaticResource DpadArrowIconTemplate}">
-                                            <Control.RenderTransform>
-                                                <RotateTransform Angle="180" />
-                                            </Control.RenderTransform>
-                                        </Control>
+                                        <Control Template="{StaticResource DpadArrowLeftTemplate}" />
                                     </Viewbox>
                                 </Button>
 
                                 <Button
                                     Grid.Row="2"
                                     Grid.Column="2"
-                                    Width="28"
-                                    Height="28"
+                                    Width="34"
+                                    Height="34"
                                     MouseLeave="DpadButton_MouseLeave"
                                     PreviewMouseDown="DpadButton_PreviewMouseDown"
                                     PreviewMouseUp="DpadButton_PreviewMouseUp"
@@ -353,23 +396,19 @@
                                     Tag="Down"
                                     ToolTip="Di chuyển Xuống (Phím mũi tên Xuống / Phím S)">
                                     <Viewbox
-                                        Width="16"
-                                        Height="16"
+                                        Width="20"
+                                        Height="20"
                                         HorizontalAlignment="Center"
                                         VerticalAlignment="Center">
-                                        <Control RenderTransformOrigin="0.5,0.5" Template="{StaticResource DpadArrowIconTemplate}">
-                                            <Control.RenderTransform>
-                                                <RotateTransform Angle="90" />
-                                            </Control.RenderTransform>
-                                        </Control>
+                                        <Control Template="{StaticResource DpadArrowDownTemplate}" />
                                     </Viewbox>
                                 </Button>
 
                                 <Button
                                     Grid.Row="2"
                                     Grid.Column="4"
-                                    Width="28"
-                                    Height="28"
+                                    Width="34"
+                                    Height="34"
                                     MouseLeave="DpadButton_MouseLeave"
                                     PreviewMouseDown="DpadButton_PreviewMouseDown"
                                     PreviewMouseUp="DpadButton_PreviewMouseUp"
@@ -377,25 +416,25 @@
                                     Tag="Right"
                                     ToolTip="Di chuyển Phải (Phím mũi tên Phải / Phím D)">
                                     <Viewbox
-                                        Width="16"
-                                        Height="16"
+                                        Width="20"
+                                        Height="20"
                                         HorizontalAlignment="Center"
                                         VerticalAlignment="Center">
-                                        <Control Template="{StaticResource DpadArrowIconTemplate}" />
+                                        <Control Template="{StaticResource DpadArrowRightTemplate}" />
                                     </Viewbox>
                                 </Button>
                             </Grid>
 
                             <Border
                                 Width="1"
-                                Margin="5,4,5,4"
+                                Margin="6,4,6,4"
                                 VerticalAlignment="Stretch"
                                 Background="{DynamicResource GameBorderBrush}"
                                 Opacity="0.4" />
 
                             <Button
-                                Width="36"
-                                Height="36"
+                                Width="46"
+                                Height="46"
                                 VerticalAlignment="Center"
                                 MouseLeave="DpadButton_MouseLeave"
                                 PreviewMouseDown="DpadButton_PreviewMouseDown"
@@ -406,7 +445,7 @@
 
                             <Border
                                 Width="1"
-                                Margin="5,4,6,4"
+                                Margin="6,4,6,4"
                                 VerticalAlignment="Stretch"
                                 Background="{DynamicResource GameBorderBrush}"
                                 Opacity="0.4" />
