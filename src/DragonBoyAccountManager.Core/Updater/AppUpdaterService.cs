@@ -99,6 +99,66 @@ public sealed class AppUpdaterService : IAppUpdaterService
             Math.Max(0, v.Revision));
     }
 
+    private static string ConvertHtmlToMarkdown(string html)
+    {
+        if (string.IsNullOrWhiteSpace(html)) return string.Empty;
+
+        string text = html;
+        text = Regex.Replace(text, @"<\s*h1[^>]*>([\s\S]*?)<\s*/\s*h1\s*>", "# $1\n\n", RegexOptions.IgnoreCase);
+        text = Regex.Replace(text, @"<\s*h2[^>]*>([\s\S]*?)<\s*/\s*h2\s*>", "## $1\n\n", RegexOptions.IgnoreCase);
+        text = Regex.Replace(text, @"<\s*h3[^>]*>([\s\S]*?)<\s*/\s*h3\s*>", "### $1\n\n", RegexOptions.IgnoreCase);
+        text = Regex.Replace(text, @"<\s*h4[^>]*>([\s\S]*?)<\s*/\s*h4\s*>", "#### $1\n\n", RegexOptions.IgnoreCase);
+        text = Regex.Replace(text, @"<\s*(?:strong|b)[^>]*>([\s\S]*?)<\s*/\s*(?:strong|b)\s*>", "**$1**", RegexOptions.IgnoreCase);
+        text = Regex.Replace(text, @"<\s*(?:em|i)[^>]*>([\s\S]*?)<\s*/\s*(?:em|i)\s*>", "*$1*", RegexOptions.IgnoreCase);
+        text = Regex.Replace(text, @"<\s*(?:code|tt)[^>]*>([\s\S]*?)<\s*/\s*(?:code|tt)\s*>", "`$1`", RegexOptions.IgnoreCase);
+        text = Regex.Replace(text, @"<\s*li[^>]*>([\s\S]*?)<\s*/\s*li\s*>", "- $1\n", RegexOptions.IgnoreCase);
+        text = Regex.Replace(text, @"<\s*(?:br|hr)\s*/?\s*>", "\n", RegexOptions.IgnoreCase);
+        text = Regex.Replace(text, @"<\s*p[^>]*>([\s\S]*?)<\s*/\s*p\s*>", "$1\n\n", RegexOptions.IgnoreCase);
+        text = Regex.Replace(text, @"<\s*a\s+[^>]*href=[""']([^""']*)[""'][^>]*>([\s\S]*?)<\s*/\s*a\s*>", "[$2]($1)", RegexOptions.IgnoreCase);
+        text = Regex.Replace(text, @"<[^>]+>", string.Empty, RegexOptions.IgnoreCase);
+        text = System.Net.WebUtility.HtmlDecode(text);
+        text = Regex.Replace(text, @"\r\n|\r", "\n");
+        text = Regex.Replace(text, @"\n{3,}", "\n\n");
+        return text.Trim();
+    }
+
+    private async Task<string> FetchReleaseNotesMarkdownAsync(string repo, string tag, string rawHtmlContent, CancellationToken ct)
+    {
+        try
+        {
+            string rawUrl = $"https://raw.githubusercontent.com/{repo}/{tag}/RELEASE_NOTES.md";
+            using var rawReq = new HttpRequestMessage(HttpMethod.Get, rawUrl);
+            using var rawResp = await Http.SendAsync(rawReq, ct);
+            if (rawResp.IsSuccessStatusCode)
+            {
+                string rawText = await rawResp.Content.ReadAsStringAsync(ct);
+                if (!string.IsNullOrWhiteSpace(rawText))
+                {
+                    return rawText.Trim();
+                }
+            }
+        }
+        catch { }
+
+        try
+        {
+            string rawUrl = $"https://raw.githubusercontent.com/{repo}/main/RELEASE_NOTES.md";
+            using var rawReq = new HttpRequestMessage(HttpMethod.Get, rawUrl);
+            using var rawResp = await Http.SendAsync(rawReq, ct);
+            if (rawResp.IsSuccessStatusCode)
+            {
+                string rawText = await rawResp.Content.ReadAsStringAsync(ct);
+                if (!string.IsNullOrWhiteSpace(rawText))
+                {
+                    return rawText.Trim();
+                }
+            }
+        }
+        catch { }
+
+        return ConvertHtmlToMarkdown(rawHtmlContent);
+    }
+
     public async Task<AppUpdateInfo?> CheckForUpdatesAsync(
         string repo = "GunDx2k4/DragonBoyAccountManager",
         Version? currentVersion = null,
@@ -345,7 +405,7 @@ public sealed class AppUpdaterService : IAppUpdaterService
             var contentMatch = Regex.Match(entryXml, @"<content[^>]*>([\s\S]*?)</content>", RegexOptions.IgnoreCase);
             if (contentMatch.Success)
             {
-                notes = System.Net.WebUtility.HtmlDecode(contentMatch.Groups[1].Value);
+                notes = await FetchReleaseNotesMarkdownAsync(repo, rawTag, contentMatch.Groups[1].Value, ct);
             }
 
             string? remoteCommitSha = null;
@@ -627,6 +687,22 @@ public sealed class AppUpdaterService : IAppUpdaterService
 
         try
         {
+            string rawUrl = $"https://raw.githubusercontent.com/{repo}/main/RELEASE_NOTES.md";
+            using var rawReq = new HttpRequestMessage(HttpMethod.Get, rawUrl);
+            using var rawResp = await Http.SendAsync(rawReq, ct);
+            if (rawResp.IsSuccessStatusCode)
+            {
+                string rawText = await rawResp.Content.ReadAsStringAsync(ct);
+                if (!string.IsNullOrWhiteSpace(rawText))
+                {
+                    return rawText.Trim();
+                }
+            }
+        }
+        catch { }
+
+        try
+        {
             string atomUrl = $"https://github.com/{repo}/releases.atom";
             using var atomReq = new HttpRequestMessage(HttpMethod.Get, atomUrl);
             using var atomResp = await Http.SendAsync(atomReq, ct);
@@ -636,7 +712,9 @@ public sealed class AppUpdaterService : IAppUpdaterService
                 var contentMatch = Regex.Match(atomContent, @"<content[^>]*>([\s\S]*?)</content>", RegexOptions.IgnoreCase);
                 if (contentMatch.Success)
                 {
-                    return System.Net.WebUtility.HtmlDecode(contentMatch.Groups[1].Value);
+                    var tagMatch = Regex.Match(atomContent, @"releases/tag/([^""\s<]+)", RegexOptions.IgnoreCase);
+                    string rawTag = tagMatch.Success ? tagMatch.Groups[1].Value.Trim() : "main";
+                    return await FetchReleaseNotesMarkdownAsync(repo, rawTag, contentMatch.Groups[1].Value, ct);
                 }
             }
         }
