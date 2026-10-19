@@ -17,7 +17,6 @@
     <converters:BooleanToVisibilityConverter x:Key="BooleanToVisibilityConverter" />
 
     <FontFamily x:Key="GameFont">Segoe UI, Tahoma, Arial</FontFamily>
-    <FontFamily x:Key="GameFontRegular">Segoe UI, Tahoma, Arial</FontFamily>
 
     <DropShadowEffect
         x:Key="GameTextPixelShadow"

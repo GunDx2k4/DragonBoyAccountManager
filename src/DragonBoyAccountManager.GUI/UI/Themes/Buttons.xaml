@@ -450,46 +450,6 @@
         </Setter>
     </Style>
 
-    <Style x:Key="GameRadarMinimizeButton" TargetType="Button">
-        <Setter Property="Width" Value="28" />
-        <Setter Property="Height" Value="28" />
-        <Setter Property="Cursor" Value="Hand" />
-        <Setter Property="FocusVisualStyle" Value="{x:Null}" />
-        <Setter Property="Template">
-            <Setter.Value>
-                <ControlTemplate TargetType="Button">
-                    <Border
-                        x:Name="border"
-                        Width="{TemplateBinding Width}"
-                        Height="{TemplateBinding Height}"
-                        Background="{DynamicResource GameCapsulePearlBrush}"
-                        BorderBrush="{DynamicResource GameCapsuleBorderBrush}"
-                        BorderThickness="2"
-                        CornerRadius="14"
-                        SnapsToDevicePixels="True">
-                        <TextBlock
-                            Margin="0,-1,0,0"
-                            HorizontalAlignment="Center"
-                            VerticalAlignment="Center"
-                            FontSize="14"
-                            FontWeight="ExtraBold"
-                            Foreground="{DynamicResource GameTextDarkBrush}"
-                            Text="—" />
-                    </Border>
-                    <ControlTemplate.Triggers>
-                        <Trigger Property="IsMouseOver" Value="True">
-                            <Setter TargetName="border" Property="Background" Value="{DynamicResource GameCapsulePearlHoverBrush}" />
-                            <Setter TargetName="border" Property="BorderBrush" Value="{DynamicResource GameCapsuleBorderDarkBrush}" />
-                        </Trigger>
-                        <Trigger Property="IsPressed" Value="True">
-                            <Setter TargetName="border" Property="Background" Value="{DynamicResource GameCapsulePearlPressedBrush}" />
-                        </Trigger>
-                    </ControlTemplate.Triggers>
-                </ControlTemplate>
-            </Setter.Value>
-        </Setter>
-    </Style>
-
     <Style x:Key="GameMiniButton" TargetType="Button">
         <Setter Property="Height" Value="24" />
         <Setter Property="Padding" Value="7,2" />
@@ -552,11 +512,6 @@
             </Setter.Value>
         </Setter>
     </Style>
-
-    <Style
-        x:Key="GameRadarCloseButton"
-        BasedOn="{StaticResource GameCloseButton}"
-        TargetType="Button" />
 
     <Style x:Key="GameRadarRefreshButton" TargetType="Button">
         <Setter Property="Width" Value="32" />

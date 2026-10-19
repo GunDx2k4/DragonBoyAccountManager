@@ -154,33 +154,4 @@
         </Setter>
     </Style>
 
-    <Style x:Key="GameContextMenuStyle" TargetType="ContextMenu">
-        <Setter Property="SnapsToDevicePixels" Value="True" />
-        <Setter Property="OverridesDefaultStyle" Value="True" />
-        <Setter Property="Grid.IsSharedSizeScope" Value="True" />
-        <Setter Property="HasDropShadow" Value="True" />
-        <Setter Property="Template">
-            <Setter.Value>
-                <ControlTemplate TargetType="ContextMenu">
-                    <Border
-                        Padding="4,4"
-                        Background="{DynamicResource GameBgLightBrush}"
-                        BorderBrush="{DynamicResource GameBorderDarkBrush}"
-                        BorderThickness="1.8"
-                        CornerRadius="6">
-                        <Border.Effect>
-                            <DropShadowEffect
-                                BlurRadius="8"
-                                Direction="315"
-                                Opacity="0.3"
-                                ShadowDepth="2"
-                                Color="#4A2800" />
-                        </Border.Effect>
-                        <StackPanel IsItemsHost="True" KeyboardNavigation.DirectionalNavigation="Cycle" />
-                    </Border>
-                </ControlTemplate>
-            </Setter.Value>
-        </Setter>
-    </Style>
-
 </ResourceDictionary>
