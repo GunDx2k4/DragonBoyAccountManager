@@ -3,6 +3,10 @@
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
     xmlns:converters="clr-namespace:DragonBoyAccountManager.GUI.UI.Converters">
 
+    <ResourceDictionary.MergedDictionaries>
+        <ResourceDictionary Source="pack://application:,,,/DragonBoyAccountManager.GUI;component/UI/Themes/Colors.xaml" />
+    </ResourceDictionary.MergedDictionaries>
+
     <converters:StatusToBrushConverter x:Key="StatusToBrushConverter" />
 
     <Style x:Key="GameDataGridColumnHeaderStyle" TargetType="DataGridColumnHeader">
