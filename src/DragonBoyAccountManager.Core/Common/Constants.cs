@@ -35,6 +35,7 @@ public static class Constants
         public const string ObjectGetClass = "mono_object_get_class";
         public const string ObjectNew = "mono_object_new";
         public const string ClassVTable = "mono_class_vtable";
+        public const string VTableGetStaticFieldData = "mono_vtable_get_static_field_data";
 
         public const string ClassGetFieldFromName = "mono_class_get_field_from_name";
         public const string FieldGetOffset = "mono_field_get_offset";

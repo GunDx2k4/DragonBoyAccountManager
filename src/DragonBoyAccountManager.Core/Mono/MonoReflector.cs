@@ -16,6 +16,7 @@ public class MonoReflector(MonoContext context)
     private readonly ConcurrentDictionary<IntPtr, IntPtr> _vtableCache = new();
     private readonly ConcurrentDictionary<(string Assembly, string Ns, string ClassName, string FieldName), MonoFieldInfo?> _fieldCache = new();
     private readonly ConcurrentDictionary<(string Assembly, string Ns, string ClassName, string MethodName, int ParamCount), IntPtr> _methodCache = new();
+    private readonly ConcurrentDictionary<IntPtr, IntPtr> _staticDataCache = new();
 
     public string? GetClassName(IntPtr monoObject)
     {
@@ -179,6 +180,24 @@ public class MonoReflector(MonoContext context)
         return vtable;
     }
 
+    public IntPtr GetStaticFieldData(IntPtr vtable)
+    {
+        if (vtable == IntPtr.Zero) return IntPtr.Zero;
+        if (_staticDataCache.TryGetValue(vtable, out var cached))
+            return cached;
+
+        IntPtr export = _context.GetExport(Constants.MonoExports.VTableGetStaticFieldData);
+        if (export != IntPtr.Zero)
+        {
+            IntPtr dataPtr = _context.Invoker.Call(export, vtable);
+            _staticDataCache[vtable] = dataPtr;
+            return dataPtr;
+        }
+
+        _staticDataCache[vtable] = IntPtr.Zero;
+        return IntPtr.Zero;
+    }
+
     public MonoFieldInfo? GetField(string className, string fieldName, string ns = Constants.NullTerminator, string assemblyName = "Assembly-CSharp")
     {
         var key = (assemblyName, ns, className, fieldName);
@@ -224,29 +243,48 @@ public class MonoReflector(MonoContext context)
 
     public T ReadStatic<T>(string className, string fieldName) where T : unmanaged
     {
-        var info = GetField(className, fieldName);
-        if (info == null || info.FieldPtr == IntPtr.Zero) return default;
-
-        IntPtr vtable = GetVTable(info.ClassPtr);
-        if (vtable == IntPtr.Zero) return default;
-
-        IntPtr buf = _context.Memory.Allocate(16);
         try
         {
-            _context.Invoker.Call(
-                _context.GetExport(Constants.MonoExports.FieldStaticGetValue),
-                vtable, info.FieldPtr, buf);
+            var info = GetField(className, fieldName);
+            if (info == null || info.FieldPtr == IntPtr.Zero) return default;
 
-            if (typeof(T) == typeof(IntPtr))
+            IntPtr vtable = GetVTable(info.ClassPtr);
+            if (vtable == IntPtr.Zero) return default;
+
+            IntPtr staticData = GetStaticFieldData(vtable);
+            if (staticData != IntPtr.Zero)
             {
-                return (T)(object)_context.Memory.ReadIntPtr(buf);
+                IntPtr fieldAddress = staticData + info.Offset;
+                if (typeof(T) == typeof(IntPtr))
+                {
+                    return (T)(object)_context.Memory.ReadIntPtr(fieldAddress);
+                }
+
+                return _context.Memory.Read<T>(fieldAddress);
             }
 
-            return _context.Memory.Read<T>(buf);
+            IntPtr buf = _context.Memory.Allocate(16);
+            try
+            {
+                _context.Invoker.Call(
+                    _context.GetExport(Constants.MonoExports.FieldStaticGetValue),
+                    vtable, info.FieldPtr, buf);
+
+                if (typeof(T) == typeof(IntPtr))
+                {
+                    return (T)(object)_context.Memory.ReadIntPtr(buf);
+                }
+
+                return _context.Memory.Read<T>(buf);
+            }
+            finally
+            {
+                _context.Memory.Free(buf);
+            }
         }
-        finally
+        catch
         {
-            _context.Memory.Free(buf);
+            return default;
         }
     }
 
@@ -493,25 +531,48 @@ public class MonoReflector(MonoContext context)
 
     public void WriteStatic<T>(string className, string fieldName, T value) where T : unmanaged
     {
-        var info = GetField(className, fieldName);
-        if (info == null || info.FieldPtr == IntPtr.Zero) return;
-
-        IntPtr vtable = GetVTable(info.ClassPtr);
-        if (vtable == IntPtr.Zero) return;
-
-        IntPtr valPtr = typeof(T) == typeof(IntPtr)
-            ? _context.Memory.AllocateAndWrite((IntPtr)(object)value)
-            : _context.Memory.AllocateAndWrite(value);
         try
         {
-            _context.Invoker.Call(
-                _context.GetExport(Constants.MonoExports.FieldStaticSetValue),
-                vtable, info.FieldPtr, valPtr);
+            var info = GetField(className, fieldName);
+            if (info == null || info.FieldPtr == IntPtr.Zero) return;
+
+            IntPtr vtable = GetVTable(info.ClassPtr);
+            if (vtable == IntPtr.Zero) return;
+
+            IntPtr staticData = GetStaticFieldData(vtable);
+            if (staticData != IntPtr.Zero)
+            {
+                IntPtr fieldAddress = staticData + info.Offset;
+                if (typeof(T) == typeof(IntPtr))
+                {
+                    IntPtr ptrVal = (IntPtr)(object)value;
+                    if (_context.Memory.Is64Bit)
+                        _context.Memory.Write(fieldAddress, ptrVal.ToInt64());
+                    else
+                        _context.Memory.Write(fieldAddress, unchecked((int)(long)ptrVal));
+                }
+                else
+                {
+                    _context.Memory.Write(fieldAddress, value);
+                }
+                return;
+            }
+
+            IntPtr valPtr = typeof(T) == typeof(IntPtr)
+                ? _context.Memory.AllocateAndWrite((IntPtr)(object)value)
+                : _context.Memory.AllocateAndWrite(value);
+            try
+            {
+                _context.Invoker.Call(
+                    _context.GetExport(Constants.MonoExports.FieldStaticSetValue),
+                    vtable, info.FieldPtr, valPtr);
+            }
+            finally
+            {
+                _context.Memory.Free(valPtr);
+            }
         }
-        finally
-        {
-            _context.Memory.Free(valPtr);
-        }
+        catch { }
     }
 
     public void WriteField<T>(string className, string fieldName, IntPtr objectPtr, T value) where T : unmanaged
