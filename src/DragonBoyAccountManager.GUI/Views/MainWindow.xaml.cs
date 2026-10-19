@@ -104,6 +104,20 @@ public partial class MainWindow : Window
             return;
         }
 
+        if (e.Key == Key.F12)
+        {
+            if (!e.IsRepeat)
+            {
+                var cheatsheet = new HotkeyCheatsheetWindow
+                {
+                    Owner = this
+                };
+                cheatsheet.ShowDialog();
+            }
+            e.Handled = true;
+            return;
+        }
+
         if (e.Key == Key.Y)
         {
             if (!e.IsRepeat)

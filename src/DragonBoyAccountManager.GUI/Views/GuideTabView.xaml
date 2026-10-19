@@ -436,6 +436,161 @@
             </ui:GameCard>
 
             <ui:GameCard
+                Margin="0,0,0,10"
+                Header="BẢNG TRA CỨU PHÍM TẮT ĐIỀU KHIỂN">
+                <StackPanel>
+                    <TextBlock
+                        Margin="0,0,0,8"
+                        FontSize="11"
+                        Foreground="{DynamicResource GameTextMutedBrush}"
+                        Text="Bạn có thể nhấn phím F12 tại bất kỳ màn hình nào để mở popup tra cứu nhanh."
+                        TextWrapping="Wrap" />
+
+                    <Border
+                        Margin="0,0,0,6"
+                        Padding="8,6"
+                        Background="{DynamicResource GameBgBrush}"
+                        BorderBrush="{DynamicResource GameBorderBrush}"
+                        BorderThickness="1.5"
+                        CornerRadius="5">
+                        <StackPanel>
+                            <TextBlock
+                                Margin="0,0,0,4"
+                                FontSize="10"
+                                FontWeight="ExtraBold"
+                                Foreground="{DynamicResource GameTextGreenBrush}"
+                                Text="DI CHUYỂN &amp; KHU VỰC:" />
+                            <TextBlock
+                                Margin="4,0,0,2"
+                                FontSize="10"
+                                Foreground="{DynamicResource GameTextDarkBrush}"
+                                Text="• W, A, S, D hoặc Mũi tên: Di chuyển 4 hướng (Giữ để chạy)" />
+                            <TextBlock
+                                Margin="4,0,0,0"
+                                FontSize="10"
+                                Foreground="{DynamicResource GameTextDarkBrush}"
+                                Text="• [  hoặc  ]: Chuyển sang khu vực (zone) trước / kế tiếp" />
+                        </StackPanel>
+                    </Border>
+
+                    <Border
+                        Margin="0,0,0,6"
+                        Padding="8,6"
+                        Background="{DynamicResource GameBgBrush}"
+                        BorderBrush="{DynamicResource GameBorderBrush}"
+                        BorderThickness="1.5"
+                        CornerRadius="5">
+                        <StackPanel>
+                            <TextBlock
+                                Margin="0,0,0,4"
+                                FontSize="10"
+                                FontWeight="ExtraBold"
+                                Foreground="{DynamicResource GameTextYellowBrush}"
+                                Text="CHIẾN ĐẤU &amp; KỸ NĂNG:" />
+                            <TextBlock
+                                Margin="4,0,0,2"
+                                FontSize="10"
+                                Foreground="{DynamicResource GameTextDarkBrush}"
+                                Text="• Enter: Chọn mục tiêu / Tấn công / Trò chuyện NPC" />
+                            <TextBlock
+                                Margin="4,0,0,2"
+                                FontSize="10"
+                                Foreground="{DynamicResource GameTextDarkBrush}"
+                                Text="• Space: Dùng Đậu Thần hồi HP &amp; KI tức thì" />
+                            <TextBlock
+                                Margin="4,0,0,2"
+                                FontSize="10"
+                                Foreground="{DynamicResource GameTextDarkBrush}"
+                                Text="• Q: Nhặt vật phẩm rơi quanh người" />
+                            <TextBlock
+                                Margin="4,0,0,2"
+                                FontSize="10"
+                                Foreground="{DynamicResource GameTextDarkBrush}"
+                                Text="• Tab: Đổi mục tiêu sang quái hoặc người chơi khác" />
+                            <TextBlock
+                                Margin="4,0,0,0"
+                                FontSize="10"
+                                Foreground="{DynamicResource GameTextDarkBrush}"
+                                Text="• 1 - 9, 0 (NumPad): Kích hoạt kỹ năng tại ô tương ứng" />
+                        </StackPanel>
+                    </Border>
+
+                    <Border
+                        Margin="0,0,0,6"
+                        Padding="8,6"
+                        Background="{DynamicResource GameBgBrush}"
+                        BorderBrush="{DynamicResource GameBorderBrush}"
+                        BorderThickness="1.5"
+                        CornerRadius="5">
+                        <StackPanel>
+                            <TextBlock
+                                Margin="0,0,0,4"
+                                FontSize="10"
+                                FontWeight="ExtraBold"
+                                Foreground="{DynamicResource GameTextBlueBrush}"
+                                Text="TIỆN ÍCH &amp; VẬT PHẨM:" />
+                            <TextBlock
+                                Margin="4,0,0,2"
+                                FontSize="10"
+                                Foreground="{DynamicResource GameTextDarkBrush}"
+                                Text="• C: Dùng Capsule bay về nhà / các map (ID 193/194)" />
+                            <TextBlock
+                                Margin="4,0,0,2"
+                                FontSize="10"
+                                Foreground="{DynamicResource GameTextDarkBrush}"
+                                Text="• X: Bật / Tắt Tự Động Luyện Tập (TDLT - ID 521)" />
+                            <TextBlock
+                                Margin="4,0,0,0"
+                                FontSize="10"
+                                Foreground="{DynamicResource GameTextDarkBrush}"
+                                Text="• Shift + 2 (@) / - / + / . : Phím tắt nhanh bổ trợ" />
+                        </StackPanel>
+                    </Border>
+
+                    <Border
+                        Padding="8,6"
+                        Background="{DynamicResource GameBgBrush}"
+                        BorderBrush="{DynamicResource GameBorderBrush}"
+                        BorderThickness="1.5"
+                        CornerRadius="5">
+                        <StackPanel>
+                            <TextBlock
+                                Margin="0,0,0,4"
+                                FontSize="10"
+                                FontWeight="ExtraBold"
+                                Foreground="{DynamicResource GameTextDarkBrush}"
+                                Text="HỆ THỐNG &amp; GIAO TIẾP:" />
+                            <TextBlock
+                                Margin="4,0,0,2"
+                                FontSize="10"
+                                Foreground="{DynamicResource GameTextDarkBrush}"
+                                Text="• F1 / F2: Hiện (F1) hoặc Ẩn (F2) bảng điều khiển" />
+                            <TextBlock
+                                Margin="4,0,0,2"
+                                FontSize="10"
+                                Foreground="{DynamicResource GameTextDarkBrush}"
+                                Text="• R: Mở khung nhập tin nhắn Chat" />
+                            <TextBlock
+                                Margin="4,0,0,2"
+                                FontSize="10"
+                                Foreground="{DynamicResource GameTextDarkBrush}"
+                                Text="• Y: Đồng ý xác nhận hộp thoại" />
+                            <TextBlock
+                                Margin="4,0,0,2"
+                                FontSize="10"
+                                Foreground="{DynamicResource GameTextDarkBrush}"
+                                Text="• Esc / Backspace: Đóng menu / Hủy bỏ / Quay lại" />
+                            <TextBlock
+                                Margin="4,0,0,0"
+                                FontSize="10"
+                                Foreground="{DynamicResource GameTextDarkBrush}"
+                                Text="• F12: Mở bảng tra cứu phím tắt chi tiết" />
+                        </StackPanel>
+                    </Border>
+                </StackPanel>
+            </ui:GameCard>
+
+            <ui:GameCard
                 Margin="0,0,0,4"
                 Header="NHẬT KÝ CẬP NHẬT PHIÊN BẢN">
                 <StackPanel>

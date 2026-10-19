@@ -1,0 +1,636 @@
+<Window
+    x:Class="DragonBoyAccountManager.GUI.Views.HotkeyCheatsheetWindow"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+    xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+    Title="Bảng Tra Cứu Phím Tắt DBAM"
+    Width="680"
+    Height="520"
+    MinWidth="680"
+    MinHeight="520"
+    AllowsTransparency="True"
+    Background="Transparent"
+    FontFamily="{DynamicResource GameFont}"
+    FontWeight="Bold"
+    MouseLeftButtonDown="Window_MouseLeftButtonDown"
+    ResizeMode="NoResize"
+    ShowInTaskbar="False"
+    SnapsToDevicePixels="True"
+    TextOptions.TextFormattingMode="Display"
+    TextOptions.TextRenderingMode="ClearType"
+    UseLayoutRounding="True"
+    WindowStartupLocation="CenterOwner"
+    WindowStyle="None"
+    mc:Ignorable="d">
+
+    <Grid Margin="16">
+        <Border
+            Padding="2.5"
+            Background="{DynamicResource GameBorderDarkBrush}"
+            CornerRadius="8"
+            SnapsToDevicePixels="True">
+            <Border.Effect>
+                <DropShadowEffect
+                    BlurRadius="6"
+                    Direction="270"
+                    Opacity="0.45"
+                    ShadowDepth="4"
+                    Color="{StaticResource GameShadowBackdropColor}" />
+            </Border.Effect>
+
+            <Border
+                Background="{DynamicResource GameBgLightBrush}"
+                BorderBrush="{DynamicResource GameHeaderBrush}"
+                BorderThickness="2"
+                CornerRadius="6">
+                <Grid>
+                    <Border
+                        Height="5"
+                        VerticalAlignment="Top"
+                        Background="{DynamicResource GamePanelHighlightBrush}"
+                        CornerRadius="4,4,0,0"
+                        IsHitTestVisible="False" />
+                    <Border
+                        Height="3"
+                        VerticalAlignment="Bottom"
+                        Background="{DynamicResource GamePanelShadowBrush}"
+                        CornerRadius="0,0,4,4"
+                        IsHitTestVisible="False" />
+
+                    <Grid Margin="16,14,16,14">
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto" />
+                            <RowDefinition Height="*" />
+                            <RowDefinition Height="Auto" />
+                        </Grid.RowDefinitions>
+
+                        <Grid Grid.Row="0" Margin="0,0,0,10">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="Auto" />
+                            </Grid.ColumnDefinitions>
+
+                            <StackPanel Grid.Column="0" Orientation="Horizontal" VerticalAlignment="Center">
+                                <Border
+                                    Width="6"
+                                    Height="16"
+                                    Margin="0,0,8,0"
+                                    Background="{DynamicResource GameGoldAccentBrush}"
+                                    CornerRadius="2" />
+                                <TextBlock
+                                    VerticalAlignment="Center"
+                                    FontSize="13.5"
+                                    FontWeight="ExtraBold"
+                                    Foreground="{DynamicResource GameTextDarkBrush}"
+                                    Text="BẢNG TRA CỨU PHÍM TẮT ĐIỀU KHIỂN" />
+                            </StackPanel>
+
+                            <Button
+                                Grid.Column="1"
+                                Click="CloseButton_Click"
+                                Style="{StaticResource GameCloseButton}"
+                                ToolTip="Đóng bảng tra cứu (Phím Esc)" />
+                        </Grid>
+
+                        <Grid Grid.Row="1" Margin="0,0,0,8">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="10" />
+                                <ColumnDefinition Width="*" />
+                            </Grid.ColumnDefinitions>
+
+                            <StackPanel Grid.Column="0">
+                                <Border
+                                    Margin="0,0,0,8"
+                                    Padding="10,8"
+                                    Background="{DynamicResource GameBgBrush}"
+                                    BorderBrush="{DynamicResource GameBorderBrush}"
+                                    BorderThickness="1.5"
+                                    CornerRadius="6">
+                                    <StackPanel>
+                                        <TextBlock
+                                            Margin="0,0,0,6"
+                                            FontSize="10.5"
+                                            FontWeight="ExtraBold"
+                                            Foreground="{DynamicResource GameTextGreenBrush}"
+                                            Text="1. DI CHUYỂN &amp; KHU VỰC" />
+
+                                        <Grid Margin="0,2">
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="80" />
+                                                <ColumnDefinition Width="*" />
+                                            </Grid.ColumnDefinitions>
+                                            <Border
+                                                Grid.Column="0"
+                                                Height="20"
+                                                Padding="4,0"
+                                                Background="{DynamicResource GameBadgeShortcutBgBrush}"
+                                                CornerRadius="3">
+                                                <TextBlock
+                                                    HorizontalAlignment="Center"
+                                                    VerticalAlignment="Center"
+                                                    FontSize="8.5"
+                                                    FontWeight="ExtraBold"
+                                                    Foreground="{DynamicResource GameBadgeShortcutTextBrush}"
+                                                    Text="W A S D / MŨI TÊN" />
+                                            </Border>
+                                            <TextBlock
+                                                Grid.Column="1"
+                                                Margin="8,0,0,0"
+                                                VerticalAlignment="Center"
+                                                FontSize="9.5"
+                                                FontWeight="Bold"
+                                                Foreground="{DynamicResource GameTextDarkBrush}"
+                                                Text="Di chuyển 4 hướng (Giữ để chạy)" />
+                                        </Grid>
+
+                                        <Grid Margin="0,3">
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="80" />
+                                                <ColumnDefinition Width="*" />
+                                            </Grid.ColumnDefinitions>
+                                            <Border
+                                                Grid.Column="0"
+                                                Height="20"
+                                                Padding="4,0"
+                                                Background="{DynamicResource GameBadgeShortcutBgBrush}"
+                                                CornerRadius="3">
+                                                <TextBlock
+                                                    HorizontalAlignment="Center"
+                                                    VerticalAlignment="Center"
+                                                    FontSize="8.5"
+                                                    FontWeight="ExtraBold"
+                                                    Foreground="{DynamicResource GameBadgeShortcutTextBrush}"
+                                                    Text="[  /  ]" />
+                                            </Border>
+                                            <TextBlock
+                                                Grid.Column="1"
+                                                Margin="8,0,0,0"
+                                                VerticalAlignment="Center"
+                                                FontSize="9.5"
+                                                FontWeight="Bold"
+                                                Foreground="{DynamicResource GameTextDarkBrush}"
+                                                Text="Chuyển sang khu trước / kế tiếp" />
+                                        </Grid>
+                                    </StackPanel>
+                                </Border>
+
+                                <Border
+                                    Padding="10,8"
+                                    Background="{DynamicResource GameBgBrush}"
+                                    BorderBrush="{DynamicResource GameBorderBrush}"
+                                    BorderThickness="1.5"
+                                    CornerRadius="6">
+                                    <StackPanel>
+                                        <TextBlock
+                                            Margin="0,0,0,6"
+                                            FontSize="10.5"
+                                            FontWeight="ExtraBold"
+                                            Foreground="{DynamicResource GameTextYellowBrush}"
+                                            Text="2. CHIẾN ĐẤU &amp; KỸ NĂNG" />
+
+                                        <Grid Margin="0,2.5">
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="80" />
+                                                <ColumnDefinition Width="*" />
+                                            </Grid.ColumnDefinitions>
+                                            <Border
+                                                Grid.Column="0"
+                                                Height="20"
+                                                Padding="4,0"
+                                                Background="{DynamicResource GameBadgeShortcutBgBrush}"
+                                                CornerRadius="3">
+                                                <TextBlock
+                                                    HorizontalAlignment="Center"
+                                                    VerticalAlignment="Center"
+                                                    FontSize="8.5"
+                                                    FontWeight="ExtraBold"
+                                                    Foreground="{DynamicResource GameBadgeShortcutTextBrush}"
+                                                    Text="ENTER" />
+                                            </Border>
+                                            <TextBlock
+                                                Grid.Column="1"
+                                                Margin="8,0,0,0"
+                                                VerticalAlignment="Center"
+                                                FontSize="9.5"
+                                                FontWeight="Bold"
+                                                Foreground="{DynamicResource GameTextDarkBrush}"
+                                                Text="Chọn / Tấn công / Trò chuyện NPC" />
+                                        </Grid>
+
+                                        <Grid Margin="0,2.5">
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="80" />
+                                                <ColumnDefinition Width="*" />
+                                            </Grid.ColumnDefinitions>
+                                            <Border
+                                                Grid.Column="0"
+                                                Height="20"
+                                                Padding="4,0"
+                                                Background="{DynamicResource GameBadgeShortcutBgBrush}"
+                                                CornerRadius="3">
+                                                <TextBlock
+                                                    HorizontalAlignment="Center"
+                                                    VerticalAlignment="Center"
+                                                    FontSize="8.5"
+                                                    FontWeight="ExtraBold"
+                                                    Foreground="{DynamicResource GameBadgeShortcutTextBrush}"
+                                                    Text="SPACE" />
+                                            </Border>
+                                            <TextBlock
+                                                Grid.Column="1"
+                                                Margin="8,0,0,0"
+                                                VerticalAlignment="Center"
+                                                FontSize="9.5"
+                                                FontWeight="Bold"
+                                                Foreground="{DynamicResource GameTextDarkBrush}"
+                                                Text="Dùng Đậu Thần hồi HP &amp; KI tức thì" />
+                                        </Grid>
+
+                                        <Grid Margin="0,2.5">
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="80" />
+                                                <ColumnDefinition Width="*" />
+                                            </Grid.ColumnDefinitions>
+                                            <Border
+                                                Grid.Column="0"
+                                                Height="20"
+                                                Padding="4,0"
+                                                Background="{DynamicResource GameBadgeShortcutBgBrush}"
+                                                CornerRadius="3">
+                                                <TextBlock
+                                                    HorizontalAlignment="Center"
+                                                    VerticalAlignment="Center"
+                                                    FontSize="8.5"
+                                                    FontWeight="ExtraBold"
+                                                    Foreground="{DynamicResource GameBadgeShortcutTextBrush}"
+                                                    Text="Q" />
+                                            </Border>
+                                            <TextBlock
+                                                Grid.Column="1"
+                                                Margin="8,0,0,0"
+                                                VerticalAlignment="Center"
+                                                FontSize="9.5"
+                                                FontWeight="Bold"
+                                                Foreground="{DynamicResource GameTextDarkBrush}"
+                                                Text="Nhặt vật phẩm rơi quanh người" />
+                                        </Grid>
+
+                                        <Grid Margin="0,2.5">
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="80" />
+                                                <ColumnDefinition Width="*" />
+                                            </Grid.ColumnDefinitions>
+                                            <Border
+                                                Grid.Column="0"
+                                                Height="20"
+                                                Padding="4,0"
+                                                Background="{DynamicResource GameBadgeShortcutBgBrush}"
+                                                CornerRadius="3">
+                                                <TextBlock
+                                                    HorizontalAlignment="Center"
+                                                    VerticalAlignment="Center"
+                                                    FontSize="8.5"
+                                                    FontWeight="ExtraBold"
+                                                    Foreground="{DynamicResource GameBadgeShortcutTextBrush}"
+                                                    Text="TAB" />
+                                            </Border>
+                                            <TextBlock
+                                                Grid.Column="1"
+                                                Margin="8,0,0,0"
+                                                VerticalAlignment="Center"
+                                                FontSize="9.5"
+                                                FontWeight="Bold"
+                                                Foreground="{DynamicResource GameTextDarkBrush}"
+                                                Text="Đổi mục tiêu sang quái/người khác" />
+                                        </Grid>
+
+                                        <Grid Margin="0,2.5">
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="80" />
+                                                <ColumnDefinition Width="*" />
+                                            </Grid.ColumnDefinitions>
+                                            <Border
+                                                Grid.Column="0"
+                                                Height="20"
+                                                Padding="4,0"
+                                                Background="{DynamicResource GameBadgeShortcutBgBrush}"
+                                                CornerRadius="3">
+                                                <TextBlock
+                                                    HorizontalAlignment="Center"
+                                                    VerticalAlignment="Center"
+                                                    FontSize="8.5"
+                                                    FontWeight="ExtraBold"
+                                                    Foreground="{DynamicResource GameBadgeShortcutTextBrush}"
+                                                    Text="1 - 9, 0" />
+                                            </Border>
+                                            <TextBlock
+                                                Grid.Column="1"
+                                                Margin="8,0,0,0"
+                                                VerticalAlignment="Center"
+                                                FontSize="9.5"
+                                                FontWeight="Bold"
+                                                Foreground="{DynamicResource GameTextDarkBrush}"
+                                                Text="Dùng kỹ năng gán tại ô 1 đến 10" />
+                                        </Grid>
+                                    </StackPanel>
+                                </Border>
+                            </StackPanel>
+
+                            <StackPanel Grid.Column="2">
+                                <Border
+                                    Margin="0,0,0,8"
+                                    Padding="10,8"
+                                    Background="{DynamicResource GameBgBrush}"
+                                    BorderBrush="{DynamicResource GameBorderBrush}"
+                                    BorderThickness="1.5"
+                                    CornerRadius="6">
+                                    <StackPanel>
+                                        <TextBlock
+                                            Margin="0,0,0,6"
+                                            FontSize="10.5"
+                                            FontWeight="ExtraBold"
+                                            Foreground="{DynamicResource GameTextBlueBrush}"
+                                            Text="3. TIỆN ÍCH &amp; VẬT PHẨM" />
+
+                                        <Grid Margin="0,2.5">
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="80" />
+                                                <ColumnDefinition Width="*" />
+                                            </Grid.ColumnDefinitions>
+                                            <Border
+                                                Grid.Column="0"
+                                                Height="20"
+                                                Padding="4,0"
+                                                Background="{DynamicResource GameBadgeShortcutBgBrush}"
+                                                CornerRadius="3">
+                                                <TextBlock
+                                                    HorizontalAlignment="Center"
+                                                    VerticalAlignment="Center"
+                                                    FontSize="8.5"
+                                                    FontWeight="ExtraBold"
+                                                    Foreground="{DynamicResource GameBadgeShortcutTextBrush}"
+                                                    Text="C" />
+                                            </Border>
+                                            <TextBlock
+                                                Grid.Column="1"
+                                                Margin="8,0,0,0"
+                                                VerticalAlignment="Center"
+                                                FontSize="9.5"
+                                                FontWeight="Bold"
+                                                Foreground="{DynamicResource GameTextDarkBrush}"
+                                                Text="Dùng Capsule bay về nhà / các map" />
+                                        </Grid>
+
+                                        <Grid Margin="0,2.5">
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="80" />
+                                                <ColumnDefinition Width="*" />
+                                            </Grid.ColumnDefinitions>
+                                            <Border
+                                                Grid.Column="0"
+                                                Height="20"
+                                                Padding="4,0"
+                                                Background="{DynamicResource GameBadgeShortcutBgBrush}"
+                                                CornerRadius="3">
+                                                <TextBlock
+                                                    HorizontalAlignment="Center"
+                                                    VerticalAlignment="Center"
+                                                    FontSize="8.5"
+                                                    FontWeight="ExtraBold"
+                                                    Foreground="{DynamicResource GameBadgeShortcutTextBrush}"
+                                                    Text="X" />
+                                            </Border>
+                                            <TextBlock
+                                                Grid.Column="1"
+                                                Margin="8,0,0,0"
+                                                VerticalAlignment="Center"
+                                                FontSize="9.5"
+                                                FontWeight="Bold"
+                                                Foreground="{DynamicResource GameTextDarkBrush}"
+                                                Text="Bật / Tắt Tự Động Luyện Tập (TDLT)" />
+                                        </Grid>
+
+                                        <Grid Margin="0,2.5">
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="80" />
+                                                <ColumnDefinition Width="*" />
+                                            </Grid.ColumnDefinitions>
+                                            <Border
+                                                Grid.Column="0"
+                                                Height="20"
+                                                Padding="4,0"
+                                                Background="{DynamicResource GameBadgeShortcutBgBrush}"
+                                                CornerRadius="3">
+                                                <TextBlock
+                                                    HorizontalAlignment="Center"
+                                                    VerticalAlignment="Center"
+                                                    FontSize="8.5"
+                                                    FontWeight="ExtraBold"
+                                                    Foreground="{DynamicResource GameBadgeShortcutTextBrush}"
+                                                    Text="SHIFT + 2 (@)" />
+                                            </Border>
+                                            <TextBlock
+                                                Grid.Column="1"
+                                                Margin="8,0,0,0"
+                                                VerticalAlignment="Center"
+                                                FontSize="9.5"
+                                                FontWeight="Bold"
+                                                Foreground="{DynamicResource GameTextDarkBrush}"
+                                                Text="Gõ phím tắt @ gửi lệnh nhanh" />
+                                        </Grid>
+
+                                        <Grid Margin="0,2.5">
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="80" />
+                                                <ColumnDefinition Width="*" />
+                                            </Grid.ColumnDefinitions>
+                                            <Border
+                                                Grid.Column="0"
+                                                Height="20"
+                                                Padding="4,0"
+                                                Background="{DynamicResource GameBadgeShortcutBgBrush}"
+                                                CornerRadius="3">
+                                                <TextBlock
+                                                    HorizontalAlignment="Center"
+                                                    VerticalAlignment="Center"
+                                                    FontSize="8.5"
+                                                    FontWeight="ExtraBold"
+                                                    Foreground="{DynamicResource GameBadgeShortcutTextBrush}"
+                                                    Text="-  /  +  /  ." />
+                                            </Border>
+                                            <TextBlock
+                                                Grid.Column="1"
+                                                Margin="8,0,0,0"
+                                                VerticalAlignment="Center"
+                                                FontSize="9.5"
+                                                FontWeight="Bold"
+                                                Foreground="{DynamicResource GameTextDarkBrush}"
+                                                Text="Các phím tắt nhanh bổ trợ" />
+                                        </Grid>
+                                    </StackPanel>
+                                </Border>
+
+                                <Border
+                                    Padding="10,8"
+                                    Background="{DynamicResource GameBgBrush}"
+                                    BorderBrush="{DynamicResource GameBorderBrush}"
+                                    BorderThickness="1.5"
+                                    CornerRadius="6">
+                                    <StackPanel>
+                                        <TextBlock
+                                            Margin="0,0,0,6"
+                                            FontSize="10.5"
+                                            FontWeight="ExtraBold"
+                                            Foreground="{DynamicResource GameTextDarkBrush}"
+                                            Text="4. HỆ THỐNG &amp; GIAO TIẾP" />
+
+                                        <Grid Margin="0,2">
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="80" />
+                                                <ColumnDefinition Width="*" />
+                                            </Grid.ColumnDefinitions>
+                                            <Border
+                                                Grid.Column="0"
+                                                Height="20"
+                                                Padding="4,0"
+                                                Background="{DynamicResource GameBadgeShortcutBgBrush}"
+                                                CornerRadius="3">
+                                                <TextBlock
+                                                    HorizontalAlignment="Center"
+                                                    VerticalAlignment="Center"
+                                                    FontSize="8.5"
+                                                    FontWeight="ExtraBold"
+                                                    Foreground="{DynamicResource GameBadgeShortcutTextBrush}"
+                                                    Text="F1  /  F2" />
+                                            </Border>
+                                            <TextBlock
+                                                Grid.Column="1"
+                                                Margin="8,0,0,0"
+                                                VerticalAlignment="Center"
+                                                FontSize="9.5"
+                                                FontWeight="Bold"
+                                                Foreground="{DynamicResource GameTextDarkBrush}"
+                                                Text="Hiện (F1) hoặc Ẩn (F2) bảng Menu" />
+                                        </Grid>
+
+                                        <Grid Margin="0,2">
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="80" />
+                                                <ColumnDefinition Width="*" />
+                                            </Grid.ColumnDefinitions>
+                                            <Border
+                                                Grid.Column="0"
+                                                Height="20"
+                                                Padding="4,0"
+                                                Background="{DynamicResource GameBadgeShortcutBgBrush}"
+                                                CornerRadius="3">
+                                                <TextBlock
+                                                    HorizontalAlignment="Center"
+                                                    VerticalAlignment="Center"
+                                                    FontSize="8.5"
+                                                    FontWeight="ExtraBold"
+                                                    Foreground="{DynamicResource GameBadgeShortcutTextBrush}"
+                                                    Text="R" />
+                                            </Border>
+                                            <TextBlock
+                                                Grid.Column="1"
+                                                Margin="8,0,0,0"
+                                                VerticalAlignment="Center"
+                                                FontSize="9.5"
+                                                FontWeight="Bold"
+                                                Foreground="{DynamicResource GameTextDarkBrush}"
+                                                Text="Mở khung nhập tin nhắn Chat" />
+                                        </Grid>
+
+                                        <Grid Margin="0,2">
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="80" />
+                                                <ColumnDefinition Width="*" />
+                                            </Grid.ColumnDefinitions>
+                                            <Border
+                                                Grid.Column="0"
+                                                Height="20"
+                                                Padding="4,0"
+                                                Background="{DynamicResource GameBadgeShortcutBgBrush}"
+                                                CornerRadius="3">
+                                                <TextBlock
+                                                    HorizontalAlignment="Center"
+                                                    VerticalAlignment="Center"
+                                                    FontSize="8.5"
+                                                    FontWeight="ExtraBold"
+                                                    Foreground="{DynamicResource GameBadgeShortcutTextBrush}"
+                                                    Text="Y" />
+                                            </Border>
+                                            <TextBlock
+                                                Grid.Column="1"
+                                                Margin="8,0,0,0"
+                                                VerticalAlignment="Center"
+                                                FontSize="9.5"
+                                                FontWeight="Bold"
+                                                Foreground="{DynamicResource GameTextDarkBrush}"
+                                                Text="Đồng ý xác nhận hộp thoại" />
+                                        </Grid>
+
+                                        <Grid Margin="0,2">
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="80" />
+                                                <ColumnDefinition Width="*" />
+                                            </Grid.ColumnDefinitions>
+                                            <Border
+                                                Grid.Column="0"
+                                                Height="20"
+                                                Padding="4,0"
+                                                Background="{DynamicResource GameBadgeShortcutBgBrush}"
+                                                CornerRadius="3">
+                                                <TextBlock
+                                                    HorizontalAlignment="Center"
+                                                    VerticalAlignment="Center"
+                                                    FontSize="8.5"
+                                                    FontWeight="ExtraBold"
+                                                    Foreground="{DynamicResource GameBadgeShortcutTextBrush}"
+                                                    Text="ESC / BACK" />
+                                            </Border>
+                                            <TextBlock
+                                                Grid.Column="1"
+                                                Margin="8,0,0,0"
+                                                VerticalAlignment="Center"
+                                                FontSize="9.5"
+                                                FontWeight="Bold"
+                                                Foreground="{DynamicResource GameTextDarkBrush}"
+                                                Text="Đóng menu / Hủy bỏ / Quay lại" />
+                                        </Grid>
+                                    </StackPanel>
+                                </Border>
+                            </StackPanel>
+                        </Grid>
+
+                        <Grid Grid.Row="2" Margin="0,6,0,0">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="Auto" />
+                            </Grid.ColumnDefinitions>
+
+                            <TextBlock
+                                Grid.Column="0"
+                                VerticalAlignment="Center"
+                                FontSize="9.5"
+                                FontWeight="SemiBold"
+                                Foreground="{DynamicResource GameTextMutedBrush}"
+                                Text="* Phím tắt có tác dụng khi cửa sổ DBAM đang được kích hoạt (nhấn F12 để mở bảng này)." />
+
+                            <Button
+                                Grid.Column="1"
+                                MinWidth="90"
+                                Height="28"
+                                Click="CloseButton_Click"
+                                Content="ĐÓNG"
+                                Style="{StaticResource GameSecondaryButton}" />
+                        </Grid>
+                    </Grid>
+                </Grid>
+            </Border>
+        </Border>
+    </Grid>
+</Window>

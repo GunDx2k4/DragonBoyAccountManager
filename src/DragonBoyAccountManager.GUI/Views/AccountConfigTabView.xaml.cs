@@ -68,4 +68,13 @@ public partial class AccountConfigTabView : UserControl
             ViewModel?.UseSkill(item);
         }
     }
+
+    private void OpenCheatsheet_Click(object sender, RoutedEventArgs e)
+    {
+        var win = new HotkeyCheatsheetWindow
+        {
+            Owner = Window.GetWindow(this)
+        };
+        win.ShowDialog();
+    }
 }
