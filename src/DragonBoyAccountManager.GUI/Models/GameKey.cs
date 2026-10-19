@@ -6,5 +6,14 @@ public enum GameKey
     Down,
     Left,
     Right,
-    Ok
+    Ok,
+    Focus,
+    PickItem,
+    UsePean,
+    Menu,
+    Inventory,
+    SubFocus,
+    Yes,
+    Chat,
+    Back
 }

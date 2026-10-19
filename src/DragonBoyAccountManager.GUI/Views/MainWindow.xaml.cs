@@ -28,6 +28,8 @@ public partial class MainWindow : Window
             return;
         if (e.OriginalSource is TextBox or PasswordBox or RichTextBox)
             return;
+        if (focused is ComboBox cb && cb.IsDropDownOpen)
+            return;
 
         if (DataContext is not MainViewModel vm)
             return;
@@ -52,11 +54,101 @@ public partial class MainWindow : Window
             return;
         }
 
-        if (e.Key is Key.Enter or Key.Space)
+        if (e.Key == Key.Enter)
         {
             if (!e.IsRepeat)
             {
                 _ = vm.AccountForm.ActionOkAsync();
+            }
+            e.Handled = true;
+            return;
+        }
+
+        if (e.Key == Key.Space)
+        {
+            if (!e.IsRepeat)
+            {
+                _ = vm.AccountForm.ActionUsePeanAsync();
+            }
+            e.Handled = true;
+            return;
+        }
+
+        if (e.Key == Key.Tab)
+        {
+            if (!e.IsRepeat)
+            {
+                _ = vm.AccountForm.ActionFocusAsync();
+            }
+            e.Handled = true;
+            return;
+        }
+
+        if (e.Key == Key.Q)
+        {
+            if (!e.IsRepeat)
+            {
+                _ = vm.AccountForm.ActionPickItemAsync();
+            }
+            e.Handled = true;
+            return;
+        }
+
+        if (e.Key is Key.F1 or Key.M)
+        {
+            if (!e.IsRepeat)
+            {
+                _ = vm.AccountForm.ActionMenuAsync();
+            }
+            e.Handled = true;
+            return;
+        }
+
+        if (e.Key is Key.F2 or Key.E)
+        {
+            if (!e.IsRepeat)
+            {
+                _ = vm.AccountForm.ActionInventoryAsync();
+            }
+            e.Handled = true;
+            return;
+        }
+
+        if (e.Key == Key.F3)
+        {
+            if (!e.IsRepeat)
+            {
+                _ = vm.AccountForm.ActionSubFocusAsync();
+            }
+            e.Handled = true;
+            return;
+        }
+
+        if (e.Key == Key.Y)
+        {
+            if (!e.IsRepeat)
+            {
+                _ = vm.AccountForm.ActionYesAsync();
+            }
+            e.Handled = true;
+            return;
+        }
+
+        if (e.Key == Key.R)
+        {
+            if (!e.IsRepeat)
+            {
+                _ = vm.AccountForm.ActionChatAsync();
+            }
+            e.Handled = true;
+            return;
+        }
+
+        if (e.Key is Key.Back or Key.Escape)
+        {
+            if (!e.IsRepeat)
+            {
+                _ = vm.AccountForm.ActionBackAsync();
             }
             e.Handled = true;
             return;
@@ -72,6 +164,48 @@ public partial class MainWindow : Window
         if (e.Key == Key.X)
         {
             vm.AccountForm.UseTdlt();
+            e.Handled = true;
+            return;
+        }
+
+        bool isShift = (Keyboard.Modifiers & ModifierKeys.Shift) == ModifierKeys.Shift;
+        if (isShift && e.Key == Key.D2)
+        {
+            if (!e.IsRepeat)
+            {
+                _ = vm.AccountForm.SendRawKeyPulseAsync(64);
+            }
+            e.Handled = true;
+            return;
+        }
+
+        if (e.Key is Key.OemMinus or Key.Subtract)
+        {
+            if (!e.IsRepeat)
+            {
+                int code = isShift ? 95 : 45;
+                _ = vm.AccountForm.SendRawKeyPulseAsync(code);
+            }
+            e.Handled = true;
+            return;
+        }
+
+        if (e.Key == Key.OemPlus && !isShift)
+        {
+            if (!e.IsRepeat)
+            {
+                _ = vm.AccountForm.SendRawKeyPulseAsync(-25);
+            }
+            e.Handled = true;
+            return;
+        }
+
+        if (e.Key is Key.OemPeriod or Key.Decimal)
+        {
+            if (!e.IsRepeat)
+            {
+                _ = vm.AccountForm.SendRawKeyPulseAsync(46);
+            }
             e.Handled = true;
             return;
         }
@@ -108,6 +242,17 @@ public partial class MainWindow : Window
         if (e.Key == Key.OemCloseBrackets)
         {
             vm.AccountForm.NextZoneCommand.Execute(null);
+            e.Handled = true;
+            return;
+        }
+
+        if (e.Key >= Key.A && e.Key <= Key.Z)
+        {
+            if (!e.IsRepeat)
+            {
+                int ascii = isShift ? ((int)'A' + (e.Key - Key.A)) : ((int)'a' + (e.Key - Key.A));
+                _ = vm.AccountForm.SendRawKeyPulseAsync(ascii);
+            }
             e.Handled = true;
             return;
         }

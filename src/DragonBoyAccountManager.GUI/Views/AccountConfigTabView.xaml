@@ -32,13 +32,13 @@
         </ControlTemplate>
     </UserControl.Resources>
 
-    <ScrollViewer FocusVisualStyle="{x:Null}" VerticalScrollBarVisibility="Auto">
-        <StackPanel Margin="10,6">
+    <ScrollViewer FocusVisualStyle="{x:Null}" VerticalScrollBarVisibility="Disabled" HorizontalScrollBarVisibility="Disabled">
+        <StackPanel Margin="8,4">
 
-            <Grid Margin="0,0,0,6">
+            <Grid Margin="0,0,0,4">
                 <Grid.ColumnDefinitions>
                     <ColumnDefinition Width="*" />
-                    <ColumnDefinition Width="10" />
+                    <ColumnDefinition Width="8" />
                     <ColumnDefinition Width="*" />
                 </Grid.ColumnDefinitions>
                 <Grid.RowDefinitions>
@@ -46,14 +46,14 @@
                     <RowDefinition Height="Auto" />
                 </Grid.RowDefinitions>
 
-                <StackPanel Grid.Row="0" Grid.Column="0" Margin="0,0,0,6">
+                <StackPanel Grid.Row="0" Grid.Column="0" Margin="0,0,0,4">
                     <TextBlock
-                        Margin="0,0,0,2"
-                        FontSize="11"
+                        Margin="0,0,0,1"
+                        FontSize="10.5"
                         FontWeight="Bold"
                         Foreground="{DynamicResource GameTextDarkBrush}"
                         Text="Tài khoản:" />
-                    <Grid Height="28">
+                    <Grid Height="26">
                         <TextBox
                             Padding="8,1,25,1"
                             Cursor="Arrow"
@@ -103,37 +103,37 @@
                     </Grid>
                 </StackPanel>
 
-                <StackPanel Grid.Row="0" Grid.Column="2" Margin="0,0,0,6">
+                <StackPanel Grid.Row="0" Grid.Column="2" Margin="0,0,0,4">
                     <TextBlock
-                        Margin="0,0,0,2"
-                        FontSize="11"
+                        Margin="0,0,0,1"
+                        FontSize="10.5"
                         FontWeight="Bold"
                         Foreground="{DynamicResource GameTextDarkBrush}"
                         Text="Mật khẩu:" />
                     <ui:GamePasswordBox
-                        Height="28"
+                        Height="26"
                         Password="{Binding Password, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
                         IsPasswordVisible="{Binding IsPasswordVisible, Mode=TwoWay}" />
                 </StackPanel>
 
                 <StackPanel Grid.Row="1" Grid.Column="0">
                     <TextBlock
-                        Margin="0,0,0,2"
-                        FontSize="11"
+                        Margin="0,0,0,1"
+                        FontSize="10.5"
                         FontWeight="Bold"
                         Foreground="{DynamicResource GameTextDarkBrush}"
                         Text="Máy chủ:" />
                     <ComboBox
-                        Height="28"
+                        Height="26"
                         ItemsSource="{Binding AvailableServers}"
                         SelectedItem="{Binding SelectedServer}"
                         Style="{StaticResource GameComboBoxStyle}" />
                 </StackPanel>
 
-                <StackPanel Grid.Row="1" Grid.Column="2" VerticalAlignment="Bottom" Margin="0,0,0,5">
+                <StackPanel Grid.Row="1" Grid.Column="2" VerticalAlignment="Bottom" Margin="0,0,0,4">
                     <CheckBox
                         Content="Tự động đăng nhập"
-                        FontSize="11"
+                        FontSize="10.5"
                         FontWeight="Bold"
                         Foreground="{DynamicResource GameTextDarkBrush}"
                         IsChecked="{Binding AutoLogin}"
@@ -144,14 +144,14 @@
 
             <Border
                 Margin="0,2,0,0"
-                Padding="8,6"
+                Padding="6,4"
                 Background="{DynamicResource GameBgBrush}"
                 BorderBrush="{DynamicResource GameBorderBrush}"
                 BorderThickness="1.5"
                 CornerRadius="6">
                 <StackPanel>
 
-                    <Grid Margin="0,0,0,6" SnapsToDevicePixels="True">
+                    <Grid Margin="0,0,0,4" SnapsToDevicePixels="True">
                         <Grid.ColumnDefinitions>
                             <ColumnDefinition Width="Auto" />
                             <ColumnDefinition Width="*" />
@@ -160,9 +160,9 @@
 
                         <TextBlock
                             Grid.Column="0"
-                            Margin="0,0,8,0"
+                            Margin="0,0,6,0"
                             VerticalAlignment="Center"
-                            FontSize="10.5"
+                            FontSize="10"
                             FontWeight="ExtraBold"
                             Foreground="{DynamicResource GameTextDarkBrush}"
                             Text="ĐỔI KHU:" />
@@ -170,7 +170,7 @@
                         <ComboBox
                             x:Name="ZoneComboBox"
                             Grid.Column="1"
-                            Height="26"
+                            Height="24"
                             DropDownOpened="ZoneComboBox_DropDownOpened"
                             ItemsSource="{Binding AvailableZones}"
                             SelectedItem="{Binding SelectedZone, Mode=TwoWay}"
@@ -178,33 +178,33 @@
                             ToolTip="Chọn khu từ danh sách để chuyển map ngay lập tức">
                             <ComboBox.ItemTemplate>
                                 <DataTemplate DataType="{x:Type models:WorldZoneInfo}">
-                                    <Grid Margin="2,1">
+                                    <Grid Margin="2,0">
                                         <Grid.ColumnDefinitions>
                                             <ColumnDefinition Width="*" />
                                             <ColumnDefinition Width="Auto" />
                                         </Grid.ColumnDefinitions>
                                         <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
                                             <TextBlock
-                                                FontSize="10.5"
+                                                FontSize="10"
                                                 FontWeight="Bold"
                                                 Foreground="{DynamicResource GameTextDarkBrush}"
                                                 Text="{Binding ZoneId, StringFormat='Khu {0}'}" />
                                             <TextBlock
-                                                Margin="6,0,0,0"
-                                                FontSize="9.5"
+                                                Margin="4,0,0,0"
+                                                FontSize="9"
                                                 FontWeight="SemiBold"
                                                 Foreground="#27AE60"
                                                 Text="{Binding NumPlayers, StringFormat='({0}'}" />
                                             <TextBlock
-                                                FontSize="9.5"
+                                                FontSize="9"
                                                 FontWeight="SemiBold"
                                                 Foreground="#27AE60"
                                                 Text="{Binding MaxPlayers, StringFormat='/{0})'}" />
                                         </StackPanel>
                                         <TextBlock
                                             Grid.Column="1"
-                                            Margin="8,0,0,0"
-                                            FontSize="9"
+                                            Margin="6,0,0,0"
+                                            FontSize="8.5"
                                             FontWeight="ExtraBold"
                                             Foreground="#E74C3C"
                                             Text="ĐẦY"
@@ -227,12 +227,12 @@
 
                         <StackPanel
                             Grid.Column="2"
-                            Margin="6,0,0,0"
+                            Margin="4,0,0,0"
                             Orientation="Horizontal">
                             <Button
-                                Width="26"
-                                Height="26"
-                                Margin="0,0,4,0"
+                                Width="24"
+                                Height="24"
+                                Margin="0,0,3,0"
                                 Command="{Binding PreviousZoneCommand}"
                                 Style="{StaticResource GameSecondaryButton}"
                                 ToolTip="Chuyển sang khu trước (Phím [)">
@@ -240,14 +240,14 @@
                                     HorizontalAlignment="Center"
                                     VerticalAlignment="Center"
                                     FontFamily="Segoe UI Black, Arial Black, Segoe UI"
-                                    FontSize="12"
+                                    FontSize="11"
                                     FontWeight="ExtraBold"
                                     Foreground="{DynamicResource GameBtnTanTextBrush}"
                                     Text="&lt;" />
                             </Button>
                             <Button
-                                Width="26"
-                                Height="26"
+                                Width="24"
+                                Height="24"
                                 Command="{Binding NextZoneCommand}"
                                 Style="{StaticResource GameSecondaryButton}"
                                 ToolTip="Chuyển sang khu kế tiếp (Phím ])">
@@ -255,7 +255,7 @@
                                     HorizontalAlignment="Center"
                                     VerticalAlignment="Center"
                                     FontFamily="Segoe UI Black, Arial Black, Segoe UI"
-                                    FontSize="12"
+                                    FontSize="11"
                                     FontWeight="ExtraBold"
                                     Foreground="{DynamicResource GameBtnTanTextBrush}"
                                     Text="&gt;" />
@@ -265,212 +265,519 @@
 
                     <Border
                         Height="1"
-                        Margin="0,0,0,6"
+                        Margin="0,0,0,4"
                         Background="{DynamicResource GameBorderBrush}"
                         Opacity="0.3" />
 
-                    <StackPanel
-                        HorizontalAlignment="Center"
-                        VerticalAlignment="Center"
-                        Orientation="Horizontal">
-                        <Grid HorizontalAlignment="Center" VerticalAlignment="Center">
+                    <Grid Margin="0,2,0,2">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="Auto" />
+                            <ColumnDefinition Width="*" />
+                        </Grid.ColumnDefinitions>
+
+                        <StackPanel
+                            Grid.Column="0"
+                            VerticalAlignment="Center"
+                            Orientation="Horizontal">
+                            <Grid HorizontalAlignment="Center" VerticalAlignment="Center">
+                                <Grid.RowDefinitions>
+                                    <RowDefinition Height="28" />
+                                    <RowDefinition Height="2" />
+                                    <RowDefinition Height="28" />
+                                </Grid.RowDefinitions>
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="28" />
+                                    <ColumnDefinition Width="2" />
+                                    <ColumnDefinition Width="28" />
+                                    <ColumnDefinition Width="2" />
+                                    <ColumnDefinition Width="28" />
+                                </Grid.ColumnDefinitions>
+
+                                <Button
+                                    Grid.Row="0"
+                                    Grid.Column="2"
+                                    Width="28"
+                                    Height="28"
+                                    MouseLeave="DpadButton_MouseLeave"
+                                    PreviewMouseDown="DpadButton_PreviewMouseDown"
+                                    PreviewMouseUp="DpadButton_PreviewMouseUp"
+                                    Style="{StaticResource GameArrowVectorButtonStyle}"
+                                    Tag="Up"
+                                    ToolTip="Di chuyển Lên (Phím mũi tên Lên / Phím W)">
+                                    <Viewbox
+                                        Width="16"
+                                        Height="16"
+                                        HorizontalAlignment="Center"
+                                        VerticalAlignment="Center">
+                                        <Control RenderTransformOrigin="0.5,0.5" Template="{StaticResource DpadArrowIconTemplate}">
+                                            <Control.RenderTransform>
+                                                <RotateTransform Angle="-90" />
+                                            </Control.RenderTransform>
+                                        </Control>
+                                    </Viewbox>
+                                </Button>
+
+                                <Button
+                                    Grid.Row="2"
+                                    Grid.Column="0"
+                                    Width="28"
+                                    Height="28"
+                                    MouseLeave="DpadButton_MouseLeave"
+                                    PreviewMouseDown="DpadButton_PreviewMouseDown"
+                                    PreviewMouseUp="DpadButton_PreviewMouseUp"
+                                    Style="{StaticResource GameArrowVectorButtonStyle}"
+                                    Tag="Left"
+                                    ToolTip="Di chuyển Trái (Phím mũi tên Trái / Phím A)">
+                                    <Viewbox
+                                        Width="16"
+                                        Height="16"
+                                        HorizontalAlignment="Center"
+                                        VerticalAlignment="Center">
+                                        <Control RenderTransformOrigin="0.5,0.5" Template="{StaticResource DpadArrowIconTemplate}">
+                                            <Control.RenderTransform>
+                                                <RotateTransform Angle="180" />
+                                            </Control.RenderTransform>
+                                        </Control>
+                                    </Viewbox>
+                                </Button>
+
+                                <Button
+                                    Grid.Row="2"
+                                    Grid.Column="2"
+                                    Width="28"
+                                    Height="28"
+                                    MouseLeave="DpadButton_MouseLeave"
+                                    PreviewMouseDown="DpadButton_PreviewMouseDown"
+                                    PreviewMouseUp="DpadButton_PreviewMouseUp"
+                                    Style="{StaticResource GameArrowVectorButtonStyle}"
+                                    Tag="Down"
+                                    ToolTip="Di chuyển Xuống (Phím mũi tên Xuống / Phím S)">
+                                    <Viewbox
+                                        Width="16"
+                                        Height="16"
+                                        HorizontalAlignment="Center"
+                                        VerticalAlignment="Center">
+                                        <Control RenderTransformOrigin="0.5,0.5" Template="{StaticResource DpadArrowIconTemplate}">
+                                            <Control.RenderTransform>
+                                                <RotateTransform Angle="90" />
+                                            </Control.RenderTransform>
+                                        </Control>
+                                    </Viewbox>
+                                </Button>
+
+                                <Button
+                                    Grid.Row="2"
+                                    Grid.Column="4"
+                                    Width="28"
+                                    Height="28"
+                                    MouseLeave="DpadButton_MouseLeave"
+                                    PreviewMouseDown="DpadButton_PreviewMouseDown"
+                                    PreviewMouseUp="DpadButton_PreviewMouseUp"
+                                    Style="{StaticResource GameArrowVectorButtonStyle}"
+                                    Tag="Right"
+                                    ToolTip="Di chuyển Phải (Phím mũi tên Phải / Phím D)">
+                                    <Viewbox
+                                        Width="16"
+                                        Height="16"
+                                        HorizontalAlignment="Center"
+                                        VerticalAlignment="Center">
+                                        <Control Template="{StaticResource DpadArrowIconTemplate}" />
+                                    </Viewbox>
+                                </Button>
+                            </Grid>
+
+                            <Border
+                                Width="1"
+                                Margin="5,4,5,4"
+                                VerticalAlignment="Stretch"
+                                Background="{DynamicResource GameBorderBrush}"
+                                Opacity="0.4" />
+
+                            <Button
+                                Width="36"
+                                Height="36"
+                                VerticalAlignment="Center"
+                                MouseLeave="DpadButton_MouseLeave"
+                                PreviewMouseDown="DpadButton_PreviewMouseDown"
+                                PreviewMouseUp="DpadButton_PreviewMouseUp"
+                                Style="{StaticResource GameEnterOrbButtonStyle}"
+                                Tag="Ok"
+                                ToolTip="Phím Chọn / Tấn công / Trò chuyện NPC (Phím Enter)" />
+
+                            <Border
+                                Width="1"
+                                Margin="5,4,6,4"
+                                VerticalAlignment="Stretch"
+                                Background="{DynamicResource GameBorderBrush}"
+                                Opacity="0.4" />
+                        </StackPanel>
+
+                        <Grid Grid.Column="1" VerticalAlignment="Center">
                             <Grid.RowDefinitions>
-                                <RowDefinition Height="34" />
-                                <RowDefinition Height="2" />
-                                <RowDefinition Height="34" />
+                                <RowDefinition Height="Auto" />
+                                <RowDefinition Height="Auto" />
+                                <RowDefinition Height="Auto" />
+                                <RowDefinition Height="Auto" />
+                                <RowDefinition Height="Auto" />
+                                <RowDefinition Height="Auto" />
                             </Grid.RowDefinitions>
                             <Grid.ColumnDefinitions>
-                                <ColumnDefinition Width="34" />
-                                <ColumnDefinition Width="2" />
-                                <ColumnDefinition Width="34" />
-                                <ColumnDefinition Width="2" />
-                                <ColumnDefinition Width="34" />
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="*" />
                             </Grid.ColumnDefinitions>
 
                             <Button
                                 Grid.Row="0"
-                                Grid.Column="2"
-                                Width="34"
-                                Height="34"
-                                MouseLeave="DpadButton_MouseLeave"
-                                PreviewMouseDown="DpadButton_PreviewMouseDown"
-                                PreviewMouseUp="DpadButton_PreviewMouseUp"
-                                Style="{StaticResource GameArrowVectorButtonStyle}"
-                                Tag="Up"
-                                ToolTip="Di chuyển Lên (Phím mũi tên Lên / Phím W)">
-                                <Viewbox
-                                    Width="20"
-                                    Height="20"
-                                    HorizontalAlignment="Center"
-                                    VerticalAlignment="Center">
-                                    <Control RenderTransformOrigin="0.5,0.5" Template="{StaticResource DpadArrowIconTemplate}">
-                                        <Control.RenderTransform>
-                                            <RotateTransform Angle="-90" />
-                                        </Control.RenderTransform>
-                                    </Control>
-                                </Viewbox>
+                                Grid.Column="0"
+                                Height="21"
+                                Margin="1,1"
+                                Padding="2,1"
+                                Command="{Binding ActionUsePeanCommand}"
+                                Style="{StaticResource GameSecondaryButton}"
+                                ToolTip="Dùng Đậu Thần phục hồi HP và KI (Phím Space)">
+                                <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center" Orientation="Horizontal">
+                                    <TextBlock
+                                        VerticalAlignment="Center"
+                                        FontSize="9"
+                                        FontWeight="ExtraBold"
+                                        Foreground="{DynamicResource GameBtnTanTextBrush}"
+                                        Text="Đậu thần" />
+                                    <Border
+                                        Margin="2.5,0,0,0"
+                                        Padding="2,0.5"
+                                        VerticalAlignment="Center"
+                                        Background="#350C03"
+                                        CornerRadius="2">
+                                        <TextBlock
+                                            FontSize="7.5"
+                                            FontWeight="ExtraBold"
+                                            Foreground="#F7C934"
+                                            Text="[Space]" />
+                                    </Border>
+                                </StackPanel>
+                            </Button>
+
+                            <Button
+                                Grid.Row="0"
+                                Grid.Column="1"
+                                Height="21"
+                                Margin="1,1"
+                                Padding="2,1"
+                                Command="{Binding ActionPickItemCommand}"
+                                Style="{StaticResource GameSecondaryButton}"
+                                ToolTip="Nhặt vật phẩm rơi dưới đất (Phím Q)">
+                                <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center" Orientation="Horizontal">
+                                    <TextBlock
+                                        VerticalAlignment="Center"
+                                        FontSize="9"
+                                        FontWeight="ExtraBold"
+                                        Foreground="{DynamicResource GameBtnTanTextBrush}"
+                                        Text="Nhặt đồ" />
+                                    <Border
+                                        Margin="2.5,0,0,0"
+                                        Padding="2,0.5"
+                                        VerticalAlignment="Center"
+                                        Background="#350C03"
+                                        CornerRadius="2">
+                                        <TextBlock
+                                            FontSize="7.5"
+                                            FontWeight="ExtraBold"
+                                            Foreground="#F7C934"
+                                            Text="[Q]" />
+                                    </Border>
+                                </StackPanel>
+                            </Button>
+
+                            <Button
+                                Grid.Row="1"
+                                Grid.Column="0"
+                                Height="21"
+                                Margin="1,1"
+                                Padding="2,1"
+                                Command="{Binding ActionFocusCommand}"
+                                Style="{StaticResource GameSecondaryButton}"
+                                ToolTip="Đổi mục tiêu sang quái hoặc người chơi khác (Phím Tab)">
+                                <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center" Orientation="Horizontal">
+                                    <TextBlock
+                                        VerticalAlignment="Center"
+                                        FontSize="9"
+                                        FontWeight="ExtraBold"
+                                        Foreground="{DynamicResource GameBtnTanTextBrush}"
+                                        Text="Mục tiêu" />
+                                    <Border
+                                        Margin="2.5,0,0,0"
+                                        Padding="2,0.5"
+                                        VerticalAlignment="Center"
+                                        Background="#350C03"
+                                        CornerRadius="2">
+                                        <TextBlock
+                                            FontSize="7.5"
+                                            FontWeight="ExtraBold"
+                                            Foreground="#F7C934"
+                                            Text="[Tab]" />
+                                    </Border>
+                                </StackPanel>
+                            </Button>
+
+                            <Button
+                                Grid.Row="1"
+                                Grid.Column="1"
+                                Height="21"
+                                Margin="1,1"
+                                Padding="2,1"
+                                Command="{Binding ActionSubFocusCommand}"
+                                Style="{StaticResource GameSecondaryButton}"
+                                ToolTip="Chọn mục tiêu phụ (Phím F3)">
+                                <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center" Orientation="Horizontal">
+                                    <TextBlock
+                                        VerticalAlignment="Center"
+                                        FontSize="9"
+                                        FontWeight="ExtraBold"
+                                        Foreground="{DynamicResource GameBtnTanTextBrush}"
+                                        Text="MT phụ" />
+                                    <Border
+                                        Margin="2.5,0,0,0"
+                                        Padding="2,0.5"
+                                        VerticalAlignment="Center"
+                                        Background="#350C03"
+                                        CornerRadius="2">
+                                        <TextBlock
+                                            FontSize="7.5"
+                                            FontWeight="ExtraBold"
+                                            Foreground="#F7C934"
+                                            Text="[F3]" />
+                                    </Border>
+                                </StackPanel>
                             </Button>
 
                             <Button
                                 Grid.Row="2"
                                 Grid.Column="0"
-                                Width="34"
-                                Height="34"
-                                MouseLeave="DpadButton_MouseLeave"
-                                PreviewMouseDown="DpadButton_PreviewMouseDown"
-                                PreviewMouseUp="DpadButton_PreviewMouseUp"
-                                Style="{StaticResource GameArrowVectorButtonStyle}"
-                                Tag="Left"
-                                ToolTip="Di chuyển Trái (Phím mũi tên Trái / Phím A)">
-                                <Viewbox
-                                    Width="20"
-                                    Height="20"
-                                    HorizontalAlignment="Center"
-                                    VerticalAlignment="Center">
-                                    <Control RenderTransformOrigin="0.5,0.5" Template="{StaticResource DpadArrowIconTemplate}">
-                                        <Control.RenderTransform>
-                                            <RotateTransform Angle="180" />
-                                        </Control.RenderTransform>
-                                    </Control>
-                                </Viewbox>
-                            </Button>
-
-                            <Button
-                                Grid.Row="2"
-                                Grid.Column="2"
-                                Width="34"
-                                Height="34"
-                                MouseLeave="DpadButton_MouseLeave"
-                                PreviewMouseDown="DpadButton_PreviewMouseDown"
-                                PreviewMouseUp="DpadButton_PreviewMouseUp"
-                                Style="{StaticResource GameArrowVectorButtonStyle}"
-                                Tag="Down"
-                                ToolTip="Di chuyển Xuống (Phím mũi tên Xuống / Phím S)">
-                                <Viewbox
-                                    Width="20"
-                                    Height="20"
-                                    HorizontalAlignment="Center"
-                                    VerticalAlignment="Center">
-                                    <Control RenderTransformOrigin="0.5,0.5" Template="{StaticResource DpadArrowIconTemplate}">
-                                        <Control.RenderTransform>
-                                            <RotateTransform Angle="90" />
-                                        </Control.RenderTransform>
-                                    </Control>
-                                </Viewbox>
-                            </Button>
-
-                            <Button
-                                Grid.Row="2"
-                                Grid.Column="4"
-                                Width="34"
-                                Height="34"
-                                MouseLeave="DpadButton_MouseLeave"
-                                PreviewMouseDown="DpadButton_PreviewMouseDown"
-                                PreviewMouseUp="DpadButton_PreviewMouseUp"
-                                Style="{StaticResource GameArrowVectorButtonStyle}"
-                                Tag="Right"
-                                ToolTip="Di chuyển Phải (Phím mũi tên Phải / Phím D)">
-                                <Viewbox
-                                    Width="20"
-                                    Height="20"
-                                    HorizontalAlignment="Center"
-                                    VerticalAlignment="Center">
-                                    <Control Template="{StaticResource DpadArrowIconTemplate}" />
-                                </Viewbox>
-                            </Button>
-                        </Grid>
-
-                        <Border
-                            Width="1"
-                            Margin="12,4,12,4"
-                            VerticalAlignment="Stretch"
-                            Background="{DynamicResource GameBorderBrush}"
-                            Opacity="0.4" />
-
-                        <Button
-                            Width="48"
-                            Height="48"
-                            VerticalAlignment="Center"
-                            MouseLeave="DpadButton_MouseLeave"
-                            PreviewMouseDown="DpadButton_PreviewMouseDown"
-                            PreviewMouseUp="DpadButton_PreviewMouseUp"
-                            Style="{StaticResource GameEnterOrbButtonStyle}"
-                            Tag="Ok"
-                            ToolTip="Phím Chọn / Tấn công / Trò chuyện NPC (Enter / Space)" />
-
-                        <Border
-                            Width="1"
-                            Margin="12,4,12,4"
-                            VerticalAlignment="Stretch"
-                            Background="{DynamicResource GameBorderBrush}"
-                            Opacity="0.4" />
-
-                        <StackPanel VerticalAlignment="Center">
-                            <Button
-                                Height="26"
-                                Margin="0,0,0,5"
-                                Padding="8,1"
-                                Command="{Binding UseCapsuleCommand}"
+                                Height="21"
+                                Margin="1,1"
+                                Padding="2,1"
+                                Command="{Binding ActionMenuCommand}"
                                 Style="{StaticResource GameSecondaryButton}"
-                                ToolTip="Sử dụng Capsule bay về nhà / các map (Phím C)">
+                                ToolTip="Mở menu chức năng (Phím F1 / Phím M)">
                                 <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center" Orientation="Horizontal">
                                     <TextBlock
                                         VerticalAlignment="Center"
-                                        FontSize="10"
+                                        FontSize="9"
                                         FontWeight="ExtraBold"
                                         Foreground="{DynamicResource GameBtnTanTextBrush}"
-                                        Text="Capsule" />
+                                        Text="Menu" />
                                     <Border
-                                        Margin="4,0,0,0"
-                                        Padding="3,0.5"
+                                        Margin="2.5,0,0,0"
+                                        Padding="2,0.5"
                                         VerticalAlignment="Center"
                                         Background="#350C03"
-                                        CornerRadius="2.5">
+                                        CornerRadius="2">
                                         <TextBlock
-                                            FontSize="8.5"
+                                            FontSize="7.5"
                                             FontWeight="ExtraBold"
                                             Foreground="#F7C934"
-                                            Text="[C]" />
+                                            Text="[F1]" />
                                     </Border>
                                 </StackPanel>
                             </Button>
+
                             <Button
-                                Height="26"
-                                Padding="8,1"
+                                Grid.Row="2"
+                                Grid.Column="1"
+                                Height="21"
+                                Margin="1,1"
+                                Padding="2,1"
+                                Command="{Binding ActionInventoryCommand}"
+                                Style="{StaticResource GameSecondaryButton}"
+                                ToolTip="Mở hành trang / rương đồ (Phím F2 / Phím E)">
+                                <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center" Orientation="Horizontal">
+                                    <TextBlock
+                                        VerticalAlignment="Center"
+                                        FontSize="9"
+                                        FontWeight="ExtraBold"
+                                        Foreground="{DynamicResource GameBtnTanTextBrush}"
+                                        Text="Hành trang" />
+                                    <Border
+                                        Margin="2.5,0,0,0"
+                                        Padding="2,0.5"
+                                        VerticalAlignment="Center"
+                                        Background="#350C03"
+                                        CornerRadius="2">
+                                        <TextBlock
+                                            FontSize="7.5"
+                                            FontWeight="ExtraBold"
+                                            Foreground="#F7C934"
+                                            Text="[F2]" />
+                                    </Border>
+                                </StackPanel>
+                            </Button>
+
+                            <Button
+                                Grid.Row="3"
+                                Grid.Column="0"
+                                Height="21"
+                                Margin="1,1"
+                                Padding="2,1"
+                                Command="{Binding ActionYesCommand}"
+                                Style="{StaticResource GameSecondaryButton}"
+                                ToolTip="Đồng ý xác nhận hộp thoại (Phím Y)">
+                                <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center" Orientation="Horizontal">
+                                    <TextBlock
+                                        VerticalAlignment="Center"
+                                        FontSize="9"
+                                        FontWeight="ExtraBold"
+                                        Foreground="{DynamicResource GameBtnTanTextBrush}"
+                                        Text="Đồng ý" />
+                                    <Border
+                                        Margin="2.5,0,0,0"
+                                        Padding="2,0.5"
+                                        VerticalAlignment="Center"
+                                        Background="#350C03"
+                                        CornerRadius="2">
+                                        <TextBlock
+                                            FontSize="7.5"
+                                            FontWeight="ExtraBold"
+                                            Foreground="#F7C934"
+                                            Text="[Y]" />
+                                    </Border>
+                                </StackPanel>
+                            </Button>
+
+                            <Button
+                                Grid.Row="3"
+                                Grid.Column="1"
+                                Height="21"
+                                Margin="1,1"
+                                Padding="2,1"
+                                Command="{Binding ActionBackCommand}"
+                                Style="{StaticResource GameSecondaryButton}"
+                                ToolTip="Đóng menu, hủy bỏ hoặc quay lại (Phím Esc / Backspace)">
+                                <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center" Orientation="Horizontal">
+                                    <TextBlock
+                                        VerticalAlignment="Center"
+                                        FontSize="9"
+                                        FontWeight="ExtraBold"
+                                        Foreground="{DynamicResource GameBtnTanTextBrush}"
+                                        Text="Đóng/Hủy" />
+                                    <Border
+                                        Margin="2.5,0,0,0"
+                                        Padding="2,0.5"
+                                        VerticalAlignment="Center"
+                                        Background="#350C03"
+                                        CornerRadius="2">
+                                        <TextBlock
+                                            FontSize="7.5"
+                                            FontWeight="ExtraBold"
+                                            Foreground="#F7C934"
+                                            Text="[Esc]" />
+                                    </Border>
+                                </StackPanel>
+                            </Button>
+
+                            <Button
+                                Grid.Row="4"
+                                Grid.Column="0"
+                                Height="21"
+                                Margin="1,1"
+                                Padding="2,1"
+                                Command="{Binding ActionChatCommand}"
+                                Style="{StaticResource GameSecondaryButton}"
+                                ToolTip="Mở khung chat (Phím R)">
+                                <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center" Orientation="Horizontal">
+                                    <TextBlock
+                                        VerticalAlignment="Center"
+                                        FontSize="9"
+                                        FontWeight="ExtraBold"
+                                        Foreground="{DynamicResource GameBtnTanTextBrush}"
+                                        Text="Chat" />
+                                    <Border
+                                        Margin="2.5,0,0,0"
+                                        Padding="2,0.5"
+                                        VerticalAlignment="Center"
+                                        Background="#350C03"
+                                        CornerRadius="2">
+                                        <TextBlock
+                                            FontSize="7.5"
+                                            FontWeight="ExtraBold"
+                                            Foreground="#F7C934"
+                                            Text="[R]" />
+                                    </Border>
+                                </StackPanel>
+                            </Button>
+
+                            <Button
+                                Grid.Row="4"
+                                Grid.Column="1"
+                                Height="21"
+                                Margin="1,1"
+                                Padding="2,1"
                                 Command="{Binding UseTdltCommand}"
                                 Style="{StaticResource GameSecondaryButton}"
                                 ToolTip="Sử dụng Tự Động Luyện Tập (Phím X)">
                                 <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center" Orientation="Horizontal">
                                     <TextBlock
                                         VerticalAlignment="Center"
-                                        FontSize="10"
+                                        FontSize="9"
                                         FontWeight="ExtraBold"
                                         Foreground="{DynamicResource GameBtnTanTextBrush}"
                                         Text="TDLT" />
                                     <Border
-                                        Margin="4,0,0,0"
-                                        Padding="3,0.5"
+                                        Margin="2.5,0,0,0"
+                                        Padding="2,0.5"
                                         VerticalAlignment="Center"
                                         Background="#350C03"
-                                        CornerRadius="2.5">
+                                        CornerRadius="2">
                                         <TextBlock
-                                            FontSize="8.5"
+                                            FontSize="7.5"
                                             FontWeight="ExtraBold"
                                             Foreground="#F7C934"
                                             Text="[X]" />
                                     </Border>
                                 </StackPanel>
                             </Button>
-                        </StackPanel>
-                    </StackPanel>
+
+                            <Button
+                                Grid.Row="5"
+                                Grid.Column="0"
+                                Grid.ColumnSpan="2"
+                                Height="21"
+                                Margin="1,1"
+                                Padding="2,1"
+                                HorizontalAlignment="Stretch"
+                                Command="{Binding UseCapsuleCommand}"
+                                Style="{StaticResource GameSecondaryButton}"
+                                ToolTip="Sử dụng Capsule bay về nhà / các map (Phím C)">
+                                <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center" Orientation="Horizontal">
+                                    <TextBlock
+                                        VerticalAlignment="Center"
+                                        FontSize="9"
+                                        FontWeight="ExtraBold"
+                                        Foreground="{DynamicResource GameBtnTanTextBrush}"
+                                        Text="Capsule" />
+                                    <Border
+                                        Margin="2.5,0,0,0"
+                                        Padding="2,0.5"
+                                        VerticalAlignment="Center"
+                                        Background="#350C03"
+                                        CornerRadius="2">
+                                        <TextBlock
+                                            FontSize="7.5"
+                                            FontWeight="ExtraBold"
+                                            Foreground="#F7C934"
+                                            Text="[C]" />
+                                    </Border>
+                                </StackPanel>
+                            </Button>
+                        </Grid>
+                    </Grid>
 
                     <Border
                         Height="1"
-                        Margin="0,6,0,5"
+                        Margin="0,4,0,3"
                         Background="{DynamicResource GameBorderBrush}"
                         Opacity="0.3" />
 
-                    <Grid Margin="0,0,0,4" SnapsToDevicePixels="True">
+                    <Grid Margin="0,0,0,3" SnapsToDevicePixels="True">
                         <Grid.ColumnDefinitions>
                             <ColumnDefinition Width="Auto" />
                             <ColumnDefinition Width="*" />
@@ -478,20 +785,20 @@
                         <TextBlock
                             Grid.Column="0"
                             VerticalAlignment="Center"
-                            FontSize="10"
+                            FontSize="9.5"
                             FontWeight="ExtraBold"
                             Foreground="{DynamicResource GameTextDarkBrush}"
                             Text="THANH KỸ NĂNG:" />
                         <Button
                             Grid.Column="1"
-                            Height="20"
-                            Margin="8,0,0,0"
-                            Padding="8,0"
+                            Height="18"
+                            Margin="6,0,0,0"
+                            Padding="6,0"
                             HorizontalAlignment="Left"
                             VerticalAlignment="Center"
                             Command="{Binding AutoAssignSkillsCommand}"
                             Content="TỰ GÁN CHIÊU"
-                            FontSize="8.5"
+                            FontSize="8"
                             FontWeight="ExtraBold"
                             Style="{StaticResource GameSecondaryButton}"
                             ToolTip="Tự động nạp và gán toàn bộ kỹ năng có sẵn vào phím tắt 1 - 0" />
@@ -502,16 +809,16 @@
                             <DataTemplate DataType="{x:Type guiModels:SkillButtonItem}">
                                 <Border
                                     x:Name="SelectionFrame"
-                                    Margin="1.5,1.5"
+                                    Margin="1,1"
                                     Padding="1"
                                     Background="Transparent"
                                     BorderBrush="Transparent"
                                     BorderThickness="1.5"
                                     CornerRadius="4.5">
                                     <Button
-                                        Height="30"
+                                        Height="24"
                                         MinWidth="0"
-                                        Padding="3,1"
+                                        Padding="2,1"
                                         Command="{Binding DataContext.UseSkillCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
                                         CommandParameter="{Binding}"
                                         Style="{StaticResource GameSecondaryButton}"
@@ -526,7 +833,7 @@
                                                 Margin="1,0,2,0"
                                                 HorizontalAlignment="Center"
                                                 VerticalAlignment="Center"
-                                                FontSize="9.5"
+                                                FontSize="9"
                                                 FontWeight="ExtraBold"
                                                 Foreground="{DynamicResource GameBtnTanTextBrush}"
                                                 Text="{Binding Name}"
@@ -534,13 +841,13 @@
                                             <Border
                                                 x:Name="BadgeBorder"
                                                 Grid.Column="1"
-                                                Padding="3,1"
+                                                Padding="2.5,0.5"
                                                 VerticalAlignment="Center"
                                                 Background="#350C03"
-                                                CornerRadius="2.5">
+                                                CornerRadius="2">
                                                 <TextBlock
                                                     x:Name="BadgeText"
-                                                    FontSize="8.5"
+                                                    FontSize="8"
                                                     FontWeight="ExtraBold"
                                                     Foreground="#F7C934"
                                                     Text="{Binding ShortcutBadge}" />
@@ -579,28 +886,28 @@
             </Border>
 
             <StackPanel
-                Margin="0,8,0,2"
+                Margin="0,5,0,0"
                 HorizontalAlignment="Center"
                 Orientation="Horizontal">
                 <Button
-                    Height="28"
-                    MinWidth="85"
-                    Margin="0,0,8,0"
+                    Height="26"
+                    MinWidth="80"
+                    Margin="0,0,6,0"
                     Command="{Binding SaveCommand}"
                     Content="LƯU"
                     Style="{StaticResource GamePrimaryButton}" />
 
                 <Button
-                    Height="28"
-                    MinWidth="75"
-                    Margin="0,0,8,0"
+                    Height="26"
+                    MinWidth="70"
+                    Margin="0,0,6,0"
                     Command="{Binding CancelCommand}"
                     Content="HỦY"
                     Style="{StaticResource GameSecondaryButton}" />
 
                 <Button
-                    Height="28"
-                    MinWidth="75"
+                    Height="26"
+                    MinWidth="70"
                     Command="{Binding DeleteCommand}"
                     Content="XÓA"
                     IsEnabled="{Binding CanDelete}"

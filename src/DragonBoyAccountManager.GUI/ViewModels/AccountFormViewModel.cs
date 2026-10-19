@@ -285,6 +285,33 @@ public sealed partial class AccountFormViewModel : ObservableObject
     public async Task ActionOkAsync() => await SendKeyPulseAsync(GameKey.Ok);
 
     [RelayCommand]
+    public async Task ActionFocusAsync() => await SendKeyPulseAsync(GameKey.Focus);
+
+    [RelayCommand]
+    public async Task ActionPickItemAsync() => await SendKeyPulseAsync(GameKey.PickItem);
+
+    [RelayCommand]
+    public async Task ActionUsePeanAsync() => await SendKeyPulseAsync(GameKey.UsePean);
+
+    [RelayCommand]
+    public async Task ActionMenuAsync() => await SendKeyPulseAsync(GameKey.Menu);
+
+    [RelayCommand]
+    public async Task ActionInventoryAsync() => await SendKeyPulseAsync(GameKey.Inventory);
+
+    [RelayCommand]
+    public async Task ActionSubFocusAsync() => await SendKeyPulseAsync(GameKey.SubFocus);
+
+    [RelayCommand]
+    public async Task ActionYesAsync() => await SendKeyPulseAsync(GameKey.Yes);
+
+    [RelayCommand]
+    public async Task ActionChatAsync() => await SendKeyPulseAsync(GameKey.Chat);
+
+    [RelayCommand]
+    public async Task ActionBackAsync() => await SendKeyPulseAsync(GameKey.Back);
+
+    [RelayCommand]
     public void UseCapsule()
     {
         var targets = ResolveKeyTargets();
@@ -512,6 +539,33 @@ public sealed partial class AccountFormViewModel : ObservableObject
         if (targets.Count == 0) return;
 
         var tasks = targets.Select(id => _gameEngine.SendGameKeyPressAsync(id, key, holdMs));
+        await Task.WhenAll(tasks);
+    }
+
+    public void StartHoldingRawKey(int keyCode)
+    {
+        var targets = ResolveKeyTargets();
+        foreach (var id in targets)
+        {
+            _gameEngine.SendGameKeyDown(id, keyCode);
+        }
+    }
+
+    public void StopHoldingRawKey(int keyCode)
+    {
+        var targets = ResolveKeyTargets();
+        foreach (var id in targets)
+        {
+            _gameEngine.SendGameKeyUp(id, keyCode);
+        }
+    }
+
+    public async Task SendRawKeyPulseAsync(int keyCode, int holdMs = 120)
+    {
+        var targets = ResolveKeyTargets().ToList();
+        if (targets.Count == 0 || keyCode == 0) return;
+
+        var tasks = targets.Select(id => _gameEngine.SendGameKeyPressAsync(id, keyCode, holdMs));
         await Task.WhenAll(tasks);
     }
 

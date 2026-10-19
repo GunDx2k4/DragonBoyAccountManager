@@ -482,6 +482,15 @@ public sealed class CoreGameEngineAdapter(ISettingsService? settingsService = nu
         GameKey.Left => -3,
         GameKey.Right => -4,
         GameKey.Ok => -5,
+        GameKey.Focus => -26,
+        GameKey.PickItem => 113,
+        GameKey.UsePean => 32,
+        GameKey.Menu => -21,
+        GameKey.Inventory => -22,
+        GameKey.SubFocus => -23,
+        GameKey.Yes => 121,
+        GameKey.Chat => 114,
+        GameKey.Back => -8,
         _ => 0
     };
 
@@ -770,6 +779,15 @@ public sealed class CoreGameEngineAdapter(ISettingsService? settingsService = nu
         if (_sessions.TryGetValue(accountId, out var session) && session.Instance.IsRunning && session.Instance.Player.IsInGame)
         {
             return session.Instance.Player.UseTdlt();
+        }
+        return (false, "Tài khoản chưa vào game");
+    }
+
+    public (bool Success, string Message) UsePean(Guid accountId)
+    {
+        if (_sessions.TryGetValue(accountId, out var session) && session.Instance.IsRunning && session.Instance.Player.IsInGame)
+        {
+            return session.Instance.Player.UsePean();
         }
         return (false, "Tài khoản chưa vào game");
     }
