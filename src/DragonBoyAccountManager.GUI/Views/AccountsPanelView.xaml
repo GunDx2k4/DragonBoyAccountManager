@@ -212,15 +212,22 @@
                         <StackPanel Margin="6,4,0,0">
                             <TextBlock
                                 FontSize="10.5"
+                                FontWeight="SemiBold"
                                 Foreground="#92400E"
                                 LineHeight="16"
-                                Text="1. Chuẩn bị thư mục game PC có chứa file [TênGame].exe và thư mục dữ liệu [TênGame]_Data\Managed\Assembly-CSharp.dll"
+                                Text="1. Tải bản game PC gốc 2.5.0 trực tiếp tại trang chủ (ngocrongonline.com) — KHÔNG cài đặt bản mod."
                                 TextWrapping="Wrap" />
                             <TextBlock
                                 FontSize="10.5"
                                 Foreground="#92400E"
                                 LineHeight="16"
-                                Text="2. Bấm nút 'Chọn file game (.exe)' để kết nối. Sau đó thêm tài khoản và mở game bình thường."
+                                Text="2. Giải nén đầy đủ thư mục game, kiểm tra có file [TênGame].exe và thư mục [TênGame]_Data\Managed\Assembly-CSharp.dll."
+                                TextWrapping="Wrap" />
+                            <TextBlock
+                                FontSize="10.5"
+                                Foreground="#92400E"
+                                LineHeight="16"
+                                Text="3. Bấm nút 'Chọn file game (.exe)' bên dưới để liên kết. Sau đó thêm tài khoản và mở game bình thường."
                                 TextWrapping="Wrap" />
                         </StackPanel>
                     </StackPanel>

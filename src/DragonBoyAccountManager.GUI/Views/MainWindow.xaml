@@ -206,7 +206,7 @@
                                                                         <DataTrigger Binding="{Binding SelectedIndex, ElementName=ConfigTabControl}" Value="1">
                                                                             <Setter Property="Text" Value="TIỆN ÍCH BẢN ĐỒ &amp; ĐỔI KHU" />
                                                                         </DataTrigger>
-                                                                        <DataTrigger Binding="{Binding SelectedIndex, ElementName=ConfigTabControl}" Value="2">
+                                                                         <DataTrigger Binding="{Binding SelectedIndex, ElementName=ConfigTabControl}" Value="2">
                                                                             <Setter Property="Text" Value="CẤU HÌNH HỆ THỐNG" />
                                                                         </DataTrigger>
                                                                         <DataTrigger Binding="{Binding SelectedIndex, ElementName=ConfigTabControl}" Value="3">
@@ -244,22 +244,27 @@
 
                                                             <TabItem Style="{StaticResource GameTabItemStyle}" ToolTip="Hướng dẫn sử dụng &amp; Thông tin phiên bản">
                                                                 <TabItem.Header>
-                                                                    <StackPanel VerticalAlignment="Center" Orientation="Horizontal">
+                                                                    <StackPanel
+                                                                        HorizontalAlignment="Center"
+                                                                        VerticalAlignment="Center"
+                                                                        Orientation="Vertical">
                                                                         <TextBlock
+                                                                            HorizontalAlignment="Center"
                                                                             VerticalAlignment="Center"
-                                                                            FontSize="10.5"
+                                                                            FontSize="11"
                                                                             Text="HƯỚNG DẪN" />
                                                                         <Border
-                                                                            Margin="4,0,0,0"
-                                                                            Padding="3,0"
+                                                                            Margin="0,1.5,0,0"
+                                                                            Padding="4,0.5"
+                                                                            HorizontalAlignment="Center"
                                                                             VerticalAlignment="Center"
                                                                             Background="#DC2626"
                                                                             BorderBrush="#B91C1C"
                                                                             BorderThickness="1"
-                                                                            CornerRadius="3"
+                                                                            CornerRadius="2"
                                                                             Visibility="{Binding Guide.HasAppUpdate, Converter={StaticResource BooleanToVisibilityConverter}}">
                                                                             <TextBlock
-                                                                                FontSize="8"
+                                                                                FontSize="7.5"
                                                                                 FontWeight="ExtraBold"
                                                                                 Foreground="#FFFFFF"
                                                                                 Text="MỚI" />

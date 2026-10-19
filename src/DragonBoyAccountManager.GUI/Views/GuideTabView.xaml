@@ -39,7 +39,7 @@
                             FontWeight="Bold"
                             Foreground="{DynamicResource GameTextMutedBrush}"
                             Text="Tool quản lý:" />
-                        <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center">
+                        <WrapPanel Grid.Column="1" VerticalAlignment="Center">
                             <TextBlock
                                 VerticalAlignment="Center"
                                 FontSize="11.5"
@@ -47,8 +47,9 @@
                                 Foreground="{DynamicResource GameGreenBrush}"
                                 Text="{Binding AppVersion, StringFormat='v{0}'}" />
                             <Border
-                                Margin="8,0,0,0"
+                                Margin="8,1,0,1"
                                 Padding="6,1.5"
+                                VerticalAlignment="Center"
                                 Background="#FEF3C7"
                                 BorderBrush="#D97706"
                                 BorderThickness="1"
@@ -60,7 +61,7 @@
                                     Foreground="#B45309"
                                     Text="{Binding AvailableAppUpdate.Version, StringFormat='Mới: v{0}'}" />
                             </Border>
-                        </StackPanel>
+                        </WrapPanel>
                     </Grid>
 
                     <Grid Margin="0,0,0,6">
@@ -198,7 +199,7 @@
                                         FontSize="10"
                                         FontWeight="SemiBold"
                                         Foreground="#92400E"
-                                        Text="Vui lòng kết nối file game để tool có thể tương tác bộ nhớ."
+                                        Text="Vui lòng thực hiện theo các bước sau để kết nối:"
                                         TextWrapping="Wrap" />
                                 </StackPanel>
                                 <Button
@@ -213,6 +214,28 @@
                                     FontWeight="Bold"
                                     Style="{StaticResource GamePrimaryButton}" />
                             </Grid>
+
+                            <StackPanel Margin="2,2,0,0">
+                                <TextBlock
+                                    FontSize="10.5"
+                                    FontWeight="SemiBold"
+                                    Foreground="#92400E"
+                                    LineHeight="16"
+                                    Text="1. Tải bản game PC gốc 2.5.0 trực tiếp tại trang chủ (ngocrongonline.com) — KHÔNG cài đặt bản mod."
+                                    TextWrapping="Wrap" />
+                                <TextBlock
+                                    FontSize="10.5"
+                                    Foreground="#92400E"
+                                    LineHeight="16"
+                                    Text="2. Giải nén đầy đủ thư mục game, kiểm tra có file [TênGame].exe và thư mục [TênGame]_Data\Managed\Assembly-CSharp.dll."
+                                    TextWrapping="Wrap" />
+                                <TextBlock
+                                    FontSize="10.5"
+                                    Foreground="#92400E"
+                                    LineHeight="16"
+                                    Text="3. Bấm nút 'Chọn file ngay' ở trên để liên kết đường dẫn. Sau đó thêm tài khoản và mở game bình thường."
+                                    TextWrapping="Wrap" />
+                            </StackPanel>
                         </StackPanel>
                     </Border>
 
@@ -254,7 +277,193 @@
                 </StackPanel>
             </ui:GameCard>
 
-            <views:FeedbackView Margin="0,0,0,10" DataContext="{Binding Feedback}" />
+            <ui:GameCard
+                Margin="0,0,0,10"
+                Header="CHỈ DẪN KẾT NỐI GAME &amp; ASSEMBLY-CSHARP">
+                <StackPanel>
+                    <TextBlock
+                        FontSize="11"
+                        Foreground="{DynamicResource GameTextDarkBrush}"
+                        LineHeight="17"
+                        Text="DBAM hoạt động theo nguyên lý Out-of-Process (không can thiệp chỉnh sửa file game gốc). Tool kết nối trực tiếp với tiến trình game thông qua Win32 API và tương tác với máy ảo Mono 2.0 bằng file Assembly-CSharp.dll."
+                        TextWrapping="Wrap" />
+
+                    <Border
+                        Margin="0,8,0,8"
+                        Padding="10,8"
+                        Background="#FFFBEB"
+                        BorderBrush="#D97706"
+                        BorderThickness="1.5"
+                        CornerRadius="4">
+                        <StackPanel>
+                            <TextBlock
+                                FontSize="11"
+                                FontWeight="ExtraBold"
+                                Foreground="#B45309"
+                                Text="QUY TẮC QUAN TRỌNG:" />
+                            <TextBlock
+                                Margin="0,3,0,0"
+                                FontSize="10.5"
+                                FontWeight="SemiBold"
+                                Foreground="#92400E"
+                                LineHeight="16"
+                                Text="Tải phiên bản game PC gốc v2.5.0 trực tiếp tại trang chủ (ngocrongonline.com). Tuyệt đối KHÔNG sử dụng bản mod hoặc client đã bị can thiệp."
+                                TextWrapping="Wrap" />
+                        </StackPanel>
+                    </Border>
+
+                    <Border
+                        Margin="0,0,0,8"
+                        Padding="10,8"
+                        Background="#FFFDF7"
+                        BorderBrush="{DynamicResource GameBorderBrush}"
+                        BorderThickness="1"
+                        CornerRadius="4">
+                        <StackPanel>
+                            <TextBlock
+                                FontSize="11"
+                                FontWeight="Bold"
+                                Foreground="{DynamicResource GameTextDarkBrush}"
+                                Text="CẤU TRÚC THƯ MỤC GAME CHUẨN:" />
+                            <TextBlock
+                                Margin="8,4,0,0"
+                                FontFamily="Consolas, Courier New, monospace"
+                                FontSize="10.5"
+                                Foreground="#92400E"
+                                LineHeight="16"
+                                Text="Thư mục game/&#x0a;  ├── DragonBoy.exe (hoặc file .exe bất kỳ)&#x0a;  └── DragonBoy_Data/&#x0a;       └── Managed/&#x0a;            └── Assembly-CSharp.dll" />
+                        </StackPanel>
+                    </Border>
+
+                    <StackPanel Margin="0,0,0,6">
+                        <TextBlock
+                            FontSize="11.5"
+                            FontWeight="Bold"
+                            Foreground="{DynamicResource GameTextDarkBrush}"
+                            Text="1. Tải bản game gốc &amp; chọn file .exe" />
+                        <TextBlock
+                            Margin="10,2,0,0"
+                            FontSize="11"
+                            Foreground="{DynamicResource GameTextMutedBrush}"
+                            Text="Tải bản game PC gốc 2.5.0 tại trang chủ ngocrongonline.com (không cài bản mod). Bấm nút 'Chọn file...' ở thanh đáy cửa sổ để trỏ đến file thực thi .exe của game."
+                            TextWrapping="Wrap" />
+                    </StackPanel>
+
+                    <StackPanel Margin="0,0,0,6">
+                        <TextBlock
+                            FontSize="11.5"
+                            FontWeight="Bold"
+                            Foreground="{DynamicResource GameTextDarkBrush}"
+                            Text="2. Giải nén &amp; kiểm tra cấu trúc thư mục" />
+                        <TextBlock
+                            Margin="10,2,0,0"
+                            FontSize="11"
+                            Foreground="{DynamicResource GameTextMutedBrush}"
+                            Text="Đảm bảo giải nén đầy đủ bản game PC gốc và thư mục chứa game có thư mục con [TênExe]_Data\Managed\Assembly-CSharp.dll trùng khớp với tên file .exe."
+                            TextWrapping="Wrap" />
+                    </StackPanel>
+
+                    <StackPanel Margin="0,0,0,6">
+                        <TextBlock
+                            FontSize="11.5"
+                            FontWeight="Bold"
+                            Foreground="{DynamicResource GameTextDarkBrush}"
+                            Text="3. Sau khi kết nối thành công" />
+                        <TextBlock
+                            Margin="10,2,0,0"
+                            FontSize="11"
+                            Foreground="{DynamicResource GameTextMutedBrush}"
+                            Text="Huy hiệu phiên bản sẽ chuyển màu xanh: 'v2.5.0 (Khớp bản gốc)'. Lúc này bạn đã có thể thêm tài khoản, mở game và sử dụng toàn bộ tính năng tự động."
+                            TextWrapping="Wrap" />
+                    </StackPanel>
+
+                    <StackPanel Margin="0,4,0,0" Orientation="Horizontal">
+                        <Button
+                            Height="28"
+                            MinWidth="0"
+                            Padding="12,0"
+                            Margin="0,0,8,0"
+                            Command="{Binding BrowseGamePathCommand}"
+                            Content="Chọn file game (.exe)"
+                            FontSize="11"
+                            Style="{StaticResource GamePrimaryButton}" />
+                        <Button
+                            Height="28"
+                            MinWidth="0"
+                            Padding="12,0"
+                            Command="{Binding OpenGameFolderCommand}"
+                            Content="Mở thư mục game"
+                            FontSize="11"
+                            Style="{StaticResource GameSecondaryButton}" />
+                    </StackPanel>
+                </StackPanel>
+            </ui:GameCard>
+
+            <ui:GameCard Margin="0,0,0,10" Header="HƯỚNG DẪN SỬ DỤNG NHANH">
+                <StackPanel>
+                    <StackPanel Margin="0,0,0,6">
+                        <TextBlock
+                            FontSize="11.5"
+                            FontWeight="Bold"
+                            Foreground="{DynamicResource GameTextDarkBrush}"
+                            Text="1. Cài đặt đường dẫn game" />
+                        <TextBlock
+                            Margin="10,2,0,0"
+                            FontSize="11"
+                            Foreground="{DynamicResource GameTextMutedBrush}"
+                            Text="Tải bản game PC gốc 2.5.0 tại trang chủ (ngocrongonline.com) — không cài bản mod. Bấm nút 'Chọn file...' ở thanh đáy cửa sổ để trỏ đến tệp thực thi (.exe) của game."
+                            TextWrapping="Wrap" />
+                    </StackPanel>
+
+                    <StackPanel Margin="0,0,0,6">
+                        <TextBlock
+                            FontSize="11.5"
+                            FontWeight="Bold"
+                            Foreground="{DynamicResource GameTextDarkBrush}"
+                            Text="2. Thêm &amp; Lưu tài khoản" />
+                        <TextBlock
+                            Margin="10,2,0,0"
+                            FontSize="11"
+                            Foreground="{DynamicResource GameTextMutedBrush}"
+                            Text="Nhập Tên tài khoản, Mật khẩu (bấm nút Hiện/Ẩn mật khẩu để xem), chọn Máy chủ rồi bấm LƯU."
+                            TextWrapping="Wrap" />
+                    </StackPanel>
+
+                    <StackPanel Margin="0,0,0,6">
+                        <TextBlock
+                            FontSize="11.5"
+                            FontWeight="Bold"
+                            Foreground="{DynamicResource GameTextDarkBrush}"
+                            Text="3. Bật / Tắt game" />
+                        <TextBlock
+                            Margin="10,2,0,0"
+                            FontSize="11"
+                            Foreground="{DynamicResource GameTextMutedBrush}"
+                            Text="• Nhấp đúp chuột (Double-Click) vào dòng tài khoản để Mở game hoặc Đóng game tức thì."
+                            TextWrapping="Wrap" />
+                        <TextBlock
+                            Margin="10,2,0,0"
+                            FontSize="11"
+                            Foreground="{DynamicResource GameTextMutedBrush}"
+                            Text="• Hoặc nhấp chuột phải vào dòng tài khoản để mở Menu thao tác nhanh."
+                            TextWrapping="Wrap" />
+                    </StackPanel>
+
+                    <StackPanel Margin="0,0,0,2">
+                        <TextBlock
+                            FontSize="11.5"
+                            FontWeight="Bold"
+                            Foreground="{DynamicResource GameTextDarkBrush}"
+                            Text="4. Điều khiển &amp; Chỉnh tốc độ" />
+                        <TextBlock
+                            Margin="10,2,0,0"
+                            FontSize="11"
+                            Foreground="{DynamicResource GameTextMutedBrush}"
+                            Text="Sử dụng thanh kéo tốc độ (0.1x - 5.0x) và cụm phím điều hướng (Lên/Xuống/Trái/Phải/Chọn) tại tab TÀI KHOẢN để tương tác trực tiếp với game."
+                            TextWrapping="Wrap" />
+                    </StackPanel>
+                </StackPanel>
+            </ui:GameCard>
 
             <ui:GameCard
                 Margin="0,0,0,10"
@@ -309,169 +518,7 @@
                 </StackPanel>
             </ui:GameCard>
 
-            <ui:GameCard
-                Margin="0,0,0,10"
-                Header="CHỈ DẪN KẾT NỐI GAME &amp; ASSEMBLY-CSHARP">
-                <StackPanel>
-                    <TextBlock
-                        FontSize="11"
-                        Foreground="{DynamicResource GameTextDarkBrush}"
-                        LineHeight="17"
-                        Text="DBAM hoạt động theo nguyên lý Out-of-Process (không can thiệp chỉnh sửa file game gốc). Tool kết nối trực tiếp với tiến trình game thông qua Win32 API và tương tác với máy ảo Mono 2.0 bằng file Assembly-CSharp.dll."
-                        TextWrapping="Wrap" />
-
-                    <Border
-                        Margin="0,8,0,8"
-                        Padding="10,8"
-                        Background="#FFFDF7"
-                        BorderBrush="{DynamicResource GameBorderBrush}"
-                        BorderThickness="1"
-                        CornerRadius="4">
-                        <StackPanel>
-                            <TextBlock
-                                FontSize="11"
-                                FontWeight="Bold"
-                                Foreground="{DynamicResource GameTextDarkBrush}"
-                                Text="CẤU TRÚC THƯ MỤC GAME CHUẨN:" />
-                            <TextBlock
-                                Margin="8,4,0,0"
-                                FontFamily="Consolas, Courier New, monospace"
-                                FontSize="10.5"
-                                Foreground="#92400E"
-                                LineHeight="16"
-                                Text="Thư mục game/&#x0a;  ├── DragonBoy.exe (hoặc file .exe bất kỳ)&#x0a;  └── DragonBoy_Data/&#x0a;       └── Managed/&#x0a;            └── Assembly-CSharp.dll" />
-                        </StackPanel>
-                    </Border>
-
-                    <StackPanel Margin="0,0,0,6">
-                        <TextBlock
-                            FontSize="11.5"
-                            FontWeight="Bold"
-                            Foreground="{DynamicResource GameTextDarkBrush}"
-                            Text="1. Khi báo: 'Chưa chọn file game .exe'" />
-                        <TextBlock
-                            Margin="10,2,0,0"
-                            FontSize="11"
-                            Foreground="{DynamicResource GameTextMutedBrush}"
-                            Text="Bạn chưa chọn đường dẫn game. Bấm nút 'Chọn file...' ở thanh đáy cửa sổ để trỏ đến file thực thi .exe của game."
-                            TextWrapping="Wrap" />
-                    </StackPanel>
-
-                    <StackPanel Margin="0,0,0,6">
-                        <TextBlock
-                            FontSize="11.5"
-                            FontWeight="Bold"
-                            Foreground="{DynamicResource GameTextDarkBrush}"
-                            Text="2. Khi báo: 'Không tìm thấy Assembly'" />
-                        <TextBlock
-                            Margin="10,2,0,0"
-                            FontSize="11"
-                            Foreground="{DynamicResource GameTextMutedBrush}"
-                            Text="File .exe đã chọn nhưng thư mục chứa game thiếu thư mục con [TênExe]_Data\Managed\Assembly-CSharp.dll. Hãy đảm bảo giải nén đầy đủ bản game PC và tên thư mục _Data trùng khớp với tên file .exe."
-                            TextWrapping="Wrap" />
-                    </StackPanel>
-
-                    <StackPanel Margin="0,0,0,6">
-                        <TextBlock
-                            FontSize="11.5"
-                            FontWeight="Bold"
-                            Foreground="{DynamicResource GameTextDarkBrush}"
-                            Text="3. Sau khi kết nối thành công" />
-                        <TextBlock
-                            Margin="10,2,0,0"
-                            FontSize="11"
-                            Foreground="{DynamicResource GameTextMutedBrush}"
-                            Text="Huy hiệu phiên bản sẽ chuyển màu xanh (Khớp bản gốc) hoặc màu cam/đỏ (Bản mod). Lúc này bạn đã có thể thêm tài khoản, mở game và sử dụng toàn bộ tính năng tự động."
-                            TextWrapping="Wrap" />
-                    </StackPanel>
-
-                    <StackPanel Margin="0,4,0,0" Orientation="Horizontal">
-                        <Button
-                            Height="28"
-                            MinWidth="0"
-                            Padding="12,0"
-                            Margin="0,0,8,0"
-                            Command="{Binding BrowseGamePathCommand}"
-                            Content="Chọn file game (.exe)"
-                            FontSize="11"
-                            Style="{StaticResource GamePrimaryButton}" />
-                        <Button
-                            Height="28"
-                            MinWidth="0"
-                            Padding="12,0"
-                            Command="{Binding OpenGameFolderCommand}"
-                            Content="Mở thư mục game"
-                            FontSize="11"
-                            Style="{StaticResource GameSecondaryButton}" />
-                    </StackPanel>
-                </StackPanel>
-            </ui:GameCard>
-
-            <ui:GameCard Margin="0,0,0,4" Header="HƯỚNG DẪN SỬ DỤNG NHANH">
-                <StackPanel>
-                    <StackPanel Margin="0,0,0,6">
-                        <TextBlock
-                            FontSize="11.5"
-                            FontWeight="Bold"
-                            Foreground="{DynamicResource GameTextDarkBrush}"
-                            Text="1. Cài đặt đường dẫn game" />
-                        <TextBlock
-                            Margin="10,2,0,0"
-                            FontSize="11"
-                            Foreground="{DynamicResource GameTextMutedBrush}"
-                            Text="Bấm nút 'Chọn file...' ở thanh đáy cửa sổ để chọn tệp thực thi (.exe) của game."
-                            TextWrapping="Wrap" />
-                    </StackPanel>
-
-                    <StackPanel Margin="0,0,0,6">
-                        <TextBlock
-                            FontSize="11.5"
-                            FontWeight="Bold"
-                            Foreground="{DynamicResource GameTextDarkBrush}"
-                            Text="2. Thêm &amp; Lưu tài khoản" />
-                        <TextBlock
-                            Margin="10,2,0,0"
-                            FontSize="11"
-                            Foreground="{DynamicResource GameTextMutedBrush}"
-                            Text="Nhập Tên tài khoản, Mật khẩu (bấm nút Hiện/Ẩn mật khẩu để xem), chọn Máy chủ rồi bấm LƯU."
-                            TextWrapping="Wrap" />
-                    </StackPanel>
-
-                    <StackPanel Margin="0,0,0,6">
-                        <TextBlock
-                            FontSize="11.5"
-                            FontWeight="Bold"
-                            Foreground="{DynamicResource GameTextDarkBrush}"
-                            Text="3. Bật / Tắt game" />
-                        <TextBlock
-                            Margin="10,2,0,0"
-                            FontSize="11"
-                            Foreground="{DynamicResource GameTextMutedBrush}"
-                            Text="• Nhấp đúp chuột (Double-Click) vào dòng tài khoản để Mở game hoặc Đóng game tức thì."
-                            TextWrapping="Wrap" />
-                        <TextBlock
-                            Margin="10,2,0,0"
-                            FontSize="11"
-                            Foreground="{DynamicResource GameTextMutedBrush}"
-                            Text="• Hoặc nhấp chuột phải vào dòng tài khoản để mở Menu thao tác nhanh."
-                            TextWrapping="Wrap" />
-                    </StackPanel>
-
-                    <StackPanel Margin="0,0,0,2">
-                        <TextBlock
-                            FontSize="11.5"
-                            FontWeight="Bold"
-                            Foreground="{DynamicResource GameTextDarkBrush}"
-                            Text="4. Điều khiển &amp; Chỉnh tốc độ" />
-                        <TextBlock
-                            Margin="10,2,0,0"
-                            FontSize="11"
-                            Foreground="{DynamicResource GameTextMutedBrush}"
-                            Text="Sử dụng thanh kéo tốc độ (0.1x - 5.0x) và cụm phím điều hướng (Lên/Xuống/Trái/Phải/Chọn) tại tab TÀI KHOẢN để tương tác trực tiếp với game."
-                            TextWrapping="Wrap" />
-                    </StackPanel>
-                </StackPanel>
-            </ui:GameCard>
+            <views:FeedbackView Margin="0,0,0,4" DataContext="{Binding Feedback}" />
         </StackPanel>
     </ScrollViewer>
 </UserControl>

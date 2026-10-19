@@ -207,13 +207,13 @@ public sealed partial class AccountsPanelViewModel : ObservableObject
 
         if (metadata.Status == ClientStatus.GameNotFound)
         {
-            AssemblyGuidanceTitle = "CHƯA THIẾT LẬP FILE GAME (.EXE)";
-            AssemblyGuidanceMessage = "DBAM cần kết nối với file thực thi game (.exe) để khởi chạy và điều khiển tài khoản tự động.";
+            AssemblyGuidanceTitle = "CHƯA THIẾT LẬP FILE GAME GỐC 2.5.0 (.EXE)";
+            AssemblyGuidanceMessage = "DBAM yêu cầu phiên bản game PC gốc 2.5.0 tải tại trang chủ (ngocrongonline.com) — tuyệt đối không cài bản mod. Vui lòng bấm \"Chọn file game (.exe)\" để bắt đầu.";
         }
         else if (metadata.Status == ClientStatus.AssemblyNotFound)
         {
             AssemblyGuidanceTitle = "KHÔNG TÌM THẤY ASSEMBLY-CSHARP.DLL";
-            AssemblyGuidanceMessage = "Đã nhận file .exe nhưng không tìm thấy file Assembly-CSharp.dll trong thư mục dữ liệu Data\\Managed. Vui lòng kiểm tra lại cấu trúc thư mục game.";
+            AssemblyGuidanceMessage = "Đã nhận file .exe nhưng thiếu file Assembly-CSharp.dll trong Data\\Managed. Vui lòng tải bản game PC 2.5.0 gốc tại trang chủ (không dùng bản mod) và kiểm tra lại thư mục game.";
         }
         else
         {
@@ -490,7 +490,7 @@ public sealed partial class AccountsPanelViewModel : ObservableObject
                 "Không tìm thấy Assembly-CSharp",
                 $"Đã nhận diện file thực thi game: {Path.GetFileName(gamePath)}\n" +
                 "Nhưng không tìm thấy file Assembly-CSharp.dll trong thư mục dữ liệu Data\\Managed.\n\n" +
-                "Vui lòng đảm bảo cấu trúc thư mục game đúng chuẩn:\n" +
+                "Vui lòng tải bản game PC gốc 2.5.0 tại trang chủ (ngocrongonline.com) — không dùng bản mod, và đảm bảo cấu trúc:\n" +
                 "- [TênGame].exe\n" +
                 "- [TênGame]_Data\\Managed\\Assembly-CSharp.dll");
         }
@@ -498,7 +498,9 @@ public sealed partial class AccountsPanelViewModel : ObservableObject
         {
             bool chooseNow = _dialogService.ShowConfirmation(
                 "Chưa cài đặt đường dẫn game",
-                "Chưa chọn tệp thực thi game (.exe) hoặc đường dẫn không tồn tại.\n\nBạn có muốn chọn file game (.exe) ngay bây giờ không?",
+                "Chưa chọn tệp thực thi game (.exe) hoặc đường dẫn không tồn tại.\n\n" +
+                "Vui lòng tải bản game PC gốc 2.5.0 tại trang chủ (ngocrongonline.com) — tuyệt đối không cài bản mod.\n\n" +
+                "Bạn có muốn chọn file game (.exe) ngay bây giờ không?",
                 "Chọn file ngay",
                 "Để sau");
             if (chooseNow)
