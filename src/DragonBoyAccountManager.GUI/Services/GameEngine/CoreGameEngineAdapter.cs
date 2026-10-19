@@ -24,6 +24,9 @@ public sealed class CoreGameEngineAdapter(ISettingsService? settingsService = nu
         public Account Account { get; } = account;
         public CancellationTokenSource Cts { get; } = new();
         public AutoChatAction? CurrentAutoChatAction { get; set; }
+        public CancellationTokenSource? AutoTrainCts { get; set; }
+        public Task? AutoTrainTask { get; set; }
+        public DragonBoyAccountManager.Core.Game.Actions.AutoTrainAction? CurrentAutoTrainAction { get; set; }
         public bool HasAssignedSkills { get; set; }
 
         private int _isLoggingIn;
@@ -35,6 +38,13 @@ public sealed class CoreGameEngineAdapter(ISettingsService? settingsService = nu
         {
             try { Cts.Cancel(); } catch { }
             Cts.Dispose();
+            if (AutoTrainCts != null)
+            {
+                try { AutoTrainCts.Cancel(); } catch { }
+                AutoTrainCts.Dispose();
+                AutoTrainCts = null;
+                CurrentAutoTrainAction = null;
+            }
             if (CurrentAutoChatAction != null)
             {
                 Controller.RemovePeriodicAction(CurrentAutoChatAction);
@@ -56,6 +66,8 @@ public sealed class CoreGameEngineAdapter(ISettingsService? settingsService = nu
     public event Action<Guid, GameSessionStatus, GameSessionSnapshot?>? OnSessionUpdated;
     public event Action<Guid, string>? OnSessionMessageUpdated;
     public event Action<Guid, string, int>? OnChatSent;
+    public event Action<Guid, string>? OnAutoTrainStatusChanged;
+    public event Action<Guid, bool>? OnAutoTrainStateChanged;
 
     public async Task<bool> StartAsync(Account account, string gamePath)
     {
@@ -676,6 +688,72 @@ public sealed class CoreGameEngineAdapter(ISettingsService? settingsService = nu
     public bool IsAutoChatRunning(Guid accountId)
     {
         return _sessions.TryGetValue(accountId, out var session) && session.CurrentAutoChatAction != null;
+    }
+
+    public void StartAutoTrain(Guid accountId, DragonBoyAccountManager.Core.Game.Actions.AutoTrainOptions options)
+    {
+        if (_sessions.TryGetValue(accountId, out var session) && session.Instance.IsRunning)
+        {
+            StopAutoTrain(accountId);
+
+            try
+            {
+                session.Instance.Reflector.WriteStatic(GameSchema.GameScr.ClassName, GameSchema.GameScr.StaticIsAutoPlay, false);
+            }
+            catch { }
+
+            var cts = CancellationTokenSource.CreateLinkedTokenSource(session.Cts.Token);
+            var action = new DragonBoyAccountManager.Core.Game.Actions.AutoTrainAction(options);
+
+            session.AutoTrainCts = cts;
+            session.CurrentAutoTrainAction = action;
+
+            var progress = new Progress<string>(msg =>
+            {
+                OnAutoTrainStatusChanged?.Invoke(accountId, msg);
+            });
+
+            session.AutoTrainTask = Task.Run(async () =>
+            {
+                try
+                {
+                    OnAutoTrainStateChanged?.Invoke(accountId, true);
+                    await action.ExecuteAsync(session.Instance.Context, progress, cts.Token);
+                }
+                catch (OperationCanceledException) { }
+                catch (Exception ex)
+                {
+                    OnAutoTrainStatusChanged?.Invoke(accountId, $"Lỗi auto: {ex.Message}");
+                }
+                finally
+                {
+                    session.AutoTrainCts = null;
+                    session.CurrentAutoTrainAction = null;
+                    OnAutoTrainStateChanged?.Invoke(accountId, false);
+                }
+            }, cts.Token);
+        }
+    }
+
+    public void StopAutoTrain(Guid accountId)
+    {
+        if (_sessions.TryGetValue(accountId, out var session))
+        {
+            if (session.AutoTrainCts != null)
+            {
+                try { session.AutoTrainCts.Cancel(); } catch { }
+                session.AutoTrainCts.Dispose();
+                session.AutoTrainCts = null;
+                session.CurrentAutoTrainAction = null;
+                OnAutoTrainStateChanged?.Invoke(accountId, false);
+                OnAutoTrainStatusChanged?.Invoke(accountId, "Đã dừng tự động luyện tập.");
+            }
+        }
+    }
+
+    public bool IsAutoTrainRunning(Guid accountId)
+    {
+        return _sessions.TryGetValue(accountId, out var session) && session.AutoTrainCts != null && !session.AutoTrainCts.IsCancellationRequested;
     }
 
     public (bool Success, string Message) UseCapsule(Guid accountId)

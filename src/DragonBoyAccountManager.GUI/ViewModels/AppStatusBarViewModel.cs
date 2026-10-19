@@ -210,7 +210,9 @@ public sealed partial class AppStatusBarViewModel : ObservableObject
         {
             bool chooseNow = _dialogService.ShowConfirmation(
                 "Chưa chọn game / Thiếu Assembly",
-                "Chưa tìm thấy file Assembly-CSharp.dll hoặc chưa chọn file thực thi game (.exe).\n\nBạn có muốn chọn file game (.exe) ngay bây giờ không?",
+                "Chưa tìm thấy file Assembly-CSharp.dll hoặc chưa chọn file thực thi game (.exe).\n\n" +
+                "Vui lòng tải bản game PC gốc 2.5.0 tại trang chủ (ngocrongonline.com) — tuyệt đối không cài bản mod.\n\n" +
+                "Bạn có muốn chọn file game (.exe) ngay bây giờ không?",
                 "Chọn file ngay",
                 "Đóng");
             if (chooseNow)

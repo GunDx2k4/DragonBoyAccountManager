@@ -16,6 +16,7 @@ public sealed partial class MainViewModel : ObservableObject
     public SettingsTabViewModel Settings { get; }
     public GuideViewModel Guide { get; }
     public UtilitiesTabViewModel UtilitiesTab { get; }
+    public AutoTabViewModel AutoTab { get; }
 
     [ObservableProperty]
     private int _selectedTabIndex;
@@ -27,6 +28,7 @@ public sealed partial class MainViewModel : ObservableObject
         SettingsTabViewModel settings,
         GuideViewModel guide,
         UtilitiesTabViewModel utilitiesTab,
+        AutoTabViewModel autoTab,
         IAccountStorageService storageService,
         IDialogService dialogService)
     {
@@ -36,6 +38,7 @@ public sealed partial class MainViewModel : ObservableObject
         Settings = settings;
         Guide = guide;
         UtilitiesTab = utilitiesTab;
+        AutoTab = autoTab;
         _storageService = storageService;
         _dialogService = dialogService;
 
@@ -107,11 +110,27 @@ public sealed partial class MainViewModel : ObservableObject
             return [];
         });
 
+        AutoTab.SetTargetResolver(() =>
+        {
+            var targets = AccountsPanel.GetTargetAccounts();
+            var running = targets.Where(a => a.IsRunning).Select(a => a.Id).ToList();
+            if (running.Count > 0) return running;
+
+            if (AccountsPanel.SelectedAccount != null && AccountsPanel.SelectedAccount.IsRunning)
+            {
+                return [AccountsPanel.SelectedAccount.Id];
+            }
+
+            return [];
+        });
+
         AccountsPanel.OnAccountSelectionChanged += selected =>
         {
             AccountForm.SetEditingAccount(selected);
             UtilitiesTab.SetActiveAccount(selected);
             UtilitiesTab.UpdateSyncTargetDisplay();
+            AutoTab.SetActiveAccount(selected);
+            AutoTab.UpdateSyncTargetDisplay();
         };
 
         PropertyChanged += (_, e) =>
@@ -121,18 +140,28 @@ public sealed partial class MainViewModel : ObservableObject
                 if (SelectedTabIndex == 0)
                 {
                     UtilitiesTab.StopPolling();
+                    AutoTab.StopPolling();
                     AccountForm.RefreshSkills();
                     AccountForm.RequestZoneList();
                 }
                 else if (SelectedTabIndex == 1)
                 {
+                    AutoTab.StopPolling();
                     UtilitiesTab.StartPolling();
                     UtilitiesTab.RefreshMapData();
                     UtilitiesTab.UpdateSyncTargetDisplay();
                 }
+                else if (SelectedTabIndex == 2)
+                {
+                    UtilitiesTab.StopPolling();
+                    AutoTab.StartPolling();
+                    AutoTab.RefreshData();
+                    AutoTab.UpdateSyncTargetDisplay();
+                }
                 else
                 {
                     UtilitiesTab.StopPolling();
+                    AutoTab.StopPolling();
                 }
             }
         };
@@ -140,6 +169,10 @@ public sealed partial class MainViewModel : ObservableObject
         if (SelectedTabIndex == 1)
         {
             UtilitiesTab.StartPolling();
+        }
+        else if (SelectedTabIndex == 2)
+        {
+            AutoTab.StartPolling();
         }
 
         AccountsPanel.OnStatusMessageUpdated += msg =>
@@ -161,7 +194,7 @@ public sealed partial class MainViewModel : ObservableObject
 
         AccountsPanel.OnRequestNavigateToGuide += () =>
         {
-            SelectedTabIndex = 3;
+            SelectedTabIndex = 4;
         };
 
         Guide.OnGamePathConfigured += path =>
@@ -172,7 +205,7 @@ public sealed partial class MainViewModel : ObservableObject
 
         Guide.OnRequestNavigateToGuide += () =>
         {
-            SelectedTabIndex = 3;
+            SelectedTabIndex = 4;
         };
 
         Guide.PropertyChanged += (_, e) =>
@@ -192,6 +225,7 @@ public sealed partial class MainViewModel : ObservableObject
             else if (e.PropertyName == nameof(AccountsPanelViewModel.SelectedAccountsCount))
             {
                 UtilitiesTab.UpdateSyncTargetDisplay();
+                AutoTab.UpdateSyncTargetDisplay();
             }
         };
 

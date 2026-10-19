@@ -49,7 +49,13 @@ public interface IGameEngineService
     IReadOnlyList<GameSkillInfo> GetSkills(Guid accountId);
     (bool Success, string Message) AutoAssignSkills(Guid accountId);
 
+    void StartAutoTrain(Guid accountId, DragonBoyAccountManager.Core.Game.Actions.AutoTrainOptions options);
+    void StopAutoTrain(Guid accountId);
+    bool IsAutoTrainRunning(Guid accountId);
+
     event Action<Guid, GameSessionStatus, GameSessionSnapshot?>? OnSessionUpdated;
     event Action<Guid, string>? OnSessionMessageUpdated;
     event Action<Guid, string, int>? OnChatSent;
+    event Action<Guid, string>? OnAutoTrainStatusChanged;
+    event Action<Guid, bool>? OnAutoTrainStateChanged;
 }

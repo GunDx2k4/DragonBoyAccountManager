@@ -255,7 +255,7 @@ public sealed partial class GuideViewModel : ObservableObject
 
             case ClientStatus.AssemblyNotFound:
                 AssemblyStatus = "Không tìm thấy Assembly";
-                UpdateStatusMessage = "Không tìm thấy file Assembly-CSharp.dll trong thư mục dữ liệu Data\\Managed.";
+                UpdateStatusMessage = "Không tìm thấy file Assembly-CSharp.dll trong thư mục dữ liệu Data\\Managed. Vui lòng tải bản game gốc 2.5.0 tại trang chủ (ngocrongonline.com) - không cài bản mod.";
                 AssemblyStatusTooltip = $"Đã nhận file game: {Path.GetFileName(gamePath)}\nNhưng không tìm thấy Assembly-CSharp.dll trong Data\\Managed.";
                 break;
 
@@ -268,7 +268,7 @@ public sealed partial class GuideViewModel : ObservableObject
             case ClientStatus.GameNotFound:
             default:
                 AssemblyStatus = "Chưa chọn file game .exe";
-                UpdateStatusMessage = "Đường dẫn game bắt buộc phải là file thực thi (.exe).\nVui lòng chọn file game ở thanh đáy cửa sổ.";
+                UpdateStatusMessage = "Vui lòng tải bản game gốc 2.5.0 tại trang chủ (ngocrongonline.com) - không cài bản mod và chọn file game ở thanh đáy cửa sổ.";
                 AssemblyStatusTooltip = "Chưa cài đặt đường dẫn game hợp lệ.";
                 break;
         }

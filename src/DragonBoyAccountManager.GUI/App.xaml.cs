@@ -40,6 +40,7 @@ public partial class App : Application
         services.AddSingleton<SettingsTabViewModel>();
         services.AddSingleton<GuideViewModel>();
         services.AddSingleton<UtilitiesTabViewModel>();
+        services.AddSingleton<AutoTabViewModel>();
         services.AddSingleton<FeedbackViewModel>();
         services.AddSingleton<MainViewModel>();
 

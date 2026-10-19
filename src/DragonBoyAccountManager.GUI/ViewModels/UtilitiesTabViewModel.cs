@@ -2,6 +2,7 @@ using System.Collections.ObjectModel;
 using System.Windows.Threading;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
+using DragonBoyAccountManager.Core.Game.Actions;
 using DragonBoyAccountManager.Core.Game.Entities;
 using DragonBoyAccountManager.Core.Game.Models;
 using DragonBoyAccountManager.Core.Game.Modules;
@@ -104,33 +105,6 @@ public sealed partial class UtilitiesTabViewModel : ObservableObject
     private bool _isInternalSpeedUpdate;
     private Func<List<Guid>>? _speedTargetResolver;
 
-    [ObservableProperty]
-    private string _chatText = "Chào mọi người!";
-
-    [ObservableProperty]
-    private int _chatDelaySeconds = 5;
-
-    [ObservableProperty]
-    private int _selectedChatTypeIndex = 0;
-
-    [ObservableProperty]
-    private bool _isRandomChat;
-
-    [ObservableProperty]
-    private bool _autoChatSyncAll = true;
-
-    [ObservableProperty]
-    private bool _isAutoChatRunning;
-
-    [ObservableProperty]
-    private int _chatSentCount;
-
-    [ObservableProperty]
-    private string _autoChatStatusText = "Chưa kích hoạt";
-
-    [ObservableProperty]
-    private string _lastChatSentTime = string.Empty;
-
     private CancellationTokenSource? _moveWaypointCts;
 
     public ObservableCollection<WaypointButtonItem> WaypointButtons { get; } = [];
@@ -171,8 +145,6 @@ public sealed partial class UtilitiesTabViewModel : ObservableObject
             Interval = TimeSpan.FromSeconds(1.5)
         };
         _refreshTimer.Tick += (_, _) => RefreshMapData();
-
-        _gameEngine.OnChatSent += HandleChatSent;
     }
 
     public void StartPolling()
@@ -234,17 +206,9 @@ public sealed partial class UtilitiesTabViewModel : ObservableObject
             MaxPlayers = 15;
             ZonePlayerDisplay = "0/15";
             ClearData();
-            if (!AutoChatSyncAll)
-            {
-                IsAutoChatRunning = false;
-            }
         }
         else
         {
-            if (!AutoChatSyncAll)
-            {
-                IsAutoChatRunning = _gameEngine.IsAutoChatRunning(account.Id);
-            }
             string server = !string.IsNullOrWhiteSpace(account.Server) ? $" ({account.Server})" : "";
             string charName = !string.IsNullOrWhiteSpace(account.CharacterName) ? $" [{account.CharacterName}]" : "";
             ActiveAccountInfo = $"{account.Username}{server}{charName}";
@@ -788,147 +752,4 @@ public sealed partial class UtilitiesTabViewModel : ObservableObject
 
         return GetTargetAccountIds();
     }
-
-    #region Auto Chat Logic
-
-    [RelayCommand]
-    private void SetChatDelay(object? parameter)
-    {
-        if (parameter is int sec)
-        {
-            ChatDelaySeconds = Math.Max(1, sec);
-        }
-        else if (parameter != null && int.TryParse(parameter.ToString(), out int parsed))
-        {
-            ChatDelaySeconds = Math.Max(1, parsed);
-        }
-    }
-
-    [RelayCommand]
-    private void ToggleAutoChat()
-    {
-        if (IsAutoChatRunning)
-        {
-            StopAutoChat();
-        }
-        else
-        {
-            StartAutoChat();
-        }
-    }
-
-    [RelayCommand]
-    private async Task SendChatOnce()
-    {
-        if (string.IsNullOrWhiteSpace(ChatText))
-        {
-            StatusText = "Nội dung chat trống!";
-            return;
-        }
-
-        var lines = ChatText
-            .Split(['\r', '\n'], StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
-            .Where(l => !string.IsNullOrWhiteSpace(l))
-            .ToArray();
-
-        if (lines.Length == 0) return;
-
-        string msg = lines[0];
-        var targets = AutoChatSyncAll ? GetTargetAccountIds() : (ActiveAccount != null && ActiveAccount.IsRunning ? [ActiveAccount.Id] : []);
-        var chatType = (ChatType)SelectedChatTypeIndex;
-
-        if (targets.Count == 0)
-        {
-            StatusText = "Không có acc nào trong game để gửi!";
-            return;
-        }
-
-        int count = 0;
-        foreach (var id in targets)
-        {
-            if (await _gameEngine.SendChatAsync(id, msg, chatType)) count++;
-        }
-
-        StatusText = count > 0 ? $"Đã gửi 1 tin chat tới {count} acc lúc {DateTime.Now:HH:mm:ss}" : "Không thể gửi tin nhắn chat!";
-    }
-
-    private void StartAutoChat()
-    {
-        if (string.IsNullOrWhiteSpace(ChatText))
-        {
-            StatusText = "Vui lòng nhập nội dung chat trước!";
-            return;
-        }
-
-        var lines = ChatText
-            .Split(['\r', '\n'], StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
-            .Where(l => !string.IsNullOrWhiteSpace(l))
-            .ToArray();
-
-        if (lines.Length == 0)
-        {
-            StatusText = "Vui lòng nhập nội dung chat trước!";
-            return;
-        }
-
-        var targets = AutoChatSyncAll ? GetTargetAccountIds() : (ActiveAccount != null && ActiveAccount.IsRunning ? [ActiveAccount.Id] : []);
-        if (targets.Count == 0)
-        {
-            StatusText = "Chưa chọn tài khoản đang chạy nào!";
-            return;
-        }
-
-        var chatType = (ChatType)SelectedChatTypeIndex;
-        var interval = TimeSpan.FromSeconds(Math.Max(1, ChatDelaySeconds));
-
-        ChatSentCount = 0;
-        IsAutoChatRunning = true;
-        AutoChatStatusText = $"Đang chạy auto chat ({targets.Count} acc)...";
-
-        foreach (var id in targets)
-        {
-            _gameEngine.StartAutoChat(id, lines, interval, chatType, IsRandomChat);
-        }
-    }
-
-    private void StopAutoChat()
-    {
-        var targets = AutoChatSyncAll ? GetTargetAccountIds() : (ActiveAccount != null && ActiveAccount.IsRunning ? [ActiveAccount.Id] : []);
-        foreach (var id in targets)
-        {
-            _gameEngine.StopAutoChat(id);
-        }
-        IsAutoChatRunning = false;
-        AutoChatStatusText = $"Đã dừng (Đã gửi tổng cộng: {ChatSentCount} tin)";
-    }
-
-    private void HandleChatSent(Guid accountId, string message, int count)
-    {
-        var targets = AutoChatSyncAll ? GetTargetAccountIds() : (ActiveAccount != null ? [ActiveAccount.Id] : []);
-        if (!targets.Contains(accountId)) return;
-
-        var dispatcher = App.Current?.Dispatcher;
-        if (dispatcher == null) return;
-
-        _ = dispatcher.InvokeAsync(() =>
-        {
-            ChatSentCount++;
-            LastChatSentTime = DateTime.Now.ToString("HH:mm:ss");
-            AutoChatStatusText = $"Đang chạy... Đã gửi: {ChatSentCount} tin ({LastChatSentTime})";
-        });
-    }
-
-    partial void OnAutoChatSyncAllChanged(bool value)
-    {
-        if (value)
-        {
-            IsAutoChatRunning = GetTargetAccountIds().Any(id => _gameEngine.IsAutoChatRunning(id));
-        }
-        else
-        {
-            IsAutoChatRunning = ActiveAccount != null && _gameEngine.IsAutoChatRunning(ActiveAccount.Id);
-        }
-    }
-
-    #endregion
 }

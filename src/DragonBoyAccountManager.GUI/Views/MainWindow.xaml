@@ -207,9 +207,12 @@
                                                                             <Setter Property="Text" Value="TIỆN ÍCH BẢN ĐỒ &amp; ĐỔI KHU" />
                                                                         </DataTrigger>
                                                                          <DataTrigger Binding="{Binding SelectedIndex, ElementName=ConfigTabControl}" Value="2">
-                                                                            <Setter Property="Text" Value="CẤU HÌNH HỆ THỐNG" />
+                                                                            <Setter Property="Text" Value="TỰ ĐỘNG LUYỆN TẬP &amp; CHAT BOT" />
                                                                         </DataTrigger>
                                                                         <DataTrigger Binding="{Binding SelectedIndex, ElementName=ConfigTabControl}" Value="3">
+                                                                            <Setter Property="Text" Value="CẤU HÌNH HỆ THỐNG" />
+                                                                        </DataTrigger>
+                                                                        <DataTrigger Binding="{Binding SelectedIndex, ElementName=ConfigTabControl}" Value="4">
                                                                             <Setter Property="Text" Value="HƯỚNG DẪN &amp; CẬP NHẬT PHIÊN BẢN" />
                                                                         </DataTrigger>
                                                                     </Style.Triggers>
@@ -236,6 +239,10 @@
 
                                                             <TabItem Header="TIỆN ÍCH" Style="{StaticResource GameTabItemStyle}">
                                                                 <views:UtilitiesTabView DataContext="{Binding UtilitiesTab}" />
+                                                            </TabItem>
+
+                                                            <TabItem Header="TỰ ĐỘNG" Style="{StaticResource GameTabItemStyle}">
+                                                                <views:AutoTabView DataContext="{Binding AutoTab}" />
                                                             </TabItem>
 
                                                             <TabItem Header="CÀI ĐẶT" Style="{StaticResource GameTabItemStyle}">
