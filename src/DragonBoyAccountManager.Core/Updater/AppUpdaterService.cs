@@ -32,6 +32,20 @@ public sealed class AppUpdaterService : IAppUpdaterService
                 Debug.WriteLine($"[AppUpdater] Không thể xóa file cũ {oldExe}: {ex.Message}");
             }
         }
+
+        string dir = Path.GetDirectoryName(currentExe) ?? "";
+        string fileName = Path.GetFileName(currentExe);
+        if (!string.IsNullOrEmpty(dir) && Directory.Exists(dir))
+        {
+            try
+            {
+                foreach (var file in Directory.EnumerateFiles(dir, $"{fileName}.old*"))
+                {
+                    try { File.Delete(file); } catch { }
+                }
+            }
+            catch { }
+        }
     }
 
     public string GetCurrentCommitSha()
@@ -76,6 +90,15 @@ public sealed class AppUpdaterService : IAppUpdaterService
         return string.Empty;
     }
 
+    private static Version NormalizeVersion(Version v)
+    {
+        return new Version(
+            Math.Max(0, v.Major),
+            Math.Max(0, v.Minor),
+            Math.Max(0, v.Build),
+            Math.Max(0, v.Revision));
+    }
+
     public async Task<AppUpdateInfo?> CheckForUpdatesAsync(
         string repo = "GunDx2k4/DragonBoyAccountManager",
         Version? currentVersion = null,
@@ -85,95 +108,81 @@ public sealed class AppUpdaterService : IAppUpdaterService
         CleanUpOld();
 
         currentVersion ??= Assembly.GetEntryAssembly()?.GetName().Version
-                        ?? Assembly.GetExecutingAssembly().GetName().Version;
+                        ?? Assembly.GetExecutingAssembly().GetName().Version
+                        ?? new Version(1, 0, 0, 0);
 
         string localCommitSha = GetCurrentCommitSha();
         string localExeSha = GetCurrentExeSha256();
 
-        string url = $"https://api.github.com/repos/{repo}/releases/latest";
-        using var request = new HttpRequestMessage(HttpMethod.Get, url);
-        using var response = await Http.SendAsync(request, ct);
-
-        if (!response.IsSuccessStatusCode)
+        try
         {
-            return null;
-        }
+            string url = $"https://api.github.com/repos/{repo}/releases/latest";
+            using var request = new HttpRequestMessage(HttpMethod.Get, url);
+            using var response = await Http.SendAsync(request, ct);
 
-        var json = await response.Content.ReadFromJsonAsync<JsonElement>(cancellationToken: ct);
-
-        if (!json.TryGetProperty("tag_name", out var tagProp))
-        {
-            return null;
-        }
-
-        string rawTag = tagProp.GetString()?.Trim() ?? "";
-        string tag = rawTag.TrimStart('v', 'V');
-
-        var match = Regex.Match(tag, @"^\d+(\.\d+)+");
-        string verStr = match.Success ? match.Value : tag;
-
-        string? remoteCommitSha = null;
-        if (json.TryGetProperty("target_commitish", out var commitProp))
-        {
-            string targetCommit = commitProp.GetString()?.Trim() ?? "";
-            if (targetCommit.Length == 40 && Regex.IsMatch(targetCommit, "^[a-fA-F0-9]{40}$"))
+            if (!response.IsSuccessStatusCode)
             {
-                remoteCommitSha = targetCommit;
+                return await CheckForUpdatesViaWebFallbackAsync(repo, currentVersion, assetKeyword, localCommitSha, localExeSha, ct);
             }
-        }
 
-        string notes = json.TryGetProperty("body", out var bodyProp) ? bodyProp.GetString() ?? "" : "";
+            var json = await response.Content.ReadFromJsonAsync<JsonElement>(cancellationToken: ct);
 
-        if (string.IsNullOrEmpty(remoteCommitSha) && !string.IsNullOrWhiteSpace(notes))
-        {
-            var commitMatch = Regex.Match(notes, @"(?:Commit|Rev)[\s:=]+([a-fA-F0-9]{40})", RegexOptions.IgnoreCase);
-            if (commitMatch.Success)
+            if (!json.TryGetProperty("tag_name", out var tagProp))
             {
-                remoteCommitSha = commitMatch.Groups[1].Value;
+                return await CheckForUpdatesViaWebFallbackAsync(repo, currentVersion, assetKeyword, localCommitSha, localExeSha, ct);
             }
-        }
 
-        string? remoteSha256 = null;
-        if (!string.IsNullOrWhiteSpace(notes))
-        {
-            var shaMatch = Regex.Match(notes, @"(?:SHA-?256|Hash|Checksum)[\s:=]+([a-fA-F0-9]{64})", RegexOptions.IgnoreCase);
-            if (shaMatch.Success)
+            string rawTag = tagProp.GetString()?.Trim() ?? "";
+            string tag = rawTag.TrimStart('v', 'V');
+
+            var match = Regex.Match(tag, @"^\d+(\.\d+)+");
+            string verStr = match.Success ? match.Value : tag;
+
+            string? remoteCommitSha = null;
+            if (json.TryGetProperty("target_commitish", out var commitProp))
             {
-                remoteSha256 = shaMatch.Groups[1].Value.ToUpperInvariant();
-            }
-        }
-
-        string? downloadUrl = null;
-        long? sizeBytes = null;
-        string? assetName = null;
-        string? shaAssetUrl = null;
-
-        if (json.TryGetProperty("assets", out var assetsProp) && assetsProp.ValueKind == JsonValueKind.Array)
-        {
-            var assetList = assetsProp.EnumerateArray().ToList();
-
-            foreach (var asset in assetList)
-            {
-                string name = asset.GetProperty("name").GetString() ?? "";
-                if (name.EndsWith(".exe", StringComparison.OrdinalIgnoreCase) &&
-                    (!string.IsNullOrEmpty(assetKeyword) && name.Contains(assetKeyword, StringComparison.OrdinalIgnoreCase)))
+                string targetCommit = commitProp.GetString()?.Trim() ?? "";
+                if (targetCommit.Length == 40 && Regex.IsMatch(targetCommit, "^[a-fA-F0-9]{40}$"))
                 {
-                    downloadUrl = asset.GetProperty("browser_download_url").GetString();
-                    if (asset.TryGetProperty("size", out var sizeProp))
-                    {
-                        sizeBytes = sizeProp.GetInt64();
-                    }
-                    assetName = name;
-                    break;
+                    remoteCommitSha = targetCommit;
                 }
             }
 
-            if (string.IsNullOrEmpty(downloadUrl))
+            string notes = json.TryGetProperty("body", out var bodyProp) ? bodyProp.GetString() ?? "" : "";
+
+            if (string.IsNullOrEmpty(remoteCommitSha) && !string.IsNullOrWhiteSpace(notes))
             {
+                var commitMatch = Regex.Match(notes, @"(?:Commit|Rev)[\s:=]+([a-fA-F0-9]{40})", RegexOptions.IgnoreCase);
+                if (commitMatch.Success)
+                {
+                    remoteCommitSha = commitMatch.Groups[1].Value;
+                }
+            }
+
+            string? remoteSha256 = null;
+            if (!string.IsNullOrWhiteSpace(notes))
+            {
+                var shaMatch = Regex.Match(notes, @"(?:SHA-?256|Hash|Checksum)[\s:=]+([a-fA-F0-9]{64})", RegexOptions.IgnoreCase);
+                if (shaMatch.Success)
+                {
+                    remoteSha256 = shaMatch.Groups[1].Value.ToUpperInvariant();
+                }
+            }
+
+            string? downloadUrl = null;
+            long? sizeBytes = null;
+            string? assetName = null;
+            string? shaAssetUrl = null;
+
+            if (json.TryGetProperty("assets", out var assetsProp) && assetsProp.ValueKind == JsonValueKind.Array)
+            {
+                var assetList = assetsProp.EnumerateArray().ToList();
+
                 foreach (var asset in assetList)
                 {
                     string name = asset.GetProperty("name").GetString() ?? "";
-                    if (name.EndsWith(".exe", StringComparison.OrdinalIgnoreCase))
+                    if (name.EndsWith(".exe", StringComparison.OrdinalIgnoreCase) &&
+                        (!string.IsNullOrEmpty(assetKeyword) && name.Contains(assetKeyword, StringComparison.OrdinalIgnoreCase)))
                     {
                         downloadUrl = asset.GetProperty("browser_download_url").GetString();
                         if (asset.TryGetProperty("size", out var sizeProp))
@@ -184,89 +193,307 @@ public sealed class AppUpdaterService : IAppUpdaterService
                         break;
                     }
                 }
-            }
 
-            if (!string.IsNullOrEmpty(assetName))
-            {
-                foreach (var asset in assetList)
+                if (string.IsNullOrEmpty(downloadUrl))
                 {
-                    string name = asset.GetProperty("name").GetString() ?? "";
-                    if (name.Equals($"{assetName}.sha256", StringComparison.OrdinalIgnoreCase) ||
-                        name.Equals($"{Path.GetFileNameWithoutExtension(assetName)}.sha256", StringComparison.OrdinalIgnoreCase) ||
-                        name.Equals("checksums.txt", StringComparison.OrdinalIgnoreCase) ||
-                        name.Equals("sha256.txt", StringComparison.OrdinalIgnoreCase))
+                    foreach (var asset in assetList)
                     {
-                        shaAssetUrl = asset.GetProperty("browser_download_url").GetString();
-                        break;
+                        string name = asset.GetProperty("name").GetString() ?? "";
+                        if (name.EndsWith(".exe", StringComparison.OrdinalIgnoreCase))
+                        {
+                            downloadUrl = asset.GetProperty("browser_download_url").GetString();
+                            if (asset.TryGetProperty("size", out var sizeProp))
+                            {
+                                sizeBytes = sizeProp.GetInt64();
+                            }
+                            assetName = name;
+                            break;
+                        }
+                    }
+                }
+
+                if (!string.IsNullOrEmpty(assetName))
+                {
+                    foreach (var asset in assetList)
+                    {
+                        string name = asset.GetProperty("name").GetString() ?? "";
+                        if (name.Equals($"{assetName}.sha256", StringComparison.OrdinalIgnoreCase) ||
+                            name.Equals($"{Path.GetFileNameWithoutExtension(assetName)}.sha256", StringComparison.OrdinalIgnoreCase) ||
+                            name.Equals("checksums.txt", StringComparison.OrdinalIgnoreCase) ||
+                            name.Equals("sha256.txt", StringComparison.OrdinalIgnoreCase))
+                        {
+                            shaAssetUrl = asset.GetProperty("browser_download_url").GetString();
+                            break;
+                        }
                     }
                 }
             }
-        }
 
-        if (string.IsNullOrEmpty(downloadUrl))
+            if (string.IsNullOrEmpty(downloadUrl))
+            {
+                return await CheckForUpdatesViaWebFallbackAsync(repo, currentVersion, assetKeyword, localCommitSha, localExeSha, ct);
+            }
+
+            if (string.IsNullOrEmpty(remoteSha256) && !string.IsNullOrEmpty(shaAssetUrl))
+            {
+                try
+                {
+                    string shaText = await Http.GetStringAsync(shaAssetUrl, ct);
+                    var m = Regex.Match(shaText, @"[a-fA-F0-9]{64}");
+                    if (m.Success)
+                    {
+                        remoteSha256 = m.Value.ToUpperInvariant();
+                    }
+                }
+                catch (Exception ex)
+                {
+                    Debug.WriteLine($"[AppUpdater] Không thể tải file SHA256 phụ trợ: {ex.Message}");
+                }
+            }
+
+            bool hasNewerVersion = false;
+            bool isSameVersion = false;
+
+            if (Version.TryParse(verStr, out var newVersion))
+            {
+                var normNew = NormalizeVersion(newVersion);
+                var normCur = NormalizeVersion(currentVersion);
+
+                if (normNew > normCur)
+                {
+                    hasNewerVersion = true;
+                }
+                else if (normNew == normCur)
+                {
+                    isSameVersion = true;
+                }
+            }
+
+            bool isShaMismatch = false;
+            if (isSameVersion)
+            {
+                if (!string.IsNullOrEmpty(remoteCommitSha) && !string.IsNullOrEmpty(localCommitSha))
+                {
+                    if (!string.Equals(remoteCommitSha, localCommitSha, StringComparison.OrdinalIgnoreCase))
+                    {
+                        isShaMismatch = true;
+                    }
+                }
+                else if (!string.IsNullOrEmpty(remoteSha256) && !string.IsNullOrEmpty(localExeSha))
+                {
+                    if (!string.Equals(remoteSha256, localExeSha, StringComparison.OrdinalIgnoreCase))
+                    {
+                        isShaMismatch = true;
+                    }
+                }
+            }
+
+            if (!hasNewerVersion && !isShaMismatch)
+            {
+                return null;
+            }
+
+            bool isShaUpdateOnly = !hasNewerVersion && isShaMismatch;
+            return new AppUpdateInfo(tag, notes, downloadUrl, sizeBytes, assetName, remoteSha256, remoteCommitSha, isShaUpdateOnly);
+        }
+        catch
         {
+            return await CheckForUpdatesViaWebFallbackAsync(repo, currentVersion, assetKeyword, localCommitSha, localExeSha, ct);
+        }
+    }
+
+    private async Task<AppUpdateInfo?> CheckForUpdatesViaWebFallbackAsync(
+        string repo,
+        Version currentVersion,
+        string? assetKeyword,
+        string localCommitSha,
+        string localExeSha,
+        CancellationToken ct)
+    {
+        try
+        {
+            string atomUrl = $"https://github.com/{repo}/releases.atom";
+            using var atomReq = new HttpRequestMessage(HttpMethod.Get, atomUrl);
+            using var atomResp = await Http.SendAsync(atomReq, ct);
+            if (!atomResp.IsSuccessStatusCode)
+            {
+                return null;
+            }
+
+            string atomContent = await atomResp.Content.ReadAsStringAsync(ct);
+            var entryMatch = Regex.Match(atomContent, @"<entry>([\s\S]*?)</entry>", RegexOptions.IgnoreCase);
+            if (!entryMatch.Success)
+            {
+                return null;
+            }
+
+            string entryXml = entryMatch.Groups[1].Value;
+
+            var tagMatch = Regex.Match(entryXml, @"releases/tag/([^""\s<]+)", RegexOptions.IgnoreCase);
+            if (!tagMatch.Success)
+            {
+                return null;
+            }
+
+            string rawTag = tagMatch.Groups[1].Value.Trim();
+            string tag = rawTag.TrimStart('v', 'V');
+
+            var verMatch = Regex.Match(tag, @"^\d+(\.\d+)+");
+            string verStr = verMatch.Success ? verMatch.Value : tag;
+
+            string notes = "";
+            var contentMatch = Regex.Match(entryXml, @"<content[^>]*>([\s\S]*?)</content>", RegexOptions.IgnoreCase);
+            if (contentMatch.Success)
+            {
+                notes = System.Net.WebUtility.HtmlDecode(contentMatch.Groups[1].Value);
+            }
+
+            string? remoteCommitSha = null;
+            var commitMatch = Regex.Match(notes, @"(?:Commit|Rev)[\s:=]+([a-fA-F0-9]{40})", RegexOptions.IgnoreCase);
+            if (commitMatch.Success)
+            {
+                remoteCommitSha = commitMatch.Groups[1].Value;
+            }
+
+            string? remoteSha256 = null;
+            var shaMatch = Regex.Match(notes, @"(?:SHA-?256|Hash|Checksum)[\s:=]+([a-fA-F0-9]{64})", RegexOptions.IgnoreCase);
+            if (shaMatch.Success)
+            {
+                remoteSha256 = shaMatch.Groups[1].Value.ToUpperInvariant();
+            }
+
+            string assetsUrl = $"https://github.com/{repo}/releases/expanded_assets/{rawTag}";
+            using var assetsReq = new HttpRequestMessage(HttpMethod.Get, assetsUrl);
+            using var assetsResp = await Http.SendAsync(assetsReq, ct);
+
+            string? downloadUrl = null;
+            string? assetName = null;
+            string? shaAssetUrl = null;
+
+            if (assetsResp.IsSuccessStatusCode)
+            {
+                string assetsHtml = await assetsResp.Content.ReadAsStringAsync(ct);
+                var hrefMatches = Regex.Matches(assetsHtml, @"href=""(/[^""]+/releases/download/[^""]+)""", RegexOptions.IgnoreCase);
+
+                foreach (Match m in hrefMatches)
+                {
+                    string href = m.Groups[1].Value;
+                    string name = Path.GetFileName(href);
+
+                    if (name.EndsWith(".exe", StringComparison.OrdinalIgnoreCase) &&
+                        (!string.IsNullOrEmpty(assetKeyword) && name.Contains(assetKeyword, StringComparison.OrdinalIgnoreCase)))
+                    {
+                        downloadUrl = "https://github.com" + href;
+                        assetName = name;
+                        break;
+                    }
+                }
+
+                if (string.IsNullOrEmpty(downloadUrl))
+                {
+                    foreach (Match m in hrefMatches)
+                    {
+                        string href = m.Groups[1].Value;
+                        string name = Path.GetFileName(href);
+                        if (name.EndsWith(".exe", StringComparison.OrdinalIgnoreCase))
+                        {
+                            downloadUrl = "https://github.com" + href;
+                            assetName = name;
+                            break;
+                        }
+                    }
+                }
+
+                if (!string.IsNullOrEmpty(assetName))
+                {
+                    foreach (Match m in hrefMatches)
+                    {
+                        string href = m.Groups[1].Value;
+                        string name = Path.GetFileName(href);
+                        if (name.Equals($"{assetName}.sha256", StringComparison.OrdinalIgnoreCase) ||
+                            name.Equals($"{Path.GetFileNameWithoutExtension(assetName)}.sha256", StringComparison.OrdinalIgnoreCase) ||
+                            name.Equals("checksums.txt", StringComparison.OrdinalIgnoreCase) ||
+                            name.Equals("sha256.txt", StringComparison.OrdinalIgnoreCase))
+                        {
+                            shaAssetUrl = "https://github.com" + href;
+                            break;
+                        }
+                    }
+                }
+            }
+
+            if (string.IsNullOrEmpty(downloadUrl))
+            {
+                string defaultAssetName = !string.IsNullOrEmpty(assetKeyword) ? $"DragonBoyAccountManager-{assetKeyword}.exe" : "DragonBoyAccountManager-GUI.exe";
+                downloadUrl = $"https://github.com/{repo}/releases/download/{rawTag}/{defaultAssetName}";
+                assetName = defaultAssetName;
+                shaAssetUrl = $"https://github.com/{repo}/releases/download/{rawTag}/{defaultAssetName}.sha256";
+            }
+
+            if (string.IsNullOrEmpty(remoteSha256) && !string.IsNullOrEmpty(shaAssetUrl))
+            {
+                try
+                {
+                    string shaText = await Http.GetStringAsync(shaAssetUrl, ct);
+                    var m = Regex.Match(shaText, @"[a-fA-F0-9]{64}");
+                    if (m.Success)
+                    {
+                        remoteSha256 = m.Value.ToUpperInvariant();
+                    }
+                }
+                catch { }
+            }
+
+            bool hasNewerVersion = false;
+            bool isSameVersion = false;
+
+            if (Version.TryParse(verStr, out var newVer))
+            {
+                var normNew = NormalizeVersion(newVer);
+                var normCur = NormalizeVersion(currentVersion);
+
+                if (normNew > normCur)
+                {
+                    hasNewerVersion = true;
+                }
+                else if (normNew == normCur)
+                {
+                    isSameVersion = true;
+                }
+            }
+
+            bool isShaMismatch = false;
+            if (isSameVersion)
+            {
+                if (!string.IsNullOrEmpty(remoteCommitSha) && !string.IsNullOrEmpty(localCommitSha))
+                {
+                    if (!string.Equals(remoteCommitSha, localCommitSha, StringComparison.OrdinalIgnoreCase))
+                    {
+                        isShaMismatch = true;
+                    }
+                }
+                else if (!string.IsNullOrEmpty(remoteSha256) && !string.IsNullOrEmpty(localExeSha))
+                {
+                    if (!string.Equals(remoteSha256, localExeSha, StringComparison.OrdinalIgnoreCase))
+                    {
+                        isShaMismatch = true;
+                    }
+                }
+            }
+
+            if (!hasNewerVersion && !isShaMismatch)
+            {
+                return null;
+            }
+
+            bool isShaUpdateOnly = !hasNewerVersion && isShaMismatch;
+            return new AppUpdateInfo(tag, notes, downloadUrl, null, assetName, remoteSha256, remoteCommitSha, isShaUpdateOnly);
+        }
+        catch (Exception ex)
+        {
+            Debug.WriteLine($"[AppUpdater] Web fallback lỗi: {ex.Message}");
             return null;
         }
-
-        if (string.IsNullOrEmpty(remoteSha256) && !string.IsNullOrEmpty(shaAssetUrl))
-        {
-            try
-            {
-                string shaText = await Http.GetStringAsync(shaAssetUrl, ct);
-                var m = Regex.Match(shaText, @"[a-fA-F0-9]{64}");
-                if (m.Success)
-                {
-                    remoteSha256 = m.Value.ToUpperInvariant();
-                }
-            }
-            catch (Exception ex)
-            {
-                Debug.WriteLine($"[AppUpdater] Không thể tải file SHA256 phụ trợ: {ex.Message}");
-            }
-        }
-
-        bool hasNewerVersion = false;
-        bool isSameVersion = false;
-
-        if (Version.TryParse(verStr, out var newVersion))
-        {
-            if (currentVersion == null || newVersion > currentVersion)
-            {
-                hasNewerVersion = true;
-            }
-            else if (newVersion == currentVersion)
-            {
-                isSameVersion = true;
-            }
-        }
-
-        bool isShaMismatch = false;
-        if (isSameVersion)
-        {
-            if (!string.IsNullOrEmpty(remoteCommitSha) && !string.IsNullOrEmpty(localCommitSha))
-            {
-                if (!string.Equals(remoteCommitSha, localCommitSha, StringComparison.OrdinalIgnoreCase))
-                {
-                    isShaMismatch = true;
-                }
-            }
-
-            else if (!string.IsNullOrEmpty(remoteSha256) && !string.IsNullOrEmpty(localExeSha))
-            {
-                if (!string.Equals(remoteSha256, localExeSha, StringComparison.OrdinalIgnoreCase))
-                {
-                    isShaMismatch = true;
-                }
-            }
-        }
-
-        if (!hasNewerVersion && !isShaMismatch)
-        {
-            return null;
-        }
-
-        bool isShaUpdateOnly = !hasNewerVersion && isShaMismatch;
-        return new AppUpdateInfo(tag, notes, downloadUrl, sizeBytes, assetName, remoteSha256, remoteCommitSha, isShaUpdateOnly);
     }
 
     public async Task ApplyUpdateAsync(
@@ -278,6 +505,13 @@ public sealed class AppUpdaterService : IAppUpdaterService
         if (string.IsNullOrEmpty(currentExe) || !File.Exists(currentExe))
         {
             throw new InvalidOperationException("Không thể xác định file thực thi hiện tại của ứng dụng.");
+        }
+
+        string exeName = Path.GetFileNameWithoutExtension(currentExe);
+        if (exeName.Equals("dotnet", StringComparison.OrdinalIgnoreCase) ||
+            exeName.Equals("devenv", StringComparison.OrdinalIgnoreCase))
+        {
+            throw new InvalidOperationException("Không thể tự động cập nhật khi đang chạy trong môi trường phát triển (dotnet.exe). Vui lòng chạy trực tiếp tệp DragonBoyAccountManager-GUI.exe đã xuất bản.");
         }
 
         string oldExe = currentExe + ".old";
@@ -337,12 +571,17 @@ public sealed class AppUpdaterService : IAppUpdaterService
                 try { File.Delete(oldExe); } catch { }
             }
 
+            if (File.Exists(oldExe))
+            {
+                oldExe = $"{currentExe}.old_{Guid.NewGuid():N}";
+            }
+
             File.Move(currentExe, oldExe);
             File.Move(tempExe, currentExe);
 
             Process.Start(new ProcessStartInfo(currentExe)
             {
-                UseShellExecute = false,
+                UseShellExecute = true,
                 WorkingDirectory = Path.GetDirectoryName(currentExe)
             });
 
@@ -368,20 +607,42 @@ public sealed class AppUpdaterService : IAppUpdaterService
             using var request = new HttpRequestMessage(HttpMethod.Get, url);
             using var response = await Http.SendAsync(request, ct);
 
-            if (!response.IsSuccessStatusCode)
+            if (response.IsSuccessStatusCode)
             {
-                return null;
-            }
-
-            var json = await response.Content.ReadFromJsonAsync<JsonElement>(cancellationToken: ct);
-            if (json.TryGetProperty("body", out var bodyProp))
-            {
-                return bodyProp.GetString();
+                var json = await response.Content.ReadFromJsonAsync<JsonElement>(cancellationToken: ct);
+                if (json.TryGetProperty("body", out var bodyProp))
+                {
+                    string? body = bodyProp.GetString();
+                    if (!string.IsNullOrWhiteSpace(body))
+                    {
+                        return body;
+                    }
+                }
             }
         }
         catch (Exception ex)
         {
-            Debug.WriteLine($"[AppUpdater] Không thể lấy release notes mới nhất: {ex.Message}");
+            Debug.WriteLine($"[AppUpdater] Không thể lấy release notes từ API: {ex.Message}");
+        }
+
+        try
+        {
+            string atomUrl = $"https://github.com/{repo}/releases.atom";
+            using var atomReq = new HttpRequestMessage(HttpMethod.Get, atomUrl);
+            using var atomResp = await Http.SendAsync(atomReq, ct);
+            if (atomResp.IsSuccessStatusCode)
+            {
+                string atomContent = await atomResp.Content.ReadAsStringAsync(ct);
+                var contentMatch = Regex.Match(atomContent, @"<content[^>]*>([\s\S]*?)</content>", RegexOptions.IgnoreCase);
+                if (contentMatch.Success)
+                {
+                    return System.Net.WebUtility.HtmlDecode(contentMatch.Groups[1].Value);
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            Debug.WriteLine($"[AppUpdater] Không thể lấy release notes từ Web fallback: {ex.Message}");
         }
 
         return null;
