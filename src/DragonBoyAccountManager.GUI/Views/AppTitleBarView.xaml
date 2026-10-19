@@ -8,6 +8,10 @@
     d:DesignWidth="1180"
     mc:Ignorable="d">
 
+    <UserControl.Resources>
+        <BooleanToVisibilityConverter x:Key="BooleanToVisibilityConverter" />
+    </UserControl.Resources>
+
     <Border
         Background="{DynamicResource GameBgAltBrush}"
         BorderBrush="{DynamicResource GameBorderBrush}"
@@ -91,22 +95,58 @@
                     </Viewbox>
                 </Border>
 
-                <Grid
+                <StackPanel
                     Grid.Column="1"
                     HorizontalAlignment="Center"
-                    VerticalAlignment="Center">
-                    <TextBlock
-                        Margin="1,1,0,0"
-                        FontSize="13"
-                        FontWeight="ExtraBold"
-                        Foreground="#C48E4E"
-                        Text="Dragon Boy Account Manager (DBAM)" />
-                    <TextBlock
-                        FontSize="13"
-                        FontWeight="ExtraBold"
-                        Foreground="{DynamicResource GameTextDarkBrush}"
-                        Text="Dragon Boy Account Manager (DBAM)" />
-                </Grid>
+                    VerticalAlignment="Center"
+                    Orientation="Horizontal">
+                    <Grid VerticalAlignment="Center">
+                        <TextBlock
+                            Margin="1,1,0,0"
+                            FontSize="13"
+                            FontWeight="ExtraBold"
+                            Foreground="#C48E4E"
+                            Text="Dragon Boy Account Manager (DBAM)" />
+                        <TextBlock
+                            FontSize="13"
+                            FontWeight="ExtraBold"
+                            Foreground="{DynamicResource GameTextDarkBrush}"
+                            Text="Dragon Boy Account Manager (DBAM)" />
+                    </Grid>
+
+                    <Border
+                        Margin="6,0,0,0"
+                        Padding="5,1.5"
+                        VerticalAlignment="Center"
+                        Background="#16A34A"
+                        BorderBrush="#15803D"
+                        BorderThickness="1"
+                        CornerRadius="3"
+                        ToolTip="Phiên bản công cụ DBAM hiện tại">
+                        <TextBlock
+                            FontSize="8"
+                            FontWeight="ExtraBold"
+                            Foreground="#FFFFFF"
+                            Text="{Binding Guide.AppVersion, StringFormat='v{0}'}" />
+                    </Border>
+
+                    <Border
+                        Margin="5,0,0,0"
+                        Padding="5,1.5"
+                        VerticalAlignment="Center"
+                        Background="#DC2626"
+                        BorderBrush="#B91C1C"
+                        BorderThickness="1"
+                        CornerRadius="3"
+                        ToolTip="{Binding Guide.AvailableAppUpdate.Version, StringFormat='Có bản cập nhật mới v{0}! Bấm vào tab Hướng dẫn để cập nhật.'}"
+                        Visibility="{Binding Guide.HasAppUpdate, Converter={StaticResource BooleanToVisibilityConverter}}">
+                        <TextBlock
+                            FontSize="8"
+                            FontWeight="ExtraBold"
+                            Foreground="#FFFFFF"
+                            Text="CÓ BẢN MỚI" />
+                    </Border>
+                </StackPanel>
 
                 <StackPanel
                     Grid.Column="2"

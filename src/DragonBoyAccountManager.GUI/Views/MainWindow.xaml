@@ -6,7 +6,7 @@
     xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
     xmlns:viewmodels="clr-namespace:DragonBoyAccountManager.GUI.ViewModels"
     xmlns:views="clr-namespace:DragonBoyAccountManager.GUI.Views"
-    Title="Dragon Boy Account Manager"
+    Title="{Binding Guide.AppVersion, StringFormat='Dragon Boy Account Manager (DBAM) v{0}'}"
     Width="1180"
     Height="660"
     MinWidth="1060"

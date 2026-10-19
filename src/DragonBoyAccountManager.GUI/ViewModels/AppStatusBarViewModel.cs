@@ -56,7 +56,7 @@ public sealed partial class AppStatusBarViewModel : ObservableObject
 
         _gamePath = settingsService.Current.GamePath ?? string.Empty;
         var version = Assembly.GetExecutingAssembly().GetName().Version;
-        _appVersion = version != null ? $"v{version.Major}.{version.Minor}.{version.Build}" : "v1.0.0";
+        _appVersion = version != null ? $"{version.Major}.{version.Minor}.{version.Build}" : "1.0.0";
 
         CheckAssemblyStatus();
         _ = LoadSha256ChecksumsAsync();

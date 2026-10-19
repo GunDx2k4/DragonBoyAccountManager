@@ -107,13 +107,45 @@
                         Fill="{DynamicResource GameBorderBrush}" />
 
                     <TextBlock
-                        Margin="0,0,6,0"
+                        Margin="0,0,5,0"
                         VerticalAlignment="Center"
                         FontFamily="{DynamicResource GameFont}"
                         FontSize="11.5"
                         FontWeight="Bold"
                         Foreground="{DynamicResource GameTextDarkBrush}"
-                        Text="Phiên bản:" />
+                        Text="Tool:" />
+
+                    <Border
+                        Padding="5,1.5"
+                        VerticalAlignment="Center"
+                        Background="#16A34A"
+                        BorderBrush="#15803D"
+                        BorderThickness="1"
+                        CornerRadius="3"
+                        ToolTip="Phiên bản công cụ DragonBoy Account Manager">
+                        <TextBlock
+                            VerticalAlignment="Center"
+                            FontFamily="{DynamicResource GameFont}"
+                            FontSize="8.5"
+                            FontWeight="ExtraBold"
+                            Foreground="#FFFFFF"
+                            Text="{Binding AppVersion, StringFormat='v{0}'}" />
+                    </Border>
+
+                    <Rectangle
+                        Width="1.5"
+                        Height="16"
+                        Margin="8,0"
+                        Fill="{DynamicResource GameBorderBrush}" />
+
+                    <TextBlock
+                        Margin="0,0,5,0"
+                        VerticalAlignment="Center"
+                        FontFamily="{DynamicResource GameFont}"
+                        FontSize="11.5"
+                        FontWeight="Bold"
+                        Foreground="{DynamicResource GameTextDarkBrush}"
+                        Text="Game:" />
 
                     <Button
                         Padding="0"
