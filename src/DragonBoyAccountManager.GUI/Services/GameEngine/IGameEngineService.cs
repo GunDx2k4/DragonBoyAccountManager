@@ -46,6 +46,7 @@ public interface IGameEngineService
     (bool Success, string Message) UseCapsule(Guid accountId);
     (bool Success, string Message) UseTdlt(Guid accountId);
     (bool Success, string Message) UsePean(Guid accountId);
+    (bool Success, string Message) SelectSkill(Guid accountId, int slotIndex);
     (bool Success, string Message) UseSkill(Guid accountId, int slotIndex);
     IReadOnlyList<GameSkillInfo> GetSkills(Guid accountId);
     (bool Success, string Message) AutoAssignSkills(Guid accountId);

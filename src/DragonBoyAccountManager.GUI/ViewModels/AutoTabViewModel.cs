@@ -9,13 +9,16 @@ using DragonBoyAccountManager.Core.Game.Modules;
 using DragonBoyAccountManager.Core.Game.Snapshots;
 using DragonBoyAccountManager.GUI.Models;
 using DragonBoyAccountManager.GUI.Services.GameEngine;
+using DragonBoyAccountManager.GUI.Services.Images;
 
 namespace DragonBoyAccountManager.GUI.ViewModels;
 
 public sealed partial class AutoTabViewModel : ObservableObject
 {
     private readonly IGameEngineService _gameEngine;
+    private readonly IGameImageService _gameImageService;
     private readonly DispatcherTimer _refreshTimer;
+    private readonly DispatcherTimer _cooldownTimer;
     private Func<List<Guid>>? _targetResolver;
 
     [ObservableProperty]
@@ -100,9 +103,10 @@ public sealed partial class AutoTabViewModel : ObservableObject
     [ObservableProperty]
     private string _lastChatSentTime = string.Empty;
 
-    public AutoTabViewModel(IGameEngineService gameEngine)
+    public AutoTabViewModel(IGameEngineService gameEngine, IGameImageService gameImageService)
     {
         _gameEngine = gameEngine;
+        _gameImageService = gameImageService;
 
         FilteredMobTypes = CollectionViewSource.GetDefaultView(AvailableMobTypes);
         FilteredMobTypes.Filter = FilterMobItem;
@@ -118,6 +122,12 @@ public sealed partial class AutoTabViewModel : ObservableObject
         };
         _refreshTimer.Tick += (_, _) => RefreshData();
 
+        _cooldownTimer = new DispatcherTimer
+        {
+            Interval = TimeSpan.FromMilliseconds(100)
+        };
+        _cooldownTimer.Tick += (_, _) => UpdateCooldowns();
+
         _gameEngine.OnChatSent += HandleChatSent;
         _gameEngine.OnAutoTrainStatusChanged += HandleAutoTrainStatusChanged;
         _gameEngine.OnAutoTrainStateChanged += HandleAutoTrainStateChanged;
@@ -129,6 +139,10 @@ public sealed partial class AutoTabViewModel : ObservableObject
         {
             _refreshTimer.Start();
         }
+        if (!_cooldownTimer.IsEnabled)
+        {
+            _cooldownTimer.Start();
+        }
     }
 
     public void StopPolling()
@@ -136,6 +150,10 @@ public sealed partial class AutoTabViewModel : ObservableObject
         if (_refreshTimer.IsEnabled)
         {
             _refreshTimer.Stop();
+        }
+        if (_cooldownTimer.IsEnabled)
+        {
+            _cooldownTimer.Stop();
         }
     }
 
@@ -364,12 +382,41 @@ public sealed partial class AutoTabViewModel : ObservableObject
         {
             if (skill.Slot >= 0 && skill.Slot < AutoTrainSkills.Count)
             {
+                var item = AutoTrainSkills[skill.Slot];
                 if (!string.IsNullOrWhiteSpace(skill.Name))
                 {
-                    AutoTrainSkills[skill.Slot].Name = skill.Name;
+                    item.Name = skill.Name;
+                }
+                item.Point = skill.Point;
+                item.CoolDown = skill.CoolDown;
+                item.ManaUse = skill.ManaUse;
+                item.LastTimeUse = skill.LastTimeUse;
+                if (skill.IconId >= 0 && item.IconId != skill.IconId)
+                {
+                    item.IconId = skill.IconId;
+                    item.Icon = _gameImageService.GetSmallImage(skill.IconId);
                 }
             }
         }
+        UpdateCooldowns();
+    }
+
+    private void UpdateCooldowns()
+    {
+        long now = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
+        foreach (var item in AutoTrainSkills)
+        {
+            item.UpdateCooldown(now);
+        }
+    }
+
+    [RelayCommand]
+    public void UseSkillSlot(SkillButtonItem? item)
+    {
+        if (item == null || ActiveAccount == null || !ActiveAccount.IsRunning) return;
+        _gameEngine.UseSkill(ActiveAccount.Id, item.SlotIndex);
+        item.LastTimeUse = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
+        item.UpdateCooldown(item.LastTimeUse);
     }
 
     public void UpdateSyncTargetDisplay()

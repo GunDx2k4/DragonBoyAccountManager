@@ -12,6 +12,7 @@ using DragonBoyAccountManager.Core.Game.Snapshots;
 using DragonBoyAccountManager.GUI.Models;
 using DragonBoyAccountManager.GUI.Services.Dialog;
 using DragonBoyAccountManager.GUI.Services.GameEngine;
+using DragonBoyAccountManager.GUI.Services.Images;
 
 namespace DragonBoyAccountManager.GUI.ViewModels;
 
@@ -19,6 +20,7 @@ public sealed partial class AccountFormViewModel : ObservableObject
 {
     private readonly IGameEngineService _gameEngine;
     private readonly IDialogService _dialogService;
+    private readonly IGameImageService _gameImageService;
 
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(DisplayUsername))]
@@ -96,11 +98,13 @@ public sealed partial class AccountFormViewModel : ObservableObject
     public event Func<Guid, Task>? OnAccountDeleted;
 
     private readonly DispatcherTimer _skillRefreshTimer;
+    private readonly DispatcherTimer _cooldownTimer;
 
-    public AccountFormViewModel(IGameEngineService gameEngine, IDialogService dialogService)
+    public AccountFormViewModel(IGameEngineService gameEngine, IDialogService dialogService, IGameImageService gameImageService)
     {
         _gameEngine = gameEngine;
         _dialogService = dialogService;
+        _gameImageService = gameImageService;
 
         foreach (var server in ServerOption.DefaultServers)
         {
@@ -133,6 +137,13 @@ public sealed partial class AccountFormViewModel : ObservableObject
             }
         };
         _skillRefreshTimer.Start();
+
+        _cooldownTimer = new DispatcherTimer
+        {
+            Interval = TimeSpan.FromMilliseconds(100)
+        };
+        _cooldownTimer.Tick += (_, _) => UpdateCooldowns();
+        _cooldownTimer.Start();
     }
 
     public void SetTargetResolver(Func<IEnumerable<Guid>> resolver)
@@ -322,7 +333,7 @@ public sealed partial class AccountFormViewModel : ObservableObject
     }
 
     [RelayCommand]
-    public void UseSkill(object? parameter)
+    public void SelectSkill(object? parameter)
     {
         int slotIndex = 0;
         if (parameter is int idx)
@@ -341,7 +352,46 @@ public sealed partial class AccountFormViewModel : ObservableObject
         var targets = ResolveKeyTargets();
         foreach (var id in targets)
         {
+            _gameEngine.SelectSkill(id, slotIndex);
+        }
+
+        for (int i = 0; i < Skills.Count; i++)
+        {
+            Skills[i].IsSelected = (i == slotIndex);
+        }
+    }
+
+    [RelayCommand]
+    public void UseSkill(object? parameter)
+    {
+        int slotIndex = 0;
+        SkillButtonItem? targetItem = null;
+        if (parameter is int idx)
+        {
+            slotIndex = idx;
+            if (slotIndex >= 0 && slotIndex < Skills.Count) targetItem = Skills[slotIndex];
+        }
+        else if (parameter is string str && int.TryParse(str, out int parsed))
+        {
+            slotIndex = parsed;
+            if (slotIndex >= 0 && slotIndex < Skills.Count) targetItem = Skills[slotIndex];
+        }
+        else if (parameter is SkillButtonItem item)
+        {
+            slotIndex = item.SlotIndex;
+            targetItem = item;
+        }
+
+        var targets = ResolveKeyTargets();
+        foreach (var id in targets)
+        {
             _gameEngine.UseSkill(id, slotIndex);
+        }
+
+        if (targetItem != null)
+        {
+            targetItem.LastTimeUse = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
+            targetItem.UpdateCooldown(targetItem.LastTimeUse);
         }
     }
 
@@ -354,6 +404,15 @@ public sealed partial class AccountFormViewModel : ObservableObject
             _gameEngine.AutoAssignSkills(id);
         }
         RefreshSkills();
+    }
+
+    private void UpdateCooldowns()
+    {
+        long now = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
+        foreach (var item in Skills)
+        {
+            item.UpdateCooldown(now);
+        }
     }
 
     public void RefreshSkills()
@@ -383,6 +442,15 @@ public sealed partial class AccountFormViewModel : ObservableObject
                 {
                     Skills[i].IsSelected = sInfo.IsSelected;
                 }
+                Skills[i].Point = sInfo.Point;
+                Skills[i].CoolDown = sInfo.CoolDown;
+                Skills[i].ManaUse = sInfo.ManaUse;
+                Skills[i].LastTimeUse = sInfo.LastTimeUse;
+                if (sInfo.IconId >= 0 && Skills[i].IconId != sInfo.IconId)
+                {
+                    Skills[i].IconId = sInfo.IconId;
+                    Skills[i].Icon = _gameImageService.GetSmallImage(sInfo.IconId);
+                }
             }
             else
             {
@@ -395,8 +463,15 @@ public sealed partial class AccountFormViewModel : ObservableObject
                 {
                     Skills[i].IsSelected = false;
                 }
+                Skills[i].Point = 0;
+                Skills[i].CoolDown = 0;
+                Skills[i].ManaUse = 0;
+                Skills[i].LastTimeUse = 0;
+                Skills[i].IconId = -1;
+                Skills[i].Icon = null;
             }
         }
+        UpdateCooldowns();
     }
 
     [RelayCommand]

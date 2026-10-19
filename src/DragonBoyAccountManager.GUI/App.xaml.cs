@@ -5,6 +5,7 @@ using DragonBoyAccountManager.Core.Updater;
 using DragonBoyAccountManager.GUI.Services.Dialog;
 using DragonBoyAccountManager.GUI.Services.Feedback;
 using DragonBoyAccountManager.GUI.Services.GameEngine;
+using DragonBoyAccountManager.GUI.Services.Images;
 using DragonBoyAccountManager.GUI.Services.Settings;
 using DragonBoyAccountManager.GUI.Services.Storage;
 using DragonBoyAccountManager.GUI.ViewModels;
@@ -32,6 +33,7 @@ public partial class App : Application
         services.AddSingleton<ISettingsService, SettingsService>();
         services.AddSingleton<IDialogService, DialogService>();
         services.AddSingleton<IGameEngineService, CoreGameEngineAdapter>();
+        services.AddSingleton<IGameImageService, GameImageService>();
         services.AddSingleton<IFeedbackService, DiscordFeedbackService>();
 
         services.AddSingleton<AccountsPanelViewModel>();

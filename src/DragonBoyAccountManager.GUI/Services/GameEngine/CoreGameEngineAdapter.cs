@@ -789,6 +789,15 @@ public sealed class CoreGameEngineAdapter(ISettingsService? settingsService = nu
         return (false, "Tài khoản chưa vào game");
     }
 
+    public (bool Success, string Message) SelectSkill(Guid accountId, int slotIndex)
+    {
+        if (_sessions.TryGetValue(accountId, out var session) && session.Instance.IsRunning && session.Instance.Player.IsInGame)
+        {
+            return session.Instance.Player.SelectSkill(slotIndex);
+        }
+        return (false, "Tài khoản chưa vào game");
+    }
+
     public (bool Success, string Message) UseSkill(Guid accountId, int slotIndex)
     {
         if (_sessions.TryGetValue(accountId, out var session) && session.Instance.IsRunning && session.Instance.Player.IsInGame)

@@ -102,6 +102,30 @@
         x:Key="GameTextMutedBrush"
         po:Freeze="True"
         Color="#7D5534" />
+    <SolidColorBrush
+        x:Key="GameTextYellowBrush"
+        po:Freeze="True"
+        Color="#FFAA00" />
+    <SolidColorBrush
+        x:Key="GameTextGreenBrush"
+        po:Freeze="True"
+        Color="#1E824C" />
+    <SolidColorBrush
+        x:Key="GameTextGreenBrightBrush"
+        po:Freeze="True"
+        Color="#00CC00" />
+    <SolidColorBrush
+        x:Key="GameTextRedBrush"
+        po:Freeze="True"
+        Color="#BD1404" />
+    <SolidColorBrush
+        x:Key="GameTextBlueBrush"
+        po:Freeze="True"
+        Color="#1E88E5" />
+    <SolidColorBrush
+        x:Key="GameTextGreyBrush"
+        po:Freeze="True"
+        Color="#555555" />
 
     <SolidColorBrush
         x:Key="GameFocusBrush"
@@ -443,6 +467,93 @@
         x:Key="GameSelectionHighlightBgBrush"
         po:Freeze="True"
         Color="#F7C934" />
+
+    <SolidColorBrush
+        x:Key="GameSkillSlotOrangeOuterBrush"
+        po:Freeze="True"
+        Color="#8F2715" />
+    <LinearGradientBrush
+        x:Key="GameSkillSlotOrangeBezelBrush"
+        po:Freeze="True"
+        StartPoint="0.5,0"
+        EndPoint="0.5,1">
+        <GradientStop Offset="0.0" Color="#FF9310" />
+        <GradientStop Offset="0.38" Color="#FF9310" />
+        <GradientStop Offset="0.42" Color="#F45012" />
+        <GradientStop Offset="1.0" Color="#D53708" />
+    </LinearGradientBrush>
+    <LinearGradientBrush
+        x:Key="GameSkillSlotOrangeBezelHoverBrush"
+        po:Freeze="True"
+        StartPoint="0.5,0"
+        EndPoint="0.5,1">
+        <GradientStop Offset="0.0" Color="#FFA52A" />
+        <GradientStop Offset="0.38" Color="#FFA52A" />
+        <GradientStop Offset="0.42" Color="#FF6225" />
+        <GradientStop Offset="1.0" Color="#E54714" />
+    </LinearGradientBrush>
+    <SolidColorBrush
+        x:Key="GameSkillSlotOrangeSeparatorBrush"
+        po:Freeze="True"
+        Color="#8E2713" />
+    <LinearGradientBrush
+        x:Key="GameSkillSlotOrangeFaceBrush"
+        po:Freeze="True"
+        StartPoint="0.5,0"
+        EndPoint="0.5,1">
+        <GradientStop Offset="0.0" Color="#D8BC81" />
+        <GradientStop Offset="0.22" Color="#EACB95" />
+        <GradientStop Offset="0.55" Color="#F7DBA5" />
+        <GradientStop Offset="1.0" Color="#F7DBA5" />
+    </LinearGradientBrush>
+
+    <SolidColorBrush
+        x:Key="GameSkillSlotGreenOuterBrush"
+        po:Freeze="True"
+        Color="#248031" />
+    <LinearGradientBrush
+        x:Key="GameSkillSlotGreenBezelBrush"
+        po:Freeze="True"
+        StartPoint="0.5,0"
+        EndPoint="0.5,1">
+        <GradientStop Offset="0.0" Color="#2DE990" />
+        <GradientStop Offset="0.38" Color="#2DE990" />
+        <GradientStop Offset="0.42" Color="#2DD95C" />
+        <GradientStop Offset="1.0" Color="#21BD44" />
+    </LinearGradientBrush>
+    <LinearGradientBrush
+        x:Key="GameSkillSlotGreenBezelHoverBrush"
+        po:Freeze="True"
+        StartPoint="0.5,0"
+        EndPoint="0.5,1">
+        <GradientStop Offset="0.0" Color="#4BF5A4" />
+        <GradientStop Offset="0.38" Color="#4BF5A4" />
+        <GradientStop Offset="0.42" Color="#3EE56D" />
+        <GradientStop Offset="1.0" Color="#28D052" />
+    </LinearGradientBrush>
+    <SolidColorBrush
+        x:Key="GameSkillSlotGreenSeparatorBrush"
+        po:Freeze="True"
+        Color="#206028" />
+    <LinearGradientBrush
+        x:Key="GameSkillSlotGreenFaceBrush"
+        po:Freeze="True"
+        StartPoint="0.5,0"
+        EndPoint="0.5,1">
+        <GradientStop Offset="0.0" Color="#7DBFA0" />
+        <GradientStop Offset="0.22" Color="#9FE0C9" />
+        <GradientStop Offset="0.55" Color="#AFEDD8" />
+        <GradientStop Offset="1.0" Color="#AFEDD8" />
+    </LinearGradientBrush>
+
+    <SolidColorBrush
+        x:Key="GameSkillSlotCooldownBrush"
+        po:Freeze="True"
+        Color="#A6000000" />
+    <SolidColorBrush
+        x:Key="GameSkillSlotCooldownTextBrush"
+        po:Freeze="True"
+        Color="#FFFFFF" />
 
     <SolidColorBrush
         x:Key="GameTitleSubtitleBrush"

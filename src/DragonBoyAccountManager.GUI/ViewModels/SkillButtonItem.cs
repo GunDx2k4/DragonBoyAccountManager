@@ -1,4 +1,5 @@
 using CommunityToolkit.Mvvm.ComponentModel;
+using System.Windows.Media;
 
 namespace DragonBoyAccountManager.GUI.ViewModels;
 
@@ -13,22 +14,97 @@ public sealed partial class SkillButtonItem : ObservableObject
     [ObservableProperty]
     private bool _isSelected;
 
+    [ObservableProperty]
+    private int _iconId = -1;
+
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(HasIcon))]
+    private ImageSource? _icon;
+
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(ToolTipText))]
+    private int _point;
+
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(ToolTipText))]
+    private int _coolDown;
+
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(ToolTipText))]
+    private int _manaUse;
+
+    [ObservableProperty]
+    private long _lastTimeUse;
+
+    [ObservableProperty]
+    private bool _isOnCooldown;
+
+    [ObservableProperty]
+    private double _cooldownProgress;
+
+    [ObservableProperty]
+    private double _cooldownOverlayHeight;
+
+    [ObservableProperty]
+    private string _cooldownText = string.Empty;
+
+    public bool HasIcon => Icon != null;
+
     public string ShortcutBadge => SlotIndex switch
     {
-        9 => "[0]",
-        _ => $"[{SlotIndex + 1}]"
+        9 => "0",
+        _ => $"{SlotIndex + 1}"
     };
 
-    public string ToolTipText => SlotIndex switch
-    {
-        9 => $"Sử dụng {Name} (Phím 0)",
-        _ => $"Sử dụng {Name} (Phím {SlotIndex + 1})"
-    };
+    public string ToolTipText =>
+        $"[{ShortcutBadge}] {Name}" +
+        (Point > 0 ? $"\nCấp độ: {Point}" : "") +
+        (CoolDown > 0 ? $"\nThời gian hồi: {CoolDown / 1000.0:0.#}s" : "") +
+        (ManaUse > 0 ? $"\nTiêu hao: {ManaUse} KI" : "");
 
-    public SkillButtonItem(int slotIndex, string name, bool isSelected = false)
+    public SkillButtonItem(int slotIndex, string name, bool isSelected = false, int iconId = -1, ImageSource? icon = null, long lastTimeUse = 0)
     {
         SlotIndex = slotIndex;
         _name = name;
         _isSelected = isSelected;
+        _iconId = iconId;
+        _icon = icon;
+        _lastTimeUse = lastTimeUse;
+    }
+
+    public void UpdateCooldown(long now)
+    {
+        if (CoolDown <= 0 || LastTimeUse <= 0)
+        {
+            if (IsOnCooldown)
+            {
+                IsOnCooldown = false;
+                CooldownProgress = 0;
+                CooldownOverlayHeight = 0;
+                CooldownText = string.Empty;
+            }
+            return;
+        }
+
+        long elapsed = now - LastTimeUse;
+        if (elapsed < CoolDown)
+        {
+            IsOnCooldown = true;
+            double remaining = CoolDown - elapsed;
+            double progress = Math.Clamp(remaining / CoolDown, 0.0, 1.0);
+            CooldownProgress = progress;
+            CooldownOverlayHeight = progress * 28.0;
+            CooldownText = remaining >= 1000 ? $"{remaining / 1000.0:0.#}s" : $"{remaining / 1000.0:0.0}s";
+        }
+        else
+        {
+            if (IsOnCooldown)
+            {
+                IsOnCooldown = false;
+                CooldownProgress = 0;
+                CooldownOverlayHeight = 0;
+                CooldownText = string.Empty;
+            }
+        }
     }
 }

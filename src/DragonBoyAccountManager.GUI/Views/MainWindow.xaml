@@ -15,7 +15,7 @@
     d:DataContext="{d:DesignInstance Type=viewmodels:MainViewModel}"
     AllowsTransparency="True"
     Background="Transparent"
-    FontFamily="Segoe UI, Tahoma, Arial"
+    FontFamily="{DynamicResource GameFont}"
     Icon="/Assets/app_icon.png"
     SnapsToDevicePixels="True"
     TextOptions.TextFormattingMode="Display"

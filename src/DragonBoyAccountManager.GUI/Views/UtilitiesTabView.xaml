@@ -41,7 +41,7 @@
                             VerticalAlignment="Center"
                             FontSize="12"
                             FontWeight="ExtraBold"
-                            Foreground="{DynamicResource GameBtnOrangeFaceTopBrush}">
+                            Foreground="{DynamicResource GameTextYellowBrush}">
                             <Run Text="{Binding CurrentMapName, FallbackValue='Chưa vào game'}" />
                             <Run Foreground="{DynamicResource GameTextDarkBrush}" Text=" - Khu " />
                             <Run Text="{Binding CurrentZoneId, FallbackValue='-'}" />
@@ -154,7 +154,7 @@
                             <TextBlock
                                 HorizontalAlignment="Center"
                                 VerticalAlignment="Center"
-                                FontFamily="Segoe UI Black, Arial Black, Segoe UI"
+                                FontFamily="{DynamicResource GameFont}"
                                 FontSize="12"
                                 FontWeight="ExtraBold"
                                 Foreground="{DynamicResource GameBtnTanTextBrush}"
@@ -169,7 +169,7 @@
                             <TextBlock
                                 HorizontalAlignment="Center"
                                 VerticalAlignment="Center"
-                                FontFamily="Segoe UI Black, Arial Black, Segoe UI"
+                                FontFamily="{DynamicResource GameFont}"
                                 FontSize="12"
                                 FontWeight="ExtraBold"
                                 Foreground="{DynamicResource GameBtnTanTextBrush}"
@@ -412,7 +412,7 @@
                     <TabItem.Header>
                         <StackPanel Orientation="Horizontal">
                             <TextBlock FontSize="10" Text="BOSS/NGƯỜI (" />
-                            <TextBlock FontSize="10" Foreground="{DynamicResource GameBtnOrangeFaceTopBrush}" Text="{Binding BossCount}" TextTrimming="CharacterEllipsis" ToolTip="{Binding BossCount}" />
+                            <TextBlock FontSize="10" Foreground="{DynamicResource GameTextYellowBrush}" Text="{Binding BossCount}" TextTrimming="CharacterEllipsis" ToolTip="{Binding BossCount}" />
                             <TextBlock FontSize="10" Text="/" />
                             <TextBlock FontSize="10" Text="{Binding PlayerCount}" TextTrimming="CharacterEllipsis" ToolTip="{Binding PlayerCount}" />
                             <TextBlock FontSize="10" Text=")" />
@@ -425,7 +425,7 @@
                                 Margin="2,4,0,3"
                                 FontSize="10.5"
                                 FontWeight="ExtraBold"
-                                Foreground="{DynamicResource GameBtnOrangeFaceTopBrush}"
+                                Foreground="{DynamicResource GameTextYellowBrush}"
                                 Text="DANH SÁCH BOSS:" />
 
                             <ItemsControl ItemsSource="{Binding Bosses}">

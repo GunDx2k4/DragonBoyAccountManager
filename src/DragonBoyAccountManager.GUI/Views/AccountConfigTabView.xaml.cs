@@ -59,4 +59,13 @@ public partial class AccountConfigTabView : UserControl
     {
         ViewModel?.RequestZoneList();
     }
+
+    private void SkillSlot_PreviewMouseLeftButtonDown(object sender, MouseButtonEventArgs e)
+    {
+        if (e.ClickCount == 2 && sender is FrameworkElement elem && elem.DataContext is SkillButtonItem item)
+        {
+            e.Handled = true;
+            ViewModel?.UseSkill(item);
+        }
+    }
 }

@@ -19,6 +19,59 @@
     <FontFamily x:Key="GameFont">Segoe UI, Tahoma, Arial</FontFamily>
     <FontFamily x:Key="GameFontRegular">Segoe UI, Tahoma, Arial</FontFamily>
 
+    <DropShadowEffect
+        x:Key="GameTextPixelShadow"
+        po:Freeze="True"
+        BlurRadius="0"
+        Direction="315"
+        Opacity="0.75"
+        ShadowDepth="1"
+        Color="{StaticResource GameShadowDarkColor}" />
+    <DropShadowEffect
+        x:Key="GameTextPixelShadowLight"
+        po:Freeze="True"
+        BlurRadius="0"
+        Direction="315"
+        Opacity="0.8"
+        ShadowDepth="1"
+        Color="#FFF8EE" />
+
+    <Style x:Key="GameTextTitleStyle" TargetType="TextBlock">
+        <Setter Property="FontFamily" Value="{DynamicResource GameFont}" />
+        <Setter Property="FontSize" Value="14" />
+        <Setter Property="FontWeight" Value="ExtraBold" />
+        <Setter Property="Foreground" Value="{DynamicResource GameTextLightBrush}" />
+        <Setter Property="Effect" Value="{StaticResource GameTextPixelShadow}" />
+    </Style>
+
+    <Style x:Key="GameTextHeaderStyle" TargetType="TextBlock">
+        <Setter Property="FontFamily" Value="{DynamicResource GameFont}" />
+        <Setter Property="FontSize" Value="12" />
+        <Setter Property="FontWeight" Value="ExtraBold" />
+        <Setter Property="Foreground" Value="{DynamicResource GameTextDarkBrush}" />
+    </Style>
+
+    <Style x:Key="GameTextSubheaderStyle" TargetType="TextBlock">
+        <Setter Property="FontFamily" Value="{DynamicResource GameFont}" />
+        <Setter Property="FontSize" Value="11" />
+        <Setter Property="FontWeight" Value="Bold" />
+        <Setter Property="Foreground" Value="{DynamicResource GameTextDarkBrush}" />
+    </Style>
+
+    <Style x:Key="GameTextBodyStyle" TargetType="TextBlock">
+        <Setter Property="FontFamily" Value="{DynamicResource GameFont}" />
+        <Setter Property="FontSize" Value="11" />
+        <Setter Property="FontWeight" Value="SemiBold" />
+        <Setter Property="Foreground" Value="{DynamicResource GameTextDarkBrush}" />
+    </Style>
+
+    <Style x:Key="GameTextCaptionStyle" TargetType="TextBlock">
+        <Setter Property="FontFamily" Value="{DynamicResource GameFont}" />
+        <Setter Property="FontSize" Value="9.5" />
+        <Setter Property="FontWeight" Value="Normal" />
+        <Setter Property="Foreground" Value="{DynamicResource GameTextMutedBrush}" />
+    </Style>
+
     <StreamGeometry
         x:Key="GameDragonBallFourStarsGeometry"
         po:Freeze="True">
