@@ -6,6 +6,7 @@ using System.Windows.Data;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 
+using DragonBoyAccountManager.Core.Game;
 using DragonBoyAccountManager.GUI.Models;
 using DragonBoyAccountManager.GUI.Services.Dialog;
 using DragonBoyAccountManager.GUI.Services.GameEngine;
@@ -20,9 +21,35 @@ public sealed partial class AccountsPanelViewModel : ObservableObject
     private readonly IGameEngineService _gameEngine;
     private readonly IDialogService _dialogService;
     private readonly ISettingsService _settingsService;
+    private readonly IGameClientValidator _clientValidator;
 
     public ObservableCollection<AccountItemViewModel> Accounts { get; } = [];
     public ICollectionView AccountsView { get; }
+
+    [ObservableProperty]
+    private ClientStatus _clientStatus = ClientStatus.GameNotFound;
+
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(IsGuidanceVisible))]
+    [NotifyPropertyChangedFor(nameof(ShowGuidanceButtonVisible))]
+    private bool _isAssemblyMissing = true;
+
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(IsGuidanceVisible))]
+    [NotifyPropertyChangedFor(nameof(ShowGuidanceButtonVisible))]
+    private bool _isGuidanceDismissed;
+
+    [ObservableProperty]
+    private string _assemblyGuidanceTitle = string.Empty;
+
+    [ObservableProperty]
+    private string _assemblyGuidanceMessage = string.Empty;
+
+    public bool IsGuidanceVisible => IsAssemblyMissing && !IsGuidanceDismissed;
+    public bool ShowGuidanceButtonVisible => IsAssemblyMissing && IsGuidanceDismissed;
+
+    public event Action? OnRequestNavigateToGuide;
+    public event Action<string>? OnGamePathConfigured;
 
     [ObservableProperty]
     private AccountItemViewModel? _selectedAccount;
@@ -104,12 +131,16 @@ public sealed partial class AccountsPanelViewModel : ObservableObject
         IAccountStorageService storageService,
         IGameEngineService gameEngine,
         IDialogService dialogService,
-        ISettingsService settingsService)
+        ISettingsService settingsService,
+        IGameClientValidator clientValidator)
     {
         _storageService = storageService;
         _gameEngine = gameEngine;
         _dialogService = dialogService;
         _settingsService = settingsService;
+        _clientValidator = clientValidator;
+
+        CheckAssemblyStatus();
 
         AccountsView = CollectionViewSource.GetDefaultView(Accounts);
         AccountsView.Filter = FilterAccounts;
@@ -164,6 +195,77 @@ public sealed partial class AccountsPanelViewModel : ObservableObject
         {
             FilterServers.Add(server.ServerName);
         }
+    }
+
+    public void CheckAssemblyStatus()
+    {
+        string path = _settingsService.Current.GamePath;
+        var metadata = _clientValidator.InspectClientMetadata(path);
+
+        ClientStatus = metadata.Status;
+        IsAssemblyMissing = metadata.Status is ClientStatus.GameNotFound or ClientStatus.AssemblyNotFound;
+
+        if (metadata.Status == ClientStatus.GameNotFound)
+        {
+            AssemblyGuidanceTitle = "CHƯA THIẾT LẬP FILE GAME (.EXE)";
+            AssemblyGuidanceMessage = "DBAM cần kết nối với file thực thi game (.exe) để khởi chạy và điều khiển tài khoản tự động.";
+        }
+        else if (metadata.Status == ClientStatus.AssemblyNotFound)
+        {
+            AssemblyGuidanceTitle = "KHÔNG TÌM THẤY ASSEMBLY-CSHARP.DLL";
+            AssemblyGuidanceMessage = "Đã nhận file .exe nhưng không tìm thấy file Assembly-CSharp.dll trong thư mục dữ liệu Data\\Managed. Vui lòng kiểm tra lại cấu trúc thư mục game.";
+        }
+        else
+        {
+            AssemblyGuidanceTitle = string.Empty;
+            AssemblyGuidanceMessage = string.Empty;
+            IsGuidanceDismissed = false;
+        }
+    }
+
+    [RelayCommand]
+    public void BrowseGamePath()
+    {
+        var initialDir = !string.IsNullOrEmpty(_settingsService.Current.GamePath)
+            ? Path.GetDirectoryName(_settingsService.Current.GamePath)
+            : null;
+
+        var selectedFile = _dialogService.ShowOpenFileDialog(
+            "Chọn tệp thực thi game Dragon Boy",
+            "Game Executable (*.exe)|*.exe|Tất cả tệp (*.*)|*.*",
+            initialDir);
+
+        if (!string.IsNullOrEmpty(selectedFile))
+        {
+            if (!string.Equals(Path.GetExtension(selectedFile), ".exe", StringComparison.OrdinalIgnoreCase))
+            {
+                _dialogService.ShowWarning("File không hợp lệ", "Đường dẫn game bắt buộc phải là file thực thi (.exe)!");
+                return;
+            }
+
+            _settingsService.Current.GamePath = selectedFile;
+            _ = _settingsService.SaveAsync();
+            CheckAssemblyStatus();
+            OnGamePathConfigured?.Invoke(selectedFile);
+        }
+    }
+
+    [RelayCommand]
+    public void OpenGuide()
+    {
+        OnRequestNavigateToGuide?.Invoke();
+    }
+
+    [RelayCommand]
+    public void DismissGuidance()
+    {
+        IsGuidanceDismissed = true;
+    }
+
+    [RelayCommand]
+    public void ShowGuidance()
+    {
+        IsGuidanceDismissed = false;
     }
 
     [RelayCommand]
@@ -373,6 +475,41 @@ public sealed partial class AccountsPanelViewModel : ObservableObject
         }
     }
 
+    private bool EnsureGameClientReady(out string gamePath)
+    {
+        gamePath = _settingsService.Current.GamePath;
+        var metadata = _clientValidator.InspectClientMetadata(gamePath);
+        if (metadata.IsFound)
+        {
+            return true;
+        }
+
+        if (metadata.Status == ClientStatus.AssemblyNotFound)
+        {
+            _dialogService.ShowWarning(
+                "Không tìm thấy Assembly-CSharp",
+                $"Đã nhận diện file thực thi game: {Path.GetFileName(gamePath)}\n" +
+                "Nhưng không tìm thấy file Assembly-CSharp.dll trong thư mục dữ liệu Data\\Managed.\n\n" +
+                "Vui lòng đảm bảo cấu trúc thư mục game đúng chuẩn:\n" +
+                "- [TênGame].exe\n" +
+                "- [TênGame]_Data\\Managed\\Assembly-CSharp.dll");
+        }
+        else
+        {
+            bool chooseNow = _dialogService.ShowConfirmation(
+                "Chưa cài đặt đường dẫn game",
+                "Chưa chọn tệp thực thi game (.exe) hoặc đường dẫn không tồn tại.\n\nBạn có muốn chọn file game (.exe) ngay bây giờ không?",
+                "Chọn file ngay",
+                "Để sau");
+            if (chooseNow)
+            {
+                BrowseGamePath();
+            }
+        }
+
+        return false;
+    }
+
     [RelayCommand]
     public async Task LaunchSelectedAccountsAsync(AccountItemViewModel? target = null)
     {
@@ -383,10 +520,8 @@ public sealed partial class AccountsPanelViewModel : ObservableObject
             return;
         }
 
-        string gamePath = _settingsService.Current.GamePath;
-        if (string.IsNullOrWhiteSpace(gamePath) || !File.Exists(gamePath))
+        if (!EnsureGameClientReady(out string gamePath))
         {
-            _dialogService.ShowWarning("Chưa cài đặt đường dẫn game", "Vui lòng chọn tệp game (.exe) hợp lệ trước khi chạy!");
             return;
         }
 
@@ -425,10 +560,8 @@ public sealed partial class AccountsPanelViewModel : ObservableObject
             return;
         }
 
-        string gamePath = _settingsService.Current.GamePath;
-        if (string.IsNullOrWhiteSpace(gamePath) || !File.Exists(gamePath))
+        if (!EnsureGameClientReady(out string gamePath))
         {
-            _dialogService.ShowWarning("Chưa cài đặt đường dẫn game", "Vui lòng chọn tệp game (.exe) hợp lệ trước khi chạy!");
             return;
         }
 

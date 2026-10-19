@@ -130,7 +130,7 @@ public sealed partial class AppStatusBarViewModel : ObservableObject
 
             case ClientStatus.AssemblyNotFound:
                 AssemblyStatus = "Không tìm thấy Assembly";
-                AssemblyStatusTooltip = $"Đã nhận file game: {Path.GetFileName(path)}\nNhưng không tìm thấy file Assembly-CSharp.dll trong thư mục dữ liệu Data\\Managed.";
+                AssemblyStatusTooltip = $"Đã nhận file game: {Path.GetFileName(path)}\nNhưng không tìm thấy file Assembly-CSharp.dll trong thư mục dữ liệu Data\\Managed.\n(Bấm để chọn lại file game hoặc mở thư mục)";
                 break;
 
             case ClientStatus.Error:
@@ -141,7 +141,7 @@ public sealed partial class AppStatusBarViewModel : ObservableObject
             case ClientStatus.GameNotFound:
             default:
                 AssemblyStatus = "Chưa chọn file game .exe";
-                AssemblyStatusTooltip = "Đường dẫn game bắt buộc phải là file thực thi (.exe).\nVui lòng chọn file game (.exe) để kiểm tra phiên bản.";
+                AssemblyStatusTooltip = "Đường dẫn game bắt buộc phải là file thực thi (.exe).\n(Bấm để chọn file game .exe)";
                 break;
         }
 
@@ -208,7 +208,15 @@ public sealed partial class AppStatusBarViewModel : ObservableObject
         }
         else
         {
-            _dialogService.ShowWarning("Thông báo", "Chưa tìm thấy file Assembly-CSharp.dll hoặc file game đã chọn!");
+            bool chooseNow = _dialogService.ShowConfirmation(
+                "Chưa chọn game / Thiếu Assembly",
+                "Chưa tìm thấy file Assembly-CSharp.dll hoặc chưa chọn file thực thi game (.exe).\n\nBạn có muốn chọn file game (.exe) ngay bây giờ không?",
+                "Chọn file ngay",
+                "Đóng");
+            if (chooseNow)
+            {
+                BrowseGamePath();
+            }
         }
     }
 }

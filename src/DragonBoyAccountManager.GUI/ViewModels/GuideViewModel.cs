@@ -66,9 +66,13 @@ public sealed partial class GuideViewModel : ObservableObject
     [ObservableProperty]
     private string _releaseNotes = string.Empty;
 
+    [ObservableProperty]
+    private bool _isAssemblyMissing = true;
+
     public bool CanApplyUpdate => HasAppUpdate && !IsUpdatingApp;
 
     public event Action? OnRequestNavigateToGuide;
+    public event Action<string>? OnGamePathConfigured;
 
     private Dictionary<string, string>? _versionChecksums;
 
@@ -202,6 +206,7 @@ public sealed partial class GuideViewModel : ObservableObject
         var metadata = _clientValidator.InspectClientMetadata(gamePath, _versionChecksums);
 
         Status = metadata.Status;
+        IsAssemblyMissing = metadata.Status is ClientStatus.GameNotFound or ClientStatus.AssemblyNotFound;
         GameVersion = metadata.DetectedVersion ?? metadata.TargetVersion;
         AssemblyPath = metadata.AssemblyPath ?? string.Empty;
         AssemblyHash = metadata.ActualSha256;
@@ -330,7 +335,7 @@ public sealed partial class GuideViewModel : ObservableObject
             if (!string.IsNullOrEmpty(path) && File.Exists(path))
             {
                 string toolInfo = HasAppUpdate
-                    ? $"\n\n★ Có bản cập nhật Tool mới: v{AvailableAppUpdate?.Version}"
+                    ? $"\n\n[MỚI] Có bản cập nhật Tool mới: v{AvailableAppUpdate?.Version}"
                     : $"\n\nTool DBAM đang ở phiên bản mới nhất (v{AppVersion}).";
                 _dialogService.ShowInfo("Kiểm tra phiên bản", $"Trạng thái Game Client: {AssemblyStatus}\n{UpdateStatusMessage}{toolInfo}");
             }
@@ -376,6 +381,33 @@ public sealed partial class GuideViewModel : ObservableObject
             IsUpdatingApp = false;
             AppUpdateStatusText = string.Empty;
             _dialogService.ShowError("Lỗi cập nhật", $"Không thể hoàn tất cập nhật: {ex.Message}");
+        }
+    }
+
+    [RelayCommand]
+    private void BrowseGamePath()
+    {
+        var initialDir = !string.IsNullOrEmpty(_settingsService.Current.GamePath)
+            ? Path.GetDirectoryName(_settingsService.Current.GamePath)
+            : null;
+
+        var selectedFile = _dialogService.ShowOpenFileDialog(
+            "Chọn tệp thực thi game Dragon Boy",
+            "Game Executable (*.exe)|*.exe|Tất cả tệp (*.*)|*.*",
+            initialDir);
+
+        if (!string.IsNullOrEmpty(selectedFile))
+        {
+            if (!string.Equals(Path.GetExtension(selectedFile), ".exe", StringComparison.OrdinalIgnoreCase))
+            {
+                _dialogService.ShowWarning("File không hợp lệ", "Đường dẫn game bắt buộc phải là file thực thi (.exe)!");
+                return;
+            }
+
+            _settingsService.Current.GamePath = selectedFile;
+            _ = _settingsService.SaveAsync();
+            CheckAssemblyStatus();
+            OnGamePathConfigured?.Invoke(selectedFile);
         }
     }
 

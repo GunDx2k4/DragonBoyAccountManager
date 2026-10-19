@@ -150,6 +150,24 @@ public sealed partial class MainViewModel : ObservableObject
         StatusBar.GamePathChanged += _ =>
         {
             Guide.CheckAssemblyStatus();
+            AccountsPanel.CheckAssemblyStatus();
+        };
+
+        AccountsPanel.OnGamePathConfigured += path =>
+        {
+            StatusBar.GamePath = path;
+            Guide.CheckAssemblyStatus();
+        };
+
+        AccountsPanel.OnRequestNavigateToGuide += () =>
+        {
+            SelectedTabIndex = 3;
+        };
+
+        Guide.OnGamePathConfigured += path =>
+        {
+            StatusBar.GamePath = path;
+            AccountsPanel.CheckAssemblyStatus();
         };
 
         Guide.OnRequestNavigateToGuide += () =>
@@ -161,7 +179,7 @@ public sealed partial class MainViewModel : ObservableObject
         {
             if (e.PropertyName == nameof(GuideViewModel.HasAppUpdate) && Guide.HasAppUpdate && Guide.AvailableAppUpdate != null)
             {
-                StatusBar.StatusMessage = $"★ Đã có bản cập nhật mới v{Guide.AvailableAppUpdate.Version}! Vào tab Hướng dẫn để xem chi tiết.";
+                StatusBar.StatusMessage = $"[CẬP NHẬT] Đã có bản mới v{Guide.AvailableAppUpdate.Version}! Vào tab Hướng dẫn để xem chi tiết.";
             }
         };
 

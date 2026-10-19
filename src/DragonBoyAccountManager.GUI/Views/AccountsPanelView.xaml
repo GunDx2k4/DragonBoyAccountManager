@@ -16,11 +16,13 @@
 
     <UserControl.Resources>
         <converters:StatusToBrushConverter x:Key="StatusToBrushConverter" />
+        <converters:BooleanToVisibilityConverter x:Key="BooleanToVisibilityConverter" />
     </UserControl.Resources>
 
     <ui:GameCard Padding="10,8">
         <Grid>
             <Grid.RowDefinitions>
+                <RowDefinition Height="Auto" />
                 <RowDefinition Height="Auto" />
                 <RowDefinition Height="*" />
                 <RowDefinition Height="Auto" />
@@ -82,6 +84,21 @@
                         Height="28"
                         Margin="0,0,8,0"
                         Padding="8,0"
+                        Command="{Binding ShowGuidanceCommand}"
+                        Style="{StaticResource GameSecondaryButton}"
+                        ToolTip="Xem lại chỉ dẫn kết nối game &amp; Assembly"
+                        Visibility="{Binding ShowGuidanceButtonVisible, Converter={StaticResource BooleanToVisibilityConverter}}">
+                        <TextBlock
+                            FontSize="11"
+                            FontWeight="Bold"
+                            Foreground="#B45309"
+                            Text="CHỈ DẪN [!]" />
+                    </Button>
+
+                    <Button
+                        Height="28"
+                        Margin="0,0,8,0"
+                        Padding="8,0"
                         Command="{Binding ToggleHideAccountsCommand}"
                         Style="{StaticResource GameSecondaryButton}"
                         ToolTip="Ẩn hoặc hiển thị tên tài khoản">
@@ -129,9 +146,113 @@
                 </StackPanel>
             </Grid>
 
+            <Border
+                Grid.Row="1"
+                Margin="0,0,0,10"
+                Padding="12,10"
+                Background="#FFFBEB"
+                BorderBrush="#D97706"
+                BorderThickness="1.5"
+                CornerRadius="6"
+                Visibility="{Binding IsGuidanceVisible, Converter={StaticResource BooleanToVisibilityConverter}}">
+                <Grid>
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="Auto" />
+                    </Grid.RowDefinitions>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*" />
+                        <ColumnDefinition Width="Auto" />
+                    </Grid.ColumnDefinitions>
+
+                    <StackPanel Grid.Row="0" Grid.Column="0" Orientation="Horizontal" VerticalAlignment="Center">
+                        <Border
+                            Padding="6,1.5"
+                            Margin="0,0,8,0"
+                            Background="#FEF3C7"
+                            BorderBrush="#B45309"
+                            BorderThickness="1"
+                            CornerRadius="3">
+                            <TextBlock
+                                FontSize="10"
+                                FontWeight="ExtraBold"
+                                Foreground="#B45309"
+                                Text="CHỈ DẪN" />
+                        </Border>
+                        <TextBlock
+                            FontSize="11.5"
+                            FontWeight="ExtraBold"
+                            Foreground="#92400E"
+                            Text="{Binding AssemblyGuidanceTitle}"
+                            TextTrimming="CharacterEllipsis" />
+                    </StackPanel>
+
+                    <Button
+                        Grid.Row="0"
+                        Grid.Column="1"
+                        Width="22"
+                        Height="22"
+                        Padding="0"
+                        VerticalAlignment="Top"
+                        Command="{Binding DismissGuidanceCommand}"
+                        Content="×"
+                        FontSize="14"
+                        FontWeight="Bold"
+                        Style="{StaticResource GameGhostButton}"
+                        ToolTip="Tạm thời ẩn thông báo này" />
+
+                    <StackPanel Grid.Row="1" Grid.Column="0" Grid.ColumnSpan="2" Margin="0,6,0,8">
+                        <TextBlock
+                            FontSize="11"
+                            Foreground="#78350F"
+                            LineHeight="16"
+                            Text="{Binding AssemblyGuidanceMessage}"
+                            TextWrapping="Wrap" />
+                        <StackPanel Margin="6,4,0,0">
+                            <TextBlock
+                                FontSize="10.5"
+                                Foreground="#92400E"
+                                LineHeight="16"
+                                Text="1. Chuẩn bị thư mục game PC có chứa file [TênGame].exe và thư mục dữ liệu [TênGame]_Data\Managed\Assembly-CSharp.dll"
+                                TextWrapping="Wrap" />
+                            <TextBlock
+                                FontSize="10.5"
+                                Foreground="#92400E"
+                                LineHeight="16"
+                                Text="2. Bấm nút 'Chọn file game (.exe)' để kết nối. Sau đó thêm tài khoản và mở game bình thường."
+                                TextWrapping="Wrap" />
+                        </StackPanel>
+                    </StackPanel>
+
+                    <StackPanel
+                        Grid.Row="2"
+                        Grid.Column="0"
+                        Grid.ColumnSpan="2"
+                        Orientation="Horizontal">
+                        <Button
+                            Height="26"
+                            Margin="0,0,8,0"
+                            Padding="12,0"
+                            Command="{Binding BrowseGamePathCommand}"
+                            Content="Chọn file game (.exe)"
+                            FontSize="11"
+                            FontWeight="Bold"
+                            Style="{StaticResource GamePrimaryButton}" />
+                        <Button
+                            Height="26"
+                            Padding="12,0"
+                            Command="{Binding OpenGuideCommand}"
+                            Content="Xem hướng dẫn chi tiết"
+                            FontSize="11"
+                            Style="{StaticResource GameSecondaryButton}" />
+                    </StackPanel>
+                </Grid>
+            </Border>
+
             <DataGrid
                 x:Name="AccountsDataGrid"
-                Grid.Row="1"
+                Grid.Row="2"
                 CanUserResizeColumns="True"
                 IsReadOnly="True"
                 ItemsSource="{Binding AccountsView}"
@@ -377,7 +498,7 @@
                 </DataGrid.Columns>
             </DataGrid>
 
-            <Grid Grid.Row="2" Margin="0,8,0,0">
+            <Grid Grid.Row="3" Margin="0,8,0,0">
                 <Grid.ColumnDefinitions>
                     <ColumnDefinition Width="*" />
                     <ColumnDefinition Width="Auto" />

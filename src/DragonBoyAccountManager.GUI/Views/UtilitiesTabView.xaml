@@ -417,9 +417,9 @@
                     <TabItem.Header>
                         <StackPanel Orientation="Horizontal">
                             <TextBlock FontSize="10" Text="BOSS/NGƯỜI (" />
-                            <TextBlock FontSize="10" Foreground="{DynamicResource GameBtnOrangeFaceTopBrush}" Text="{Binding BossCount}" />
+                            <TextBlock FontSize="10" Foreground="{DynamicResource GameBtnOrangeFaceTopBrush}" Text="{Binding BossCount}" TextTrimming="CharacterEllipsis" ToolTip="{Binding BossCount}" />
                             <TextBlock FontSize="10" Text="/" />
-                            <TextBlock FontSize="10" Text="{Binding PlayerCount}" />
+                            <TextBlock FontSize="10" Text="{Binding PlayerCount}" TextTrimming="CharacterEllipsis" ToolTip="{Binding PlayerCount}" />
                             <TextBlock FontSize="10" Text=")" />
                         </StackPanel>
                     </TabItem.Header>
@@ -561,9 +561,9 @@
                     <TabItem.Header>
                         <StackPanel Orientation="Horizontal">
                             <TextBlock Text="QUÁI (" />
-                            <TextBlock Foreground="#27AE60" Text="{Binding AliveMobs}" />
+                            <TextBlock Foreground="#27AE60" Text="{Binding AliveMobs}" TextTrimming="CharacterEllipsis" ToolTip="{Binding AliveMobs}" />
                             <TextBlock Text="/" />
-                            <TextBlock Text="{Binding TotalMobs}" />
+                            <TextBlock Text="{Binding TotalMobs}" TextTrimming="CharacterEllipsis" ToolTip="{Binding TotalMobs}" />
                             <TextBlock Text=")" />
                         </StackPanel>
                     </TabItem.Header>
