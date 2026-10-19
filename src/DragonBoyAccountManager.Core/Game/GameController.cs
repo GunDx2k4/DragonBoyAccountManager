@@ -2,7 +2,7 @@ using DragonBoyAccountManager.Core.Game.Actions;
 
 namespace DragonBoyAccountManager.Core.Game;
 
-public class GameController(GameInstance instance) : IDisposable
+public class GameController(GameInstance instance) : IDisposable, IAsyncDisposable
 {
     private readonly SemaphoreSlim _actionLock = new(1, 1);
     private readonly object _periodicLock = new();
@@ -123,22 +123,42 @@ public class GameController(GameInstance instance) : IDisposable
 
     public void Resume() => _isPaused = false;
 
-    public void Stop()
+    public async Task StopAsync()
     {
         if (_cts != null)
         {
             _cts.Cancel();
-            try
+            if (_loopTask != null)
             {
-                _loopTask?.Wait(TimeSpan.FromSeconds(2));
+                try
+                {
+                    await Task.WhenAny(_loopTask, Task.Delay(2000)).ConfigureAwait(false);
+                }
+                catch (OperationCanceledException) { }
             }
-            catch (AggregateException) { }
-            catch (OperationCanceledException) { }
 
             _cts.Dispose();
             _cts = null;
             _loopTask = null;
         }
+    }
+
+    public void Stop()
+    {
+        if (_cts != null)
+        {
+            _cts.Cancel();
+            _cts.Dispose();
+            _cts = null;
+            _loopTask = null;
+        }
+    }
+
+    public async ValueTask DisposeAsync()
+    {
+        await StopAsync().ConfigureAwait(false);
+        _actionLock.Dispose();
+        GC.SuppressFinalize(this);
     }
 
     public void Dispose()

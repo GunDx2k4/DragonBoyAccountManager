@@ -640,6 +640,7 @@ public class WorldModule(MonoReflector reflector, IUIModule ui, INetworkModule n
             {
                 for (int i = 0; i < 40; i++)
                 {
+                    if (!_ui.IsGamePlayScreen) break;
                     if (_ui.IsZonePanelOpen)
                     {
                         _ui.CloseZonePanel();
