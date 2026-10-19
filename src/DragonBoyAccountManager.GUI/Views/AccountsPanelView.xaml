@@ -28,61 +28,47 @@
                 <RowDefinition Height="Auto" />
             </Grid.RowDefinitions>
 
-            <Grid Grid.Row="0" Margin="0,0,0,10">
-                <Grid.ColumnDefinitions>
-                    <ColumnDefinition Width="Auto" />
-                    <ColumnDefinition Width="*" MinWidth="80" MaxWidth="220" />
-                    <ColumnDefinition Width="Auto" />
-                    <ColumnDefinition Width="105" />
-                    <ColumnDefinition Width="Auto" />
-                    <ColumnDefinition Width="*" />
-                    <ColumnDefinition Width="Auto" />
-                </Grid.ColumnDefinitions>
+            <WrapPanel Grid.Row="0" Margin="0,0,0,10" VerticalAlignment="Center">
+                <StackPanel Orientation="Horizontal" Margin="0,0,10,4" VerticalAlignment="Center">
+                    <TextBlock
+                        Margin="0,0,6,0"
+                        VerticalAlignment="Center"
+                        FontWeight="Bold"
+                        Foreground="{DynamicResource GameTextDarkBrush}"
+                        Text="Tìm:" />
+                    <TextBox
+                        Width="120"
+                        VerticalAlignment="Center"
+                        Style="{StaticResource GameTextBoxStyle}"
+                        Text="{Binding SearchKeyword, UpdateSourceTrigger=PropertyChanged}" />
 
-                <TextBlock
-                    Grid.Column="0"
-                    Margin="0,0,6,0"
-                    VerticalAlignment="Center"
-                    FontWeight="Bold"
-                    Foreground="{DynamicResource GameTextDarkBrush}"
-                    Text="Tìm:" />
-                <TextBox
-                    Grid.Column="1"
-                    VerticalAlignment="Center"
-                    Style="{StaticResource GameTextBoxStyle}"
-                    Text="{Binding SearchKeyword, UpdateSourceTrigger=PropertyChanged}" />
+                    <TextBlock
+                        Margin="8,0,6,0"
+                        VerticalAlignment="Center"
+                        FontWeight="Bold"
+                        Foreground="{DynamicResource GameTextDarkBrush}"
+                        Text="Server:" />
+                    <ComboBox
+                        Width="100"
+                        VerticalAlignment="Center"
+                        ItemsSource="{Binding FilterServers}"
+                        SelectedItem="{Binding SelectedServerFilter}"
+                        Style="{StaticResource GameComboBoxStyle}" />
 
-                <TextBlock
-                    Grid.Column="2"
-                    Margin="10,0,6,0"
-                    VerticalAlignment="Center"
-                    FontWeight="Bold"
-                    Foreground="{DynamicResource GameTextDarkBrush}"
-                    Text="Server:" />
-                <ComboBox
-                    Grid.Column="3"
-                    VerticalAlignment="Center"
-                    ItemsSource="{Binding FilterServers}"
-                    SelectedItem="{Binding SelectedServerFilter}"
-                    Style="{StaticResource GameComboBoxStyle}" />
-
-                <Button
-                    Grid.Column="4"
-                    Height="28"
-                    MinWidth="50"
-                    Margin="6,0,0,0"
-                    VerticalAlignment="Center"
-                    Command="{Binding ClearFilterCommand}"
-                    Content="Lọc lại"
-                    Style="{StaticResource GameSecondaryButton}" />
-
-                <StackPanel
-                    Grid.Column="6"
-                    VerticalAlignment="Center"
-                    Orientation="Horizontal">
                     <Button
                         Height="28"
-                        Margin="0,0,8,0"
+                        MinWidth="50"
+                        Margin="6,0,0,0"
+                        VerticalAlignment="Center"
+                        Command="{Binding ClearFilterCommand}"
+                        Content="Lọc lại"
+                        Style="{StaticResource GameSecondaryButton}" />
+                </StackPanel>
+
+                <StackPanel Orientation="Horizontal" Margin="0,0,0,4" VerticalAlignment="Center">
+                    <Button
+                        Height="28"
+                        Margin="0,0,6,0"
                         Padding="8,0"
                         Command="{Binding ShowGuidanceCommand}"
                         Style="{StaticResource GameSecondaryButton}"
@@ -91,19 +77,18 @@
                         <TextBlock
                             FontSize="11"
                             FontWeight="Bold"
-                            Foreground="#B45309"
+                            Foreground="{DynamicResource GameDangerBrush}"
                             Text="CHỈ DẪN [!]" />
                     </Button>
 
                     <Button
                         Height="28"
-                        Margin="0,0,8,0"
+                        Margin="0,0,6,0"
                         Padding="8,0"
                         Command="{Binding ToggleHideAccountsCommand}"
                         Style="{StaticResource GameSecondaryButton}"
                         ToolTip="Ẩn hoặc hiển thị tên tài khoản">
                         <StackPanel VerticalAlignment="Center" Orientation="Horizontal">
-
                             <Control
                                 Width="15"
                                 Height="15"
@@ -132,7 +117,7 @@
                     <Button
                         Height="28"
                         MinWidth="85"
-                        Margin="0,0,8,0"
+                        Margin="0,0,6,0"
                         Command="{Binding OpenAddAccountCommand}"
                         Content="THÊM ACC"
                         Style="{StaticResource GamePrimaryButton}" />
@@ -144,14 +129,14 @@
                         Style="{StaticResource GameRadarRefreshButton}"
                         ToolTip="Làm mới danh sách" />
                 </StackPanel>
-            </Grid>
+            </WrapPanel>
 
             <Border
                 Grid.Row="1"
                 Margin="0,0,0,10"
                 Padding="12,10"
-                Background="#FFFBEB"
-                BorderBrush="#D97706"
+                Background="{DynamicResource GameBgAltBrush}"
+                BorderBrush="{DynamicResource GameBorderBrush}"
                 BorderThickness="1.5"
                 CornerRadius="6"
                 Visibility="{Binding IsGuidanceVisible, Converter={StaticResource BooleanToVisibilityConverter}}">
@@ -170,20 +155,20 @@
                         <Border
                             Padding="6,1.5"
                             Margin="0,0,8,0"
-                            Background="#FEF3C7"
-                            BorderBrush="#B45309"
+                            Background="{DynamicResource GameBgBrush}"
+                            BorderBrush="{DynamicResource GameBorderBrush}"
                             BorderThickness="1"
                             CornerRadius="3">
                             <TextBlock
                                 FontSize="10"
                                 FontWeight="ExtraBold"
-                                Foreground="#B45309"
+                                Foreground="{DynamicResource GameDangerBrush}"
                                 Text="CHỈ DẪN" />
                         </Border>
                         <TextBlock
                             FontSize="11.5"
                             FontWeight="ExtraBold"
-                            Foreground="#92400E"
+                            Foreground="{DynamicResource GameDangerBrush}"
                             Text="{Binding AssemblyGuidanceTitle}"
                             TextTrimming="CharacterEllipsis" />
                     </StackPanel>
@@ -205,7 +190,7 @@
                     <StackPanel Grid.Row="1" Grid.Column="0" Grid.ColumnSpan="2" Margin="0,6,0,8">
                         <TextBlock
                             FontSize="11"
-                            Foreground="#78350F"
+                            Foreground="{DynamicResource GameTextDarkBrush}"
                             LineHeight="16"
                             Text="{Binding AssemblyGuidanceMessage}"
                             TextWrapping="Wrap" />
@@ -213,19 +198,19 @@
                             <TextBlock
                                 FontSize="10.5"
                                 FontWeight="SemiBold"
-                                Foreground="#92400E"
+                                Foreground="{DynamicResource GameTextDarkBrush}"
                                 LineHeight="16"
                                 Text="1. Tải bản game PC gốc 2.5.0 trực tiếp tại trang chủ (ngocrongonline.com) — KHÔNG cài đặt bản mod."
                                 TextWrapping="Wrap" />
                             <TextBlock
                                 FontSize="10.5"
-                                Foreground="#92400E"
+                                Foreground="{DynamicResource GameTextDarkBrush}"
                                 LineHeight="16"
                                 Text="2. Giải nén đầy đủ thư mục game, kiểm tra có file [TênGame].exe và thư mục [TênGame]_Data\Managed\Assembly-CSharp.dll."
                                 TextWrapping="Wrap" />
                             <TextBlock
                                 FontSize="10.5"
-                                Foreground="#92400E"
+                                Foreground="{DynamicResource GameTextDarkBrush}"
                                 LineHeight="16"
                                 Text="3. Bấm nút 'Chọn file game (.exe)' bên dưới để liên kết. Sau đó thêm tài khoản và mở game bình thường."
                                 TextWrapping="Wrap" />
@@ -343,20 +328,20 @@
                                             CornerRadius="3">
                                             <Border.Style>
                                                 <Style TargetType="Border">
-                                                    <Setter Property="Background" Value="#E6D3B3" />
-                                                    <Setter Property="BorderBrush" Value="#B89772" />
+                                                    <Setter Property="Background" Value="{DynamicResource GameBtnTanBodyBrush}" />
+                                                    <Setter Property="BorderBrush" Value="{DynamicResource GameBtnTanBorderBrush}" />
                                                     <Style.Triggers>
                                                         <DataTrigger Binding="{Binding CharacterGender}" Value="0">
-                                                            <Setter Property="Background" Value="#FFE0B2" />
-                                                            <Setter Property="BorderBrush" Value="#FFA726" />
+                                                            <Setter Property="Background" Value="{DynamicResource GameBtnTanBodyBrush}" />
+                                                            <Setter Property="BorderBrush" Value="{DynamicResource GameBtnTanBorderBrush}" />
                                                         </DataTrigger>
                                                         <DataTrigger Binding="{Binding CharacterGender}" Value="1">
-                                                            <Setter Property="Background" Value="#C8E6C9" />
-                                                            <Setter Property="BorderBrush" Value="#66BB6A" />
+                                                            <Setter Property="Background" Value="{DynamicResource GameBtnSpriteGreenHighlightBrush}" />
+                                                            <Setter Property="BorderBrush" Value="{DynamicResource GameBtnSpriteGreenBorderBrush}" />
                                                         </DataTrigger>
                                                         <DataTrigger Binding="{Binding CharacterGender}" Value="2">
-                                                            <Setter Property="Background" Value="#F8BBD0" />
-                                                            <Setter Property="BorderBrush" Value="#EC407A" />
+                                                            <Setter Property="Background" Value="#FFE2E2" />
+                                                            <Setter Property="BorderBrush" Value="{DynamicResource GameDangerBrush}" />
                                                         </DataTrigger>
                                                     </Style.Triggers>
                                                 </Style>
@@ -367,16 +352,16 @@
                                                 Text="{Binding GenderDisplayName}">
                                                 <TextBlock.Style>
                                                     <Style TargetType="TextBlock">
-                                                        <Setter Property="Foreground" Value="#6B3503" />
+                                                        <Setter Property="Foreground" Value="{DynamicResource GameTextDarkBrush}" />
                                                         <Style.Triggers>
                                                             <DataTrigger Binding="{Binding CharacterGender}" Value="0">
-                                                                <Setter Property="Foreground" Value="#E65100" />
+                                                                <Setter Property="Foreground" Value="{DynamicResource GameBtnTanTextBrush}" />
                                                             </DataTrigger>
                                                             <DataTrigger Binding="{Binding CharacterGender}" Value="1">
-                                                                <Setter Property="Foreground" Value="#1B5E20" />
+                                                                <Setter Property="Foreground" Value="{DynamicResource GameBtnSpriteGreenTextBrush}" />
                                                             </DataTrigger>
                                                             <DataTrigger Binding="{Binding CharacterGender}" Value="2">
-                                                                <Setter Property="Foreground" Value="#880E4F" />
+                                                                <Setter Property="Foreground" Value="{DynamicResource GameBtnOrangeBorderBrush}" />
                                                             </DataTrigger>
                                                         </Style.Triggers>
                                                     </Style>
@@ -413,7 +398,7 @@
                                             Margin="2,0,0,0"
                                             VerticalAlignment="Center"
                                             FontSize="9.5"
-                                            Foreground="#7D6652"
+                                            Foreground="{DynamicResource GameTextMutedBrush}"
                                             Text="{Binding CharacterPower, StringFormat=' ({0:N0})'}">
                                             <TextBlock.Style>
                                                 <Style TargetType="TextBlock">
@@ -460,13 +445,13 @@
                                         <TextBlock
                                             FontSize="9.5"
                                             FontWeight="ExtraBold"
-                                            Foreground="#D35400"
+                                            Foreground="{DynamicResource GameStatusWarningBrush}"
                                             Text="{Binding DisplayZone}" />
                                         <TextBlock
                                             Margin="4,0,0,0"
                                             FontSize="9"
                                             FontWeight="Bold"
-                                            Foreground="#7D6652"
+                                            Foreground="{DynamicResource GameTextMutedBrush}"
                                             Text="{Binding DisplayCoordinates}" />
                                     </StackPanel>
                                 </StackPanel>
@@ -480,7 +465,7 @@
                                 <Border
                                     Padding="6,2"
                                     HorizontalAlignment="Center"
-                                    Background="#FAD7A0"
+                                    Background="{DynamicResource GameBgAltBrush}"
                                     BorderBrush="{DynamicResource GameBorderBrush}"
                                     BorderThickness="1.2"
                                     CornerRadius="4"

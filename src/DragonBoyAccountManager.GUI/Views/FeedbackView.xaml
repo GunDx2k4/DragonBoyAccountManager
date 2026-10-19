@@ -140,15 +140,15 @@
                         <Border.Style>
                             <Style TargetType="Border">
                                 <Setter Property="Visibility" Value="Collapsed" />
-                                <Setter Property="Background" Value="#FEF2F2" />
-                                <Setter Property="BorderBrush" Value="#EF4444" />
+                                <Setter Property="Background" Value="{DynamicResource GameDangerBgBrush}" />
+                                <Setter Property="BorderBrush" Value="{DynamicResource GameDangerBrush}" />
                                 <Style.Triggers>
                                     <DataTrigger Binding="{Binding HasStatusMessage}" Value="True">
                                         <Setter Property="Visibility" Value="Visible" />
                                     </DataTrigger>
                                     <DataTrigger Binding="{Binding IsStatusSuccess}" Value="True">
-                                        <Setter Property="Background" Value="#ECFDF5" />
-                                        <Setter Property="BorderBrush" Value="#10B981" />
+                                        <Setter Property="Background" Value="{DynamicResource GameBtnSpriteGreenBodyBrush}" />
+                                        <Setter Property="BorderBrush" Value="{DynamicResource GameBtnSpriteGreenBorderBrush}" />
                                     </DataTrigger>
                                 </Style.Triggers>
                             </Style>
@@ -160,10 +160,10 @@
                             TextWrapping="Wrap">
                             <TextBlock.Style>
                                 <Style TargetType="TextBlock">
-                                    <Setter Property="Foreground" Value="#B91C1C" />
+                                    <Setter Property="Foreground" Value="{DynamicResource GameBtnOrangeBorderBrush}" />
                                     <Style.Triggers>
                                         <DataTrigger Binding="{Binding IsStatusSuccess}" Value="True">
-                                            <Setter Property="Foreground" Value="#047857" />
+                                            <Setter Property="Foreground" Value="{DynamicResource GameBtnSpriteGreenTextBrush}" />
                                         </DataTrigger>
                                     </Style.Triggers>
                                 </Style>

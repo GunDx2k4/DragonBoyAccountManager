@@ -18,15 +18,15 @@
             <Grid Width="54" Height="54">
                 <Path
                     Data="M 13.5,14 L 23.5,14 L 22.5,2 L 46.5,27 L 22.5,52 L 23.5,40 L 13.5,40 A 6,6 0 0 1 7.5,34 L 7.5,20 A 6,6 0 0 1 13.5,14 Z"
-                    Fill="#F7C934"
-                    Stroke="#350C03"
+                    Fill="{DynamicResource GameGoldAccentBrush}"
+                    Stroke="{DynamicResource GameDarkBrownBrush}"
                     StrokeEndLineCap="Round"
                     StrokeLineJoin="Round"
                     StrokeStartLineCap="Round"
                     StrokeThickness="3.8" />
                 <Path
                     Data="M 12.5,16 L 15.5,16 L 15.5,38 L 12.5,38 A 4,4 0 0 1 9.5,34 L 9.5,20 A 4,4 0 0 1 12.5,16 Z"
-                    Fill="#D49B1C"
+                    Fill="{DynamicResource GameGoldDarkBrush}"
                     Opacity="0.95" />
             </Grid>
         </ControlTemplate>
@@ -35,15 +35,15 @@
             <Grid Width="54" Height="54">
                 <Path
                     Data="M 40.5,14 L 30.5,14 L 31.5,2 L 7.5,27 L 31.5,52 L 30.5,40 L 40.5,40 A 6,6 0 0 0 46.5,34 L 46.5,20 A 6,6 0 0 0 40.5,14 Z"
-                    Fill="#F7C934"
-                    Stroke="#350C03"
+                    Fill="{DynamicResource GameGoldAccentBrush}"
+                    Stroke="{DynamicResource GameDarkBrownBrush}"
                     StrokeEndLineCap="Round"
                     StrokeLineJoin="Round"
                     StrokeStartLineCap="Round"
                     StrokeThickness="3.8" />
                 <Path
                     Data="M 41.5,16 L 38.5,16 L 38.5,38 L 41.5,38 A 4,4 0 0 0 44.5,34 L 44.5,20 A 4,4 0 0 0 41.5,16 Z"
-                    Fill="#D49B1C"
+                    Fill="{DynamicResource GameGoldDarkBrush}"
                     Opacity="0.95" />
             </Grid>
         </ControlTemplate>
@@ -52,15 +52,15 @@
             <Grid Width="54" Height="54">
                 <Path
                     Data="M 14,40.5 L 14,30.5 L 2,31.5 L 27,7.5 L 52,31.5 L 40,30.5 L 40,40.5 A 6,6 0 0 1 34,46.5 L 20,46.5 A 6,6 0 0 1 14,40.5 Z"
-                    Fill="#F7C934"
-                    Stroke="#350C03"
+                    Fill="{DynamicResource GameGoldAccentBrush}"
+                    Stroke="{DynamicResource GameDarkBrownBrush}"
                     StrokeEndLineCap="Round"
                     StrokeLineJoin="Round"
                     StrokeStartLineCap="Round"
                     StrokeThickness="3.8" />
                 <Path
                     Data="M 16,41.5 L 16,38.5 L 38,38.5 L 38,41.5 A 4,4 0 0 1 34,44.5 L 20,44.5 A 4,4 0 0 1 16,41.5 Z"
-                    Fill="#D49B1C"
+                    Fill="{DynamicResource GameGoldDarkBrush}"
                     Opacity="0.95" />
             </Grid>
         </ControlTemplate>
@@ -69,21 +69,21 @@
             <Grid Width="54" Height="54">
                 <Path
                     Data="M 14,13.5 L 14,23.5 L 2,22.5 L 27,46.5 L 52,22.5 L 40,23.5 L 40,13.5 A 6,6 0 0 0 34,7.5 L 20,7.5 A 6,6 0 0 0 14,13.5 Z"
-                    Fill="#F7C934"
-                    Stroke="#350C03"
+                    Fill="{DynamicResource GameGoldAccentBrush}"
+                    Stroke="{DynamicResource GameDarkBrownBrush}"
                     StrokeEndLineCap="Round"
                     StrokeLineJoin="Round"
                     StrokeStartLineCap="Round"
                     StrokeThickness="3.8" />
                 <Path
                     Data="M 16,12.5 L 16,15.5 L 38,15.5 L 38,12.5 A 4,4 0 0 0 34,9.5 L 20,9.5 A 4,4 0 0 0 16,12.5 Z"
-                    Fill="#D49B1C"
+                    Fill="{DynamicResource GameGoldDarkBrush}"
                     Opacity="0.95" />
             </Grid>
         </ControlTemplate>
     </UserControl.Resources>
 
-    <ScrollViewer FocusVisualStyle="{x:Null}" VerticalScrollBarVisibility="Disabled" HorizontalScrollBarVisibility="Disabled">
+    <ScrollViewer FocusVisualStyle="{x:Null}" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
         <StackPanel Margin="8,4">
 
             <Grid Margin="0,0,0,4">
@@ -244,12 +244,12 @@
                                                 Margin="4,0,0,0"
                                                 FontSize="9"
                                                 FontWeight="SemiBold"
-                                                Foreground="#27AE60"
+                                                Foreground="{DynamicResource GameStatusSuccessBrush}"
                                                 Text="{Binding NumPlayers, StringFormat='({0}'}" />
                                             <TextBlock
                                                 FontSize="9"
                                                 FontWeight="SemiBold"
-                                                Foreground="#27AE60"
+                                                Foreground="{DynamicResource GameStatusSuccessBrush}"
                                                 Text="{Binding MaxPlayers, StringFormat='/{0})'}" />
                                         </StackPanel>
                                         <TextBlock
@@ -257,7 +257,7 @@
                                             Margin="6,0,0,0"
                                             FontSize="8.5"
                                             FontWeight="ExtraBold"
-                                            Foreground="#E74C3C"
+                                            Foreground="{DynamicResource GameStatusDangerBrush}"
                                             Text="ĐẦY"
                                             VerticalAlignment="Center">
                                             <TextBlock.Style>
@@ -458,7 +458,6 @@
                                 <RowDefinition Height="Auto" />
                                 <RowDefinition Height="Auto" />
                                 <RowDefinition Height="Auto" />
-                                <RowDefinition Height="Auto" />
                             </Grid.RowDefinitions>
                             <Grid.ColumnDefinitions>
                                 <ColumnDefinition Width="*" />
@@ -485,12 +484,12 @@
                                         Margin="2.5,0,0,0"
                                         Padding="2,0.5"
                                         VerticalAlignment="Center"
-                                        Background="#350C03"
+                                        Background="{DynamicResource GameBadgeShortcutBgBrush}"
                                         CornerRadius="2">
                                         <TextBlock
                                             FontSize="7.5"
                                             FontWeight="ExtraBold"
-                                            Foreground="#F7C934"
+                                            Foreground="{DynamicResource GameBadgeShortcutTextBrush}"
                                             Text="[Space]" />
                                     </Border>
                                 </StackPanel>
@@ -516,12 +515,12 @@
                                         Margin="2.5,0,0,0"
                                         Padding="2,0.5"
                                         VerticalAlignment="Center"
-                                        Background="#350C03"
+                                        Background="{DynamicResource GameBadgeShortcutBgBrush}"
                                         CornerRadius="2">
                                         <TextBlock
                                             FontSize="7.5"
                                             FontWeight="ExtraBold"
-                                            Foreground="#F7C934"
+                                            Foreground="{DynamicResource GameBadgeShortcutTextBrush}"
                                             Text="[Q]" />
                                     </Border>
                                 </StackPanel>
@@ -547,12 +546,12 @@
                                         Margin="2.5,0,0,0"
                                         Padding="2,0.5"
                                         VerticalAlignment="Center"
-                                        Background="#350C03"
+                                        Background="{DynamicResource GameBadgeShortcutBgBrush}"
                                         CornerRadius="2">
                                         <TextBlock
                                             FontSize="7.5"
                                             FontWeight="ExtraBold"
-                                            Foreground="#F7C934"
+                                            Foreground="{DynamicResource GameBadgeShortcutTextBrush}"
                                             Text="[Tab]" />
                                     </Border>
                                 </StackPanel>
@@ -561,99 +560,6 @@
                             <Button
                                 Grid.Row="1"
                                 Grid.Column="1"
-                                Height="21"
-                                Margin="1,1"
-                                Padding="2,1"
-                                Command="{Binding ActionSubFocusCommand}"
-                                Style="{StaticResource GameSecondaryButton}"
-                                ToolTip="Chọn mục tiêu phụ (Phím F3)">
-                                <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center" Orientation="Horizontal">
-                                    <TextBlock
-                                        VerticalAlignment="Center"
-                                        FontSize="9"
-                                        FontWeight="ExtraBold"
-                                        Foreground="{DynamicResource GameBtnTanTextBrush}"
-                                        Text="MT phụ" />
-                                    <Border
-                                        Margin="2.5,0,0,0"
-                                        Padding="2,0.5"
-                                        VerticalAlignment="Center"
-                                        Background="#350C03"
-                                        CornerRadius="2">
-                                        <TextBlock
-                                            FontSize="7.5"
-                                            FontWeight="ExtraBold"
-                                            Foreground="#F7C934"
-                                            Text="[F3]" />
-                                    </Border>
-                                </StackPanel>
-                            </Button>
-
-                            <Button
-                                Grid.Row="2"
-                                Grid.Column="0"
-                                Height="21"
-                                Margin="1,1"
-                                Padding="2,1"
-                                Command="{Binding ActionMenuCommand}"
-                                Style="{StaticResource GameSecondaryButton}"
-                                ToolTip="Mở menu chức năng (Phím F1 / Phím M)">
-                                <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center" Orientation="Horizontal">
-                                    <TextBlock
-                                        VerticalAlignment="Center"
-                                        FontSize="9"
-                                        FontWeight="ExtraBold"
-                                        Foreground="{DynamicResource GameBtnTanTextBrush}"
-                                        Text="Menu" />
-                                    <Border
-                                        Margin="2.5,0,0,0"
-                                        Padding="2,0.5"
-                                        VerticalAlignment="Center"
-                                        Background="#350C03"
-                                        CornerRadius="2">
-                                        <TextBlock
-                                            FontSize="7.5"
-                                            FontWeight="ExtraBold"
-                                            Foreground="#F7C934"
-                                            Text="[F1]" />
-                                    </Border>
-                                </StackPanel>
-                            </Button>
-
-                            <Button
-                                Grid.Row="2"
-                                Grid.Column="1"
-                                Height="21"
-                                Margin="1,1"
-                                Padding="2,1"
-                                Command="{Binding ActionInventoryCommand}"
-                                Style="{StaticResource GameSecondaryButton}"
-                                ToolTip="Mở hành trang / rương đồ (Phím F2 / Phím E)">
-                                <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center" Orientation="Horizontal">
-                                    <TextBlock
-                                        VerticalAlignment="Center"
-                                        FontSize="9"
-                                        FontWeight="ExtraBold"
-                                        Foreground="{DynamicResource GameBtnTanTextBrush}"
-                                        Text="Hành trang" />
-                                    <Border
-                                        Margin="2.5,0,0,0"
-                                        Padding="2,0.5"
-                                        VerticalAlignment="Center"
-                                        Background="#350C03"
-                                        CornerRadius="2">
-                                        <TextBlock
-                                            FontSize="7.5"
-                                            FontWeight="ExtraBold"
-                                            Foreground="#F7C934"
-                                            Text="[F2]" />
-                                    </Border>
-                                </StackPanel>
-                            </Button>
-
-                            <Button
-                                Grid.Row="3"
-                                Grid.Column="0"
                                 Height="21"
                                 Margin="1,1"
                                 Padding="2,1"
@@ -671,13 +577,106 @@
                                         Margin="2.5,0,0,0"
                                         Padding="2,0.5"
                                         VerticalAlignment="Center"
-                                        Background="#350C03"
+                                        Background="{DynamicResource GameBadgeShortcutBgBrush}"
                                         CornerRadius="2">
                                         <TextBlock
                                             FontSize="7.5"
                                             FontWeight="ExtraBold"
-                                            Foreground="#F7C934"
+                                            Foreground="{DynamicResource GameBadgeShortcutTextBrush}"
                                             Text="[Y]" />
+                                    </Border>
+                                </StackPanel>
+                            </Button>
+
+                            <Button
+                                Grid.Row="2"
+                                Grid.Column="0"
+                                Height="21"
+                                Margin="1,1"
+                                Padding="2,1"
+                                Command="{Binding ActionShowPanelCommand}"
+                                Style="{StaticResource GameSecondaryButton}"
+                                ToolTip="Mở giao diện bảng điều khiển / menu (Phím F1)">
+                                <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center" Orientation="Horizontal">
+                                    <TextBlock
+                                        VerticalAlignment="Center"
+                                        FontSize="9"
+                                        FontWeight="ExtraBold"
+                                        Foreground="{DynamicResource GameBtnTanTextBrush}"
+                                        Text="Hiện panel" />
+                                    <Border
+                                        Margin="2.5,0,0,0"
+                                        Padding="2,0.5"
+                                        VerticalAlignment="Center"
+                                        Background="{DynamicResource GameBadgeShortcutBgBrush}"
+                                        CornerRadius="2">
+                                        <TextBlock
+                                            FontSize="7.5"
+                                            FontWeight="ExtraBold"
+                                            Foreground="{DynamicResource GameBadgeShortcutTextBrush}"
+                                            Text="[F1]" />
+                                    </Border>
+                                </StackPanel>
+                            </Button>
+
+                            <Button
+                                Grid.Row="2"
+                                Grid.Column="1"
+                                Height="21"
+                                Margin="1,1"
+                                Padding="2,1"
+                                Command="{Binding ActionHidePanelCommand}"
+                                Style="{StaticResource GameSecondaryButton}"
+                                ToolTip="Đóng giao diện bảng điều khiển / menu (Phím F2)">
+                                <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center" Orientation="Horizontal">
+                                    <TextBlock
+                                        VerticalAlignment="Center"
+                                        FontSize="9"
+                                        FontWeight="ExtraBold"
+                                        Foreground="{DynamicResource GameBtnTanTextBrush}"
+                                        Text="Ẩn panel" />
+                                    <Border
+                                        Margin="2.5,0,0,0"
+                                        Padding="2,0.5"
+                                        VerticalAlignment="Center"
+                                        Background="{DynamicResource GameBadgeShortcutBgBrush}"
+                                        CornerRadius="2">
+                                        <TextBlock
+                                            FontSize="7.5"
+                                            FontWeight="ExtraBold"
+                                            Foreground="{DynamicResource GameBadgeShortcutTextBrush}"
+                                            Text="[F2]" />
+                                    </Border>
+                                </StackPanel>
+                            </Button>
+
+                            <Button
+                                Grid.Row="3"
+                                Grid.Column="0"
+                                Height="21"
+                                Margin="1,1"
+                                Padding="2,1"
+                                Command="{Binding ActionChatCommand}"
+                                Style="{StaticResource GameSecondaryButton}"
+                                ToolTip="Mở khung chat (Phím R)">
+                                <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center" Orientation="Horizontal">
+                                    <TextBlock
+                                        VerticalAlignment="Center"
+                                        FontSize="9"
+                                        FontWeight="ExtraBold"
+                                        Foreground="{DynamicResource GameBtnTanTextBrush}"
+                                        Text="Chat" />
+                                    <Border
+                                        Margin="2.5,0,0,0"
+                                        Padding="2,0.5"
+                                        VerticalAlignment="Center"
+                                        Background="{DynamicResource GameBadgeShortcutBgBrush}"
+                                        CornerRadius="2">
+                                        <TextBlock
+                                            FontSize="7.5"
+                                            FontWeight="ExtraBold"
+                                            Foreground="{DynamicResource GameBadgeShortcutTextBrush}"
+                                            Text="[R]" />
                                     </Border>
                                 </StackPanel>
                             </Button>
@@ -702,12 +701,12 @@
                                         Margin="2.5,0,0,0"
                                         Padding="2,0.5"
                                         VerticalAlignment="Center"
-                                        Background="#350C03"
+                                        Background="{DynamicResource GameBadgeShortcutBgBrush}"
                                         CornerRadius="2">
                                         <TextBlock
                                             FontSize="7.5"
                                             FontWeight="ExtraBold"
-                                            Foreground="#F7C934"
+                                            Foreground="{DynamicResource GameBadgeShortcutTextBrush}"
                                             Text="[Esc]" />
                                     </Border>
                                 </StackPanel>
@@ -716,37 +715,6 @@
                             <Button
                                 Grid.Row="4"
                                 Grid.Column="0"
-                                Height="21"
-                                Margin="1,1"
-                                Padding="2,1"
-                                Command="{Binding ActionChatCommand}"
-                                Style="{StaticResource GameSecondaryButton}"
-                                ToolTip="Mở khung chat (Phím R)">
-                                <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center" Orientation="Horizontal">
-                                    <TextBlock
-                                        VerticalAlignment="Center"
-                                        FontSize="9"
-                                        FontWeight="ExtraBold"
-                                        Foreground="{DynamicResource GameBtnTanTextBrush}"
-                                        Text="Chat" />
-                                    <Border
-                                        Margin="2.5,0,0,0"
-                                        Padding="2,0.5"
-                                        VerticalAlignment="Center"
-                                        Background="#350C03"
-                                        CornerRadius="2">
-                                        <TextBlock
-                                            FontSize="7.5"
-                                            FontWeight="ExtraBold"
-                                            Foreground="#F7C934"
-                                            Text="[R]" />
-                                    </Border>
-                                </StackPanel>
-                            </Button>
-
-                            <Button
-                                Grid.Row="4"
-                                Grid.Column="1"
                                 Height="21"
                                 Margin="1,1"
                                 Padding="2,1"
@@ -764,25 +732,23 @@
                                         Margin="2.5,0,0,0"
                                         Padding="2,0.5"
                                         VerticalAlignment="Center"
-                                        Background="#350C03"
+                                        Background="{DynamicResource GameBadgeShortcutBgBrush}"
                                         CornerRadius="2">
                                         <TextBlock
                                             FontSize="7.5"
                                             FontWeight="ExtraBold"
-                                            Foreground="#F7C934"
+                                            Foreground="{DynamicResource GameBadgeShortcutTextBrush}"
                                             Text="[X]" />
                                     </Border>
                                 </StackPanel>
                             </Button>
 
                             <Button
-                                Grid.Row="5"
-                                Grid.Column="0"
-                                Grid.ColumnSpan="2"
+                                Grid.Row="4"
+                                Grid.Column="1"
                                 Height="21"
                                 Margin="1,1"
                                 Padding="2,1"
-                                HorizontalAlignment="Stretch"
                                 Command="{Binding UseCapsuleCommand}"
                                 Style="{StaticResource GameSecondaryButton}"
                                 ToolTip="Sử dụng Capsule bay về nhà / các map (Phím C)">
@@ -797,12 +763,12 @@
                                         Margin="2.5,0,0,0"
                                         Padding="2,0.5"
                                         VerticalAlignment="Center"
-                                        Background="#350C03"
+                                        Background="{DynamicResource GameBadgeShortcutBgBrush}"
                                         CornerRadius="2">
                                         <TextBlock
                                             FontSize="7.5"
                                             FontWeight="ExtraBold"
-                                            Foreground="#F7C934"
+                                            Foreground="{DynamicResource GameBadgeShortcutTextBrush}"
                                             Text="[C]" />
                                     </Border>
                                 </StackPanel>
@@ -848,58 +814,78 @@
                             <DataTemplate DataType="{x:Type guiModels:SkillButtonItem}">
                                 <Border
                                     x:Name="SelectionFrame"
-                                    Margin="1,1"
+                                    Margin="1.5,1.5"
                                     Padding="1"
-                                    Background="Transparent"
-                                    BorderBrush="Transparent"
-                                    BorderThickness="1.5"
+                                    Background="{DynamicResource GameBorderDarkBrush}"
+                                    BorderBrush="{DynamicResource GameBorderBrush}"
+                                    BorderThickness="1"
                                     CornerRadius="4.5">
                                     <Button
                                         Height="24"
                                         MinWidth="0"
-                                        Padding="2,1"
+                                        Padding="3,1"
                                         Command="{Binding DataContext.UseSkillCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
                                         CommandParameter="{Binding}"
-                                        Style="{StaticResource GameSecondaryButton}"
+                                        FocusVisualStyle="{x:Null}"
                                         ToolTip="{Binding ToolTipText}">
-                                        <Grid HorizontalAlignment="Stretch" VerticalAlignment="Center">
-                                            <Grid.ColumnDefinitions>
-                                                <ColumnDefinition Width="*" />
-                                                <ColumnDefinition Width="Auto" />
-                                            </Grid.ColumnDefinitions>
-                                            <TextBlock
-                                                Grid.Column="0"
-                                                Margin="1,0,2,0"
-                                                HorizontalAlignment="Center"
-                                                VerticalAlignment="Center"
-                                                FontSize="9"
-                                                FontWeight="ExtraBold"
-                                                Foreground="{DynamicResource GameBtnTanTextBrush}"
-                                                Text="{Binding Name}"
-                                                TextTrimming="CharacterEllipsis" />
-                                            <Border
-                                                x:Name="BadgeBorder"
-                                                Grid.Column="1"
-                                                Padding="2.5,0.5"
-                                                VerticalAlignment="Center"
-                                                Background="#350C03"
-                                                CornerRadius="2">
-                                                <TextBlock
-                                                    x:Name="BadgeText"
-                                                    FontSize="8"
-                                                    FontWeight="ExtraBold"
-                                                    Foreground="#F7C934"
-                                                    Text="{Binding ShortcutBadge}" />
-                                            </Border>
-                                        </Grid>
+                                        <Button.Template>
+                                            <ControlTemplate TargetType="Button">
+                                                <Border
+                                                    x:Name="SlotFace"
+                                                    Background="{DynamicResource GameInputNormalBgBrush}"
+                                                    BorderBrush="{DynamicResource GameSlotBorderBrush}"
+                                                    BorderThickness="1.5,1.5,0,0"
+                                                    CornerRadius="3"
+                                                    SnapsToDevicePixels="True">
+                                                    <Grid HorizontalAlignment="Stretch" VerticalAlignment="Center">
+                                                        <Grid.ColumnDefinitions>
+                                                            <ColumnDefinition Width="*" />
+                                                            <ColumnDefinition Width="Auto" />
+                                                        </Grid.ColumnDefinitions>
+                                                        <TextBlock
+                                                            x:Name="SkillNameText"
+                                                            Grid.Column="0"
+                                                            Margin="2,0,2,0"
+                                                            HorizontalAlignment="Center"
+                                                            VerticalAlignment="Center"
+                                                            FontSize="9"
+                                                            FontWeight="ExtraBold"
+                                                            Foreground="{DynamicResource GameTextDarkBrush}"
+                                                            Text="{Binding Name}"
+                                                            TextTrimming="CharacterEllipsis" />
+                                                        <Border
+                                                            x:Name="BadgeBorder"
+                                                            Grid.Column="1"
+                                                            Padding="2.5,0.5"
+                                                            VerticalAlignment="Center"
+                                                            Background="{DynamicResource GameBadgeShortcutBgBrush}"
+                                                            CornerRadius="2">
+                                                            <TextBlock
+                                                                x:Name="BadgeText"
+                                                                FontSize="8"
+                                                                FontWeight="ExtraBold"
+                                                                Foreground="{DynamicResource GameBadgeShortcutTextBrush}"
+                                                                Text="{Binding ShortcutBadge}" />
+                                                        </Border>
+                                                    </Grid>
+                                                </Border>
+                                                <ControlTemplate.Triggers>
+                                                    <Trigger Property="IsMouseOver" Value="True">
+                                                        <Setter TargetName="SlotFace" Property="Background" Value="{DynamicResource GameBtnTanHoverBrush}" />
+                                                    </Trigger>
+                                                    <Trigger Property="IsPressed" Value="True">
+                                                        <Setter TargetName="SlotFace" Property="Background" Value="#DFB06C" />
+                                                        <Setter TargetName="SlotFace" Property="BorderThickness" Value="0,0,1.5,1.5" />
+                                                    </Trigger>
+                                                </ControlTemplate.Triggers>
+                                            </ControlTemplate>
+                                        </Button.Template>
                                     </Button>
                                 </Border>
                                 <DataTemplate.Triggers>
                                     <DataTrigger Binding="{Binding IsSelected}" Value="True">
-                                        <Setter TargetName="SelectionFrame" Property="BorderBrush" Value="#F7C934" />
-                                        <Setter TargetName="SelectionFrame" Property="Background" Value="#33F7C934" />
-                                        <Setter TargetName="BadgeBorder" Property="Background" Value="#8B0000" />
-                                        <Setter TargetName="BadgeText" Property="Foreground" Value="#FFF8EE" />
+                                        <Setter TargetName="SelectionFrame" Property="BorderBrush" Value="{DynamicResource GameSelectionHighlightBrush}" />
+                                        <Setter TargetName="SelectionFrame" Property="Background" Value="{DynamicResource GameSelectionHighlightBgBrush}" />
                                     </DataTrigger>
                                 </DataTemplate.Triggers>
                             </DataTemplate>

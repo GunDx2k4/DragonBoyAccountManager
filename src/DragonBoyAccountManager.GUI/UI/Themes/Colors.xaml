@@ -221,6 +221,10 @@
         po:Freeze="True"
         Color="#BD1404" />
     <SolidColorBrush
+        x:Key="GameDangerBgBrush"
+        po:Freeze="True"
+        Color="#FFE2E2" />
+    <SolidColorBrush
         x:Key="GameRedGradientBrush"
         po:Freeze="True"
         Color="#C72208" />
@@ -379,5 +383,102 @@
         x:Key="GameRadarProgressFillBrush"
         po:Freeze="True"
         Color="#08864F" />
+    <SolidColorBrush
+        x:Key="GamePillVersionBgBrush"
+        po:Freeze="True"
+        Color="#16A34A" />
+    <SolidColorBrush
+        x:Key="GamePillVersionBorderBrush"
+        po:Freeze="True"
+        Color="#15803D" />
+
+    <SolidColorBrush
+        x:Key="GameBadgeShortcutBgBrush"
+        po:Freeze="True"
+        Color="#350C03" />
+    <SolidColorBrush
+        x:Key="GameBadgeShortcutTextBrush"
+        po:Freeze="True"
+        Color="#F7C934" />
+
+    <SolidColorBrush
+        x:Key="GameDarkBrownBrush"
+        po:Freeze="True"
+        Color="#350C03" />
+    <SolidColorBrush
+        x:Key="GameGoldAccentBrush"
+        po:Freeze="True"
+        Color="#F7C934" />
+    <SolidColorBrush
+        x:Key="GameGoldDarkBrush"
+        po:Freeze="True"
+        Color="#D49B1C" />
+    <SolidColorBrush
+        x:Key="GameGoldLightBrush"
+        po:Freeze="True"
+        Color="#FFF0A0" />
+
+    <SolidColorBrush
+        x:Key="GameStatusSuccessBrush"
+        po:Freeze="True"
+        Color="#27AE60" />
+    <SolidColorBrush
+        x:Key="GameStatusDangerBrush"
+        po:Freeze="True"
+        Color="#E74C3C" />
+    <SolidColorBrush
+        x:Key="GameStatusWarningBrush"
+        po:Freeze="True"
+        Color="#D35400" />
+
+    <SolidColorBrush
+        x:Key="GameSlotBorderBrush"
+        po:Freeze="True"
+        Color="#A07835" />
+    <SolidColorBrush
+        x:Key="GameSelectionHighlightBrush"
+        po:Freeze="True"
+        Color="#F9FF4A" />
+    <SolidColorBrush
+        x:Key="GameSelectionHighlightBgBrush"
+        po:Freeze="True"
+        Color="#F7C934" />
+
+    <SolidColorBrush
+        x:Key="GameTitleSubtitleBrush"
+        po:Freeze="True"
+        Color="#C48E4E" />
+    <SolidColorBrush
+        x:Key="GameWindowOuterBorderBrush"
+        po:Freeze="True"
+        Color="#261302" />
+    <SolidColorBrush
+        x:Key="GameBackdropOverlayBrush"
+        po:Freeze="True"
+        Color="#2E1400" />
+
+    <SolidColorBrush
+        x:Key="GameMenuIconGreenBrush"
+        po:Freeze="True"
+        Color="#2E7D32" />
+    <SolidColorBrush
+        x:Key="GameMenuIconOrangeBrush"
+        po:Freeze="True"
+        Color="#FF9800" />
+    <SolidColorBrush
+        x:Key="GameMenuIconRedBrush"
+        po:Freeze="True"
+        Color="#C62828" />
+    <SolidColorBrush
+        x:Key="GameMenuIconDarkOrangeBrush"
+        po:Freeze="True"
+        Color="#E65100" />
+
+    <Color
+        x:Key="GameShadowDarkColor"
+        po:Freeze="True">#4A2800</Color>
+    <Color
+        x:Key="GameShadowBackdropColor"
+        po:Freeze="True">#2E1400</Color>
 
 </ResourceDictionary>

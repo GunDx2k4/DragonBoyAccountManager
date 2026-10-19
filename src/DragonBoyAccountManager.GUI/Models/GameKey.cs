@@ -10,9 +10,8 @@ public enum GameKey
     Focus,
     PickItem,
     UsePean,
-    Menu,
-    Inventory,
-    SubFocus,
+    ShowPanel,
+    HidePanel,
     Yes,
     Chat,
     Back

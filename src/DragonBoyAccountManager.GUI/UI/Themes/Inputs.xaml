@@ -165,20 +165,20 @@
                             <Border
                                 x:Name="outerRim"
                                 Padding="0.8,0.8,1.2,1.2"
-                                Background="#FFF7ED"
+                                Background="{DynamicResource GamePanelHighlightBrush}"
                                 CornerRadius="5.2">
                                 <Grid>
                                     <Border
                                         x:Name="innerFace"
-                                        Background="#EDC285"
-                                        BorderBrush="#A07835"
+                                        Background="{DynamicResource GameCheckBgBrush}"
+                                        BorderBrush="{DynamicResource GameCheckBorderBrush}"
                                         BorderThickness="2.4,2.4,0,0"
                                         CornerRadius="4" />
 
                                     <Path
                                         x:Name="checkMark"
                                         Data="M 5.6,7.0 L 3.8,9.0 L 8.5,13.5 L 16.2,1.5 C 14.6,4.5 11.6,7.3 8.5,9.8 Z"
-                                        Fill="#345430"
+                                        Fill="{DynamicResource GameCheckMarkBrush}"
                                         SnapsToDevicePixels="True"
                                         Visibility="Collapsed" />
                                 </Grid>
@@ -500,12 +500,12 @@
 
     <Style x:Key="GameTabItemStyle" TargetType="TabItem">
         <Setter Property="Background" Value="{DynamicResource GameTabInactiveBrush}" />
-        <Setter Property="Foreground" Value="{DynamicResource GameTextDarkBrush}" />
+        <Setter Property="Foreground" Value="{DynamicResource GameTextMutedBrush}" />
         <Setter Property="FontWeight" Value="ExtraBold" />
         <Setter Property="FontSize" Value="10.5" />
         <Setter Property="Height" Value="34" />
         <Setter Property="Cursor" Value="Hand" />
-        <Setter Property="Margin" Value="0" />
+        <Setter Property="Margin" Value="1.5,2,1.5,0" />
         <Setter Property="FocusVisualStyle" Value="{x:Null}" />
         <Setter Property="Template">
             <Setter.Value>
@@ -513,10 +513,11 @@
                     <Grid x:Name="Root">
                         <Border
                             x:Name="TabBorder"
-                            Padding="2,0"
+                            Padding="4,0"
                             Background="{TemplateBinding Background}"
                             BorderBrush="{DynamicResource GameTabBorderBrush}"
-                            BorderThickness="0,0,1,1.5"
+                            BorderThickness="1.5,1.5,1.5,1.5"
+                            CornerRadius="5,5,0,0"
                             SnapsToDevicePixels="True">
                             <Grid>
                                 <Border
@@ -524,6 +525,7 @@
                                     Height="4"
                                     VerticalAlignment="Top"
                                     Background="{DynamicResource GamePanelHighlightBrush}"
+                                    CornerRadius="3.5,3.5,0,0"
                                     Visibility="Collapsed" />
                                 <ContentPresenter
                                     x:Name="ContentSite"
@@ -537,10 +539,10 @@
                     <ControlTemplate.Triggers>
                         <Trigger Property="IsSelected" Value="True">
                             <Setter TargetName="TabBorder" Property="Background" Value="{DynamicResource GameTabActiveBrush}" />
-                            <Setter TargetName="TabBorder" Property="BorderThickness" Value="1,0,1,0" />
-                            <Setter TargetName="TabBorder" Property="Margin" Value="0,0,0,-1.5" />
+                            <Setter TargetName="TabBorder" Property="BorderThickness" Value="1.8,1.8,1.8,0" />
+                            <Setter TargetName="TabBorder" Property="Margin" Value="0,-2,0,-1.8" />
                             <Setter TargetName="TabHighlight" Property="Visibility" Value="Visible" />
-                            <Setter Property="Foreground" Value="{DynamicResource GameTextDarkBrush}" />
+                            <Setter Property="Foreground" Value="{DynamicResource GameGreenBrush}" />
                             <Setter Property="Panel.ZIndex" Value="10" />
                         </Trigger>
                         <MultiTrigger>
@@ -549,6 +551,7 @@
                                 <Condition Property="IsSelected" Value="False" />
                             </MultiTrigger.Conditions>
                             <Setter TargetName="TabBorder" Property="Background" Value="{DynamicResource GameTabInactiveHoverBrush}" />
+                            <Setter Property="Foreground" Value="{DynamicResource GameTextDarkBrush}" />
                         </MultiTrigger>
                     </ControlTemplate.Triggers>
                 </ControlTemplate>
@@ -573,9 +576,10 @@
 
                         <Border
                             Grid.Row="0"
-                            Background="{DynamicResource GameTabInactiveBrush}"
+                            Padding="2,3,2,0"
+                            Background="{DynamicResource GameHeaderBrush}"
                             BorderBrush="{DynamicResource GameTabBorderBrush}"
-                            BorderThickness="0,0,0,2"
+                            BorderThickness="0,0,0,1.8"
                             CornerRadius="3,3,0,0"
                             SnapsToDevicePixels="True">
                             <UniformGrid
@@ -742,11 +746,11 @@
                         <Border
                             x:Name="ThumbBevel"
                             Padding="1,1,1,2"
-                            Background="#350C03"
+                            Background="{DynamicResource GameDarkBrownBrush}"
                             CornerRadius="4">
                             <Border
                                 x:Name="ThumbFace"
-                                Background="#FCE9A1"
+                                Background="{DynamicResource GameBtnOrangeInnerTopBrush}"
                                 CornerRadius="3">
                                 <Grid>
                                     <Border
@@ -804,8 +808,8 @@
                                 x:Name="TrackBackground"
                                 Height="8"
                                 Margin="5,0"
-                                Background="#E0B782"
-                                BorderBrush="#6C4A00"
+                                Background="{DynamicResource GameHighlightBrush}"
+                                BorderBrush="{DynamicResource GameBorderBrush}"
                                 BorderThickness="1.2"
                                 CornerRadius="4" />
 
@@ -817,7 +821,7 @@
                                                 <Border
                                                     Height="8"
                                                     Margin="5,0,0,0"
-                                                    Background="#EDA23C"
+                                                    Background="{DynamicResource GameBtnOrangeFaceTopBrush}"
                                                     CornerRadius="4,0,0,4" />
                                             </ControlTemplate>
                                         </RepeatButton.Template>
@@ -856,12 +860,12 @@
                     <Border
                         x:Name="OuterBorder"
                         Padding="1,1,1,2"
-                        Background="#350C03"
+                        Background="{DynamicResource GameDarkBrownBrush}"
                         CornerRadius="3.5"
                         SnapsToDevicePixels="True">
                         <Border
                             x:Name="InnerFace"
-                            Background="#FDFBF7"
+                            Background="{DynamicResource GameBgLightBrush}"
                             CornerRadius="2.5">
                             <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center" />
                         </Border>

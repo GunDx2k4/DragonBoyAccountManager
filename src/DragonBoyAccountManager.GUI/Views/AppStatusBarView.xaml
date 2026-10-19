@@ -118,8 +118,8 @@
                     <Border
                         Padding="5,1.5"
                         VerticalAlignment="Center"
-                        Background="#16A34A"
-                        BorderBrush="#15803D"
+                        Background="{DynamicResource GamePillVersionBgBrush}"
+                        BorderBrush="{DynamicResource GamePillVersionBorderBrush}"
                         BorderThickness="1"
                         CornerRadius="3"
                         ToolTip="Phiên bản công cụ DragonBoy Account Manager">
@@ -128,7 +128,7 @@
                             FontFamily="{DynamicResource GameFont}"
                             FontSize="8.5"
                             FontWeight="ExtraBold"
-                            Foreground="#FFFFFF"
+                            Foreground="{DynamicResource GameTextLightBrush}"
                             Text="{Binding AppVersion, StringFormat='v{0}'}" />
                     </Border>
 

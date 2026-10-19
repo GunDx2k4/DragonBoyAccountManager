@@ -96,7 +96,7 @@ public sealed class DiscordFeedbackService : IFeedbackService
                 Fields = fields,
                 Footer = new DiscordEmbedFooter
                 {
-                    Text = "DragonBoy Account Manager - Feedback Bot"
+                    Text = "DragonBoy Account Manager - Feedback System"
                 },
                 Timestamp = DateTime.UtcNow.ToString("yyyy-MM-ddTHH:mm:ss.fffZ")
             };

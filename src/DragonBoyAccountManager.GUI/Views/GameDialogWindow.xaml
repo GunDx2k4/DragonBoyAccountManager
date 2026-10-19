@@ -26,50 +26,70 @@
 
         <Border
             Margin="0,0,0,17"
-            Background="#FFFFFF"
-            BorderBrush="#000000"
-            BorderThickness="2.8"
-            CornerRadius="9"
+            Padding="2.5"
+            Background="{DynamicResource GameBorderDarkBrush}"
+            CornerRadius="8"
             SnapsToDevicePixels="True">
             <Border.Effect>
                 <DropShadowEffect
-                    BlurRadius="14"
+                    BlurRadius="4"
                     Direction="270"
-                    Opacity="0.18"
+                    Opacity="0.45"
                     ShadowDepth="3"
-                    Color="#000000" />
+                    Color="{StaticResource GameShadowBackdropColor}" />
             </Border.Effect>
 
-            <StackPanel Margin="28,22,28,26">
+            <Border
+                Background="{DynamicResource GameBgLightBrush}"
+                BorderBrush="{DynamicResource GameHeaderBrush}"
+                BorderThickness="2"
+                CornerRadius="6">
+                <Grid>
+                    <Border
+                        Height="5"
+                        VerticalAlignment="Top"
+                        Background="{DynamicResource GamePanelHighlightBrush}"
+                        CornerRadius="4,4,0,0"
+                        IsHitTestVisible="False" />
+                    <Border
+                        Height="3"
+                        VerticalAlignment="Bottom"
+                        Background="{DynamicResource GamePanelShadowBrush}"
+                        CornerRadius="0,0,4,4"
+                        IsHitTestVisible="False" />
 
-                <TextBlock
-                    x:Name="TitleTextBlock"
-                    Margin="0,0,0,8"
-                    HorizontalAlignment="Center"
-                    FontFamily="{DynamicResource GameFont}"
-                    FontSize="14"
-                    FontWeight="Bold"
-                    Foreground="#8B2500"
-                    Visibility="Collapsed" />
+                    <StackPanel Margin="28,22,28,26">
 
-                <ScrollViewer
-                    MaxHeight="340"
-                    FocusVisualStyle="{x:Null}"
-                    HorizontalScrollBarVisibility="Disabled"
-                    VerticalScrollBarVisibility="Auto">
-                    <TextBlock
-                        x:Name="MessageTextBlock"
-                        FontFamily="{DynamicResource GameFont}"
-                        FontSize="12.5"
-                        FontWeight="Bold"
-                        Foreground="#000000"
-                        LineHeight="19"
-                        SnapsToDevicePixels="True"
-                        Text="Nội dung thông báo"
-                        TextAlignment="Center"
-                        TextWrapping="Wrap" />
-                </ScrollViewer>
-            </StackPanel>
+                        <TextBlock
+                            x:Name="TitleTextBlock"
+                            Margin="0,0,0,8"
+                            HorizontalAlignment="Center"
+                            FontFamily="{DynamicResource GameFont}"
+                            FontSize="14"
+                            FontWeight="ExtraBold"
+                            Foreground="{DynamicResource GameDangerBrush}"
+                            Visibility="Collapsed" />
+
+                        <ScrollViewer
+                            MaxHeight="340"
+                            FocusVisualStyle="{x:Null}"
+                            HorizontalScrollBarVisibility="Disabled"
+                            VerticalScrollBarVisibility="Auto">
+                            <TextBlock
+                                x:Name="MessageTextBlock"
+                                FontFamily="{DynamicResource GameFont}"
+                                FontSize="12.5"
+                                FontWeight="Bold"
+                                Foreground="{DynamicResource GameTextDarkBrush}"
+                                LineHeight="19"
+                                SnapsToDevicePixels="True"
+                                Text="Nội dung thông báo"
+                                TextAlignment="Center"
+                                TextWrapping="Wrap" />
+                        </ScrollViewer>
+                    </StackPanel>
+                </Grid>
+            </Border>
         </Border>
 
         <StackPanel

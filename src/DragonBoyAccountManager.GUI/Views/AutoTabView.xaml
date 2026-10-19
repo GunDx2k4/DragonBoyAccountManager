@@ -45,10 +45,10 @@
                         VerticalAlignment="Center">
                         <Ellipse.Style>
                             <Style TargetType="Ellipse">
-                                <Setter Property="Fill" Value="#7F8C8D" />
+                                <Setter Property="Fill" Value="{DynamicResource GameGrayBrush}" />
                                 <Style.Triggers>
                                     <DataTrigger Binding="{Binding IsAccountRunning}" Value="True">
-                                        <Setter Property="Fill" Value="#27AE60" />
+                                        <Setter Property="Fill" Value="{DynamicResource GameGreenBrush}" />
                                     </DataTrigger>
                                 </Style.Triggers>
                             </Style>
@@ -70,13 +70,13 @@
                     Margin="8,0,0,0"
                     Padding="6,2"
                     VerticalAlignment="Center"
-                    Background="#27AE60"
+                    Background="{DynamicResource GameGreenBrush}"
                     CornerRadius="3"
                     ToolTip="Số tài khoản đang được áp dụng đồng bộ lệnh auto">
                     <TextBlock
                         FontSize="9"
                         FontWeight="ExtraBold"
-                        Foreground="#FFFFFF"
+                        Foreground="{DynamicResource GameTextLightBrush}"
                         Text="{Binding SyncTargetDisplay, FallbackValue='1 tài khoản'}" />
                 </Border>
             </Grid>
@@ -99,7 +99,7 @@
                                 Height="7"
                                 Margin="6,0,0,0"
                                 VerticalAlignment="Center"
-                                Fill="#E74C3C"
+                                Fill="{DynamicResource GameDangerBrush}"
                                 ToolTip="Auto đánh đang hoạt động"
                                 Visibility="{Binding IsAutoTrainRunning, Converter={StaticResource BooleanToVisibilityConverter}}" />
                         </StackPanel>
@@ -315,8 +315,8 @@
                                                                     Margin="0,0,4,0"
                                                                     Padding="4,1"
                                                                     VerticalAlignment="Center"
-                                                                    Background="#C0392B"
-                                                                    BorderBrush="#962D22"
+                                                                    Background="{DynamicResource GameDangerBrush}"
+                                                                    BorderBrush="{DynamicResource GameBorderDarkBrush}"
                                                                     BorderThickness="1"
                                                                     CornerRadius="3"
                                                                     ToolTip="Quái siêu cấp (Siêu quái)"
@@ -324,7 +324,7 @@
                                                                     <TextBlock
                                                                         FontSize="8"
                                                                         FontWeight="ExtraBold"
-                                                                        Foreground="#FFFFFF"
+                                                                        Foreground="{DynamicResource GameTextLightBrush}"
                                                                         Text="SIÊU QUÁI" />
                                                                 </Border>
 
@@ -337,10 +337,10 @@
                                                                     ToolTip="Đặc tính di chuyển của quái">
                                                                     <Border.Style>
                                                                         <Style TargetType="Border">
-                                                                            <Setter Property="Background" Value="#2980B9" />
+                                                                            <Setter Property="Background" Value="{DynamicResource GameBlueBrush}" />
                                                                             <Style.Triggers>
                                                                                 <DataTrigger Binding="{Binding IsFlying}" Value="False">
-                                                                                    <Setter Property="Background" Value="#7F8C8D" />
+                                                                                    <Setter Property="Background" Value="{DynamicResource GameGrayBrush}" />
                                                                                 </DataTrigger>
                                                                             </Style.Triggers>
                                                                         </Style>
@@ -348,7 +348,7 @@
                                                                     <TextBlock
                                                                         FontSize="8"
                                                                         FontWeight="ExtraBold"
-                                                                        Foreground="#FFFFFF"
+                                                                        Foreground="{DynamicResource GameTextLightBrush}"
                                                                         Text="{Binding FlyStatusText}" />
                                                                 </Border>
 
@@ -357,13 +357,13 @@
                                                                     Margin="0,0,4,0"
                                                                     Padding="4,1"
                                                                     VerticalAlignment="Center"
-                                                                    Background="#27AE60"
+                                                                    Background="{DynamicResource GameGreenBrush}"
                                                                     CornerRadius="3"
                                                                     Visibility="{Binding HasMultipleCount, Converter={StaticResource BooleanToVisibilityConverter}}">
                                                                     <TextBlock
                                                                         FontSize="8"
                                                                         FontWeight="ExtraBold"
-                                                                        Foreground="#FFFFFF"
+                                                                        Foreground="{DynamicResource GameTextLightBrush}"
                                                                         Text="{Binding CountDisplay}" />
                                                                 </Border>
 
@@ -417,7 +417,7 @@
                                         FontSize="9"
                                         FontWeight="SemiBold"
                                         Foreground="{DynamicResource GameTextMutedBrush}"
-                                        Text="(Nếu bỏ chọn tất cả, bot sẽ tấn công quái bất kỳ trong map)"
+                                        Text="(Nếu bỏ chọn tất cả, nhân vật sẽ tấn công quái bất kỳ trong map)"
                                         TextTrimming="CharacterEllipsis" />
                                 </StackPanel>
                             </Border>
@@ -516,7 +516,7 @@
                                         <Style.Triggers>
                                             <DataTrigger Binding="{Binding IsAutoTrainRunning}" Value="True">
                                                 <Setter Property="Content" Value="DỪNG AUTO ĐÁNH" />
-                                                <Setter Property="Background" Value="#C0392B" />
+                                                <Setter Property="Background" Value="{DynamicResource GameDangerBrush}" />
                                             </DataTrigger>
                                         </Style.Triggers>
                                     </Style>
@@ -566,7 +566,7 @@
                                 Height="7"
                                 Margin="6,0,0,0"
                                 VerticalAlignment="Center"
-                                Fill="#2ECC71"
+                                Fill="{DynamicResource GameGreenBrush}"
                                 ToolTip="Auto chat đang hoạt động"
                                 Visibility="{Binding IsAutoChatRunning, Converter={StaticResource BooleanToVisibilityConverter}}" />
                         </StackPanel>
@@ -732,7 +732,7 @@
                                             <Style.Triggers>
                                                 <DataTrigger Binding="{Binding IsAutoChatRunning}" Value="True">
                                                     <Setter Property="Content" Value="DỪNG AUTO CHAT" />
-                                                    <Setter Property="Background" Value="#C0392B" />
+                                                    <Setter Property="Background" Value="{DynamicResource GameDangerBrush}" />
                                                 </DataTrigger>
                                             </Style.Triggers>
                                         </Style>

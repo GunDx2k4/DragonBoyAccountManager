@@ -294,13 +294,10 @@ public sealed partial class AccountFormViewModel : ObservableObject
     public async Task ActionUsePeanAsync() => await SendKeyPulseAsync(GameKey.UsePean);
 
     [RelayCommand]
-    public async Task ActionMenuAsync() => await SendKeyPulseAsync(GameKey.Menu);
+    public async Task ActionShowPanelAsync() => await SendKeyPulseAsync(GameKey.ShowPanel);
 
     [RelayCommand]
-    public async Task ActionInventoryAsync() => await SendKeyPulseAsync(GameKey.Inventory);
-
-    [RelayCommand]
-    public async Task ActionSubFocusAsync() => await SendKeyPulseAsync(GameKey.SubFocus);
+    public async Task ActionHidePanelAsync() => await SendKeyPulseAsync(GameKey.HidePanel);
 
     [RelayCommand]
     public async Task ActionYesAsync() => await SendKeyPulseAsync(GameKey.Yes);

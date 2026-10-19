@@ -107,13 +107,13 @@
                                 <TextBlock
                                     FontSize="10"
                                     FontWeight="ExtraBold"
-                                    Foreground="#FFFFFF"
+                                    Foreground="{DynamicResource GameTextLightBrush}"
                                     Text="{Binding NumberValue}" />
                                 <TextBlock
                                     Margin="2,0,0,0"
                                     FontSize="10"
                                     FontWeight="Bold"
-                                    Foreground="#FFFFFF"
+                                    Foreground="{DynamicResource GameTextLightBrush}"
                                     Text="{Binding Unit}" />
                             </StackPanel>
                         </Border>

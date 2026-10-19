@@ -94,31 +94,21 @@ public partial class MainWindow : Window
             return;
         }
 
-        if (e.Key is Key.F1 or Key.M)
+        if (e.Key == Key.F1)
         {
             if (!e.IsRepeat)
             {
-                _ = vm.AccountForm.ActionMenuAsync();
+                _ = vm.AccountForm.ActionShowPanelAsync();
             }
             e.Handled = true;
             return;
         }
 
-        if (e.Key is Key.F2 or Key.E)
+        if (e.Key == Key.F2)
         {
             if (!e.IsRepeat)
             {
-                _ = vm.AccountForm.ActionInventoryAsync();
-            }
-            e.Handled = true;
-            return;
-        }
-
-        if (e.Key == Key.F3)
-        {
-            if (!e.IsRepeat)
-            {
-                _ = vm.AccountForm.ActionSubFocusAsync();
+                _ = vm.AccountForm.ActionHidePanelAsync();
             }
             e.Handled = true;
             return;

@@ -105,7 +105,7 @@
                             Margin="1,1,0,0"
                             FontSize="13"
                             FontWeight="ExtraBold"
-                            Foreground="#C48E4E"
+                            Foreground="{DynamicResource GameTitleSubtitleBrush}"
                             Text="Dragon Boy Account Manager (DBAM)" />
                         <TextBlock
                             FontSize="13"
@@ -118,15 +118,15 @@
                         Margin="6,0,0,0"
                         Padding="5,1.5"
                         VerticalAlignment="Center"
-                        Background="#16A34A"
-                        BorderBrush="#15803D"
+                        Background="{DynamicResource GamePillVersionBgBrush}"
+                        BorderBrush="{DynamicResource GamePillVersionBorderBrush}"
                         BorderThickness="1"
                         CornerRadius="3"
                         ToolTip="Phiên bản công cụ DBAM hiện tại">
                         <TextBlock
                             FontSize="8"
                             FontWeight="ExtraBold"
-                            Foreground="#FFFFFF"
+                            Foreground="{DynamicResource GameTextLightBrush}"
                             Text="{Binding Guide.AppVersion, StringFormat='v{0}'}" />
                     </Border>
 
@@ -134,8 +134,8 @@
                         Margin="5,0,0,0"
                         Padding="5,1.5"
                         VerticalAlignment="Center"
-                        Background="#DC2626"
-                        BorderBrush="#B91C1C"
+                        Background="{DynamicResource GameDangerBrush}"
+                        BorderBrush="{DynamicResource GameBtnOrangeBorderBrush}"
                         BorderThickness="1"
                         CornerRadius="3"
                         ToolTip="{Binding Guide.AvailableAppUpdate.Version, StringFormat='Có bản cập nhật mới v{0}! Bấm vào tab Hướng dẫn để cập nhật.'}"
@@ -143,7 +143,7 @@
                         <TextBlock
                             FontSize="8"
                             FontWeight="ExtraBold"
-                            Foreground="#FFFFFF"
+                            Foreground="{DynamicResource GameTextLightBrush}"
                             Text="CÓ BẢN MỚI" />
                     </Border>
                 </StackPanel>

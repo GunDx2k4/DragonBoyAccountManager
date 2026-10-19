@@ -29,7 +29,7 @@
 
     <Grid>
 
-        <Border Background="#261302">
+        <Border Background="{DynamicResource GameWindowOuterBorderBrush}">
             <Border.Style>
                 <Style TargetType="Border">
                     <Setter Property="Margin" Value="3,6,3,2" />
@@ -207,7 +207,7 @@
                                                                             <Setter Property="Text" Value="TIỆN ÍCH BẢN ĐỒ &amp; ĐỔI KHU" />
                                                                         </DataTrigger>
                                                                          <DataTrigger Binding="{Binding SelectedIndex, ElementName=ConfigTabControl}" Value="2">
-                                                                            <Setter Property="Text" Value="TỰ ĐỘNG LUYỆN TẬP &amp; CHAT BOT" />
+                                                                            <Setter Property="Text" Value="TỰ ĐỘNG LUYỆN TẬP &amp; TỰ ĐỘNG CHAT" />
                                                                         </DataTrigger>
                                                                         <DataTrigger Binding="{Binding SelectedIndex, ElementName=ConfigTabControl}" Value="3">
                                                                             <Setter Property="Text" Value="CẤU HÌNH HỆ THỐNG" />
@@ -244,7 +244,7 @@
                                                                 <views:UtilitiesTabView DataContext="{Binding UtilitiesTab}" />
                                                             </TabItem>
 
-                                                            <TabItem Header="AUTO" Style="{StaticResource GameTabItemStyle}" ToolTip="Tự động luyện tập &amp; chat bot">
+                                                            <TabItem Header="AUTO" Style="{StaticResource GameTabItemStyle}" ToolTip="Tự động luyện tập &amp; tự động chat">
                                                                 <views:AutoTabView DataContext="{Binding AutoTab}" />
                                                             </TabItem>
 
@@ -268,15 +268,15 @@
                                                                             Padding="4,0.5"
                                                                             HorizontalAlignment="Center"
                                                                             VerticalAlignment="Center"
-                                                                            Background="#DC2626"
-                                                                            BorderBrush="#B91C1C"
+                                                                            Background="{DynamicResource GameDangerBrush}"
+                                                                            BorderBrush="{DynamicResource GameBtnOrangeBorderBrush}"
                                                                             BorderThickness="1"
                                                                             CornerRadius="2"
                                                                             Visibility="{Binding Guide.HasAppUpdate, Converter={StaticResource BooleanToVisibilityConverter}}">
                                                                             <TextBlock
                                                                                 FontSize="7.5"
                                                                                 FontWeight="ExtraBold"
-                                                                                Foreground="#FFFFFF"
+                                                                                Foreground="{DynamicResource GameTextLightBrush}"
                                                                                 Text="MỚI" />
                                                                         </Border>
                                                                     </StackPanel>

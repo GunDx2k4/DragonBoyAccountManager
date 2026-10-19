@@ -38,7 +38,7 @@
                         Direction="315"
                         Opacity="0.3"
                         ShadowDepth="2"
-                        Color="#4A2800" />
+                        Color="{StaticResource GameShadowDarkColor}" />
                 </Border.Effect>
                 <StackPanel IsItemsHost="True" KeyboardNavigation.DirectionalNavigation="Cycle" />
             </Border>
@@ -55,7 +55,7 @@
                 Width="11"
                 Height="11"
                 Data="M 1,6 L 7,6 M 5,3 L 8,6 L 5,9 M 9,1 L 11,1 L 11,11 L 9,11"
-                Stroke="#2E7D32"
+                Stroke="{DynamicResource GameMenuIconGreenBrush}"
                 StrokeEndLineCap="Round"
                 StrokeStartLineCap="Round"
                 StrokeThickness="1.5" />
@@ -82,7 +82,7 @@
                 Width="11"
                 Height="11"
                 Data="M 1,1 L 9,5 L 5,6 L 4,10 Z"
-                Fill="#FF9800"
+                Fill="{DynamicResource GameMenuIconOrangeBrush}"
                 Stretch="Uniform" />
         </MenuItem.Icon>
     </MenuItem>
@@ -106,7 +106,7 @@
             <Rectangle
                 Width="10"
                 Height="10"
-                Fill="#D32F2F"
+                Fill="{DynamicResource GameRedBrush}"
                 RadiusX="1.5"
                 RadiusY="1.5" />
         </MenuItem.Icon>
@@ -144,7 +144,7 @@
                 Width="10"
                 Height="10"
                 Data="M 1,1 L 9,9 M 1,9 L 9,1"
-                Stroke="#C62828"
+                Stroke="{DynamicResource GameMenuIconRedBrush}"
                 StrokeEndLineCap="Round"
                 StrokeStartLineCap="Round"
                 StrokeThickness="2" />
@@ -163,7 +163,7 @@
                 Height="11"
                 Data="M 1,1 H 7 V 7 H 1 Z M 4,4 H 10 V 10 H 4 Z"
                 Stretch="Uniform"
-                Stroke="#E65100"
+                Stroke="{DynamicResource GameMenuIconDarkOrangeBrush}"
                 StrokeThickness="1.2" />
         </MenuItem.Icon>
     </MenuItem>
