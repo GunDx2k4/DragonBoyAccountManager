@@ -22,6 +22,7 @@ public class AutoTrainAction(AutoTrainOptions options) : GameAction("Auto Train"
 {
     private readonly AutoTrainOptions _options = options;
     private readonly Dictionary<int, DateTime> _mobDeathTimes = new();
+    private readonly Dictionary<int, long> _skillLastUseTimes = new();
     private int _skillRotationIndex = 0;
     private DateTime _lastPeanTime = DateTime.MinValue;
     private DateTime _lastTdltCheckTime = DateTime.MinValue;
@@ -354,12 +355,21 @@ public class AutoTrainAction(AutoTrainOptions options) : GameAction("Auto Train"
                     continue;
                 }
 
-                int chosenSlot = SelectNextSkillSlot(context);
-
-                if (_currentSelectedSkillSlot != chosenSlot)
+                int targetSlot = GetTargetSkillSlot();
+                long remainingCooldown = GetSkillRemainingCooldown(context, targetSlot);
+                if (remainingCooldown > 0)
                 {
-                    context.Player.SelectSkill(chosenSlot);
-                    _currentSelectedSkillSlot = chosenSlot;
+                    progress?.Report($"[Auto Train] Kỹ năng ô {targetSlot + 1} đang hồi chiêu (chờ {remainingCooldown}ms)...");
+                    SuppressGameAutoLoop(context);
+                    int delay = (int)Math.Clamp(remainingCooldown, 50, 1000);
+                    await Task.Delay(delay, cancellationToken);
+                    continue;
+                }
+
+                if (_currentSelectedSkillSlot != targetSlot)
+                {
+                    context.Player.SelectSkill(targetSlot);
+                    _currentSelectedSkillSlot = targetSlot;
                 }
 
                 if (targetMob.Pointer != IntPtr.Zero)
@@ -371,10 +381,12 @@ public class AutoTrainAction(AutoTrainOptions options) : GameAction("Auto Train"
                     }
                     else
                     {
+                        long nowMs = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
+                        _skillLastUseTimes[targetSlot] = nowMs;
+
                         IntPtr mySkillPtr = context.Reflector.ReadFieldPtr(GameSchema.Char.ClassName, GameSchema.Char.FieldMySkill, myCharPtr);
                         if (mySkillPtr != IntPtr.Zero)
                         {
-                            long nowMs = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
                             context.Reflector.WriteField(GameSchema.Skill.ClassName, GameSchema.Skill.FieldLastTimeUseThisSkill, mySkillPtr, nowMs);
                         }
 
@@ -387,7 +399,8 @@ public class AutoTrainAction(AutoTrainOptions options) : GameAction("Auto Train"
                     }
                 }
 
-                progress?.Report($"[Auto Train] Đang đánh {targetMob.Name} #{targetMob.Id} [HP: {targetMob.Hp}/{targetMob.MaxHp}] bằng skill {chosenSlot + 1} (gửi message)");
+                _skillRotationIndex++;
+                progress?.Report($"[Auto Train] Đang đánh {targetMob.Name} #{targetMob.Id} [HP: {targetMob.Hp}/{targetMob.MaxHp}] bằng skill {targetSlot + 1} (gửi message)");
 
                 SuppressGameAutoLoop(context);
                 await Task.Delay(350, cancellationToken);
@@ -410,7 +423,7 @@ public class AutoTrainAction(AutoTrainOptions options) : GameAction("Auto Train"
         return ActionResult.Success("Đã dừng tự động luyện tập.");
     }
 
-    private int SelectNextSkillSlot(IGameContext context)
+    private int GetTargetSkillSlot()
     {
         var slots = _options.SelectedSkillSlots;
         if (slots == null || slots.Count == 0)
@@ -418,33 +431,23 @@ public class AutoTrainAction(AutoTrainOptions options) : GameAction("Auto Train"
             return 0;
         }
 
-        if (slots.Count == 1)
-        {
-            return slots[0];
-        }
+        return slots[_skillRotationIndex % slots.Count];
+    }
 
+    private long GetSkillRemainingCooldown(IGameContext context, int slot)
+    {
         var skills = context.Player.GetSkills();
-        var usableSlots = new List<int>();
+        var skill = skills.FirstOrDefault(s => s.Slot == slot);
+        if (skill == null || skill.CoolDown <= 0)
+        {
+            return 0;
+        }
 
         long now = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
-        foreach (var slot in slots)
-        {
-            var skill = skills.FirstOrDefault(s => s.Slot == slot);
-            if (skill != null && (skill.CoolDown <= 0 || now - skill.LastTimeUse >= skill.CoolDown))
-            {
-                usableSlots.Add(slot);
-            }
-        }
+        long lastUse = _skillLastUseTimes.TryGetValue(slot, out var t) ? Math.Max(t, skill.LastTimeUse) : skill.LastTimeUse;
+        long elapsed = now - lastUse;
+        long remaining = skill.CoolDown - elapsed;
 
-        if (usableSlots.Count > 0)
-        {
-            int slot = usableSlots[_skillRotationIndex % usableSlots.Count];
-            _skillRotationIndex++;
-            return slot;
-        }
-
-        int nextSlot = slots[_skillRotationIndex % slots.Count];
-        _skillRotationIndex++;
-        return nextSlot;
+        return remaining > 0 ? remaining : 0;
     }
 }
