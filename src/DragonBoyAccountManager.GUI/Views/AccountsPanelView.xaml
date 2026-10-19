@@ -104,7 +104,7 @@
                                     <Style TargetType="TextBlock">
                                         <Setter Property="Text" Value="ẨN ACC" />
                                         <Style.Triggers>
-                                            <DataTrigger Binding="{Binding IsHideAccounts}" Value="True">
+                                            <DataTrigger Binding="{Binding IsMasked}" Value="True">
                                                 <Setter Property="Text" Value="HIỆN ACC" />
                                             </DataTrigger>
                                         </Style.Triggers>

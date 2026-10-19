@@ -162,8 +162,6 @@ public sealed class CoreGameEngineAdapter(ISettingsService? settingsService = nu
                         inst.Kill();
                         return;
                     }
-
-                    inst.Reflector.WriteStatic(GameSchema.Main.ClassName, GameSchema.Main.StaticIsQuitApp, false);
                 }
                 catch
                 {

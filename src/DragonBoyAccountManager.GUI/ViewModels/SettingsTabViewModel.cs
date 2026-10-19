@@ -159,10 +159,6 @@ public sealed partial class SettingsTabViewModel : ObservableObject
                     {
                         item.SetValueFromString(rawVal);
                     }
-                    else if (settings.CustomValues.TryGetValue(item.Key, out var shortVal))
-                    {
-                        item.SetValueFromString(shortVal);
-                    }
                 }
             }
         }

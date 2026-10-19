@@ -280,13 +280,13 @@
                                                     <Style TargetType="ContentControl">
                                                         <Setter Property="ContentTemplate" Value="{StaticResource BooleanSettingTemplate}" />
                                                         <Style.Triggers>
-                                                            <DataTrigger Binding="{Binding ViewType}" Value="{x:Static models:SettingViewType.Number}">
+                                                            <DataTrigger Binding="{Binding ViewType}" Value="{x:Static viewmodels:SettingViewType.Number}">
                                                                 <Setter Property="ContentTemplate" Value="{StaticResource NumberSettingTemplate}" />
                                                             </DataTrigger>
-                                                            <DataTrigger Binding="{Binding ViewType}" Value="{x:Static models:SettingViewType.Text}">
+                                                            <DataTrigger Binding="{Binding ViewType}" Value="{x:Static viewmodels:SettingViewType.Text}">
                                                                 <Setter Property="ContentTemplate" Value="{StaticResource TextSettingTemplate}" />
                                                             </DataTrigger>
-                                                            <DataTrigger Binding="{Binding ViewType}" Value="{x:Static models:SettingViewType.Select}">
+                                                            <DataTrigger Binding="{Binding ViewType}" Value="{x:Static viewmodels:SettingViewType.Select}">
                                                                 <Setter Property="ContentTemplate" Value="{StaticResource SelectSettingTemplate}" />
                                                             </DataTrigger>
                                                         </Style.Triggers>

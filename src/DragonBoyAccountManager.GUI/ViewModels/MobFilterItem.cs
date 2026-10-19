@@ -1,6 +1,6 @@
 using CommunityToolkit.Mvvm.ComponentModel;
 
-namespace DragonBoyAccountManager.GUI.Models;
+namespace DragonBoyAccountManager.GUI.ViewModels;
 
 public sealed partial class MobFilterItem : ObservableObject
 {

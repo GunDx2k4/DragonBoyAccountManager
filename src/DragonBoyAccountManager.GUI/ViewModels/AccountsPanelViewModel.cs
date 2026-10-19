@@ -66,14 +66,7 @@ public sealed partial class AccountsPanelViewModel : ObservableObject
     private bool _isUpdatingSelection;
 
     [ObservableProperty]
-    [NotifyPropertyChangedFor(nameof(IsMasked))]
-    private bool _isHideAccounts;
-
-    public bool IsMasked
-    {
-        get => IsHideAccounts;
-        set => IsHideAccounts = value;
-    }
+    private bool _isMasked;
 
     [ObservableProperty]
     private bool _isApplySpeedToAll = true;
@@ -179,7 +172,6 @@ public sealed partial class AccountsPanelViewModel : ObservableObject
                     if (item != null)
                     {
                         item.StatusMessage = message;
-                        AccountsView.Refresh();
                     }
                     OnStatusMessageUpdated?.Invoke($"[{item?.Username ?? "Tài khoản"}]: {message}");
                 });
@@ -281,7 +273,7 @@ public sealed partial class AccountsPanelViewModel : ObservableObject
         {
             var vm = new AccountItemViewModel(acc)
             {
-                IsMasked = IsHideAccounts
+                IsMasked = IsMasked
             };
             vm.PropertyChanged += OnAccountItemPropertyChanged;
             Accounts.Add(vm);
@@ -384,10 +376,10 @@ public sealed partial class AccountsPanelViewModel : ObservableObject
     [RelayCommand]
     public void ToggleHideAccounts()
     {
-        IsHideAccounts = !IsHideAccounts;
+        IsMasked = !IsMasked;
         foreach (var acc in Accounts)
         {
-            acc.IsMasked = IsHideAccounts;
+            acc.IsMasked = IsMasked;
         }
     }
 
@@ -736,7 +728,7 @@ public sealed partial class AccountsPanelViewModel : ObservableObject
         {
             var newItem = new AccountItemViewModel(account)
             {
-                IsMasked = IsHideAccounts
+                IsMasked = IsMasked
             };
             newItem.PropertyChanged += OnAccountItemPropertyChanged;
             Accounts.Add(newItem);

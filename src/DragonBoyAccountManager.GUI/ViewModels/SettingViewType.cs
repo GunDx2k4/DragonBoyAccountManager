@@ -1,4 +1,4 @@
-namespace DragonBoyAccountManager.GUI.Models;
+namespace DragonBoyAccountManager.GUI.ViewModels;
 
 public enum SettingViewType
 {

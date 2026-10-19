@@ -42,14 +42,7 @@ public sealed partial class AccountFormViewModel : ObservableObject
 
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(DisplayUsername))]
-    [NotifyPropertyChangedFor(nameof(IsHideAccounts))]
     private bool _isMasked;
-
-    public bool IsHideAccounts
-    {
-        get => IsMasked;
-        set => IsMasked = value;
-    }
 
     [ObservableProperty]
     private bool _isApplySpeedToAll = true;

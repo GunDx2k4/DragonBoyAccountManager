@@ -1,13 +1,10 @@
-using System.ComponentModel;
 using System.Runtime.InteropServices;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
 using System.Windows.Interop;
 using DragonBoyAccountManager.GUI.Models;
-using DragonBoyAccountManager.GUI.Services.GameEngine;
 using DragonBoyAccountManager.GUI.ViewModels;
-using Microsoft.Extensions.DependencyInjection;
 
 namespace DragonBoyAccountManager.GUI.Views;
 
@@ -34,14 +31,7 @@ public partial class MainWindow : Window
         if (DataContext is not MainViewModel vm)
             return;
 
-        GameKey? movementKey = e.Key switch
-        {
-            Key.Up or Key.W => GameKey.Up,
-            Key.Down or Key.S => GameKey.Down,
-            Key.Left or Key.A => GameKey.Left,
-            Key.Right or Key.D => GameKey.Right,
-            _ => null
-        };
+        var movementKey = GetMovementKey(e.Key);
 
         if (movementKey.HasValue)
         {
@@ -259,15 +249,7 @@ public partial class MainWindow : Window
         if (DataContext is not MainViewModel vm)
             return;
 
-        GameKey? movementKey = e.Key switch
-        {
-            Key.Up or Key.W => GameKey.Up,
-            Key.Down or Key.S => GameKey.Down,
-            Key.Left or Key.A => GameKey.Left,
-            Key.Right or Key.D => GameKey.Right,
-            _ => null
-        };
-
+        var movementKey = GetMovementKey(e.Key);
         if (movementKey.HasValue)
         {
             _heldMovementKeys.Remove(e.Key);
@@ -289,14 +271,7 @@ public partial class MainWindow : Window
         {
             foreach (var key in _heldMovementKeys.ToList())
             {
-                GameKey? movementKey = key switch
-                {
-                    Key.Up or Key.W => GameKey.Up,
-                    Key.Down or Key.S => GameKey.Down,
-                    Key.Left or Key.A => GameKey.Left,
-                    Key.Right or Key.D => GameKey.Right,
-                    _ => null
-                };
+                var movementKey = GetMovementKey(key);
                 if (movementKey.HasValue)
                 {
                     vm.AccountForm.StopHoldingKey(movementKey.Value);
@@ -305,6 +280,15 @@ public partial class MainWindow : Window
         }
         _heldMovementKeys.Clear();
     }
+
+    private static GameKey? GetMovementKey(Key key) => key switch
+    {
+        Key.Up or Key.W => GameKey.Up,
+        Key.Down or Key.S => GameKey.Down,
+        Key.Left or Key.A => GameKey.Left,
+        Key.Right or Key.D => GameKey.Right,
+        _ => null
+    };
 
     protected override void OnSourceInitialized(EventArgs e)
     {
@@ -446,15 +430,4 @@ public partial class MainWindow : Window
     private static extern bool GetMonitorInfo(IntPtr hMonitor, ref MONITORINFO lpmi);
 
     #endregion
-
-    protected override void OnClosing(CancelEventArgs e)
-    {
-        base.OnClosing(e);
-        try
-        {
-            var gameEngine = App.Services?.GetService<IGameEngineService>();
-            gameEngine?.StopAll();
-        }
-        catch { }
-    }
 }

@@ -162,7 +162,7 @@
                                             </ItemsPanelTemplate>
                                         </ItemsControl.ItemsPanel>
                                         <ItemsControl.ItemTemplate>
-                                            <DataTemplate DataType="{x:Type guiModels:SkillButtonItem}">
+                                            <DataTemplate DataType="{x:Type viewmodels:SkillButtonItem}">
                                                 <CheckBox
                                                     Margin="2,2"
                                                     IsChecked="{Binding IsSelected, Mode=TwoWay}"
@@ -275,7 +275,7 @@
                                         <ScrollViewer FocusVisualStyle="{x:Null}" VerticalScrollBarVisibility="Auto">
                                             <ItemsControl ItemsSource="{Binding FilteredMobTypes}">
                                                 <ItemsControl.ItemTemplate>
-                                                    <DataTemplate DataType="{x:Type guiModels:MobFilterItem}">
+                                                    <DataTemplate DataType="{x:Type viewmodels:MobFilterItem}">
                                                         <Border
                                                             Margin="0,1,0,2"
                                                             Padding="5,3"

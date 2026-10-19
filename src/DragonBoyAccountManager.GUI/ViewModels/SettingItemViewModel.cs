@@ -3,7 +3,6 @@ using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Globalization;
 using CommunityToolkit.Mvvm.ComponentModel;
-using DragonBoyAccountManager.GUI.Models;
 
 namespace DragonBoyAccountManager.GUI.ViewModels;
 

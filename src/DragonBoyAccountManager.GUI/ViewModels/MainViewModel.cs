@@ -45,87 +45,11 @@ public sealed partial class MainViewModel : ObservableObject
         _storageService = storageService;
         _dialogService = dialogService;
 
-        AccountForm.SetKeyTargetResolver(() =>
-        {
-            var targets = AccountsPanel.GetTargetAccounts();
-            var running = targets.Where(a => a.IsRunning).Select(a => a.Id).ToList();
-            if (running.Count > 0) return running;
-
-            if (AccountsPanel.SelectedAccount != null && AccountsPanel.SelectedAccount.IsRunning)
-            {
-                return [AccountsPanel.SelectedAccount.Id];
-            }
-
-            return [];
-        });
-
-        AccountForm.SetSpeedTargetResolver(() =>
-        {
-            if (AccountForm.IsApplySpeedToAll)
-            {
-                var running = AccountsPanel.Accounts.Where(a => a.IsRunning).Select(a => a.Id).ToList();
-                if (running.Count > 0) return running;
-            }
-
-            var targets = AccountsPanel.GetTargetAccounts();
-            var runningSelected = targets.Where(a => a.IsRunning).Select(a => a.Id).ToList();
-            if (runningSelected.Count > 0) return runningSelected;
-
-            if (AccountsPanel.SelectedAccount != null && AccountsPanel.SelectedAccount.IsRunning)
-            {
-                return [AccountsPanel.SelectedAccount.Id];
-            }
-
-            return [];
-        });
-
-        UtilitiesTab.SetTargetResolver(() =>
-        {
-            var targets = AccountsPanel.GetTargetAccounts();
-            var running = targets.Where(a => a.IsRunning).Select(a => a.Id).ToList();
-            if (running.Count > 0) return running;
-
-            if (AccountsPanel.SelectedAccount != null && AccountsPanel.SelectedAccount.IsRunning)
-            {
-                return [AccountsPanel.SelectedAccount.Id];
-            }
-
-            return [];
-        });
-
-        UtilitiesTab.SetSpeedTargetResolver(() =>
-        {
-            if (UtilitiesTab.IsApplySpeedToAll)
-            {
-                var running = AccountsPanel.Accounts.Where(a => a.IsRunning).Select(a => a.Id).ToList();
-                if (running.Count > 0) return running;
-            }
-
-            var targets = AccountsPanel.GetTargetAccounts();
-            var runningSelected = targets.Where(a => a.IsRunning).Select(a => a.Id).ToList();
-            if (runningSelected.Count > 0) return runningSelected;
-
-            if (AccountsPanel.SelectedAccount != null && AccountsPanel.SelectedAccount.IsRunning)
-            {
-                return [AccountsPanel.SelectedAccount.Id];
-            }
-
-            return [];
-        });
-
-        AutoTab.SetTargetResolver(() =>
-        {
-            var targets = AccountsPanel.GetTargetAccounts();
-            var running = targets.Where(a => a.IsRunning).Select(a => a.Id).ToList();
-            if (running.Count > 0) return running;
-
-            if (AccountsPanel.SelectedAccount != null && AccountsPanel.SelectedAccount.IsRunning)
-            {
-                return [AccountsPanel.SelectedAccount.Id];
-            }
-
-            return [];
-        });
+        AccountForm.SetKeyTargetResolver(ResolveRunningTargetAccountIds);
+        AccountForm.SetSpeedTargetResolver(() => ResolveRunningSpeedTargetAccountIds(AccountForm.IsApplySpeedToAll));
+        UtilitiesTab.SetTargetResolver(ResolveRunningTargetAccountIds);
+        UtilitiesTab.SetSpeedTargetResolver(() => ResolveRunningSpeedTargetAccountIds(UtilitiesTab.IsApplySpeedToAll));
+        AutoTab.SetTargetResolver(ResolveRunningTargetAccountIds);
 
         AccountsPanel.OnAccountSelectionChanged += selected =>
         {
@@ -221,9 +145,9 @@ public sealed partial class MainViewModel : ObservableObject
 
         AccountsPanel.PropertyChanged += (_, e) =>
         {
-            if (e.PropertyName == nameof(AccountsPanelViewModel.IsHideAccounts))
+            if (e.PropertyName == nameof(AccountsPanelViewModel.IsMasked))
             {
-                AccountForm.IsMasked = AccountsPanel.IsHideAccounts;
+                AccountForm.IsMasked = AccountsPanel.IsMasked;
             }
             else if (e.PropertyName == nameof(AccountsPanelViewModel.SelectedAccountsCount))
             {
@@ -236,9 +160,9 @@ public sealed partial class MainViewModel : ObservableObject
         {
             if (e.PropertyName == nameof(AccountFormViewModel.IsMasked))
             {
-                if (AccountsPanel.IsHideAccounts != AccountForm.IsMasked)
+                if (AccountsPanel.IsMasked != AccountForm.IsMasked)
                 {
-                    AccountsPanel.IsHideAccounts = AccountForm.IsMasked;
+                    AccountsPanel.IsMasked = AccountForm.IsMasked;
                     foreach (var acc in AccountsPanel.Accounts)
                     {
                         acc.IsMasked = AccountForm.IsMasked;
@@ -277,6 +201,31 @@ public sealed partial class MainViewModel : ObservableObject
         };
 
         _ = InitializeAsync();
+    }
+
+    private List<Guid> ResolveRunningTargetAccountIds()
+    {
+        var targets = AccountsPanel.GetTargetAccounts();
+        var running = targets.Where(a => a.IsRunning).Select(a => a.Id).ToList();
+        if (running.Count > 0) return running;
+
+        if (AccountsPanel.SelectedAccount != null && AccountsPanel.SelectedAccount.IsRunning)
+        {
+            return [AccountsPanel.SelectedAccount.Id];
+        }
+
+        return [];
+    }
+
+    private List<Guid> ResolveRunningSpeedTargetAccountIds(bool applyToAll)
+    {
+        if (applyToAll)
+        {
+            var runningAll = AccountsPanel.Accounts.Where(a => a.IsRunning).Select(a => a.Id).ToList();
+            if (runningAll.Count > 0) return runningAll;
+        }
+
+        return ResolveRunningTargetAccountIds();
     }
 
     public async Task InitializeAsync()

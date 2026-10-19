@@ -811,7 +811,7 @@
 
                     <StackPanel SnapsToDevicePixels="True">
                         <StackPanel.Resources>
-                            <DataTemplate DataType="{x:Type guiModels:SkillButtonItem}">
+                            <DataTemplate DataType="{x:Type viewmodels:SkillButtonItem}">
                                 <Border
                                     x:Name="SelectionFrame"
                                     Margin="1.5,1.5"
