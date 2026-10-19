@@ -34,6 +34,7 @@ public interface IPlayerModule
     bool IsTdltActive { get; }
 
     IReadOnlyList<GameSkillInfo> GetSkills();
+    (bool Success, string Message) SelectSkill(int slotIndex);
     (bool Success, string Message) UseSkill(int slotIndex);
     (bool Success, string Message) AutoAssignSkills();
 }
@@ -312,37 +313,96 @@ public class PlayerModule(MonoReflector reflector) : IPlayerModule
         return list;
     }
 
+    private IntPtr GetSkillPointerAtSlot(int slotIndex)
+    {
+        IntPtr keySkillArray = _reflector.ReadStatic<IntPtr>(GameSchema.GameScr.ClassName, GameSchema.GameScr.StaticKeySkill);
+        if (keySkillArray != IntPtr.Zero)
+        {
+            IntPtr[] skillPtrs = _reflector.ReadMonoPointerArray(keySkillArray);
+            if (slotIndex >= 0 && slotIndex < skillPtrs.Length)
+            {
+                IntPtr ptr = skillPtrs[slotIndex];
+                if (ptr != IntPtr.Zero) return ptr;
+            }
+        }
+
+        if (Pointer != IntPtr.Zero)
+        {
+            IntPtr vSkillFightPtr = _reflector.ReadFieldPtr(GameSchema.Char.ClassName, GameSchema.Char.FieldVSkillFight, Pointer);
+            if (vSkillFightPtr != IntPtr.Zero)
+            {
+                var vSkills = _reflector.ReadMyVector(vSkillFightPtr);
+                if (slotIndex >= 0 && slotIndex < vSkills.Count)
+                {
+                    return vSkills[slotIndex];
+                }
+            }
+        }
+
+        return IntPtr.Zero;
+    }
+
+    public (bool Success, string Message) SelectSkill(int slotIndex)
+    {
+        if (!IsAlive) return (false, "Nhân vật chưa vào màn hình game!");
+
+        try
+        {
+            IntPtr skillPtr = GetSkillPointerAtSlot(slotIndex);
+            if (skillPtr == IntPtr.Zero)
+            {
+                string slotLabel = slotIndex == 9 ? "0" : (slotIndex + 1).ToString();
+                return (false, $"Không tìm thấy kỹ năng ở ô phím {slotLabel}!");
+            }
+
+            if (Pointer != IntPtr.Zero)
+            {
+                _reflector.WriteField(GameSchema.Char.ClassName, GameSchema.Char.FieldMySkill, Pointer, skillPtr);
+            }
+
+            IntPtr gameScr = _reflector.ReadStatic<IntPtr>(GameSchema.GameScr.ClassName, GameSchema.GameScr.StaticInstance);
+            if (gameScr == IntPtr.Zero)
+            {
+                gameScr = _reflector.CallMethod(GameSchema.GameScr.ClassName, GameSchema.GameScr.MethodGI, IntPtr.Zero);
+            }
+
+            if (gameScr != IntPtr.Zero)
+            {
+                _reflector.WriteField(GameSchema.GameScr.ClassName, GameSchema.GameScr.FieldLastSkill, gameScr, skillPtr);
+            }
+
+            IntPtr templatePtr = _reflector.ReadFieldPtr(GameSchema.Skill.ClassName, GameSchema.Skill.FieldTemplate, skillPtr);
+            if (templatePtr != IntPtr.Zero)
+            {
+                sbyte templateId = _reflector.ReadField<sbyte>(GameSchema.SkillTemplate.ClassName, GameSchema.SkillTemplate.FieldId, templatePtr);
+                IntPtr service = _reflector.ReadStatic<IntPtr>(GameSchema.Service.ClassName, GameSchema.Service.StaticInstance);
+                if (service == IntPtr.Zero)
+                {
+                    service = _reflector.CallMethod(GameSchema.Service.ClassName, GameSchema.Service.MethodGI, IntPtr.Zero);
+                }
+                if (service != IntPtr.Zero)
+                {
+                    _reflector.CallMethod(GameSchema.Service.ClassName, GameSchema.Service.MethodSelectSkill, service, (int)templateId);
+                }
+            }
+
+            var info = ReadSkillInfo(skillPtr, slotIndex);
+            string skillName = info?.Name ?? (slotIndex == 9 ? "Skill 0" : $"Skill {slotIndex + 1}");
+            return (true, $"Đã chọn kỹ năng: {skillName}");
+        }
+        catch (Exception ex)
+        {
+            return (false, $"Lỗi khi chọn skill: {ex.Message}");
+        }
+    }
+
     public (bool Success, string Message) UseSkill(int slotIndex)
     {
         if (!IsAlive) return (false, "Nhân vật chưa vào màn hình game!");
 
         try
         {
-            IntPtr skillPtr = IntPtr.Zero;
-
-            IntPtr keySkillArray = _reflector.ReadStatic<IntPtr>(GameSchema.GameScr.ClassName, GameSchema.GameScr.StaticKeySkill);
-            if (keySkillArray != IntPtr.Zero)
-            {
-                IntPtr[] skillPtrs = _reflector.ReadMonoPointerArray(keySkillArray);
-                if (slotIndex >= 0 && slotIndex < skillPtrs.Length)
-                {
-                    skillPtr = skillPtrs[slotIndex];
-                }
-            }
-
-            if (skillPtr == IntPtr.Zero && Pointer != IntPtr.Zero)
-            {
-                IntPtr vSkillFightPtr = _reflector.ReadFieldPtr(GameSchema.Char.ClassName, GameSchema.Char.FieldVSkillFight, Pointer);
-                if (vSkillFightPtr != IntPtr.Zero)
-                {
-                    var vSkills = _reflector.ReadMyVector(vSkillFightPtr);
-                    if (slotIndex >= 0 && slotIndex < vSkills.Count)
-                    {
-                        skillPtr = vSkills[slotIndex];
-                    }
-                }
-            }
-
+            IntPtr skillPtr = GetSkillPointerAtSlot(slotIndex);
             if (skillPtr == IntPtr.Zero)
             {
                 string slotLabel = slotIndex == 9 ? "0" : (slotIndex + 1).ToString();
@@ -381,6 +441,11 @@ public class PlayerModule(MonoReflector reflector) : IPlayerModule
                 {
                     _reflector.CallMethod(GameSchema.Service.ClassName, GameSchema.Service.MethodSelectSkill, service, (int)templateId);
                 }
+            }
+
+            if (gameScr != IntPtr.Zero)
+            {
+                _reflector.CallMethod(GameSchema.GameScr.ClassName, GameSchema.GameScr.MethodDoSelectSkill, gameScr, skillPtr, true);
             }
 
             var info = ReadSkillInfo(skillPtr, slotIndex);
@@ -457,17 +522,19 @@ public class PlayerModule(MonoReflector reflector) : IPlayerModule
             short skillId = _reflector.ReadField<short>(GameSchema.Skill.ClassName, GameSchema.Skill.FieldSkillId, skillPtr);
             int point = _reflector.ReadField<int>(GameSchema.Skill.ClassName, GameSchema.Skill.FieldPoint, skillPtr);
             int coolDown = _reflector.ReadField<int>(GameSchema.Skill.ClassName, GameSchema.Skill.FieldCoolDown, skillPtr);
+            long lastTimeUse = _reflector.ReadField<long>(GameSchema.Skill.ClassName, GameSchema.Skill.FieldLastTimeUseThisSkill, skillPtr);
             int manaUse = _reflector.ReadField<int>(GameSchema.Skill.ClassName, GameSchema.Skill.FieldManaUse, skillPtr);
 
             IntPtr templatePtr = _reflector.ReadFieldPtr(GameSchema.Skill.ClassName, GameSchema.Skill.FieldTemplate, skillPtr);
             string name = templatePtr != IntPtr.Zero ? _reflector.ReadStringField(GameSchema.SkillTemplate.ClassName, GameSchema.SkillTemplate.FieldName, templatePtr) : "";
+            int iconId = templatePtr != IntPtr.Zero ? _reflector.ReadField<int>(GameSchema.SkillTemplate.ClassName, GameSchema.SkillTemplate.FieldIconId, templatePtr) : -1;
             if (string.IsNullOrWhiteSpace(name))
             {
                 name = slot == 9 ? "Skill 0" : $"Skill {slot + 1}";
             }
 
             bool isSelected = (mySkillPtr != IntPtr.Zero && skillPtr == mySkillPtr) || (mySkillId != -1 && skillId == mySkillId);
-            return new GameSkillInfo(slot, skillId, name, point, coolDown, manaUse, isSelected);
+            return new GameSkillInfo(slot, skillId, name, point, coolDown, manaUse, iconId, isSelected, lastTimeUse);
         }
         catch
         {

@@ -313,10 +313,11 @@ public class AutoTrainAction(AutoTrainOptions options) : GameAction("Auto Train"
         var skills = context.Player.GetSkills();
         var usableSlots = new List<int>();
 
+        long now = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
         foreach (var slot in slots)
         {
             var skill = skills.FirstOrDefault(s => s.Slot == slot);
-            if (skill != null && skill.CoolDown <= 0)
+            if (skill != null && (skill.CoolDown <= 0 || now - skill.LastTimeUse >= skill.CoolDown))
             {
                 usableSlots.Add(slot);
             }

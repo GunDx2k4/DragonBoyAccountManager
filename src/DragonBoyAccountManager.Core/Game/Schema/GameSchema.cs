@@ -188,6 +188,7 @@ public static class GameSchema
         public const string FieldSkillId = "skillId";
         public const string FieldPoint = "point";
         public const string FieldCoolDown = "coolDown";
+        public const string FieldLastTimeUseThisSkill = "lastTimeUseThisSkill";
         public const string FieldManaUse = "manaUse";
         public const string FieldTemplate = "template";
     }
@@ -197,6 +198,7 @@ public static class GameSchema
         public const string ClassName = "SkillTemplate";
         public const string FieldName = "name";
         public const string FieldId = "id";
+        public const string FieldIconId = "iconId";
     }
 
     public static class Mob
