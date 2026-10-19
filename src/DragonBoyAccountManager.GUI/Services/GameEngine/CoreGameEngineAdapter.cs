@@ -790,6 +790,16 @@ public sealed class CoreGameEngineAdapter(ISettingsService? settingsService = nu
                 session.AutoTrainCts.Dispose();
                 session.AutoTrainCts = null;
                 session.CurrentAutoTrainAction = null;
+                try
+                {
+                    session.Instance.Reflector.WriteStatic(GameSchema.GameScr.ClassName, GameSchema.GameScr.StaticIsAutoPlay, false);
+                    IntPtr gameScrPtr = session.Instance.Reflector.ReadStatic<IntPtr>(GameSchema.GameScr.ClassName, GameSchema.GameScr.StaticInstance);
+                    if (gameScrPtr != IntPtr.Zero)
+                    {
+                        session.Instance.Reflector.WriteField(GameSchema.GameScr.ClassName, GameSchema.GameScr.FieldAuto, gameScrPtr, 0);
+                    }
+                }
+                catch { }
                 OnAutoTrainStateChanged?.Invoke(accountId, false);
                 OnAutoTrainStatusChanged?.Invoke(accountId, "Đã dừng tự động luyện tập.");
             }
