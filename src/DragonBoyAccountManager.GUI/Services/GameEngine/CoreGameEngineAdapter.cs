@@ -34,6 +34,28 @@ public sealed class CoreGameEngineAdapter(ISettingsService? settingsService = nu
         public bool TryStartLogin() => Interlocked.CompareExchange(ref _isLoggingIn, 1, 0) == 0;
         public void EndLogin() => Interlocked.Exchange(ref _isLoggingIn, 0);
 
+        public async Task StopAsync()
+        {
+            try { Cts.Cancel(); } catch { }
+            Cts.Dispose();
+            if (AutoTrainCts != null)
+            {
+                try { AutoTrainCts.Cancel(); } catch { }
+                AutoTrainCts.Dispose();
+                AutoTrainCts = null;
+                CurrentAutoTrainAction = null;
+            }
+            if (CurrentAutoChatAction != null)
+            {
+                Controller.RemovePeriodicAction(CurrentAutoChatAction);
+                CurrentAutoChatAction = null;
+            }
+            await Controller.StopAsync();
+            Controller.Dispose();
+            Instance.Kill();
+            Instance.Dispose();
+        }
+
         public void Dispose()
         {
             try { Cts.Cancel(); } catch { }
@@ -349,7 +371,7 @@ public sealed class CoreGameEngineAdapter(ISettingsService? settingsService = nu
         }
     }
 
-    public Task StopAsync(Guid accountId)
+    public async Task StopAsync(Guid accountId)
     {
         lock (_userStoppedLock)
         {
@@ -358,11 +380,10 @@ public sealed class CoreGameEngineAdapter(ISettingsService? settingsService = nu
 
         if (_sessions.TryRemove(accountId, out var session))
         {
-            session.Dispose();
+            await session.StopAsync();
         }
 
         OnSessionUpdated?.Invoke(accountId, GameSessionStatus.Offline, null);
-        return Task.CompletedTask;
     }
 
     public void StopAll()
@@ -389,10 +410,28 @@ public sealed class CoreGameEngineAdapter(ISettingsService? settingsService = nu
         }
     }
 
-    public Task StopAllAsync()
+    public async Task StopAllAsync()
     {
-        StopAll();
-        return Task.CompletedTask;
+        var list = _sessions.ToList();
+        _sessions.Clear();
+
+        lock (_userStoppedLock)
+        {
+            foreach (var (id, _) in list)
+            {
+                _userStoppedAccounts.Add(id);
+            }
+        }
+
+        foreach (var (id, session) in list)
+        {
+            try
+            {
+                await session.StopAsync();
+            }
+            catch { }
+            OnSessionUpdated?.Invoke(id, GameSessionStatus.Offline, null);
+        }
     }
 
     public bool IsRunning(Guid accountId)
