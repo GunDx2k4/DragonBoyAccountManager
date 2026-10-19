@@ -342,6 +342,28 @@
         Color="#F7C934" />
 
     <SolidColorBrush
+        x:Key="GameBadgeNewOuterBorderBrush"
+        po:Freeze="True"
+        Color="#000000" />
+    <SolidColorBrush
+        x:Key="GameBadgeNewInnerBorderBrush"
+        po:Freeze="True"
+        Color="#FAD52A" />
+    <LinearGradientBrush
+        x:Key="GameBadgeNewBgBrush"
+        po:Freeze="True"
+        StartPoint="0.5,0"
+        EndPoint="0.5,1">
+        <GradientStop Offset="0.0" Color="#FF8A00" />
+        <GradientStop Offset="0.45" Color="#F55A11" />
+        <GradientStop Offset="1.0" Color="#E20519" />
+    </LinearGradientBrush>
+    <SolidColorBrush
+        x:Key="GameBadgeNewTextBrush"
+        po:Freeze="True"
+        Color="#FFFFFF" />
+
+    <SolidColorBrush
         x:Key="GameDarkBrownBrush"
         po:Freeze="True"
         Color="#350C03" />

@@ -190,20 +190,30 @@
 
                                 <Border
                                     Margin="6,0,0,0"
-                                    Padding="6,1.5"
+                                    Padding="1"
                                     VerticalAlignment="Center"
-                                    Background="{DynamicResource GameDangerBrush}"
-                                    BorderBrush="{DynamicResource GameBtnOrangeBorderBrush}"
-                                    BorderThickness="1"
-                                    CornerRadius="3"
+                                    Background="{DynamicResource GameBadgeNewOuterBorderBrush}"
+                                    CornerRadius="4.5"
+                                    SnapsToDevicePixels="True"
                                     ToolTip="{Binding Guide.AvailableAppUpdate.Version, StringFormat='Có bản cập nhật mới v{0}! Bấm vào tab Hướng dẫn để cập nhật.'}"
                                     Visibility="{Binding Guide.HasAppUpdate, Converter={StaticResource BooleanToVisibilityConverter}}">
-                                    <TextBlock
-                                        Effect="{StaticResource GameTextPixelShadow}"
-                                        FontSize="8.5"
-                                        FontWeight="ExtraBold"
-                                        Foreground="{DynamicResource GameTextLightBrush}"
-                                        Text="CÓ BẢN MỚI" />
+                                    <Border
+                                        Padding="4.5,0.5"
+                                        Background="{DynamicResource GameBadgeNewBgBrush}"
+                                        BorderBrush="{DynamicResource GameBadgeNewInnerBorderBrush}"
+                                        BorderThickness="1"
+                                        CornerRadius="3.5"
+                                        SnapsToDevicePixels="True">
+                                        <TextBlock
+                                            FontSize="8"
+                                            FontWeight="Black"
+                                            Foreground="{DynamicResource GameBadgeNewTextBrush}"
+                                            Text="NEW">
+                                            <TextBlock.RenderTransform>
+                                                <SkewTransform AngleX="-7" />
+                                            </TextBlock.RenderTransform>
+                                        </TextBlock>
+                                    </Border>
                                 </Border>
 
                                 <StackPanel
