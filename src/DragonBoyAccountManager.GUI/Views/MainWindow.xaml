@@ -127,7 +127,7 @@
                                         <Grid.ColumnDefinitions>
                                             <ColumnDefinition Width="*" MinWidth="520" />
                                             <ColumnDefinition Width="8" />
-                                            <ColumnDefinition Width="465" MinWidth="415" MaxWidth="720" />
+                                            <ColumnDefinition Width="475" MinWidth="435" MaxWidth="720" />
                                         </Grid.ColumnDefinitions>
 
                                         <views:AccountsPanelView Grid.Column="0" DataContext="{Binding AccountsPanel}" />
@@ -215,6 +215,9 @@
                                                                         <DataTrigger Binding="{Binding SelectedIndex, ElementName=ConfigTabControl}" Value="4">
                                                                             <Setter Property="Text" Value="HƯỚNG DẪN &amp; CẬP NHẬT PHIÊN BẢN" />
                                                                         </DataTrigger>
+                                                                        <DataTrigger Binding="{Binding SelectedIndex, ElementName=ConfigTabControl}" Value="5">
+                                                                            <Setter Property="Text" Value="GÓP Ý &amp; BÁO CÁO LỖI" />
+                                                                        </DataTrigger>
                                                                     </Style.Triggers>
                                                                 </Style>
                                                             </TextBlock.Style>
@@ -233,19 +236,19 @@
                                                             SelectedIndex="{Binding SelectedTabIndex}"
                                                             Style="{StaticResource GameTabControlStyle}">
 
-                                                            <TabItem Header="TÀI KHOẢN" Style="{StaticResource GameTabItemStyle}">
+                                                            <TabItem Header="ACC" Style="{StaticResource GameTabItemStyle}" ToolTip="Cấu hình tài khoản game">
                                                                 <views:AccountConfigTabView DataContext="{Binding AccountForm}" />
                                                             </TabItem>
 
-                                                            <TabItem Header="TIỆN ÍCH" Style="{StaticResource GameTabItemStyle}">
+                                                            <TabItem Header="TIỆN ÍCH" Style="{StaticResource GameTabItemStyle}" ToolTip="Tiện ích bản đồ, khu vực &amp; tìm kiếm">
                                                                 <views:UtilitiesTabView DataContext="{Binding UtilitiesTab}" />
                                                             </TabItem>
 
-                                                            <TabItem Header="TỰ ĐỘNG" Style="{StaticResource GameTabItemStyle}">
+                                                            <TabItem Header="AUTO" Style="{StaticResource GameTabItemStyle}" ToolTip="Tự động luyện tập &amp; chat bot">
                                                                 <views:AutoTabView DataContext="{Binding AutoTab}" />
                                                             </TabItem>
 
-                                                            <TabItem Header="CÀI ĐẶT" Style="{StaticResource GameTabItemStyle}">
+                                                            <TabItem Header="CÀI ĐẶT" Style="{StaticResource GameTabItemStyle}" ToolTip="Cấu hình hệ thống DBAM">
                                                                 <views:SettingsTabView DataContext="{Binding Settings}" />
                                                             </TabItem>
 
@@ -258,8 +261,8 @@
                                                                         <TextBlock
                                                                             HorizontalAlignment="Center"
                                                                             VerticalAlignment="Center"
-                                                                            FontSize="11"
-                                                                            Text="HƯỚNG DẪN" />
+                                                                            FontSize="{Binding FontSize, RelativeSource={RelativeSource AncestorType=TabItem}}"
+                                                                            Text="HDSD" />
                                                                         <Border
                                                                             Margin="0,1.5,0,0"
                                                                             Padding="4,0.5"
@@ -279,6 +282,10 @@
                                                                     </StackPanel>
                                                                 </TabItem.Header>
                                                                 <views:GuideTabView DataContext="{Binding Guide}" />
+                                                            </TabItem>
+
+                                                            <TabItem Header="GÓP Ý" Style="{StaticResource GameTabItemStyle}" ToolTip="Góp ý tính năng &amp; Báo lỗi phần mềm">
+                                                                <views:FeedbackView DataContext="{Binding Feedback}" />
                                                             </TabItem>
                                                         </TabControl>
                                                     </Border>

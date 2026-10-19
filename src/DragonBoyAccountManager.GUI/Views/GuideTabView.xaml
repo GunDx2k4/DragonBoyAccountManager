@@ -192,7 +192,7 @@
                                         FontSize="11.5"
                                         FontWeight="ExtraBold"
                                         Foreground="#B45309"
-                                        Text="[CẦN THIẾT LẬP] CHƯA CÓ ASSEMBLY GAME"
+                                        Text="[CẦN THIẾT LẬP] CHƯA KẾT NỐI FILE GAME"
                                         TextTrimming="CharacterEllipsis" />
                                     <TextBlock
                                         Margin="0,2,0,0"
@@ -221,19 +221,19 @@
                                     FontWeight="SemiBold"
                                     Foreground="#92400E"
                                     LineHeight="16"
-                                    Text="1. Tải bản game PC gốc 2.5.0 trực tiếp tại trang chủ (ngocrongonline.com) — KHÔNG cài đặt bản mod."
+                                    Text="1. Tải bản game PC gốc 2.5.0 trực tiếp tại trang chủ (ngocrongonline.com) — KHÔNG dùng bản mod."
                                     TextWrapping="Wrap" />
                                 <TextBlock
                                     FontSize="10.5"
                                     Foreground="#92400E"
                                     LineHeight="16"
-                                    Text="2. Giải nén đầy đủ thư mục game, kiểm tra có file [TênGame].exe và thư mục [TênGame]_Data\Managed\Assembly-CSharp.dll."
+                                    Text="2. Giải nén thư mục game trên máy tính."
                                     TextWrapping="Wrap" />
                                 <TextBlock
                                     FontSize="10.5"
                                     Foreground="#92400E"
                                     LineHeight="16"
-                                    Text="3. Bấm nút 'Chọn file ngay' ở trên để liên kết đường dẫn. Sau đó thêm tài khoản và mở game bình thường."
+                                    Text="3. Bấm nút 'Chọn file ngay' ở trên rồi chọn file .exe của game."
                                     TextWrapping="Wrap" />
                             </StackPanel>
                         </StackPanel>
@@ -279,17 +279,10 @@
 
             <ui:GameCard
                 Margin="0,0,0,10"
-                Header="CHỈ DẪN KẾT NỐI GAME &amp; ASSEMBLY-CSHARP">
+                Header="HƯỚNG DẪN KẾT NỐI GAME">
                 <StackPanel>
-                    <TextBlock
-                        FontSize="11"
-                        Foreground="{DynamicResource GameTextDarkBrush}"
-                        LineHeight="17"
-                        Text="DBAM hoạt động theo nguyên lý Out-of-Process (không can thiệp chỉnh sửa file game gốc). Tool kết nối trực tiếp với tiến trình game thông qua Win32 API và tương tác với máy ảo Mono 2.0 bằng file Assembly-CSharp.dll."
-                        TextWrapping="Wrap" />
-
                     <Border
-                        Margin="0,8,0,8"
+                        Margin="0,0,0,8"
                         Padding="10,8"
                         Background="#FFFBEB"
                         BorderBrush="#D97706"
@@ -300,52 +293,29 @@
                                 FontSize="11"
                                 FontWeight="ExtraBold"
                                 Foreground="#B45309"
-                                Text="QUY TẮC QUAN TRỌNG:" />
+                                Text="LƯU Ý QUAN TRỌNG:" />
                             <TextBlock
                                 Margin="0,3,0,0"
                                 FontSize="10.5"
                                 FontWeight="SemiBold"
                                 Foreground="#92400E"
                                 LineHeight="16"
-                                Text="Tải phiên bản game PC gốc v2.5.0 trực tiếp tại trang chủ (ngocrongonline.com). Tuyệt đối KHÔNG sử dụng bản mod hoặc client đã bị can thiệp."
+                                Text="Chỉ sử dụng bản game PC gốc v2.5.0 tải tại trang chủ (ngocrongonline.com) — tuyệt đối KHÔNG dùng bản mod."
                                 TextWrapping="Wrap" />
                         </StackPanel>
                     </Border>
 
-                    <Border
-                        Margin="0,0,0,8"
-                        Padding="10,8"
-                        Background="#FFFDF7"
-                        BorderBrush="{DynamicResource GameBorderBrush}"
-                        BorderThickness="1"
-                        CornerRadius="4">
-                        <StackPanel>
-                            <TextBlock
-                                FontSize="11"
-                                FontWeight="Bold"
-                                Foreground="{DynamicResource GameTextDarkBrush}"
-                                Text="CẤU TRÚC THƯ MỤC GAME CHUẨN:" />
-                            <TextBlock
-                                Margin="8,4,0,0"
-                                FontFamily="Consolas, Courier New, monospace"
-                                FontSize="10.5"
-                                Foreground="#92400E"
-                                LineHeight="16"
-                                Text="Thư mục game/&#x0a;  ├── DragonBoy.exe (hoặc file .exe bất kỳ)&#x0a;  └── DragonBoy_Data/&#x0a;       └── Managed/&#x0a;            └── Assembly-CSharp.dll" />
-                        </StackPanel>
-                    </Border>
-
                     <StackPanel Margin="0,0,0,6">
                         <TextBlock
                             FontSize="11.5"
                             FontWeight="Bold"
                             Foreground="{DynamicResource GameTextDarkBrush}"
-                            Text="1. Tải bản game gốc &amp; chọn file .exe" />
+                            Text="1. Tải và giải nén game" />
                         <TextBlock
                             Margin="10,2,0,0"
                             FontSize="11"
                             Foreground="{DynamicResource GameTextMutedBrush}"
-                            Text="Tải bản game PC gốc 2.5.0 tại trang chủ ngocrongonline.com (không cài bản mod). Bấm nút 'Chọn file...' ở thanh đáy cửa sổ để trỏ đến file thực thi .exe của game."
+                            Text="Tải bản game PC gốc 2.5.0 từ trang chủ rồi giải nén vào một thư mục trên máy tính."
                             TextWrapping="Wrap" />
                     </StackPanel>
 
@@ -354,12 +324,12 @@
                             FontSize="11.5"
                             FontWeight="Bold"
                             Foreground="{DynamicResource GameTextDarkBrush}"
-                            Text="2. Giải nén &amp; kiểm tra cấu trúc thư mục" />
+                            Text="2. Chọn file game (.exe)" />
                         <TextBlock
                             Margin="10,2,0,0"
                             FontSize="11"
                             Foreground="{DynamicResource GameTextMutedBrush}"
-                            Text="Đảm bảo giải nén đầy đủ bản game PC gốc và thư mục chứa game có thư mục con [TênExe]_Data\Managed\Assembly-CSharp.dll trùng khớp với tên file .exe."
+                            Text="Bấm nút 'Chọn file game (.exe)' bên dưới rồi trỏ đến file .exe của game."
                             TextWrapping="Wrap" />
                     </StackPanel>
 
@@ -368,12 +338,12 @@
                             FontSize="11.5"
                             FontWeight="Bold"
                             Foreground="{DynamicResource GameTextDarkBrush}"
-                            Text="3. Sau khi kết nối thành công" />
+                            Text="3. Hoàn tất kết nối" />
                         <TextBlock
                             Margin="10,2,0,0"
                             FontSize="11"
                             Foreground="{DynamicResource GameTextMutedBrush}"
-                            Text="Huy hiệu phiên bản sẽ chuyển màu xanh: 'v2.5.0 (Khớp bản gốc)'. Lúc này bạn đã có thể thêm tài khoản, mở game và sử dụng toàn bộ tính năng tự động."
+                            Text="Khi trạng thái hiển thị màu xanh là hoàn tất. Lúc này bạn có thể thêm tài khoản, mở game và sử dụng bình thường."
                             TextWrapping="Wrap" />
                     </StackPanel>
 
@@ -466,7 +436,7 @@
             </ui:GameCard>
 
             <ui:GameCard
-                Margin="0,0,0,10"
+                Margin="0,0,0,4"
                 Header="NHẬT KÝ CẬP NHẬT PHIÊN BẢN">
                 <StackPanel>
                     <Grid Margin="0,0,0,8">
@@ -517,8 +487,6 @@
                     </Border>
                 </StackPanel>
             </ui:GameCard>
-
-            <views:FeedbackView Margin="0,0,0,4" DataContext="{Binding Feedback}" />
         </StackPanel>
     </ScrollViewer>
 </UserControl>

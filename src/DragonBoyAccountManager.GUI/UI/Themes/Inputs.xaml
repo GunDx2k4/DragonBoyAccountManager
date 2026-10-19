@@ -502,7 +502,7 @@
         <Setter Property="Background" Value="{DynamicResource GameTabInactiveBrush}" />
         <Setter Property="Foreground" Value="{DynamicResource GameTextDarkBrush}" />
         <Setter Property="FontWeight" Value="ExtraBold" />
-        <Setter Property="FontSize" Value="11" />
+        <Setter Property="FontSize" Value="10.5" />
         <Setter Property="Height" Value="34" />
         <Setter Property="Cursor" Value="Hand" />
         <Setter Property="Margin" Value="0" />

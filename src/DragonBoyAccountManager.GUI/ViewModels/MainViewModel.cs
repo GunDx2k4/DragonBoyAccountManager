@@ -17,6 +17,7 @@ public sealed partial class MainViewModel : ObservableObject
     public GuideViewModel Guide { get; }
     public UtilitiesTabViewModel UtilitiesTab { get; }
     public AutoTabViewModel AutoTab { get; }
+    public FeedbackViewModel Feedback { get; }
 
     [ObservableProperty]
     private int _selectedTabIndex;
@@ -29,6 +30,7 @@ public sealed partial class MainViewModel : ObservableObject
         GuideViewModel guide,
         UtilitiesTabViewModel utilitiesTab,
         AutoTabViewModel autoTab,
+        FeedbackViewModel feedback,
         IAccountStorageService storageService,
         IDialogService dialogService)
     {
@@ -39,6 +41,7 @@ public sealed partial class MainViewModel : ObservableObject
         Guide = guide;
         UtilitiesTab = utilitiesTab;
         AutoTab = autoTab;
+        Feedback = feedback;
         _storageService = storageService;
         _dialogService = dialogService;
 

@@ -76,20 +76,16 @@ public sealed partial class GuideViewModel : ObservableObject
 
     private Dictionary<string, string>? _versionChecksums;
 
-    public FeedbackViewModel Feedback { get; }
-
     public GuideViewModel(
         ISettingsService settingsService,
         IDialogService dialogService,
         IGameClientValidator clientValidator,
-        IAppUpdaterService updaterService,
-        FeedbackViewModel feedback)
+        IAppUpdaterService updaterService)
     {
         _settingsService = settingsService;
         _dialogService = dialogService;
         _clientValidator = clientValidator;
         _updaterService = updaterService;
-        Feedback = feedback;
 
         var version = System.Reflection.Assembly.GetExecutingAssembly().GetName().Version;
         _appVersion = version != null ? $"{version.Major}.{version.Minor}.{version.Build}" : "1.0.0";
