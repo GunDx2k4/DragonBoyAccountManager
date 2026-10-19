@@ -1,5 +1,6 @@
 using System.Net;
 using System.Net.Http;
+using System.Reflection;
 using System.Text;
 using System.Text.Json;
 using System.Text.Json.Serialization;
@@ -8,8 +9,6 @@ namespace DragonBoyAccountManager.GUI.Services.Feedback;
 
 public sealed class DiscordFeedbackService : IFeedbackService
 {
-    public const string DefaultWebhookUrl = "https://discord.com/api/webhooks/1561067982392795256/XYLWXMyfa-aYc1T_StKK_9isrqc-Rvh61kYR20MI7X_rHBq9gymp2SkXiWBzoPKBgc9m";
-
     private static readonly HttpClient HttpClient = new()
     {
         Timeout = TimeSpan.FromSeconds(15),
@@ -18,13 +17,20 @@ public sealed class DiscordFeedbackService : IFeedbackService
 
     private readonly string _webhookUrl;
 
+    public bool IsConfigured => !string.IsNullOrWhiteSpace(_webhookUrl);
+
     public DiscordFeedbackService(string? webhookUrl = null)
     {
-        _webhookUrl = string.IsNullOrWhiteSpace(webhookUrl) ? DefaultWebhookUrl : webhookUrl;
+        _webhookUrl = ResolveWebhookUrl(webhookUrl);
     }
 
     public async Task<FeedbackSendResult> SendFeedbackAsync(FeedbackReport report, CancellationToken cancellationToken = default)
     {
+        if (string.IsNullOrWhiteSpace(_webhookUrl))
+        {
+            return new FeedbackSendResult(false, "Tính năng gửi góp ý chưa được cấu hình webhook tiếp nhận.");
+        }
+
         try
         {
             var (typeTitle, color) = report.Type switch
@@ -145,6 +151,31 @@ public sealed class DiscordFeedbackService : IFeedbackService
             return value;
 
         return value[..(maxLength - 3)] + "...";
+    }
+
+    private static string ResolveWebhookUrl(string? explicitUrl)
+    {
+        if (!string.IsNullOrWhiteSpace(explicitUrl))
+        {
+            return explicitUrl.Trim();
+        }
+
+        var env = Environment.GetEnvironmentVariable("DISCORD_WEBHOOK_URL");
+        if (!string.IsNullOrWhiteSpace(env))
+        {
+            return env.Trim();
+        }
+
+        var metadata = typeof(DiscordFeedbackService).Assembly
+            .GetCustomAttributes<AssemblyMetadataAttribute>()
+            .FirstOrDefault(a => string.Equals(a.Key, "DiscordWebhookUrl", StringComparison.OrdinalIgnoreCase))?.Value;
+
+        if (!string.IsNullOrWhiteSpace(metadata))
+        {
+            return metadata.Trim();
+        }
+
+        return string.Empty;
     }
 
     private sealed class DiscordWebhookPayload

@@ -25,6 +25,13 @@
     </EmbeddedResource>
   </ItemGroup>
 
+  <ItemGroup Condition="'$(DiscordWebhookUrl)' != ''">
+    <AssemblyAttribute Include="System.Reflection.AssemblyMetadataAttribute">
+      <_Parameter1>DiscordWebhookUrl</_Parameter1>
+      <_Parameter2>$(DiscordWebhookUrl)</_Parameter2>
+    </AssemblyAttribute>
+  </ItemGroup>
+
   <ItemGroup>
     <PackageReference Include="CommunityToolkit.Mvvm" />
     <PackageReference Include="Microsoft.Extensions.DependencyInjection" />

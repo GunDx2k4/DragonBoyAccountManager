@@ -82,6 +82,8 @@ jobs:
             -o ./publish/cli
 
       - name: Publish GUI (Single-File)
+        env:
+          DISCORD_WEBHOOK_URL: ${{ secrets.DISCORD_WEBHOOK_URL }}
         run: |
           dotnet publish src/DragonBoyAccountManager.GUI/DragonBoyAccountManager.GUI.csproj `
             -c Release `
@@ -94,6 +96,7 @@ jobs:
             -p:Version=${{ steps.ver.outputs.version }} `
             -p:FileVersion=${{ steps.ver.outputs.version }} `
             -p:AssemblyVersion=${{ steps.ver.outputs.version }} `
+            "-p:DiscordWebhookUrl=$env:DISCORD_WEBHOOK_URL" `
             -o ./publish/gui
 
       - name: Prepare Artifacts & Checksums
