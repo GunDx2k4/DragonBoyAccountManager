@@ -1,5 +1,14 @@
 # DragonBoy Account Manager (DBAM) - Release Notes
 
+## Phiên bản v1.0.3
+
+- **Tab Tự động luyện tập**: Bổ sung tab Tự động với tùy chọn chọn quái mục tiêu, tự động nhặt đồ và né siêu quái tránh đột tử
+- **Tự động gán chiêu & Phím tắt 2 hàng**: Tối ưu thanh kỹ năng 2 hàng trực quan và tự động gán chiêu thức theo tài khoản
+- **Hướng dẫn & Kiểm tra thư mục**: Bổ sung thông báo hướng dẫn chọn đúng thư mục game để kết nối ổn định
+- **Độ ổn định & Điều khiển**: Tối ưu tương tác điều khiển nhân vật mượt mà và hạn chế tối đa nguy cơ văng game
+
+---
+
 ## Phiên bản v1.0.2
 
 - **Dịch chuyển nhanh & Bản đồ**: Bổ sung tùy chọn dịch chuyển nhanh tức thời và hiển thị tên bản đồ trực tiếp
