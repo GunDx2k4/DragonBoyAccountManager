@@ -35,7 +35,19 @@ public class GameLauncher
         Validate(options.GamePath);
 
         string workingDir = options.WorkingDirectory ?? Path.GetDirectoryName(options.GamePath)!;
-        string arguments = options.AdditionalArguments ?? string.Empty;
+        var argsList = new List<string>();
+
+        if (options.ScreenWidth > 0 && options.ScreenHeight > 0)
+        {
+            argsList.Add($"-screen-width {options.ScreenWidth}");
+            argsList.Add($"-screen-height {options.ScreenHeight}");
+            argsList.Add("-screen-fullscreen 0");
+        }
+
+        if (!string.IsNullOrWhiteSpace(options.AdditionalArguments))
+        {
+            argsList.Add(options.AdditionalArguments.Trim());
+        }
 
         if (options.EnableLogging && !string.IsNullOrEmpty(options.LogPrefix))
         {
@@ -44,8 +56,10 @@ public class GameLauncher
 
             string safeName = string.Join("_", options.LogPrefix.Split(Path.GetInvalidFileNameChars()));
             string logFile = Path.Combine(logsDir, $"log_{safeName}_{DateTime.Now:yyyyMMdd_HHmmss}.txt");
-            arguments = $"{arguments} -logfile \"{logFile}\"".Trim();
+            argsList.Add($"-logfile \"{logFile}\"");
         }
+
+        string arguments = string.Join(" ", argsList);
 
         var startInfo = new ProcessStartInfo
         {

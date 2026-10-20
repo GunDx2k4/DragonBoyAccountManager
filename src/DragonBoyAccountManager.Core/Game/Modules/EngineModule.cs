@@ -97,14 +97,6 @@ public class EngineModule(MonoReflector reflector) : IEngineModule
         try
         {
             _reflector.CallUnityMethod("UnityEngine", "Screen", "SetResolution", IntPtr.Zero, width, height, fullscreen);
-
-            try
-            {
-                int level = (width <= 720) ? 1 : 0;
-                _reflector.CallMethod(GameSchema.Rms.ClassName, GameSchema.Rms.MethodSaveRMSInt, IntPtr.Zero, GameSchema.Rms.KeyLevelScreenKN, level);
-            }
-            catch { }
-
             return true;
         }
         catch

@@ -90,15 +90,12 @@ public sealed class CoreGameEngineAdapter(ISettingsService? settingsService = nu
             int customH = _settingsService?.Current.WindowCustomHeight ?? 0;
 
             PreSetServerRms(account.ServerId);
-            PreSetWindowRms(customW, customH);
-            PreSetRegistryResolution(gamePath, customW, customH);
 
             var options = new LaunchOptions
             {
                 SessionId = account.Id,
                 GamePath = gamePath,
-                LogPrefix = string.IsNullOrWhiteSpace(account.Username) ? "DBAM" : account.Username,
-                AdditionalArguments = null
+                LogPrefix = string.IsNullOrWhiteSpace(account.Username) ? "DBAM" : account.Username
             };
 
             var instance = await _coreLauncher.LaunchAsync(options);
@@ -125,7 +122,7 @@ public sealed class CoreGameEngineAdapter(ISettingsService? settingsService = nu
                     return $"DBAM - {account.Username}{serverInfo} [{session.Instance.Player.Name}]";
                 }
                 return initialTitle;
-            }, 0, 0));
+            }, customW, customH));
 
             instance.Exited += (_, _) =>
             {
@@ -466,6 +463,10 @@ public sealed class CoreGameEngineAdapter(ISettingsService? settingsService = nu
 
     public bool SetResolution(Guid accountId, int width, int height)
     {
+        if (_sessions.TryGetValue(accountId, out var session))
+        {
+            return GameWindowHelper.ResizeWindow(session.Instance.Process, width, height);
+        }
         return false;
     }
 
@@ -847,76 +848,6 @@ public sealed class CoreGameEngineAdapter(ISettingsService? settingsService = nu
                 string title = $"DBAM - {session.Account.Username} ({session.Account.ServerName}) [{playerSnapshot.Name}]";
                 GameWindowHelper.UpdateWindowTitle(inst.Process, title);
             }
-        }
-        catch { }
-    }
-
-    private static void PreSetRegistryResolution(string gamePath, int width, int height)
-    {
-        if (width <= 0 || height <= 0) return;
-
-        try
-        {
-            string company = "Team";
-            string product = "DragonBoy250";
-
-            string gameDir = Path.GetDirectoryName(gamePath) ?? string.Empty;
-            string exeName = Path.GetFileNameWithoutExtension(gamePath);
-            string appInfoPath = Path.Combine(gameDir, $"{exeName}_Data", "app.info");
-
-            if (File.Exists(appInfoPath))
-            {
-                var lines = File.ReadAllLines(appInfoPath);
-                if (lines.Length >= 2 && !string.IsNullOrWhiteSpace(lines[0]) && !string.IsNullOrWhiteSpace(lines[1]))
-                {
-                    company = lines[0].Trim();
-                    product = lines[1].Trim();
-                }
-            }
-
-            string subKey = $@"Software\{company}\{product}";
-            using var key = Microsoft.Win32.Registry.CurrentUser.CreateSubKey(subKey);
-            if (key != null)
-            {
-                foreach (var valName in key.GetValueNames())
-                {
-                    if (valName.StartsWith("Screenmanager Resolution Width", StringComparison.OrdinalIgnoreCase))
-                    {
-                        key.SetValue(valName, width, Microsoft.Win32.RegistryValueKind.DWord);
-                    }
-                    else if (valName.StartsWith("Screenmanager Resolution Height", StringComparison.OrdinalIgnoreCase))
-                    {
-                        key.SetValue(valName, height, Microsoft.Win32.RegistryValueKind.DWord);
-                    }
-                    else if (valName.StartsWith("Screenmanager Is Fullscreen mode", StringComparison.OrdinalIgnoreCase))
-                    {
-                        key.SetValue(valName, 0, Microsoft.Win32.RegistryValueKind.DWord);
-                    }
-                }
-
-                key.SetValue("Screenmanager Resolution Width_h182942802", width, Microsoft.Win32.RegistryValueKind.DWord);
-                key.SetValue("Screenmanager Resolution Height_h2627697771", height, Microsoft.Win32.RegistryValueKind.DWord);
-                key.SetValue("Screenmanager Is Fullscreen mode_h3981298716", 0, Microsoft.Win32.RegistryValueKind.DWord);
-            }
-        }
-        catch { }
-    }
-
-    private static void PreSetWindowRms(int customWidth, int customHeight)
-    {
-        if (customWidth <= 0 || customHeight <= 0) return;
-
-        try
-        {
-            string appData = Environment.GetFolderPath(Environment.SpecialFolder.UserProfile);
-            string levelPath = Path.Combine(appData, "AppData", "LocalLow", "Team", "DragonBoy250", "levelScreenKN");
-            string? dir = Path.GetDirectoryName(levelPath);
-            if (!string.IsNullOrEmpty(dir) && !Directory.Exists(dir))
-            {
-                Directory.CreateDirectory(dir);
-            }
-            int level = (customWidth <= 720) ? 1 : 0;
-            File.WriteAllBytes(levelPath, [(byte)level]);
         }
         catch { }
     }

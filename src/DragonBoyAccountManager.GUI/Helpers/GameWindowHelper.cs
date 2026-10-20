@@ -139,7 +139,7 @@ public static class GameWindowHelper
         return SetWindowText(hWnd, newTitle);
     }
 
-    public static async Task ApplyWindowStyleAsync(Process proc, Func<string> titleProvider, int width = 0, int height = 0, int maxAttempts = 35)
+    public static async Task ApplyWindowStyleAsync(Process proc, Func<string> titleProvider, int width = 0, int height = 0, int maxAttempts = 50)
     {
         for (int i = 0; i < maxAttempts; i++)
         {
@@ -159,6 +159,11 @@ public static class GameWindowHelper
 
                     if (width > 0 && height > 0)
                     {
+                        if (IsIconic(hWnd))
+                        {
+                            ShowWindow(hWnd, SW_RESTORE);
+                        }
+
                         var (curW, curH) = GetWindowSize(hWnd);
                         if (curW != width || curH != height)
                         {
@@ -174,7 +179,7 @@ public static class GameWindowHelper
         }
     }
 
-    public static Task ApplyWindowStyleAsync(Process proc, string windowTitle, int width = 0, int height = 0, int maxAttempts = 35)
+    public static Task ApplyWindowStyleAsync(Process proc, string windowTitle, int width = 0, int height = 0, int maxAttempts = 50)
         => ApplyWindowStyleAsync(proc, () => windowTitle, width, height, maxAttempts);
 
     public static bool ResizeWindow(Process proc, int width, int height)
