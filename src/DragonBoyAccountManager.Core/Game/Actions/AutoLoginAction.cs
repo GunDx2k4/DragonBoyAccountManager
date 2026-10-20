@@ -70,6 +70,25 @@ public class AutoLoginAction(string username, string password, int serverId = 0,
                     return ActionResult.Success($"Đăng nhập thành công! Nhân vật: {context.Player.Name}");
                 }
 
+                if (context.UI.IsDownloadingData)
+                {
+                    while (context.UI.IsDownloadingData && !cancellationToken.IsCancellationRequested && context.IsRunning)
+                    {
+                        context.UI.TriggerDownloadData();
+                        int pct = context.UI.DownloadDataPercent;
+                        string pctText = pct > 0 ? $" ({pct}%)" : "";
+                        progress?.Report($"Game đang tải dữ liệu{pctText}... Vui lòng chờ tải xong.");
+                        await Task.Delay(1000, cancellationToken);
+                    }
+
+                    if (!context.IsRunning || cancellationToken.IsCancellationRequested)
+                        return ActionResult.Failure("Đăng nhập bị hủy bỏ.");
+
+                    progress?.Report("Tải dữ liệu hoàn tất! Bắt đầu đăng nhập...");
+                    await Task.Delay(1500, cancellationToken);
+                    continue;
+                }
+
                 attempt++;
                 if (attempt > MaxAttempts)
                 {

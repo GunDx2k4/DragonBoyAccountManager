@@ -16,8 +16,6 @@ public sealed class WindowArrangeOptions
 {
     public WindowArrangeMode Mode { get; set; } = WindowArrangeMode.Grid;
     public int Columns { get; set; } = 0;
-    public int CustomWidth { get; set; } = 0;
-    public int CustomHeight { get; set; } = 0;
     public int SpacingX { get; set; } = 0;
     public int SpacingY { get; set; } = 0;
 }
@@ -141,9 +139,8 @@ public static class GameWindowHelper
         return SetWindowText(hWnd, newTitle);
     }
 
-    public static async Task ApplyWindowStyleAsync(Process proc, Func<string> titleProvider, int maxAttempts = 15, int requiredSuccessCount = 3)
+    public static async Task ApplyWindowStyleAsync(Process proc, Func<string> titleProvider, int width = 0, int height = 0, int maxAttempts = 35)
     {
-        int appliedCount = 0;
         for (int i = 0; i < maxAttempts; i++)
         {
             if (proc.HasExited) return;
@@ -160,21 +157,39 @@ public static class GameWindowHelper
                         SetWindowText(hWnd, title);
                     }
 
-                    appliedCount++;
-                    if (appliedCount >= requiredSuccessCount)
+                    if (width > 0 && height > 0)
                     {
-                        return;
+                        var (curW, curH) = GetWindowSize(hWnd);
+                        if (curW != width || curH != height)
+                        {
+                            uint flags = SWP_NOZORDER | SWP_NOMOVE | SWP_SHOWWINDOW | SWP_NOACTIVATE;
+                            SetWindowPos(hWnd, IntPtr.Zero, 0, 0, width, height, flags);
+                        }
                     }
                 }
                 catch { }
             }
 
-            await Task.Delay(250);
+            await Task.Delay(200);
         }
     }
 
-    public static Task ApplyWindowStyleAsync(Process proc, string windowTitle, int maxAttempts = 15, int requiredSuccessCount = 3)
-        => ApplyWindowStyleAsync(proc, () => windowTitle, maxAttempts, requiredSuccessCount);
+    public static Task ApplyWindowStyleAsync(Process proc, string windowTitle, int width = 0, int height = 0, int maxAttempts = 35)
+        => ApplyWindowStyleAsync(proc, () => windowTitle, width, height, maxAttempts);
+
+    public static bool ResizeWindow(Process proc, int width, int height)
+    {
+        var hWnd = GetWindowHandle(proc);
+        if (hWnd == IntPtr.Zero || width <= 0 || height <= 0) return false;
+
+        if (IsIconic(hWnd))
+        {
+            ShowWindow(hWnd, SW_RESTORE);
+        }
+
+        uint flags = SWP_NOZORDER | SWP_NOMOVE | SWP_SHOWWINDOW | SWP_NOACTIVATE;
+        return SetWindowPos(hWnd, IntPtr.Zero, 0, 0, width, height, flags);
+    }
 
     public static bool PositionWindow(Process proc, int x, int y, int width = 0, int height = 0)
     {
@@ -290,7 +305,7 @@ public static class GameWindowHelper
             int x = workArea.Left + (c * (cellWidth + options.SpacingX));
             int y = workArea.Top + (r * (cellHeight + options.SpacingY));
 
-            SetWindowPos(windows[i], IntPtr.Zero, x, y, cellWidth, cellHeight, SWP_NOZORDER | SWP_SHOWWINDOW | SWP_NOACTIVATE);
+            SetWindowPos(windows[i], IntPtr.Zero, x, y, 0, 0, SWP_NOZORDER | SWP_SHOWWINDOW | SWP_NOSIZE | SWP_NOACTIVATE);
         }
     }
 
@@ -320,8 +335,7 @@ public static class GameWindowHelper
                 y = currentStartY;
             }
 
-            uint flags = SWP_SHOWWINDOW | SWP_NOSIZE | SWP_NOACTIVATE;
-            SetWindowPos(hWnd, IntPtr.Zero, x, y, 0, 0, flags);
+            SetWindowPos(hWnd, IntPtr.Zero, x, y, 0, 0, SWP_SHOWWINDOW | SWP_NOSIZE | SWP_NOACTIVATE);
             BringWindowToTop(hWnd);
         }
     }
@@ -360,8 +374,7 @@ public static class GameWindowHelper
                 y = workArea.Top + ((r % maxRowsInScreen) * 35);
             }
 
-            uint flags = SWP_NOZORDER | SWP_SHOWWINDOW | SWP_NOSIZE | SWP_NOACTIVATE;
-            SetWindowPos(hWnd, IntPtr.Zero, x, y, 0, 0, flags);
+            SetWindowPos(hWnd, IntPtr.Zero, x, y, 0, 0, SWP_NOZORDER | SWP_SHOWWINDOW | SWP_NOSIZE | SWP_NOACTIVATE);
         }
     }
 

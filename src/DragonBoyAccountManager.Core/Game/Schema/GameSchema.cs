@@ -58,6 +58,25 @@ public static class GameSchema
         public const int ActionSelectServer = 6;
         public const int ActionOpenLogin = 7;
         public const int ActionLoginSaved = 3;
+        public const int ActionDownload = 2;
+        public const string StaticCmdDownload = "cmdDownload";
+        public const string StaticLoadScreen = "loadScreen";
+        public const string StaticIsGetData = "isGetData";
+        public const string StaticBigOk = "bigOk";
+        public const string StaticPercent = "percent";
+    }
+
+    public static class Command
+    {
+        public const string ClassName = "Command";
+        public const string MethodPerformAction = "performAction";
+    }
+
+    public static class SplashScr
+    {
+        public const string ClassName = "SplashScr";
+        public const string StaticNData = "nData";
+        public const string StaticMaxData = "maxData";
     }
 
     public static class TField
@@ -180,6 +199,7 @@ public static class GameSchema
     {
         public const string ClassName = "Controller";
         public const string StaticIsStopReadMessage = "isStopReadMessage";
+        public const string StaticIsLoadingData = "isLoadingData";
     }
 
     public static class Skill
@@ -366,5 +386,6 @@ public static class GameSchema
     {
         public const string ClassName = "Main";
         public const string StaticIsQuitApp = "isQuitApp";
+        public const string StaticStarted = "started";
     }
 }

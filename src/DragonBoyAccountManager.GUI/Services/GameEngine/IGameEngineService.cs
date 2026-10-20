@@ -16,6 +16,7 @@ public interface IGameEngineService
     int? GetProcessId(Guid accountId);
     bool FocusWindow(Guid accountId);
     void ArrangeWindows(IEnumerable<Guid>? accountIds = null);
+    bool SetResolution(Guid accountId, int width, int height);
 
     void SetGameSpeed(Guid accountId, float speed);
     float GetGameSpeed(Guid accountId);

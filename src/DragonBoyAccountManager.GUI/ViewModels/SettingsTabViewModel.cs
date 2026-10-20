@@ -51,31 +51,31 @@ public sealed partial class SettingsTabViewModel : ObservableObject
 
         var windowGroup = new SettingGroupViewModel(
             "window",
-            "CẤU HÌNH CỬA SỔ GAME",
-            "Thiết lập bố cục hiển thị và kích thước tab game trên màn hình")
+            "CẤU HÌNH CỬA SỔ & KÍCH THƯỚC GAME",
+            "Thiết lập kích thước màn hình khi khởi động và bố cục sắp xếp")
+            .Add(SettingItemViewModel.CreateSelect(
+                "WindowSizePreset",
+                "Kích thước cửa sổ khi mở game",
+                GetSizePresetDisplay(_settingsService.Current.WindowCustomWidth, _settingsService.Current.WindowCustomHeight),
+                new string[] { "Giữ nguyên kích thước", "1024 x 600 (Chuẩn PC)", "720 x 320 (Chuẩn nhỏ / Zoom x1)", "800 x 600", "640 x 480", "512 x 384 (Nhỏ gọn)" },
+                "Áp dụng kích thước này cho cửa sổ game ngay từ đầu khi vừa bật lên."))
             .Add(SettingItemViewModel.CreateBoolean(
                 "AutoArrangeWindows",
                 "Tự động sắp xếp cửa sổ khi mở game",
                 _settingsService.Current.AutoArrangeWindows,
-                "Sau khi khởi động game thành công, tự động định vị các tab game theo bố cục đã cấu hình."))
+                "Sau khi mở game, tự động định vị các tab game (chỉ di chuyển vị trí, không đổi kích thước)."))
             .Add(SettingItemViewModel.CreateSelect(
                 "WindowArrangeMode",
                 "Chế độ sắp xếp cửa sổ",
                 GetArrangeModeDisplay(_settingsService.Current.WindowArrangeMode),
                 new string[] { "Lưới tự động (Grid)", "Chia đều kín màn hình (Tile)", "Bậc thang (Cascade)" },
-                "Bố cục phân bổ vị trí các cửa sổ game trên màn hình máy tính."))
+                "Bố cục phân bổ vị trí các cửa sổ game trên màn hình."))
             .Add(SettingItemViewModel.CreateSelect(
                 "WindowArrangeColumns",
                 "Số cột hiển thị (Chế độ Lưới)",
                 GetColumnsDisplay(_settingsService.Current.WindowArrangeColumns),
                 new string[] { "Tự động (Theo độ phân giải)", "2 Cột", "3 Cột", "4 Cột", "5 Cột", "6 Cột" },
-                "Số lượng tab game tối đa trên mỗi hàng ngang."))
-            .Add(SettingItemViewModel.CreateSelect(
-                "WindowSizePreset",
-                "Kích thước cửa sổ khi sắp xếp",
-                GetSizePresetDisplay(_settingsService.Current.WindowCustomWidth, _settingsService.Current.WindowCustomHeight),
-                new string[] { "Giữ nguyên kích thước", "1024 x 600 (Chuẩn PC)", "720 x 320 (Chuẩn nhỏ / Zoom x1)", "800 x 600", "640 x 480", "512 x 384 (Nhỏ gọn)" },
-                "Tự động đặt lại kích thước cửa sổ game khi sắp xếp."));
+                "Số lượng tab game tối đa trên mỗi hàng ngang."));
 
         Groups.Add(windowGroup);
 

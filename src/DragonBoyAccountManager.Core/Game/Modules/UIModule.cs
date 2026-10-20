@@ -9,6 +9,9 @@ public interface IUIModule
     IntPtr CurrentScreenPointer { get; }
     string? CurrentScreenName { get; }
     bool IsGamePlayScreen { get; }
+    bool IsDownloadingData { get; }
+    int DownloadDataPercent { get; }
+    bool TriggerDownloadData();
 
     IntPtr CurrentDialogPointer { get; }
     bool HasDialog { get; }
@@ -66,6 +69,104 @@ public class UIModule(MonoReflector reflector) : IUIModule
     }
 
     public bool IsGamePlayScreen => CurrentScreenName == GameSchema.GameScr.ClassName;
+
+    public bool IsDownloadingData
+    {
+        get
+        {
+            try
+            {
+                bool isControllerLoading = _reflector.ReadStatic<bool>(GameSchema.Controller.ClassName, GameSchema.Controller.StaticIsLoadingData);
+                if (isControllerLoading) return true;
+
+                string? curScr = CurrentScreenName;
+                if (curScr == GameSchema.SplashScr.ClassName)
+                {
+                    int nData = _reflector.ReadStatic<int>(GameSchema.SplashScr.ClassName, GameSchema.SplashScr.StaticNData);
+                    if (nData != -1) return true;
+                }
+
+                if (curScr is GameSchema.ServerListScreen.ClassName or GameSchema.ServerListScreen.ClassNameAlt)
+                {
+                    bool bigOk = _reflector.ReadStatic<bool>(GameSchema.ServerListScreen.ClassName, GameSchema.ServerListScreen.StaticBigOk);
+                    if (bigOk) return false;
+
+                    bool loadScreen = _reflector.ReadStatic<bool>(GameSchema.ServerListScreen.ClassName, GameSchema.ServerListScreen.StaticLoadScreen);
+                    if (loadScreen) return false;
+
+                    return true;
+
+
+
+                }
+
+                return false;
+            }
+            catch
+            {
+                return false;
+            }
+        }
+    }
+
+    public int DownloadDataPercent
+    {
+        get
+        {
+            try
+            {
+                string? curScr = CurrentScreenName;
+                if (curScr == GameSchema.SplashScr.ClassName)
+                {
+                    int nData = _reflector.ReadStatic<int>(GameSchema.SplashScr.ClassName, GameSchema.SplashScr.StaticNData);
+                    int maxData = _reflector.ReadStatic<int>(GameSchema.SplashScr.ClassName, GameSchema.SplashScr.StaticMaxData);
+                    if (nData != -1 && maxData > 0)
+                    {
+                        return Math.Clamp(nData * 100 / maxData, 0, 100);
+                    }
+                }
+
+                if (curScr is GameSchema.ServerListScreen.ClassName or GameSchema.ServerListScreen.ClassNameAlt)
+                {
+                    return _reflector.ReadStatic<int>(GameSchema.ServerListScreen.ClassName, GameSchema.ServerListScreen.StaticPercent);
+                }
+
+                return 0;
+            }
+            catch
+            {
+                return 0;
+            }
+        }
+    }
+
+    public bool TriggerDownloadData()
+    {
+        try
+        {
+            string? curScr = CurrentScreenName;
+            if (curScr is GameSchema.ServerListScreen.ClassName or GameSchema.ServerListScreen.ClassNameAlt)
+            {
+                bool bigOk = _reflector.ReadStatic<bool>(GameSchema.ServerListScreen.ClassName, GameSchema.ServerListScreen.StaticBigOk);
+                bool loadScreen = _reflector.ReadStatic<bool>(GameSchema.ServerListScreen.ClassName, GameSchema.ServerListScreen.StaticLoadScreen);
+                if (!bigOk && !loadScreen)
+                {
+                    bool isGetData = _reflector.ReadStatic<bool>(GameSchema.ServerListScreen.ClassName, GameSchema.ServerListScreen.StaticIsGetData);
+                    if (!isGetData)
+                    {
+                        IntPtr cmdDownloadPtr = _reflector.ReadStatic<IntPtr>(GameSchema.ServerListScreen.ClassName, GameSchema.ServerListScreen.StaticCmdDownload);
+                        if (cmdDownloadPtr != IntPtr.Zero)
+                        {
+                            _reflector.CallMethod(GameSchema.Command.ClassName, GameSchema.Command.MethodPerformAction, cmdDownloadPtr);
+                            return true;
+                        }
+                    }
+                }
+            }
+        }
+        catch { }
+        return false;
+    }
 
     public IntPtr CurrentDialogPointer => _reflector.ReadStatic<IntPtr>(GameSchema.GameCanvas.ClassName, GameSchema.GameCanvas.StaticCurrentDialog);
 

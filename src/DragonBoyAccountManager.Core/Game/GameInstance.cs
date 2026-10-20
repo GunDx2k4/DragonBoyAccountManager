@@ -21,6 +21,7 @@ public sealed class GameInstance : IDisposable
 
     public int ProcessId => Process.Id;
     public bool IsRunning => !Process.HasExited;
+    public bool IsQuitRequested => Engine.IsQuitRequested;
 
     public event EventHandler? Exited
     {

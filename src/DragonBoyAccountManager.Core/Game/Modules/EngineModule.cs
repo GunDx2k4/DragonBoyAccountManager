@@ -12,6 +12,7 @@ public interface IEngineModule
     int IntVersion { get; }
     string ServerIP { get; }
     int ServerPort { get; }
+    bool IsQuitRequested { get; }
 
     bool SetTimeScale(float value);
     bool SetResolution(int width, int height, bool fullscreen = false);
@@ -20,6 +21,15 @@ public interface IEngineModule
 public class EngineModule(MonoReflector reflector) : IEngineModule
 {
     private readonly MonoReflector _reflector = reflector;
+
+    public bool IsQuitRequested
+    {
+        get
+        {
+            try { return _reflector.ReadStatic<bool>(GameSchema.Main.ClassName, GameSchema.Main.StaticIsQuitApp); }
+            catch { return false; }
+        }
+    }
 
     public float TimeScale
     {

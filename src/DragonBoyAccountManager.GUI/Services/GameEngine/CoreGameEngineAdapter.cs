@@ -109,12 +109,24 @@ public sealed class CoreGameEngineAdapter(ISettingsService? settingsService = nu
         {
             OnSessionUpdated?.Invoke(account.Id, GameSessionStatus.LoggingIn, null);
 
+            int customW = _settingsService?.Current.WindowCustomWidth ?? 0;
+            int customH = _settingsService?.Current.WindowCustomHeight ?? 0;
+
             PreSetServerRms(account.ServerId);
+            PreSetWindowRms(customW, customH);
+            PreSetRegistryResolution(gamePath, customW, customH);
+
+            string? additionalArgs = null;
+            if (customW > 0 && customH > 0)
+            {
+                additionalArgs = $"-screen-width {customW} -screen-height {customH} -screen-fullscreen 0";
+            }
 
             var options = new LaunchOptions
             {
                 GamePath = gamePath,
-                LogPrefix = string.IsNullOrWhiteSpace(account.Username) ? "DBAM" : account.Username
+                LogPrefix = string.IsNullOrWhiteSpace(account.Username) ? "DBAM" : account.Username,
+                AdditionalArguments = additionalArgs
             };
 
             var instance = await _coreLauncher.LaunchAsync(options);
@@ -133,7 +145,7 @@ public sealed class CoreGameEngineAdapter(ISettingsService? settingsService = nu
                     return $"DBAM - {account.Username}{serverInfo} [{session.Instance.Player.Name}]";
                 }
                 return initialTitle;
-            }));
+            }, customW, customH));
 
             instance.Exited += (_, _) =>
             {
@@ -175,18 +187,10 @@ public sealed class CoreGameEngineAdapter(ISettingsService? settingsService = nu
                 if (!inst.IsRunning || session.Cts.IsCancellationRequested)
                     return;
 
-                try
+                if (inst.Engine.IsQuitRequested)
                 {
-                    bool isQuitApp = inst.Reflector.ReadStatic<bool>(GameSchema.Main.ClassName, GameSchema.Main.StaticIsQuitApp);
-                    if (isQuitApp)
-                    {
-                        controller.Stop();
-                        inst.Kill();
-                        return;
-                    }
-                }
-                catch
-                {
+                    controller.Stop();
+                    inst.Kill();
                     return;
                 }
 
@@ -238,6 +242,34 @@ public sealed class CoreGameEngineAdapter(ISettingsService? settingsService = nu
                 instance.Engine.SetTimeScale(account.GameSpeed);
             }
 
+            if (customW > 0 && customH > 0)
+            {
+                try
+                {
+                    instance.Engine.SetResolution(customW, customH);
+                }
+                catch { }
+
+                _ = Task.Run(async () =>
+                {
+                    for (int i = 0; i < 40; i++)
+                    {
+                        if (!instance.IsRunning) return;
+                        try
+                        {
+                            if (instance.Reflector.ReadStatic<bool>(GameSchema.Main.ClassName, GameSchema.Main.StaticStarted))
+                            {
+                                await Task.Delay(200);
+                                GameWindowHelper.ResizeWindow(instance.Process, customW, customH);
+                                break;
+                            }
+                        }
+                        catch { }
+                        await Task.Delay(150);
+                    }
+                });
+            }
+
             if (_settingsService?.Current.AutoArrangeWindows == true)
             {
                 ArrangeWindows(_sessions.Keys);
@@ -282,14 +314,14 @@ public sealed class CoreGameEngineAdapter(ISettingsService? settingsService = nu
 
     private async Task<bool> ExecuteLoginAsync(ActiveSession session)
     {
+        var account = session.Account;
+        var controller = session.Controller;
+        var instance = session.Instance;
+
         if (!session.TryStartLogin())
         {
             return false;
         }
-
-        var account = session.Account;
-        var controller = session.Controller;
-        var instance = session.Instance;
 
         OnSessionUpdated?.Invoke(account.Id, GameSessionStatus.LoggingIn, null);
         OnSessionMessageUpdated?.Invoke(account.Id, "Bắt đầu đăng nhập...");
@@ -486,12 +518,28 @@ public sealed class CoreGameEngineAdapter(ISettingsService? settingsService = nu
         var options = new WindowArrangeOptions
         {
             Mode = mode,
-            Columns = _settingsService?.Current.WindowArrangeColumns ?? 0,
-            CustomWidth = _settingsService?.Current.WindowCustomWidth ?? 0,
-            CustomHeight = _settingsService?.Current.WindowCustomHeight ?? 0
+            Columns = _settingsService?.Current.WindowArrangeColumns ?? 0
         };
 
         GameWindowHelper.ArrangeWindows(processes, options);
+    }
+
+    public bool SetResolution(Guid accountId, int width, int height)
+    {
+        if (width <= 0 || height <= 0) return false;
+
+        if (_sessions.TryGetValue(accountId, out var session) && session.Instance.IsRunning)
+        {
+            try
+            {
+                session.Instance.Engine.SetResolution(width, height);
+            }
+            catch { }
+
+            return GameWindowHelper.ResizeWindow(session.Instance.Process, width, height);
+        }
+
+        return false;
     }
 
     public void SetGameSpeed(Guid accountId, float speed)
@@ -892,6 +940,76 @@ public sealed class CoreGameEngineAdapter(ISettingsService? settingsService = nu
                 string title = $"DBAM - {session.Account.Username} ({session.Account.ServerName}) [{playerSnapshot.Name}]";
                 GameWindowHelper.UpdateWindowTitle(inst.Process, title);
             }
+        }
+        catch { }
+    }
+
+    private static void PreSetRegistryResolution(string gamePath, int width, int height)
+    {
+        if (width <= 0 || height <= 0) return;
+
+        try
+        {
+            string company = "Team";
+            string product = "DragonBoy250";
+
+            string gameDir = Path.GetDirectoryName(gamePath) ?? string.Empty;
+            string exeName = Path.GetFileNameWithoutExtension(gamePath);
+            string appInfoPath = Path.Combine(gameDir, $"{exeName}_Data", "app.info");
+
+            if (File.Exists(appInfoPath))
+            {
+                var lines = File.ReadAllLines(appInfoPath);
+                if (lines.Length >= 2 && !string.IsNullOrWhiteSpace(lines[0]) && !string.IsNullOrWhiteSpace(lines[1]))
+                {
+                    company = lines[0].Trim();
+                    product = lines[1].Trim();
+                }
+            }
+
+            string subKey = $@"Software\{company}\{product}";
+            using var key = Microsoft.Win32.Registry.CurrentUser.CreateSubKey(subKey);
+            if (key != null)
+            {
+                foreach (var valName in key.GetValueNames())
+                {
+                    if (valName.StartsWith("Screenmanager Resolution Width", StringComparison.OrdinalIgnoreCase))
+                    {
+                        key.SetValue(valName, width, Microsoft.Win32.RegistryValueKind.DWord);
+                    }
+                    else if (valName.StartsWith("Screenmanager Resolution Height", StringComparison.OrdinalIgnoreCase))
+                    {
+                        key.SetValue(valName, height, Microsoft.Win32.RegistryValueKind.DWord);
+                    }
+                    else if (valName.StartsWith("Screenmanager Is Fullscreen mode", StringComparison.OrdinalIgnoreCase))
+                    {
+                        key.SetValue(valName, 0, Microsoft.Win32.RegistryValueKind.DWord);
+                    }
+                }
+
+                key.SetValue("Screenmanager Resolution Width_h182942802", width, Microsoft.Win32.RegistryValueKind.DWord);
+                key.SetValue("Screenmanager Resolution Height_h2627697771", height, Microsoft.Win32.RegistryValueKind.DWord);
+                key.SetValue("Screenmanager Is Fullscreen mode_h3981298716", 0, Microsoft.Win32.RegistryValueKind.DWord);
+            }
+        }
+        catch { }
+    }
+
+    private static void PreSetWindowRms(int customWidth, int customHeight)
+    {
+        if (customWidth <= 0 || customHeight <= 0) return;
+
+        try
+        {
+            string appData = Environment.GetFolderPath(Environment.SpecialFolder.UserProfile);
+            string levelPath = Path.Combine(appData, "AppData", "LocalLow", "Team", "DragonBoy250", "levelScreenKN");
+            string? dir = Path.GetDirectoryName(levelPath);
+            if (!string.IsNullOrEmpty(dir) && !Directory.Exists(dir))
+            {
+                Directory.CreateDirectory(dir);
+            }
+            int level = (customWidth <= 720) ? 1 : 0;
+            File.WriteAllBytes(levelPath, [(byte)level]);
         }
         catch { }
     }
