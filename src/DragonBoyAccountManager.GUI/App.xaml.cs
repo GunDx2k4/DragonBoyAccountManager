@@ -1,5 +1,7 @@
-﻿using System;
+using System;
 using System.Windows;
+using DragonBoyAccountManager.GUI.Services.Hotkey;
+using DragonBoyAccountManager.GUI.Services.Windowing;
 using DragonBoyAccountManager.GUI.Services.Updater;
 using DragonBoyAccountManager.GUI.Services.Dialog;
 using DragonBoyAccountManager.GUI.Services.Feedback;
@@ -26,6 +28,7 @@ public partial class App : Application
 
     private static void ConfigureServices(IServiceCollection services)
     {
+        services.AddSingleton<IWindowManagerService, WindowManagerService>();
         services.AddSingleton<IGameClientValidator, GameClientValidator>();
         services.AddSingleton<IAppUpdaterService, AppUpdaterService>();
         services.AddSingleton<IAccountStorageService, AccountStorageService>();
@@ -34,10 +37,12 @@ public partial class App : Application
         services.AddSingleton<IGameEngineService, CoreGameEngineAdapter>();
         services.AddSingleton<IGameImageService, GameImageService>();
         services.AddSingleton<IFeedbackService, DiscordFeedbackService>();
+        services.AddSingleton<IHotkeyRoutingService, HotkeyRoutingService>();
 
         services.AddSingleton<AccountsPanelViewModel>();
         services.AddSingleton<AccountFormViewModel>();
         services.AddSingleton<AppStatusBarViewModel>();
+        services.AddSingleton<AppTitleBarViewModel>();
         services.AddSingleton<SettingsTabViewModel>();
         services.AddSingleton<GuideViewModel>();
         services.AddSingleton<UtilitiesTabViewModel>();

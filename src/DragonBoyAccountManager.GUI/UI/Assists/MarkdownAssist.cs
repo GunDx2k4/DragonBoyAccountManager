@@ -3,15 +3,15 @@ using System.Windows.Controls;
 using System.Windows.Documents;
 using System.Windows.Media;
 
-namespace DragonBoyAccountManager.GUI.Helpers;
+namespace DragonBoyAccountManager.GUI.UI.Assists;
 
-public static class MarkdownHelper
+public static class MarkdownAssist
 {
     public static readonly DependencyProperty MarkdownProperty =
         DependencyProperty.RegisterAttached(
             "Markdown",
             typeof(string),
-            typeof(MarkdownHelper),
+            typeof(MarkdownAssist),
             new PropertyMetadata(string.Empty, OnMarkdownChanged));
 
     public static string GetMarkdown(DependencyObject obj) => (string)obj.GetValue(MarkdownProperty);
@@ -32,7 +32,7 @@ public static class MarkdownHelper
     private static readonly Brush TextMutedBrush = new SolidColorBrush(Color.FromRgb(107, 114, 128));
     private static readonly Brush DividerBrush = new SolidColorBrush(Color.FromRgb(229, 231, 235));
 
-    static MarkdownHelper()
+    static MarkdownAssist()
     {
         Header1Brush.Freeze();
         Header2Brush.Freeze();

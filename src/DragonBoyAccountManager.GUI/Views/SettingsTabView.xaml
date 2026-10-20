@@ -5,6 +5,7 @@
     xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
     xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
     xmlns:models="clr-namespace:DragonBoyAccountManager.GUI.Models"
+    xmlns:enums="clr-namespace:DragonBoyAccountManager.GUI.Common.Enums"
     xmlns:ui="clr-namespace:DragonBoyAccountManager.GUI.UI.Controls"
     xmlns:viewmodels="clr-namespace:DragonBoyAccountManager.GUI.ViewModels"
     d:DataContext="{d:DesignInstance Type=viewmodels:SettingsTabViewModel}"
@@ -204,13 +205,13 @@
                                                     <Style TargetType="ContentControl">
                                                         <Setter Property="ContentTemplate" Value="{StaticResource BooleanSettingTemplate}" />
                                                         <Style.Triggers>
-                                                            <DataTrigger Binding="{Binding ViewType}" Value="{x:Static viewmodels:SettingViewType.Number}">
+                                                            <DataTrigger Binding="{Binding ViewType}" Value="{x:Static enums:SettingViewType.Number}">
                                                                 <Setter Property="ContentTemplate" Value="{StaticResource NumberSettingTemplate}" />
                                                             </DataTrigger>
-                                                            <DataTrigger Binding="{Binding ViewType}" Value="{x:Static viewmodels:SettingViewType.Text}">
+                                                            <DataTrigger Binding="{Binding ViewType}" Value="{x:Static enums:SettingViewType.Text}">
                                                                 <Setter Property="ContentTemplate" Value="{StaticResource TextSettingTemplate}" />
                                                             </DataTrigger>
-                                                            <DataTrigger Binding="{Binding ViewType}" Value="{x:Static viewmodels:SettingViewType.Select}">
+                                                            <DataTrigger Binding="{Binding ViewType}" Value="{x:Static enums:SettingViewType.Select}">
                                                                 <Setter Property="ContentTemplate" Value="{StaticResource SelectSettingTemplate}" />
                                                             </DataTrigger>
                                                         </Style.Triggers>

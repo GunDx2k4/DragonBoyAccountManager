@@ -71,10 +71,7 @@ public partial class AccountConfigTabView : UserControl
 
     private void OpenCheatsheet_Click(object sender, RoutedEventArgs e)
     {
-        var win = new HotkeyCheatsheetWindow
-        {
-            Owner = Window.GetWindow(this)
-        };
-        win.ShowDialog();
+        var dialogService = App.Services.GetService(typeof(IDialogService)) as IDialogService;
+        dialogService?.ShowHotkeyCheatsheet(Window.GetWindow(this));
     }
 }

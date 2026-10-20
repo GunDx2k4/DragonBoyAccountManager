@@ -5,7 +5,7 @@
     xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
     xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
     xmlns:converters="clr-namespace:DragonBoyAccountManager.GUI.UI.Converters"
-    xmlns:helpers="clr-namespace:DragonBoyAccountManager.GUI.Helpers"
+    xmlns:assists="clr-namespace:DragonBoyAccountManager.GUI.UI.Assists"
     xmlns:ui="clr-namespace:DragonBoyAccountManager.GUI.UI.Controls"
     xmlns:viewmodels="clr-namespace:DragonBoyAccountManager.GUI.ViewModels"
     xmlns:views="clr-namespace:DragonBoyAccountManager.GUI.Views"
@@ -16,7 +16,6 @@
 
     <UserControl.Resources>
         <converters:ClientStatusToBrushConverter x:Key="ClientStatusToBrushConverter" />
-        <converters:BooleanToVisibilityConverter x:Key="BooleanToVisibilityConverter" />
     </UserControl.Resources>
 
     <ScrollViewer
@@ -146,7 +145,7 @@
                                     HorizontalScrollBarVisibility="Disabled"
                                     VerticalScrollBarVisibility="Auto">
                                     <TextBlock
-                                        helpers:MarkdownHelper.Markdown="{Binding AvailableAppUpdate.ReleaseNotes}"
+                                        assists:MarkdownAssist.Markdown="{Binding AvailableAppUpdate.ReleaseNotes}"
                                         FontSize="11"
                                         LineHeight="17"
                                         TextWrapping="Wrap" />
@@ -469,7 +468,7 @@
                                 Margin="4,0,0,0"
                                 FontSize="10"
                                 Foreground="{DynamicResource GameTextDarkBrush}"
-                                Text="• [  hoặc  ]: Chuyển sang khu vực (zone) trước / kế tiếp" />
+                                Text="• Phím [ hoặc ]: Chuyển sang khu vực (zone) trước / kế tiếp" />
                         </StackPanel>
                     </Border>
 
@@ -634,7 +633,7 @@
                             HorizontalScrollBarVisibility="Disabled"
                             VerticalScrollBarVisibility="Auto">
                             <TextBlock
-                                helpers:MarkdownHelper.Markdown="{Binding ReleaseNotes}"
+                                assists:MarkdownAssist.Markdown="{Binding ReleaseNotes}"
                                 FontSize="11"
                                 LineHeight="18"
                                 TextWrapping="Wrap" />

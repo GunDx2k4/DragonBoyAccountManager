@@ -5,6 +5,7 @@
     xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
     xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
     xmlns:models="clr-namespace:DragonBoyAccountManager.Core.Domain.Snapshots;assembly=DragonBoyAccountManager.Core"
+    xmlns:common="clr-namespace:DragonBoyAccountManager.GUI.Common.Models"
     xmlns:viewmodels="clr-namespace:DragonBoyAccountManager.GUI.ViewModels"
     d:DataContext="{d:DesignInstance Type=viewmodels:UtilitiesTabViewModel}"
     d:DesignHeight="550"
@@ -210,7 +211,7 @@
                         <CheckBox
                             Margin="8,0,0,0"
                             VerticalAlignment="Center"
-                            Content="Toàn bộ acc"
+                            Content="Toàn bộ tài khoản"
                             FontSize="9.5"
                             FontWeight="Bold"
                             IsChecked="{Binding IsApplySpeedToAll}"
@@ -364,7 +365,7 @@
                     </ItemsPanelTemplate>
                 </ItemsControl.ItemsPanel>
                 <ItemsControl.ItemTemplate>
-                    <DataTemplate DataType="{x:Type viewmodels:WaypointButtonItem}">
+                    <DataTemplate DataType="{x:Type common:WaypointButtonItem}">
                         <Button
                             Height="38"
                             MinWidth="0"
@@ -562,8 +563,15 @@
                             <TextBlock Text=")" />
                         </StackPanel>
                     </TabItem.Header>
-                    <ScrollViewer FocusVisualStyle="{x:Null}" VerticalScrollBarVisibility="Auto">
-                        <ItemsControl Margin="6,4" ItemsSource="{Binding Mobs}">
+                    <ScrollViewer FocusVisualStyle="{x:Null}" VerticalScrollBarVisibility="Auto" CanContentScroll="True">
+                        <ItemsControl Margin="6,4" ItemsSource="{Binding Mobs}"
+                                      VirtualizingPanel.IsVirtualizing="True"
+                                      VirtualizingPanel.VirtualizationMode="Recycling">
+                            <ItemsControl.ItemsPanel>
+                                <ItemsPanelTemplate>
+                                    <VirtualizingStackPanel />
+                                </ItemsPanelTemplate>
+                            </ItemsControl.ItemsPanel>
                             <ItemsControl.ItemTemplate>
                                 <DataTemplate DataType="{x:Type models:WorldMobInfo}">
                                     <Border
@@ -679,8 +687,15 @@
                             <Run Text=")" />
                         </TextBlock>
                     </TabItem.Header>
-                    <ScrollViewer FocusVisualStyle="{x:Null}" VerticalScrollBarVisibility="Auto">
-                        <ItemsControl Margin="6,4" ItemsSource="{Binding Npcs}">
+                    <ScrollViewer FocusVisualStyle="{x:Null}" VerticalScrollBarVisibility="Auto" CanContentScroll="True">
+                        <ItemsControl Margin="6,4" ItemsSource="{Binding Npcs}"
+                                      VirtualizingPanel.IsVirtualizing="True"
+                                      VirtualizingPanel.VirtualizationMode="Recycling">
+                            <ItemsControl.ItemsPanel>
+                                <ItemsPanelTemplate>
+                                    <VirtualizingStackPanel />
+                                </ItemsPanelTemplate>
+                            </ItemsControl.ItemsPanel>
                             <ItemsControl.ItemTemplate>
                                 <DataTemplate DataType="{x:Type models:WorldNpcInfo}">
                                     <Border

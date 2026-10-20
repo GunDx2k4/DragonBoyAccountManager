@@ -1,25 +1,20 @@
-﻿using System.Collections.ObjectModel;
+using System.Collections.ObjectModel;
 using System.Windows.Threading;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
+using CommunityToolkit.Mvvm.Messaging;
+using DragonBoyAccountManager.GUI.Common.Models;
+using DragonBoyAccountManager.GUI.Messaging;
 using DragonBoyAccountManager.GUI.Models;
 using DragonBoyAccountManager.GUI.Services.GameEngine;
 using DragonBoyAccountManager.GUI.Services.Settings;
 
 namespace DragonBoyAccountManager.GUI.ViewModels;
 
-public sealed record WaypointButtonItem(
-    string Name,
-    int X,
-    int Y,
-    WorldWaypointInfo Waypoint
-);
-
 public sealed partial class UtilitiesTabViewModel : ObservableObject
 {
     private readonly IGameEngineService _gameEngine;
     private readonly ISettingsService _settingsService;
-    private readonly DispatcherTimer _refreshTimer;
     private Func<List<Guid>>? _targetResolver;
 
     [ObservableProperty]
@@ -135,28 +130,46 @@ public sealed partial class UtilitiesTabViewModel : ObservableObject
 
         _fastTeleport = _settingsService.Current.FastTeleport;
 
-        _refreshTimer = new DispatcherTimer
+        WeakReferenceMessenger.Default.Register<SessionSnapshotUpdatedMessage>(this, (_, m) =>
         {
-            Interval = TimeSpan.FromSeconds(1.5)
-        };
-        _refreshTimer.Tick += (_, _) => RefreshMapData();
+            if (ActiveAccount?.Id == m.AccountId)
+            {
+                var dispatcher = App.Current?.Dispatcher;
+                if (dispatcher != null)
+                {
+                    _ = dispatcher.InvokeAsync(() =>
+                    {
+                        if (m.Status == GameSessionStatus.Active && m.Snapshot != null)
+                        {
+                            IsAccountRunning = true;
+                            ApplyWorldSnapshot(m.Snapshot.World);
+                        }
+                        else if (m.Status == GameSessionStatus.Offline)
+                        {
+                            IsAccountRunning = false;
+                            CurrentMapName = "Tài khoản đang tắt";
+                            ClearData();
+                        }
+                    });
+                }
+            }
+        });
+
+        WeakReferenceMessenger.Default.Register<AccountSelectedMessage>(this, (_, m) =>
+        {
+            SetActiveAccount(m.Account);
+            UpdateSyncTargetDisplay();
+        });
+
+        WeakReferenceMessenger.Default.Register<TargetAccountsChangedMessage>(this, (_, _) =>
+        {
+            UpdateSyncTargetDisplay();
+        });
     }
 
-    public void StartPolling()
-    {
-        if (!_refreshTimer.IsEnabled)
-        {
-            _refreshTimer.Start();
-        }
-    }
+    public void StartPolling() { }
 
-    public void StopPolling()
-    {
-        if (_refreshTimer.IsEnabled)
-        {
-            _refreshTimer.Stop();
-        }
-    }
+    public void StopPolling() { }
 
     public void SetTargetResolver(Func<List<Guid>> resolver)
     {
@@ -264,6 +277,14 @@ public sealed partial class UtilitiesTabViewModel : ObservableObject
 
         IsAccountRunning = true;
         var snapshot = _gameEngine.GetWorldSnapshot(ActiveAccount.Id);
+        if (snapshot != null)
+        {
+            ApplyWorldSnapshot(snapshot);
+        }
+    }
+
+    public void ApplyWorldSnapshot(WorldSnapshot snapshot)
+    {
         if (snapshot == null || snapshot.MapId < 0)
         {
             CurrentMapName = "Đang tải dữ liệu bản đồ...";
@@ -448,7 +469,7 @@ public sealed partial class UtilitiesTabViewModel : ObservableObject
             }
         }
 
-        StatusText = $"Đã chuyển sang Khu {targetZone} ({successCount}/{targetIds.Count} acc)";
+        StatusText = $"Đã chuyển sang Khu {targetZone} ({successCount}/{targetIds.Count} tài khoản)";
         _ = Task.Run(async () =>
         {
             await Task.Delay(1000);
@@ -569,7 +590,7 @@ public sealed partial class UtilitiesTabViewModel : ObservableObject
 
             if (!cts.Token.IsCancellationRequested)
             {
-                StatusText = $"Đã chuyển tới {wp.Name} ({targetIds.Count} acc)";
+                StatusText = $"Đã chuyển tới {wp.Name} ({targetIds.Count} tài khoản)";
             }
         }
         catch (OperationCanceledException)
@@ -640,14 +661,14 @@ public sealed partial class UtilitiesTabViewModel : ObservableObject
         });
 
         await Task.WhenAll(tasks);
-        StatusText = $"Đã chọn {entityName} ({targetIds.Count} acc)";
+        StatusText = $"Đã chọn {entityName} ({targetIds.Count} tài khoản)";
     }
 
     public void UpdateSyncTargetDisplay()
     {
         var targets = GetTargetAccountIds();
         int count = targets.Count;
-        SyncTargetDisplay = count > 1 ? $"Đồng bộ: {count} acc" : (count == 1 ? "1 tài khoản" : "Chưa chọn acc");
+        SyncTargetDisplay = count > 1 ? $"Đồng bộ: {count} tài khoản" : (count == 1 ? "1 tài khoản" : "Chưa chọn tài khoản");
     }
 
     [RelayCommand]
@@ -678,7 +699,7 @@ public sealed partial class UtilitiesTabViewModel : ObservableObject
         }
         else
         {
-            StatusText = $"Dùng Capsule: {successCount}/{targets.Count} acc thành công";
+            StatusText = $"Dùng Capsule: {successCount}/{targets.Count} tài khoản thành công";
         }
     }
 
@@ -710,7 +731,7 @@ public sealed partial class UtilitiesTabViewModel : ObservableObject
         }
         else
         {
-            StatusText = $"Dùng TDLT: {successCount}/{targets.Count} acc thành công";
+            StatusText = $"Dùng TDLT: {successCount}/{targets.Count} tài khoản thành công";
         }
     }
 
@@ -725,7 +746,7 @@ public sealed partial class UtilitiesTabViewModel : ObservableObject
             _gameEngine.SetGameSpeed(id, value);
         }
 
-        StatusText = $"Đã đặt tốc độ {value:0.0}x ({targets.Count} acc)";
+        StatusText = $"Đã đặt tốc độ {value:0.0}x ({targets.Count} tài khoản)";
     }
 
     [RelayCommand]

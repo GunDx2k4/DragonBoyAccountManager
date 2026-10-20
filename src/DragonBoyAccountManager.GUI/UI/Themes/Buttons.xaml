@@ -1,7 +1,12 @@
 <ResourceDictionary
     xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-    xmlns:converters="clr-namespace:DragonBoyAccountManager.GUI.UI.Converters">
+    xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+    xmlns:po="http://schemas.microsoft.com/winfx/2006/xaml/presentation/options"
+    xmlns:converters="clr-namespace:DragonBoyAccountManager.GUI.UI.Converters"
+    mc:Ignorable="po">
+
+    <StreamGeometry x:Key="GameCloseCrossGeometry" po:Freeze="True">M 2,1 L 8.5,1 L 13.5,8.2 L 18.5,1 L 25,1 L 17.8,15 L 25,29 L 18.5,29 L 13.5,21.8 L 8.5,29 L 2,29 L 9.2,15 Z</StreamGeometry>
 
     <ControlTemplate x:Key="GamePrimaryButtonTemplate" TargetType="Button">
         <Grid x:Name="rootGrid" SnapsToDevicePixels="True">
@@ -183,7 +188,7 @@
                                     <Canvas Width="27" Height="38">
                                         <Path
                                             Canvas.Top="5.4"
-                                            Data="M 2,1 L 8.5,1 L 13.5,8.2 L 18.5,1 L 25,1 L 17.8,15 L 25,29 L 18.5,29 L 13.5,21.8 L 8.5,29 L 2,29 L 9.2,15 Z"
+                                            Data="{StaticResource GameCloseCrossGeometry}"
                                             Fill="#140002"
                                             Stroke="#140002"
                                             StrokeEndLineCap="Round"
@@ -193,7 +198,7 @@
 
                                         <Path
                                             Canvas.Top="3.6"
-                                            Data="M 2,1 L 8.5,1 L 13.5,8.2 L 18.5,1 L 25,1 L 17.8,15 L 25,29 L 18.5,29 L 13.5,21.8 L 8.5,29 L 2,29 L 9.2,15 Z"
+                                            Data="{StaticResource GameCloseCrossGeometry}"
                                             Fill="#220002"
                                             Stroke="#220002"
                                             StrokeEndLineCap="Round"
@@ -203,7 +208,7 @@
 
                                         <Path
                                             Canvas.Top="1.8"
-                                            Data="M 2,1 L 8.5,1 L 13.5,8.2 L 18.5,1 L 25,1 L 17.8,15 L 25,29 L 18.5,29 L 13.5,21.8 L 8.5,29 L 2,29 L 9.2,15 Z"
+                                            Data="{StaticResource GameCloseCrossGeometry}"
                                             Fill="#2F0302"
                                             Stroke="#2F0302"
                                             StrokeEndLineCap="Round"
@@ -212,7 +217,7 @@
                                             StrokeThickness="3.6" />
 
                                         <Path
-                                            Data="M 2,1 L 8.5,1 L 13.5,8.2 L 18.5,1 L 25,1 L 17.8,15 L 25,29 L 18.5,29 L 13.5,21.8 L 8.5,29 L 2,29 L 9.2,15 Z"
+                                            Data="{StaticResource GameCloseCrossGeometry}"
                                             Fill="#390801"
                                             Stroke="#390801"
                                             StrokeEndLineCap="Round"
@@ -220,7 +225,7 @@
                                             StrokeStartLineCap="Round"
                                             StrokeThickness="2.2" />
 
-                                        <Path Data="M 2,1 L 8.5,1 L 13.5,8.2 L 18.5,1 L 25,1 L 17.8,15 L 25,29 L 18.5,29 L 13.5,21.8 L 8.5,29 L 2,29 L 9.2,15 Z" Fill="#FFFFFF" />
+                                        <Path Data="{StaticResource GameCloseCrossGeometry}" Fill="#FFFFFF" />
                                     </Canvas>
                                 </Viewbox>
                             </Grid>
@@ -768,7 +773,7 @@
                                 <Grid>
                                     <Border x:Name="KeycapFace" CornerRadius="4">
                                         <Border.Background>
-                                            <LinearGradientBrush StartPoint="0,0" EndPoint="0,1">
+                                            <LinearGradientBrush po:Freeze="True" StartPoint="0,0" EndPoint="0,1">
                                                 <GradientStop Offset="0.0" Color="#FFFDF8" />
                                                 <GradientStop Offset="0.4" Color="#FCF0D2" />
                                                 <GradientStop Offset="1.0" Color="#F5DFA0" />
@@ -796,7 +801,7 @@
                             <Setter TargetName="KeycapOuter" Property="Background" Value="{DynamicResource GameBtnOrangeBorderBrush}" />
                             <Setter TargetName="KeycapFace" Property="Background">
                                 <Setter.Value>
-                                    <LinearGradientBrush StartPoint="0,0" EndPoint="0,1">
+                                    <LinearGradientBrush po:Freeze="True" StartPoint="0,0" EndPoint="0,1">
                                         <GradientStop Offset="0.0" Color="#FFFFFF" />
                                         <GradientStop Offset="0.4" Color="#FFF2C6" />
                                         <GradientStop Offset="1.0" Color="#FFE38E" />
@@ -818,7 +823,7 @@
                             <Setter TargetName="KeycapInner" Property="BorderThickness" Value="0,0,0,1.2" />
                             <Setter TargetName="KeycapFace" Property="Background">
                                 <Setter.Value>
-                                    <LinearGradientBrush StartPoint="0,0" EndPoint="0,1">
+                                    <LinearGradientBrush po:Freeze="True" StartPoint="0,0" EndPoint="0,1">
                                         <GradientStop Offset="0.0" Color="#FFB347" />
                                         <GradientStop Offset="0.6" Color="#F58A1F" />
                                         <GradientStop Offset="1.0" Color="#E66700" />

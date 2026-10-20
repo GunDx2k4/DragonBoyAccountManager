@@ -1,15 +1,32 @@
 using System.Collections.Concurrent;
 using System.Diagnostics;
 using System.IO;
+using CommunityToolkit.Mvvm.Messaging;
+using DragonBoyAccountManager.GUI.Messaging;
 
-using DragonBoyAccountManager.GUI.Helpers;
+using DragonBoyAccountManager.Core.Automation.Actions.Abstractions;
+using DragonBoyAccountManager.Core.Automation.Actions.Primitives;
+using DragonBoyAccountManager.Core.Automation.Routines.Chat;
+using DragonBoyAccountManager.Core.Automation.Routines.Login;
+using DragonBoyAccountManager.Core.Automation.Routines.Training;
+using DragonBoyAccountManager.Core.Domain.Contracts;
+using DragonBoyAccountManager.Core.Domain.Entities;
+using DragonBoyAccountManager.Core.Domain.Enums;
+using DragonBoyAccountManager.Core.Domain.Models;
+using DragonBoyAccountManager.Core.Domain.Snapshots;
+using DragonBoyAccountManager.Core.Lifecycle;
+using DragonBoyAccountManager.Core.Lifecycle.Options;
+using DragonBoyAccountManager.GUI.Common.Enums;
+using DragonBoyAccountManager.GUI.Common.Models;
+using DragonBoyAccountManager.GUI.Services.Windowing;
 using DragonBoyAccountManager.GUI.Models;
 using DragonBoyAccountManager.GUI.Services.Settings;
 
 namespace DragonBoyAccountManager.GUI.Services.GameEngine;
 
-public sealed class CoreGameEngineAdapter(ISettingsService? settingsService = null) : IGameEngineService, IDisposable
+public sealed class CoreGameEngineAdapter(ISettingsService? settingsService = null, IWindowManagerService? windowManager = null) : IGameEngineService, IDisposable
 {
+    private readonly IWindowManagerService _windowManager = windowManager ?? new WindowManagerService();
     private sealed class ActiveSession(GameInstance instance, GameController controller, Account account) : IDisposable
     {
         public GameInstance Instance { get; } = instance;
@@ -54,9 +71,16 @@ public sealed class CoreGameEngineAdapter(ISettingsService? settingsService = nu
 
     public event Action<Guid, GameSessionStatus, GameSessionSnapshot?>? OnSessionUpdated;
     public event Action<Guid, string>? OnSessionMessageUpdated;
+    public event Action<Guid, ActionExecutionReport>? OnActionReported;
     public event Action<Guid, string, int>? OnChatSent;
     public event Action<Guid, string>? OnAutoTrainStatusChanged;
     public event Action<Guid, bool>? OnAutoTrainStateChanged;
+
+    private void NotifySessionUpdated(Guid accountId, GameSessionStatus status, GameSessionSnapshot? snapshot)
+    {
+        OnSessionUpdated?.Invoke(accountId, status, snapshot);
+        WeakReferenceMessenger.Default.Send(new SessionSnapshotUpdatedMessage(accountId, status, snapshot));
+    }
 
     public async Task<bool> StartAsync(Account account, string gamePath)
     {
@@ -74,7 +98,7 @@ public sealed class CoreGameEngineAdapter(ISettingsService? settingsService = nu
 
         try
         {
-            OnSessionUpdated?.Invoke(account.Id, GameSessionStatus.LoggingIn, null);
+            NotifySessionUpdated(account.Id, GameSessionStatus.LoggingIn, null);
 
             int customW = _settingsService?.Current.WindowCustomWidth ?? 0;
             int customH = _settingsService?.Current.WindowCustomHeight ?? 0;
@@ -94,6 +118,8 @@ public sealed class CoreGameEngineAdapter(ISettingsService? settingsService = nu
 
             _sessions[account.Id] = session;
 
+            controller.ActionReported += report => OnActionReported?.Invoke(account.Id, report);
+
             controller.Routines.RoutineStateChanged += (routine, isRunning) =>
             {
                 if (routine is AutoTrainRoutine)
@@ -105,7 +131,7 @@ public sealed class CoreGameEngineAdapter(ISettingsService? settingsService = nu
             string serverInfo = !string.IsNullOrWhiteSpace(account.ServerName) ? $" ({account.ServerName})" : "";
             string initialTitle = $"DBAM - {account.Username}{serverInfo}";
 
-            _ = Task.Run(() => GameWindowHelper.ApplyWindowStyleAsync(instance.Process, () =>
+            _ = Task.Run(() => _windowManager.ApplyWindowStyleAsync(instance.Process, () =>
             {
                 if (session.Instance.IsRunning && session.Instance.Player.IsInGame && !string.IsNullOrWhiteSpace(session.Instance.Player.Name))
                 {
@@ -120,7 +146,7 @@ public sealed class CoreGameEngineAdapter(ISettingsService? settingsService = nu
                 {
                     s.Dispose();
                 }
-                OnSessionUpdated?.Invoke(account.Id, GameSessionStatus.Offline, null);
+                NotifySessionUpdated(account.Id, GameSessionStatus.Offline, null);
 
                 bool isUserStopped;
                 lock (_userStoppedLock)
@@ -222,13 +248,13 @@ public sealed class CoreGameEngineAdapter(ISettingsService? settingsService = nu
             }
             else
             {
-                OnSessionUpdated?.Invoke(account.Id, GameSessionStatus.Running, null);
+                NotifySessionUpdated(account.Id, GameSessionStatus.Running, null);
                 return true;
             }
         }
         catch (Exception ex)
         {
-            OnSessionUpdated?.Invoke(account.Id, GameSessionStatus.Offline, null);
+            NotifySessionUpdated(account.Id, GameSessionStatus.Offline, null);
             OnSessionMessageUpdated?.Invoke(account.Id, $"Lỗi khởi động: {ex.Message}");
             return false;
         }
@@ -262,7 +288,7 @@ public sealed class CoreGameEngineAdapter(ISettingsService? settingsService = nu
             return false;
         }
 
-        OnSessionUpdated?.Invoke(account.Id, GameSessionStatus.LoggingIn, null);
+        NotifySessionUpdated(account.Id, GameSessionStatus.LoggingIn, null);
         OnSessionMessageUpdated?.Invoke(account.Id, "Bắt đầu đăng nhập...");
 
         var progress = new Progress<string>(msg =>
@@ -300,13 +326,13 @@ public sealed class CoreGameEngineAdapter(ISettingsService? settingsService = nu
                 var worldSnapshot = instance.World.GetSnapshot();
                 var playerSnapshot = instance.Player.GetSnapshot();
                 var sessionSnapshot = new GameSessionSnapshot(playerSnapshot, worldSnapshot);
-                OnSessionUpdated?.Invoke(account.Id, GameSessionStatus.Active, sessionSnapshot);
+                NotifySessionUpdated(account.Id, GameSessionStatus.Active, sessionSnapshot);
                 return true;
             }
 
             if (instance.IsRunning && !session.Cts.IsCancellationRequested)
             {
-                OnSessionUpdated?.Invoke(account.Id, GameSessionStatus.Running, null);
+                NotifySessionUpdated(account.Id, GameSessionStatus.Running, null);
                 OnSessionMessageUpdated?.Invoke(account.Id, "Đăng nhập chưa hoàn tất.");
             }
             return false;
@@ -319,7 +345,7 @@ public sealed class CoreGameEngineAdapter(ISettingsService? settingsService = nu
         {
             if (instance.IsRunning && !session.Cts.IsCancellationRequested)
             {
-                OnSessionUpdated?.Invoke(account.Id, GameSessionStatus.Running, null);
+                NotifySessionUpdated(account.Id, GameSessionStatus.Running, null);
                 OnSessionMessageUpdated?.Invoke(account.Id, $"Lỗi: {ex.Message}");
             }
             return false;
@@ -342,7 +368,7 @@ public sealed class CoreGameEngineAdapter(ISettingsService? settingsService = nu
             await session.StopAsync();
         }
 
-        OnSessionUpdated?.Invoke(accountId, GameSessionStatus.Offline, null);
+        NotifySessionUpdated(accountId, GameSessionStatus.Offline, null);
     }
 
     public void StopAll()
@@ -365,7 +391,7 @@ public sealed class CoreGameEngineAdapter(ISettingsService? settingsService = nu
                 session.Dispose();
             }
             catch { }
-            OnSessionUpdated?.Invoke(id, GameSessionStatus.Offline, null);
+            NotifySessionUpdated(id, GameSessionStatus.Offline, null);
         }
     }
 
@@ -389,7 +415,7 @@ public sealed class CoreGameEngineAdapter(ISettingsService? settingsService = nu
                 await session.StopAsync();
             }
             catch { }
-            OnSessionUpdated?.Invoke(id, GameSessionStatus.Offline, null);
+            NotifySessionUpdated(id, GameSessionStatus.Offline, null);
         }
     }
 
@@ -415,7 +441,7 @@ public sealed class CoreGameEngineAdapter(ISettingsService? settingsService = nu
     {
         if (_sessions.TryGetValue(accountId, out var session))
         {
-            return GameWindowHelper.BringToFront(session.Instance.Process);
+            return _windowManager.BringToFront(session.Instance.Process);
         }
         return false;
     }
@@ -448,14 +474,14 @@ public sealed class CoreGameEngineAdapter(ISettingsService? settingsService = nu
             Columns = _settingsService?.Current.WindowArrangeColumns ?? 0
         };
 
-        GameWindowHelper.ArrangeWindows(processes, options);
+        _windowManager.ArrangeWindows(processes, options);
     }
 
     public bool SetResolution(Guid accountId, int width, int height)
     {
         if (_sessions.TryGetValue(accountId, out var session))
         {
-            return GameWindowHelper.ResizeWindow(session.Instance.Process, width, height);
+            return _windowManager.ResizeWindow(session.Instance.Process, width, height);
         }
         return false;
     }
@@ -722,6 +748,7 @@ public sealed class CoreGameEngineAdapter(ISettingsService? settingsService = nu
             var progress = new Progress<string>(msg =>
             {
                 OnAutoTrainStatusChanged?.Invoke(accountId, msg);
+                session.Controller.ReportExecution(ActionExecutionReport.Running(routine.Name, msg));
             });
 
             _ = session.Controller.Routines.StartAsync(routine, progress, session.Cts.Token);
@@ -749,6 +776,7 @@ public sealed class CoreGameEngineAdapter(ISettingsService? settingsService = nu
             catch { }
             OnAutoTrainStateChanged?.Invoke(accountId, false);
             OnAutoTrainStatusChanged?.Invoke(accountId, "Đã dừng tự động luyện tập.");
+            session.Controller.ReportExecution(new ActionExecutionReport("Tự động luyện tập", ActionStatus.Success, "Đã dừng tự động luyện tập.", DateTime.UtcNow));
         }
     }
 
@@ -761,7 +789,9 @@ public sealed class CoreGameEngineAdapter(ISettingsService? settingsService = nu
     {
         if (_sessions.TryGetValue(accountId, out var session) && session.Instance.IsRunning && session.Instance.Player.IsInGame)
         {
-            return session.Instance.Player.UseCapsule();
+            var res = session.Instance.Player.UseCapsule();
+            session.Controller.ReportExecution(new ActionExecutionReport("Sử dụng Capsule", res.Success ? ActionStatus.Success : ActionStatus.Failure, res.Message, DateTime.UtcNow));
+            return res;
         }
         return (false, "Tài khoản chưa vào game");
     }
@@ -770,7 +800,9 @@ public sealed class CoreGameEngineAdapter(ISettingsService? settingsService = nu
     {
         if (_sessions.TryGetValue(accountId, out var session) && session.Instance.IsRunning && session.Instance.Player.IsInGame)
         {
-            return session.Instance.Player.UseTdlt();
+            var res = session.Instance.Player.UseTdlt();
+            session.Controller.ReportExecution(new ActionExecutionReport("Sử dụng TDLT", res.Success ? ActionStatus.Success : ActionStatus.Failure, res.Message, DateTime.UtcNow));
+            return res;
         }
         return (false, "Tài khoản chưa vào game");
     }
@@ -779,7 +811,9 @@ public sealed class CoreGameEngineAdapter(ISettingsService? settingsService = nu
     {
         if (_sessions.TryGetValue(accountId, out var session) && session.Instance.IsRunning && session.Instance.Player.IsInGame)
         {
-            return session.Instance.Player.UsePean();
+            var res = session.Instance.Player.UsePean();
+            session.Controller.ReportExecution(new ActionExecutionReport("Sử dụng đậu thần", res.Success ? ActionStatus.Success : ActionStatus.Failure, res.Message, DateTime.UtcNow));
+            return res;
         }
         return (false, "Tài khoản chưa vào game");
     }
@@ -788,7 +822,9 @@ public sealed class CoreGameEngineAdapter(ISettingsService? settingsService = nu
     {
         if (_sessions.TryGetValue(accountId, out var session) && session.Instance.IsRunning && session.Instance.Player.IsInGame)
         {
-            return session.Instance.Player.SelectSkill(slotIndex);
+            var res = session.Instance.Player.SelectSkill(slotIndex);
+            session.Controller.ReportExecution(new ActionExecutionReport("Chọn kỹ năng", res.Success ? ActionStatus.Success : ActionStatus.Failure, res.Message, DateTime.UtcNow));
+            return res;
         }
         return (false, "Tài khoản chưa vào game");
     }
@@ -797,7 +833,9 @@ public sealed class CoreGameEngineAdapter(ISettingsService? settingsService = nu
     {
         if (_sessions.TryGetValue(accountId, out var session) && session.Instance.IsRunning && session.Instance.Player.IsInGame)
         {
-            return session.Instance.Player.UseSkill(slotIndex);
+            var res = session.Instance.Player.UseSkill(slotIndex);
+            session.Controller.ReportExecution(new ActionExecutionReport("Dùng kỹ năng", res.Success ? ActionStatus.Success : ActionStatus.Failure, res.Message, DateTime.UtcNow));
+            return res;
         }
         return (false, "Tài khoản chưa vào game");
     }
@@ -815,7 +853,9 @@ public sealed class CoreGameEngineAdapter(ISettingsService? settingsService = nu
     {
         if (_sessions.TryGetValue(accountId, out var session) && session.Instance.IsRunning && session.Instance.Player.IsInGame)
         {
-            return session.Instance.Player.AutoAssignSkills();
+            var res = session.Instance.Player.AutoAssignSkills();
+            session.Controller.ReportExecution(new ActionExecutionReport("Gán phím kỹ năng", res.Success ? ActionStatus.Success : ActionStatus.Failure, res.Message, DateTime.UtcNow));
+            return res;
         }
         return (false, "Tài khoản chưa vào game");
     }
@@ -833,10 +873,10 @@ public sealed class CoreGameEngineAdapter(ISettingsService? settingsService = nu
                 var playerSnapshot = inst.Player.GetSnapshot();
                 var sessionSnapshot = new GameSessionSnapshot(playerSnapshot, worldSnapshot);
 
-                OnSessionUpdated?.Invoke(session.Account.Id, GameSessionStatus.Active, sessionSnapshot);
+                NotifySessionUpdated(session.Account.Id, GameSessionStatus.Active, sessionSnapshot);
 
                 string title = $"DBAM - {session.Account.Username} ({session.Account.ServerName}) [{playerSnapshot.Name}]";
-                GameWindowHelper.UpdateWindowTitle(inst.Process, title);
+                _windowManager.UpdateWindowTitle(inst.Process, title);
             }
         }
         catch { }

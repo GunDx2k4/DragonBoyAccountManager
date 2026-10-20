@@ -13,10 +13,6 @@
     d:DesignWidth="435"
     mc:Ignorable="d">
 
-    <UserControl.Resources>
-        <converters:BooleanToVisibilityConverter x:Key="BooleanToVisibilityConverter" />
-    </UserControl.Resources>
-
     <Grid Margin="10,8">
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto" />
@@ -253,8 +249,15 @@
                                         CornerRadius="4"
                                         Padding="4,3"
                                         MaxHeight="160">
-                                        <ScrollViewer FocusVisualStyle="{x:Null}" VerticalScrollBarVisibility="Auto">
-                                            <ItemsControl ItemsSource="{Binding FilteredMobTypes}">
+                                        <ScrollViewer FocusVisualStyle="{x:Null}" VerticalScrollBarVisibility="Auto" CanContentScroll="True">
+                                            <ItemsControl ItemsSource="{Binding FilteredMobTypes}"
+                                                          VirtualizingPanel.IsVirtualizing="True"
+                                                          VirtualizingPanel.VirtualizationMode="Recycling">
+                                                <ItemsControl.ItemsPanel>
+                                                    <ItemsPanelTemplate>
+                                                        <VirtualizingStackPanel />
+                                                    </ItemsPanelTemplate>
+                                                </ItemsControl.ItemsPanel>
                                                 <ItemsControl.ItemTemplate>
                                                     <DataTemplate DataType="{x:Type viewmodels:MobFilterItem}">
                                                         <Border
@@ -480,7 +483,7 @@
 
                             <CheckBox
                                 Margin="0,0,0,10"
-                                Content="Đồng bộ tất cả acc đã chọn"
+                                Content="Đồng bộ tất cả tài khoản đã chọn"
                                 FontSize="10.5"
                                 FontWeight="Bold"
                                 Foreground="{DynamicResource GameTextDarkBrush}"
@@ -575,7 +578,7 @@
                                     Style="{StaticResource GameCheckBoxStyle}" />
                                 <CheckBox
                                     Grid.Column="1"
-                                    Content="Đồng bộ tất cả acc đã chọn"
+                                    Content="Đồng bộ tất cả tài khoản đã chọn"
                                     FontSize="10.5"
                                     FontWeight="Bold"
                                     Foreground="{DynamicResource GameTextDarkBrush}"

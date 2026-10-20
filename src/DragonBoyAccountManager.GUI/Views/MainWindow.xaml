@@ -10,7 +10,7 @@
     Width="1280"
     Height="720"
     MinWidth="1060"
-    MinHeight="580"
+    MinHeight="600"
     ResizeMode="CanResize"
     d:DataContext="{d:DesignInstance Type=viewmodels:MainViewModel}"
     AllowsTransparency="True"
@@ -206,7 +206,7 @@
                                                                         <DataTrigger Binding="{Binding SelectedIndex, ElementName=ConfigTabControl}" Value="1">
                                                                             <Setter Property="Text" Value="TIỆN ÍCH BẢN ĐỒ &amp; ĐỔI KHU" />
                                                                         </DataTrigger>
-                                                                         <DataTrigger Binding="{Binding SelectedIndex, ElementName=ConfigTabControl}" Value="2">
+                                                                        <DataTrigger Binding="{Binding SelectedIndex, ElementName=ConfigTabControl}" Value="2">
                                                                             <Setter Property="Text" Value="TỰ ĐỘNG LUYỆN TẬP &amp; TỰ ĐỘNG CHAT" />
                                                                         </DataTrigger>
                                                                         <DataTrigger Binding="{Binding SelectedIndex, ElementName=ConfigTabControl}" Value="3">
@@ -236,7 +236,7 @@
                                                             SelectedIndex="{Binding SelectedTabIndex}"
                                                             Style="{StaticResource GameTabControlStyle}">
 
-                                                            <TabItem Header="ACC" Style="{StaticResource GameTabItemStyle}" ToolTip="Cấu hình tài khoản game">
+                                                            <TabItem Header="TÀI KHOẢN" Style="{StaticResource GameTabItemStyle}" ToolTip="Cấu hình tài khoản game">
                                                                 <views:AccountConfigTabView DataContext="{Binding AccountForm}" />
                                                             </TabItem>
 
@@ -292,8 +292,8 @@
                                                                 <views:GuideTabView DataContext="{Binding Guide}" />
                                                             </TabItem>
 
-                                                            <TabItem Header="GÓP Ý" Style="{StaticResource GameTabItemStyle}" ToolTip="Góp ý tính năng &amp; Báo lỗi phần mềm">
-                                                                <views:FeedbackView DataContext="{Binding Feedback}" />
+                                                            <TabItem Header="GÓP Ý" Style="{StaticResource GameTabItemStyle}" ToolTip="Góp ý tính năng &amp; Báo cáo lỗi phần mềm">
+                                                                <views:FeedbackTabView DataContext="{Binding Feedback}" />
                                                             </TabItem>
                                                         </TabControl>
                                                     </Border>

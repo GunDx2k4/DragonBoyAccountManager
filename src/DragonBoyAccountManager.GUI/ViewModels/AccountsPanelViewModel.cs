@@ -1,4 +1,6 @@
-﻿using System.Collections.ObjectModel;
+using CommunityToolkit.Mvvm.Messaging;
+using DragonBoyAccountManager.GUI.Messaging;
+using System.Collections.ObjectModel;
 using System.ComponentModel;
 using System.IO;
 using System.Windows.Data;
@@ -425,6 +427,7 @@ public sealed partial class AccountsPanelViewModel : ObservableObject
         OnPropertyChanged(nameof(SelectedAccountsCount));
         OnPropertyChanged(nameof(CanDeleteSelectedAccount));
         OnPropertyChanged(nameof(CanControlAccount));
+        WeakReferenceMessenger.Default.Send(new TargetAccountsChangedMessage(GetTargetAccounts().Select(a => a.Id).ToList()));
     }
 
     public List<AccountItemViewModel> GetTargetAccounts(AccountItemViewModel? specific = null)

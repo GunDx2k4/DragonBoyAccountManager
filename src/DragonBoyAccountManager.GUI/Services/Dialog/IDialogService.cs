@@ -1,3 +1,5 @@
+using System.Windows;
+
 namespace DragonBoyAccountManager.GUI.Services.Dialog;
 
 public interface IDialogService
@@ -7,4 +9,5 @@ public interface IDialogService
     void ShowError(string title, string message);
     bool ShowConfirmation(string title, string message, string yesText = "Đồng ý", string noText = "Hủy");
     string? ShowOpenFileDialog(string title, string filter, string? initialDirectory = null);
+    void ShowHotkeyCheatsheet(Window? owner = null);
 }

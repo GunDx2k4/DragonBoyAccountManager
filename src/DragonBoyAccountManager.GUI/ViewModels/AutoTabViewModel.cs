@@ -4,6 +4,8 @@ using System.Windows.Data;
 using System.Windows.Threading;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
+using CommunityToolkit.Mvvm.Messaging;
+using DragonBoyAccountManager.GUI.Messaging;
 using DragonBoyAccountManager.GUI.Models;
 using DragonBoyAccountManager.GUI.Services.GameEngine;
 using DragonBoyAccountManager.GUI.Services.Images;
@@ -16,7 +18,6 @@ public sealed partial class AutoTabViewModel : ObservableObject
     private readonly IGameEngineService _gameEngine;
     private readonly IGameImageService _gameImageService;
     private readonly IAccountStorageService _storageService;
-    private readonly DispatcherTimer _refreshTimer;
     private readonly DispatcherTimer _cooldownTimer;
     private Func<List<Guid>>? _targetResolver;
     private Func<Guid, AccountItemViewModel?>? _accountResolver;
@@ -123,12 +124,6 @@ public sealed partial class AutoTabViewModel : ObservableObject
             AutoTrainSkills.Add(skill);
         }
 
-        _refreshTimer = new DispatcherTimer
-        {
-            Interval = TimeSpan.FromSeconds(1.5)
-        };
-        _refreshTimer.Tick += (_, _) => RefreshData();
-
         _cooldownTimer = new DispatcherTimer
         {
             Interval = TimeSpan.FromMilliseconds(100)
@@ -138,14 +133,49 @@ public sealed partial class AutoTabViewModel : ObservableObject
         _gameEngine.OnChatSent += HandleChatSent;
         _gameEngine.OnAutoTrainStatusChanged += HandleAutoTrainStatusChanged;
         _gameEngine.OnAutoTrainStateChanged += HandleAutoTrainStateChanged;
+
+        WeakReferenceMessenger.Default.Register<SessionSnapshotUpdatedMessage>(this, (_, m) =>
+        {
+            if (ActiveAccount?.Id == m.AccountId)
+            {
+                var dispatcher = App.Current?.Dispatcher;
+                if (dispatcher != null)
+                {
+                    _ = dispatcher.InvokeAsync(() =>
+                    {
+                        if (m.Status == GameSessionStatus.Active && m.Snapshot != null)
+                        {
+                            IsAccountRunning = true;
+                            if (m.Snapshot.World.Mobs.Count > 0)
+                            {
+                                UpdateAvailableMobTypes(m.Snapshot.World.Mobs);
+                            }
+                        }
+                        else if (m.Status == GameSessionStatus.Offline)
+                        {
+                            IsAccountRunning = false;
+                            AvailableMobTypes.Clear();
+                            FilteredMobTypes.Refresh();
+                        }
+                    });
+                }
+            }
+        });
+
+        WeakReferenceMessenger.Default.Register<AccountSelectedMessage>(this, (_, m) =>
+        {
+            SetActiveAccount(m.Account);
+            UpdateSyncTargetDisplay();
+        });
+
+        WeakReferenceMessenger.Default.Register<TargetAccountsChangedMessage>(this, (_, _) =>
+        {
+            UpdateSyncTargetDisplay();
+        });
     }
 
     public void StartPolling()
     {
-        if (!_refreshTimer.IsEnabled)
-        {
-            _refreshTimer.Start();
-        }
         if (!_cooldownTimer.IsEnabled)
         {
             _cooldownTimer.Start();
@@ -154,10 +184,6 @@ public sealed partial class AutoTabViewModel : ObservableObject
 
     public void StopPolling()
     {
-        if (_refreshTimer.IsEnabled)
-        {
-            _refreshTimer.Stop();
-        }
         if (_cooldownTimer.IsEnabled)
         {
             _cooldownTimer.Stop();
@@ -587,7 +613,7 @@ public sealed partial class AutoTabViewModel : ObservableObject
     {
         var targets = GetTargetAccountIds();
         int count = targets.Count;
-        SyncTargetDisplay = count > 1 ? $"Đồng bộ: {count} acc" : (count == 1 ? "1 tài khoản" : "Chưa chọn acc");
+        SyncTargetDisplay = count > 1 ? $"Đồng bộ: {count} tài khoản" : (count == 1 ? "1 tài khoản" : "Chưa chọn tài khoản");
     }
 
     private List<Guid> GetTargetAccountIds()
@@ -868,7 +894,7 @@ public sealed partial class AutoTabViewModel : ObservableObject
         }
 
         IsAutoTrainRunning = true;
-        AutoTrainStatusText = targets.Count > 1 ? $"Đang khởi động ({targets.Count} acc)..." : "Đang khởi động...";
+        AutoTrainStatusText = targets.Count > 1 ? $"Đang khởi động ({targets.Count} tài khoản)..." : "Đang khởi động...";
 
         foreach (var id in targets)
         {
@@ -1006,7 +1032,7 @@ public sealed partial class AutoTabViewModel : ObservableObject
 
         if (targets.Count == 0)
         {
-            StatusText = "Không có acc nào trong game để gửi!";
+            StatusText = "Không có tài khoản nào trong game để gửi!";
             return;
         }
 
@@ -1016,7 +1042,7 @@ public sealed partial class AutoTabViewModel : ObservableObject
             if (await _gameEngine.SendChatAsync(id, msg, chatType)) count++;
         }
 
-        StatusText = count > 0 ? $"Đã gửi 1 tin chat tới {count} acc lúc {DateTime.Now:HH:mm:ss}" : "Không thể gửi tin nhắn chat!";
+        StatusText = count > 0 ? $"Đã gửi 1 tin chat tới {count} tài khoản lúc {DateTime.Now:HH:mm:ss}" : "Không thể gửi tin nhắn chat!";
     }
 
     private void StartAutoChat()
@@ -1052,7 +1078,7 @@ public sealed partial class AutoTabViewModel : ObservableObject
 
         ChatSentCount = 0;
         IsAutoChatRunning = true;
-        AutoChatStatusText = targets.Count > 1 ? $"Đang chạy auto chat ({targets.Count} acc)..." : "Đang chạy auto chat...";
+        AutoChatStatusText = targets.Count > 1 ? $"Đang chạy auto chat ({targets.Count} tài khoản)..." : "Đang chạy auto chat...";
 
         foreach (var id in targets)
         {

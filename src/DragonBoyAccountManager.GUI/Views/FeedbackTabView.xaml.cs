@@ -2,9 +2,9 @@ using System.Windows.Controls;
 
 namespace DragonBoyAccountManager.GUI.Views;
 
-public partial class FeedbackView : UserControl
+public partial class FeedbackTabView : UserControl
 {
-    public FeedbackView()
+    public FeedbackTabView()
     {
         InitializeComponent();
     }

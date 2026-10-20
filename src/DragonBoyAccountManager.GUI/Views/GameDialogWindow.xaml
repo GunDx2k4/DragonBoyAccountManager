@@ -4,8 +4,11 @@
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
     xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
     xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+    xmlns:viewmodels="clr-namespace:DragonBoyAccountManager.GUI.ViewModels"
+    Title="{Binding Title}"
     MinWidth="380"
     MaxWidth="560"
+    d:DataContext="{d:DesignInstance Type=viewmodels:GameDialogViewModel}"
     AllowsTransparency="True"
     Background="Transparent"
     FontFamily="{DynamicResource GameFont}"
@@ -68,7 +71,8 @@
                             FontSize="14"
                             FontWeight="ExtraBold"
                             Foreground="{DynamicResource GameTextRedBrush}"
-                            Visibility="Collapsed" />
+                            Text="{Binding Title}"
+                            Visibility="{Binding HasTitle, Converter={StaticResource BooleanToVisibilityConverter}}" />
 
                         <ScrollViewer
                             MaxHeight="340"
@@ -83,7 +87,7 @@
                                 Foreground="{DynamicResource GameTextDarkBrush}"
                                 LineHeight="19"
                                 SnapsToDevicePixels="True"
-                                Text="Nội dung thông báo"
+                                Text="{Binding Message}"
                                 TextAlignment="Center"
                                 TextWrapping="Wrap" />
                         </ScrollViewer>
@@ -100,17 +104,17 @@
                 x:Name="PrimaryButton"
                 Margin="6,0"
                 Click="PrimaryButton_Click"
-                Content="Đóng"
+                Content="{Binding PrimaryButtonText}"
                 IsDefault="True"
                 Style="{StaticResource GameDialogButtonStyle}" />
             <Button
                 x:Name="SecondaryButton"
                 Margin="6,0"
                 Click="SecondaryButton_Click"
-                Content="Hủy"
+                Content="{Binding SecondaryButtonText}"
                 IsCancel="True"
                 Style="{StaticResource GameDialogButtonStyle}"
-                Visibility="Collapsed" />
+                Visibility="{Binding IsConfirmation, Converter={StaticResource BooleanToVisibilityConverter}}" />
         </StackPanel>
     </Grid>
 </Window>

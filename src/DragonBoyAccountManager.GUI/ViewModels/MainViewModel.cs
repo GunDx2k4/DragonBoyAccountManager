@@ -1,4 +1,5 @@
 using CommunityToolkit.Mvvm.ComponentModel;
+using CommunityToolkit.Mvvm.Messaging;
 
 using DragonBoyAccountManager.GUI.Services.Dialog;
 using DragonBoyAccountManager.GUI.Services.Storage;
@@ -18,6 +19,7 @@ public sealed partial class MainViewModel : ObservableObject
     public UtilitiesTabViewModel UtilitiesTab { get; }
     public AutoTabViewModel AutoTab { get; }
     public FeedbackViewModel Feedback { get; }
+    public AppTitleBarViewModel TitleBar { get; }
 
     [ObservableProperty]
     private int _selectedTabIndex;
@@ -26,6 +28,7 @@ public sealed partial class MainViewModel : ObservableObject
         AccountsPanelViewModel accountsPanel,
         AccountFormViewModel accountForm,
         AppStatusBarViewModel statusBar,
+        AppTitleBarViewModel titleBar,
         SettingsTabViewModel settings,
         GuideViewModel guide,
         UtilitiesTabViewModel utilitiesTab,
@@ -37,6 +40,7 @@ public sealed partial class MainViewModel : ObservableObject
         AccountsPanel = accountsPanel;
         AccountForm = accountForm;
         StatusBar = statusBar;
+        TitleBar = titleBar;
         Settings = settings;
         Guide = guide;
         UtilitiesTab = utilitiesTab;
@@ -45,6 +49,8 @@ public sealed partial class MainViewModel : ObservableObject
         _storageService = storageService;
         _dialogService = dialogService;
 
+        WeakReferenceMessenger.Default.Register<RequestNavigateToTabMessage>(this, (_, m) => SelectedTabIndex = m.TabIndex);
+
         AccountForm.SetKeyTargetResolver(ResolveRunningTargetAccountIds);
         AccountForm.SetSpeedTargetResolver(() => ResolveRunningSpeedTargetAccountIds(AccountForm.IsApplySpeedToAll));
         UtilitiesTab.SetTargetResolver(ResolveRunningTargetAccountIds);
@@ -52,67 +58,29 @@ public sealed partial class MainViewModel : ObservableObject
         AutoTab.SetTargetResolver(ResolveRunningTargetAccountIds);
         AutoTab.SetAccountResolver(id => AccountsPanel.Accounts.FirstOrDefault(a => a.Id == id));
 
-        AccountsPanel.OnAccountSelectionChanged += selected =>
-        {
-            AccountForm.SetEditingAccount(selected);
-            UtilitiesTab.SetActiveAccount(selected);
-            UtilitiesTab.UpdateSyncTargetDisplay();
-            AutoTab.SetActiveAccount(selected);
-            AutoTab.UpdateSyncTargetDisplay();
-        };
-
         PropertyChanged += (_, e) =>
         {
             if (e.PropertyName == nameof(SelectedTabIndex))
             {
                 if (SelectedTabIndex == 0)
                 {
-                    UtilitiesTab.StopPolling();
-                    AutoTab.SaveCurrentAccountSettings();
-                    AutoTab.StopPolling();
-                    AccountForm.StartPolling();
                     AccountForm.RefreshSkills();
                     AccountForm.RequestZoneList();
                 }
                 else if (SelectedTabIndex == 1)
                 {
-                    AccountForm.StopPolling();
-                    AutoTab.SaveCurrentAccountSettings();
-                    AutoTab.StopPolling();
-                    UtilitiesTab.StartPolling();
                     UtilitiesTab.RefreshMapData();
-                    UtilitiesTab.UpdateSyncTargetDisplay();
                 }
                 else if (SelectedTabIndex == 2)
                 {
-                    AccountForm.StopPolling();
-                    UtilitiesTab.StopPolling();
-                    AutoTab.StartPolling();
                     AutoTab.RefreshData();
-                    AutoTab.UpdateSyncTargetDisplay();
                 }
                 else
                 {
-                    AccountForm.StopPolling();
-                    UtilitiesTab.StopPolling();
                     AutoTab.SaveCurrentAccountSettings();
-                    AutoTab.StopPolling();
                 }
             }
         };
-
-        if (SelectedTabIndex == 0)
-        {
-            AccountForm.StartPolling();
-        }
-        else if (SelectedTabIndex == 1)
-        {
-            UtilitiesTab.StartPolling();
-        }
-        else if (SelectedTabIndex == 2)
-        {
-            AutoTab.StartPolling();
-        }
 
         AccountsPanel.OnStatusMessageUpdated += msg =>
         {

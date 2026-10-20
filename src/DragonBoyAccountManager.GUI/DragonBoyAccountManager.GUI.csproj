@@ -4,6 +4,7 @@
     <OutputType>WinExe</OutputType>
     <TargetFramework>net10.0-windows</TargetFramework>
     <UseWPF>true</UseWPF>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
     <ApplicationIcon>Assets\app_icon.ico</ApplicationIcon>
     <RuntimeIdentifiers>win-x64</RuntimeIdentifiers>
   </PropertyGroup>
@@ -19,6 +20,7 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <Resource Include="Assets\app_icon.ico" />
     <Resource Include="Assets\app_icon.png" />
     <EmbeddedResource Include="..\..\RELEASE_NOTES.md" Link="RELEASE_NOTES.md">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>

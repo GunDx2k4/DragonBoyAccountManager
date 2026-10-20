@@ -1,5 +1,8 @@
+using System;
+using System.Linq;
 using System.Windows;
-
+using DragonBoyAccountManager.GUI.Common.Enums;
+using DragonBoyAccountManager.GUI.ViewModels;
 using DragonBoyAccountManager.GUI.Views;
 
 namespace DragonBoyAccountManager.GUI.Services.Dialog;
@@ -16,7 +19,16 @@ public sealed class DialogService : IDialogService
     {
         RunOnUi(() =>
         {
-            GameDialogWindow.ShowAlert(GetActiveWindow(), title, message, buttonText: "Đóng", headerColor: "#2E7D32");
+            var vm = new GameDialogViewModel
+            {
+                Title = title,
+                Message = message,
+                Severity = DialogSeverity.Info,
+                PrimaryButtonText = "Đóng",
+                IsConfirmation = false
+            };
+            var win = new GameDialogWindow(vm) { Owner = GetActiveWindow() };
+            win.ShowDialog();
         });
     }
 
@@ -24,7 +36,16 @@ public sealed class DialogService : IDialogService
     {
         RunOnUi(() =>
         {
-            GameDialogWindow.ShowAlert(GetActiveWindow(), title, message, buttonText: "Đóng", headerColor: "#B45309");
+            var vm = new GameDialogViewModel
+            {
+                Title = title,
+                Message = message,
+                Severity = DialogSeverity.Warning,
+                PrimaryButtonText = "Đóng",
+                IsConfirmation = false
+            };
+            var win = new GameDialogWindow(vm) { Owner = GetActiveWindow() };
+            win.ShowDialog();
         });
     }
 
@@ -32,7 +53,16 @@ public sealed class DialogService : IDialogService
     {
         RunOnUi(() =>
         {
-            GameDialogWindow.ShowAlert(GetActiveWindow(), title, message, buttonText: "Đóng", headerColor: "#C62828");
+            var vm = new GameDialogViewModel
+            {
+                Title = title,
+                Message = message,
+                Severity = DialogSeverity.Error,
+                PrimaryButtonText = "Đóng",
+                IsConfirmation = false
+            };
+            var win = new GameDialogWindow(vm) { Owner = GetActiveWindow() };
+            win.ShowDialog();
         });
     }
 
@@ -40,7 +70,17 @@ public sealed class DialogService : IDialogService
     {
         return RunOnUi(() =>
         {
-            return GameDialogWindow.ShowConfirm(GetActiveWindow(), title, message, yesText: yesText, noText: noText);
+            var vm = new GameDialogViewModel
+            {
+                Title = title,
+                Message = message,
+                Severity = DialogSeverity.Confirm,
+                PrimaryButtonText = yesText,
+                SecondaryButtonText = noText,
+                IsConfirmation = true
+            };
+            var win = new GameDialogWindow(vm) { Owner = GetActiveWindow() };
+            return win.ShowDialog() == true;
         });
     }
 
@@ -56,6 +96,18 @@ public sealed class DialogService : IDialogService
                 InitialDirectory = string.IsNullOrWhiteSpace(initialDirectory) ? string.Empty : initialDirectory
             };
             return dialog.ShowDialog(GetActiveWindow()) == true ? dialog.FileName : null;
+        });
+    }
+
+    public void ShowHotkeyCheatsheet(Window? owner = null)
+    {
+        RunOnUi(() =>
+        {
+            var win = new HotkeyCheatsheetWindow
+            {
+                Owner = owner ?? GetActiveWindow()
+            };
+            win.ShowDialog();
         });
     }
 

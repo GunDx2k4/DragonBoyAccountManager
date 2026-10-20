@@ -5,6 +5,8 @@ using System.Windows.Threading;
 
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
+using CommunityToolkit.Mvvm.Messaging;
+using DragonBoyAccountManager.GUI.Messaging;
 
 using DragonBoyAccountManager.GUI.Models;
 using DragonBoyAccountManager.GUI.Services.Dialog;
@@ -138,6 +140,23 @@ public sealed partial class AccountFormViewModel : ObservableObject
             Interval = TimeSpan.FromMilliseconds(100)
         };
         _cooldownTimer.Tick += (_, _) => UpdateCooldowns();
+
+        WeakReferenceMessenger.Default.Register<AccountSelectedMessage>(this, (_, m) =>
+        {
+            SetEditingAccount(m.Account);
+        });
+
+        WeakReferenceMessenger.Default.Register<SessionSnapshotUpdatedMessage>(this, (_, m) =>
+        {
+            if (_editingAccount?.Id == m.AccountId && m.Status == GameSessionStatus.Active)
+            {
+                var dispatcher = App.Current?.Dispatcher;
+                if (dispatcher != null)
+                {
+                    _ = dispatcher.InvokeAsync(RefreshSkills);
+                }
+            }
+        });
     }
 
     public void StartPolling()

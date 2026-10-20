@@ -9,11 +9,6 @@ using DragonBoyAccountManager.GUI.Services.Feedback;
 
 namespace DragonBoyAccountManager.GUI.ViewModels;
 
-public sealed record FeedbackTypeOption(FeedbackType Type, string DisplayName)
-{
-    public override string ToString() => DisplayName;
-}
-
 public sealed partial class FeedbackViewModel : ObservableObject
 {
     private readonly IFeedbackService _feedbackService;

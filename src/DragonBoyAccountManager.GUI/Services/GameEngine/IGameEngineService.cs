@@ -1,4 +1,4 @@
-﻿using DragonBoyAccountManager.GUI.Models;
+using DragonBoyAccountManager.GUI.Models;
 
 namespace DragonBoyAccountManager.GUI.Services.GameEngine;
 
@@ -57,6 +57,7 @@ public interface IGameEngineService
 
     event Action<Guid, GameSessionStatus, GameSessionSnapshot?>? OnSessionUpdated;
     event Action<Guid, string>? OnSessionMessageUpdated;
+    event Action<Guid, ActionExecutionReport>? OnActionReported;
     event Action<Guid, string, int>? OnChatSent;
     event Action<Guid, string>? OnAutoTrainStatusChanged;
     event Action<Guid, bool>? OnAutoTrainStateChanged;
