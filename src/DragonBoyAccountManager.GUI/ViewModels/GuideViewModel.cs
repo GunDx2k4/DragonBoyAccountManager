@@ -146,7 +146,7 @@ public sealed partial class GuideViewModel : ObservableObject
             await Task.Delay(1200);
 
             var currentVer = System.Reflection.Assembly.GetExecutingAssembly().GetName().Version;
-            var update = await _updaterService.CheckForUpdatesAsync("GunDx2k4/DragonBoyAccountManager", currentVer, "GUI");
+            var update = await _updaterService.CheckForUpdatesAsync("GunDx2k4/DragonBoyAccountManager", currentVer);
             if (update != null)
             {
                 AvailableAppUpdate = update;
@@ -285,7 +285,7 @@ public sealed partial class GuideViewModel : ObservableObject
             try
             {
                 var currentVer = System.Reflection.Assembly.GetExecutingAssembly().GetName().Version;
-                update = await _updaterService.CheckForUpdatesAsync("GunDx2k4/DragonBoyAccountManager", currentVer, "GUI");
+                update = await _updaterService.CheckForUpdatesAsync("GunDx2k4/DragonBoyAccountManager", currentVer);
             }
             catch (Exception ex)
             {

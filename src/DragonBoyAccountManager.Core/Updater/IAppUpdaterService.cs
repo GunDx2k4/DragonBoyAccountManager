@@ -7,7 +7,7 @@ public interface IAppUpdaterService
     Task<AppUpdateInfo?> CheckForUpdatesAsync(
         string repo = "GunDx2k4/DragonBoyAccountManager",
         Version? currentVersion = null,
-        string? assetKeyword = "GUI",
+        string? assetKeyword = null,
         CancellationToken ct = default);
 
     Task ApplyUpdateAsync(

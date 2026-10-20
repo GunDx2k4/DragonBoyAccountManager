@@ -67,20 +67,6 @@ jobs:
       - name: Restore dependencies
         run: dotnet restore DBAM.slnx
 
-      - name: Publish CLI (Single-File)
-        run: |
-          dotnet publish src/DragonBoyAccountManager.CLI/DragonBoyAccountManager.CLI.csproj `
-            -c Release `
-            -r win-x64 `
-            --self-contained true `
-            --no-restore `
-            -p:PublishSingleFile=true `
-            -p:EnableCompressionInSingleFile=true `
-            -p:Version=${{ steps.ver.outputs.version }} `
-            -p:FileVersion=${{ steps.ver.outputs.version }} `
-            -p:AssemblyVersion=${{ steps.ver.outputs.version }} `
-            -o ./publish/cli
-
       - name: Publish GUI (Single-File)
         env:
           DISCORD_WEBHOOK_URL: ${{ secrets.DISCORD_WEBHOOK_URL }}
@@ -103,18 +89,14 @@ jobs:
         shell: pwsh
         run: |
           New-Item -ItemType Directory -Force -Path ./publish/release
-          Copy-Item ./publish/cli/DragonBoyAccountManager.CLI.exe ./publish/release/DragonBoyAccountManager-CLI.exe
-          Copy-Item ./publish/gui/DragonBoyAccountManager.GUI.exe ./publish/release/DragonBoyAccountManager-GUI.exe
+          Copy-Item ./publish/gui/DragonBoyAccountManager.GUI.exe ./publish/release/DragonBoyAccountManager.exe
 
-          $guiSha = (Get-FileHash ./publish/release/DragonBoyAccountManager-GUI.exe -Algorithm SHA256).Hash
-          $cliSha = (Get-FileHash ./publish/release/DragonBoyAccountManager-CLI.exe -Algorithm SHA256).Hash
+          $guiSha = (Get-FileHash ./publish/release/DragonBoyAccountManager.exe -Algorithm SHA256).Hash
 
-          "$guiSha  DragonBoyAccountManager-GUI.exe" | Out-File -Encoding utf8 ./publish/release/DragonBoyAccountManager-GUI.exe.sha256
-          "$cliSha  DragonBoyAccountManager-CLI.exe" | Out-File -Encoding utf8 ./publish/release/DragonBoyAccountManager-CLI.exe.sha256
-          "$guiSha  DragonBoyAccountManager-GUI.exe`n$cliSha  DragonBoyAccountManager-CLI.exe" | Out-File -Encoding utf8 ./publish/release/checksums.txt
+          "$guiSha  DragonBoyAccountManager.exe" | Out-File -Encoding utf8 ./publish/release/DragonBoyAccountManager.exe.sha256
+          "$guiSha  DragonBoyAccountManager.exe" | Out-File -Encoding utf8 ./publish/release/checksums.txt
 
           Write-Host "GUI SHA256: $guiSha"
-          Write-Host "CLI SHA256: $cliSha"
 
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
@@ -122,10 +104,8 @@ jobs:
           tag_name: ${{ steps.ver.outputs.tag }}
           name: DragonBoy Account Manager ${{ steps.ver.outputs.tag }}
           files: |
-            ./publish/release/DragonBoyAccountManager-GUI.exe
-            ./publish/release/DragonBoyAccountManager-CLI.exe
-            ./publish/release/DragonBoyAccountManager-GUI.exe.sha256
-            ./publish/release/DragonBoyAccountManager-CLI.exe.sha256
+            ./publish/release/DragonBoyAccountManager.exe
+            ./publish/release/DragonBoyAccountManager.exe.sha256
             ./publish/release/checksums.txt
           body_path: ${{ steps.ver.outputs.notes_path }}
           generate_release_notes: true

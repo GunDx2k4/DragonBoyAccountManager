@@ -162,7 +162,7 @@ public sealed class AppUpdaterService : IAppUpdaterService
     public async Task<AppUpdateInfo?> CheckForUpdatesAsync(
         string repo = "GunDx2k4/DragonBoyAccountManager",
         Version? currentVersion = null,
-        string? assetKeyword = "GUI",
+        string? assetKeyword = null,
         CancellationToken ct = default)
     {
         CleanUpOld();
@@ -484,7 +484,7 @@ public sealed class AppUpdaterService : IAppUpdaterService
 
             if (string.IsNullOrEmpty(downloadUrl))
             {
-                string defaultAssetName = !string.IsNullOrEmpty(assetKeyword) ? $"DragonBoyAccountManager-{assetKeyword}.exe" : "DragonBoyAccountManager-GUI.exe";
+                string defaultAssetName = !string.IsNullOrEmpty(assetKeyword) ? $"DragonBoyAccountManager-{assetKeyword}.exe" : "DragonBoyAccountManager.exe";
                 downloadUrl = $"https://github.com/{repo}/releases/download/{rawTag}/{defaultAssetName}";
                 assetName = defaultAssetName;
                 shaAssetUrl = $"https://github.com/{repo}/releases/download/{rawTag}/{defaultAssetName}.sha256";
@@ -571,7 +571,7 @@ public sealed class AppUpdaterService : IAppUpdaterService
         if (exeName.Equals("dotnet", StringComparison.OrdinalIgnoreCase) ||
             exeName.Equals("devenv", StringComparison.OrdinalIgnoreCase))
         {
-            throw new InvalidOperationException("Không thể tự động cập nhật khi đang chạy trong môi trường phát triển (dotnet.exe). Vui lòng chạy trực tiếp tệp DragonBoyAccountManager-GUI.exe đã xuất bản.");
+            throw new InvalidOperationException("Không thể tự động cập nhật khi đang chạy trong môi trường phát triển (dotnet.exe). Vui lòng chạy trực tiếp tệp DragonBoyAccountManager.exe đã xuất bản.");
         }
 
         string oldExe = currentExe + ".old";
