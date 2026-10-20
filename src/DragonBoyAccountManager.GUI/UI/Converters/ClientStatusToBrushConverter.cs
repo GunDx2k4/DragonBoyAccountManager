@@ -1,8 +1,7 @@
-using System.Globalization;
+﻿using System.Globalization;
 using System.Windows.Data;
 using System.Windows.Media;
 
-using DragonBoyAccountManager.Core.Game;
 
 namespace DragonBoyAccountManager.GUI.UI.Converters;
 

@@ -1,4 +1,4 @@
-using System.Collections.ObjectModel;
+﻿using System.Collections.ObjectModel;
 using System.ComponentModel;
 using System.Globalization;
 using System.Windows.Threading;
@@ -6,9 +6,6 @@ using System.Windows.Threading;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 
-using DragonBoyAccountManager.Core.Game.Entities;
-using DragonBoyAccountManager.Core.Game.Models;
-using DragonBoyAccountManager.Core.Game.Snapshots;
 using DragonBoyAccountManager.GUI.Models;
 using DragonBoyAccountManager.GUI.Services.Dialog;
 using DragonBoyAccountManager.GUI.Services.GameEngine;

@@ -25,6 +25,7 @@ public static class Constants
     {
         public const string RootDomain = "mono_get_root_domain";
         public const string ThreadAttach = "mono_thread_attach";
+        public const string ThreadDetach = "mono_thread_detach";
 
         public const string DomainAssemblyOpen = "mono_domain_assembly_open";
         public const string AssemblyGetImage = "mono_assembly_get_image";

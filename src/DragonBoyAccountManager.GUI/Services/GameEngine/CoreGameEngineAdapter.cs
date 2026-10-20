@@ -2,16 +2,6 @@ using System.Collections.Concurrent;
 using System.Diagnostics;
 using System.IO;
 
-using DragonBoyAccountManager.Core.Game;
-using DragonBoyAccountManager.Core.Game.Actions;
-using DragonBoyAccountManager.Core.Game.Entities;
-using DragonBoyAccountManager.Core.Game.Models;
-using DragonBoyAccountManager.Core.Game.Modules;
-using DragonBoyAccountManager.Core.Game.Routines.Chat;
-using DragonBoyAccountManager.Core.Game.Routines.Login;
-using DragonBoyAccountManager.Core.Game.Routines.Training;
-using DragonBoyAccountManager.Core.Game.Schema;
-using DragonBoyAccountManager.Core.Game.Snapshots;
 using DragonBoyAccountManager.GUI.Helpers;
 using DragonBoyAccountManager.GUI.Models;
 using DragonBoyAccountManager.GUI.Services.Settings;
@@ -57,7 +47,7 @@ public sealed class CoreGameEngineAdapter(ISettingsService? settingsService = nu
     }
 
     private readonly ConcurrentDictionary<Guid, ActiveSession> _sessions = new();
-    private readonly Core.Game.GameLauncher _coreLauncher = new();
+    private readonly GameLauncher _coreLauncher = new();
     private readonly ISettingsService? _settingsService = settingsService;
     private readonly HashSet<Guid> _userStoppedAccounts = [];
     private readonly object _userStoppedLock = new();

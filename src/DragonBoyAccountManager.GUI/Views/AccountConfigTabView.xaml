@@ -6,7 +6,7 @@
     xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
     xmlns:converters="clr-namespace:DragonBoyAccountManager.GUI.UI.Converters"
     xmlns:guiModels="clr-namespace:DragonBoyAccountManager.GUI.Models"
-    xmlns:models="clr-namespace:DragonBoyAccountManager.Core.Game.Snapshots;assembly=DragonBoyAccountManager.Core"
+    xmlns:models="clr-namespace:DragonBoyAccountManager.Core.Domain.Snapshots;assembly=DragonBoyAccountManager.Core"
     xmlns:ui="clr-namespace:DragonBoyAccountManager.GUI.UI.Controls"
     xmlns:viewmodels="clr-namespace:DragonBoyAccountManager.GUI.ViewModels"
     d:DataContext="{d:DesignInstance Type=viewmodels:AccountFormViewModel}"

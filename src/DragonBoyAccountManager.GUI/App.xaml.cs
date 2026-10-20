@@ -1,7 +1,6 @@
-using System;
+﻿using System;
 using System.Windows;
-using DragonBoyAccountManager.Core.Game;
-using DragonBoyAccountManager.Core.Updater;
+using DragonBoyAccountManager.GUI.Services.Updater;
 using DragonBoyAccountManager.GUI.Services.Dialog;
 using DragonBoyAccountManager.GUI.Services.Feedback;
 using DragonBoyAccountManager.GUI.Services.GameEngine;

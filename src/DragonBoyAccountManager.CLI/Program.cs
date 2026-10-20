@@ -1,7 +1,9 @@
 using Spectre.Console;
-using DragonBoyAccountManager.Core.Game;
-using DragonBoyAccountManager.Core.Game.Actions;
-using DragonBoyAccountManager.Core.Game.Routines.Login;
+using DragonBoyAccountManager.Core.Lifecycle;
+using DragonBoyAccountManager.Core.Lifecycle.Options;
+using DragonBoyAccountManager.Core.Lifecycle.Validation;
+using DragonBoyAccountManager.Core.Automation.Actions.Abstractions;
+using DragonBoyAccountManager.Core.Automation.Routines.Login;
 
 AnsiConsole.Write(new Rule("[bold cyan]DBAM[/]").Centered());
 AnsiConsole.WriteLine();
