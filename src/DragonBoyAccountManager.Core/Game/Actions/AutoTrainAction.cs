@@ -18,9 +18,8 @@ public sealed class AutoTrainOptions
     public bool UseTdlt { get; init; } = true;
 }
 
-public class AutoTrainAction(AutoTrainOptions options) : GameAction("Auto Train")
+public class AutoTrainAction(AutoTrainOptions options) : GameAction<AutoTrainOptions>("Auto Train", options)
 {
-    private readonly AutoTrainOptions _options = options;
     private readonly Dictionary<int, DateTime> _mobDeathTimes = new();
     private readonly Dictionary<int, long> _skillLastUseTimes = new();
     private int _skillRotationIndex = 0;
@@ -28,14 +27,17 @@ public class AutoTrainAction(AutoTrainOptions options) : GameAction("Auto Train"
     private DateTime _lastTdltCheckTime = DateTime.MinValue;
     private int _currentSelectedSkillSlot = -1;
 
-    public AutoTrainOptions Options => _options;
+    protected override void OnOptionsChanged(AutoTrainOptions previousOptions, AutoTrainOptions newOptions)
+    {
+        _skillRotationIndex = 0;
+    }
 
     private bool MatchesFilter(MobEntity m)
     {
-        if (_options.AvoidSuperMobs && m.IsSuperMob) return false;
-        if (_options.IgnoreBosses && m.IsBoss) return false;
-        if (_options.TargetMobTemplateIds.Count > 0 && !_options.TargetMobTemplateIds.Contains(m.TemplateId)) return false;
-        if (_options.TargetMobIds.Count > 0 && !_options.TargetMobIds.Contains(m.Id)) return false;
+        if (Options.AvoidSuperMobs && m.IsSuperMob) return false;
+        if (Options.IgnoreBosses && m.IsBoss) return false;
+        if (Options.TargetMobTemplateIds.Count > 0 && !Options.TargetMobTemplateIds.Contains(m.TemplateId)) return false;
+        if (Options.TargetMobIds.Count > 0 && !Options.TargetMobIds.Contains(m.Id)) return false;
         return true;
     }
 
@@ -87,7 +89,7 @@ public class AutoTrainAction(AutoTrainOptions options) : GameAction("Auto Train"
                     continue;
                 }
 
-                if (_options.UseTdlt && DateTime.UtcNow - _lastTdltCheckTime > TimeSpan.FromSeconds(5))
+                if (Options.UseTdlt && DateTime.UtcNow - _lastTdltCheckTime > TimeSpan.FromSeconds(5))
                 {
                     _lastTdltCheckTime = DateTime.UtcNow;
                     if (!context.Player.IsTdltActive)
@@ -100,15 +102,15 @@ public class AutoTrainAction(AutoTrainOptions options) : GameAction("Auto Train"
                     }
                 }
 
-                if (_options.AutoUsePean && DateTime.UtcNow - _lastPeanTime > TimeSpan.FromSeconds(2))
+                if (Options.AutoUsePean && DateTime.UtcNow - _lastPeanTime > TimeSpan.FromSeconds(2))
                 {
                     long curHp = context.Player.Hp;
                     long maxHp = context.Player.MaxHp;
                     long curMp = context.Player.Mp;
                     long maxMp = context.Player.MaxMp;
 
-                    if ((maxHp > 0 && curHp * 100 / maxHp <= _options.MinHpPercent) ||
-                        (maxMp > 0 && curMp * 100 / maxMp <= _options.MinMpPercent))
+                    if ((maxHp > 0 && curHp * 100 / maxHp <= Options.MinHpPercent) ||
+                        (maxMp > 0 && curMp * 100 / maxMp <= Options.MinMpPercent))
                     {
                         var peanResult = context.Player.UsePean();
                         if (peanResult.Success)
@@ -122,7 +124,7 @@ public class AutoTrainAction(AutoTrainOptions options) : GameAction("Auto Train"
                 int playerX = context.Player.X;
                 int playerY = context.Player.Y;
 
-                if (_options.AutoPickItems)
+                if (Options.AutoPickItems)
                 {
                     var groundItems = context.World.GetGroundItems();
                     if (groundItems.Count > 0)
@@ -138,7 +140,7 @@ public class AutoTrainAction(AutoTrainOptions options) : GameAction("Auto Train"
                             int itemDist = (int)Math.Sqrt(Math.Pow(itemToPick.X - playerX, 2) + Math.Pow(itemToPick.Y - playerY, 2));
                             if (itemDist > 35)
                             {
-                                if (_options.UseTdlt)
+                                if (Options.UseTdlt)
                                 {
                                     context.Reflector.WriteField(GameSchema.Char.ClassName, GameSchema.Char.FieldX, myCharPtr, itemToPick.X);
                                     context.Reflector.WriteField(GameSchema.Char.ClassName, GameSchema.Char.FieldY, myCharPtr, itemToPick.Y);
@@ -184,7 +186,7 @@ public class AutoTrainAction(AutoTrainOptions options) : GameAction("Auto Train"
                     }
                 }
 
-                if (_options.AvoidSuperMobs)
+                if (Options.AvoidSuperMobs)
                 {
                     var nearbySuperMob = monsters
                         .Where(m => m.IsAlive && m.Hp > 0 && m.IsSuperMob)
@@ -209,7 +211,7 @@ public class AutoTrainAction(AutoTrainOptions options) : GameAction("Auto Train"
                             safeY = safeMob.Y;
                         }
 
-                        if (_options.UseTdlt)
+                        if (Options.UseTdlt)
                         {
                             context.Reflector.WriteField(GameSchema.Char.ClassName, GameSchema.Char.FieldX, myCharPtr, safeX);
                             context.Reflector.WriteField(GameSchema.Char.ClassName, GameSchema.Char.FieldY, myCharPtr, safeY);
@@ -284,7 +286,7 @@ public class AutoTrainAction(AutoTrainOptions options) : GameAction("Auto Train"
 
                         if (distToSpawn > 35)
                         {
-                            if (_options.UseTdlt)
+                            if (Options.UseTdlt)
                             {
                                 context.Reflector.WriteField(GameSchema.Char.ClassName, GameSchema.Char.FieldX, myCharPtr, spawnX);
                                 context.Reflector.WriteField(GameSchema.Char.ClassName, GameSchema.Char.FieldY, myCharPtr, spawnY);
@@ -324,7 +326,7 @@ public class AutoTrainAction(AutoTrainOptions options) : GameAction("Auto Train"
 
                 if (distToMob > 45)
                 {
-                    if (_options.UseTdlt)
+                    if (Options.UseTdlt)
                     {
                         context.Reflector.WriteField(GameSchema.Char.ClassName, GameSchema.Char.FieldX, myCharPtr, attackStandX);
                         context.Reflector.WriteField(GameSchema.Char.ClassName, GameSchema.Char.FieldY, myCharPtr, attackStandY);
@@ -425,7 +427,7 @@ public class AutoTrainAction(AutoTrainOptions options) : GameAction("Auto Train"
 
     private int GetTargetSkillSlot()
     {
-        var slots = _options.SelectedSkillSlots;
+        var slots = Options.SelectedSkillSlots;
         if (slots == null || slots.Count == 0)
         {
             return 0;

@@ -65,7 +65,7 @@ public class GameLauncher
             var monoContext = await MonoContext.CreateAsync(process, cancellationToken)
                               ?? throw new InvalidOperationException("Failed to attach Mono runtime.");
 
-            var instance = new GameInstance(process, monoContext);
+            var instance = new GameInstance(process, monoContext, options.SessionId ?? Guid.NewGuid());
 
             await instance.Reflector.WaitForAssemblyAsync("Assembly-CSharp", 15000, cancellationToken);
             await Task.Delay(500, cancellationToken);

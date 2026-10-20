@@ -16,6 +16,22 @@ public sealed partial class AccountItemViewModel : ObservableObject
     public int ServerId => Model.ServerId;
 
     public bool AutoLogin => Model.AutoLogin;
+    public AccountAutoSettings AutoSettings => Model.AutoSettings;
+
+    [ObservableProperty]
+    private bool _isAutoTrainRunning;
+
+    [ObservableProperty]
+    private string _autoTrainStatusText = "Chưa kích hoạt";
+
+    [ObservableProperty]
+    private bool _isAutoChatRunning;
+
+    [ObservableProperty]
+    private string _autoChatStatusText = "Chưa kích hoạt";
+
+    [ObservableProperty]
+    private int _chatSentCount;
 
     [ObservableProperty]
     private bool _isSelected;

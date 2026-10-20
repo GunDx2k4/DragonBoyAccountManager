@@ -41,6 +41,7 @@ public interface IGameEngineService
     bool SendChat(Guid accountId, string text, ChatType type = ChatType.Map);
     Task<bool> SendChatAsync(Guid accountId, string text, ChatType type = ChatType.Map, CancellationToken cancellationToken = default);
     void StartAutoChat(Guid accountId, IReadOnlyList<string> messages, TimeSpan interval, ChatType type = ChatType.Map, bool isRandom = false);
+    void UpdateAutoChatConfig(Guid accountId, IReadOnlyList<string> messages, TimeSpan interval, ChatType type = ChatType.Map, bool isRandom = false);
     void StopAutoChat(Guid accountId);
     bool IsAutoChatRunning(Guid accountId);
 
@@ -53,6 +54,7 @@ public interface IGameEngineService
     (bool Success, string Message) AutoAssignSkills(Guid accountId);
 
     void StartAutoTrain(Guid accountId, DragonBoyAccountManager.Core.Game.Actions.AutoTrainOptions options);
+    void UpdateAutoTrainOptions(Guid accountId, DragonBoyAccountManager.Core.Game.Actions.AutoTrainOptions options);
     void StopAutoTrain(Guid accountId);
     bool IsAutoTrainRunning(Guid accountId);
 

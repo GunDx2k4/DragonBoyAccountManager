@@ -5,6 +5,8 @@ namespace DragonBoyAccountManager.Core.Game.Context;
 
 public interface IGameContext
 {
+    Guid ContextId { get; }
+
     IPlayerModule Player { get; }
     IWorldModule World { get; }
     IUIModule UI { get; }
@@ -19,6 +21,8 @@ public interface IGameContext
 
 public class GameContext : IGameContext
 {
+    public Guid ContextId { get; }
+
     public IPlayerModule Player { get; }
     public IWorldModule World { get; }
     public IUIModule UI { get; }
@@ -31,8 +35,9 @@ public class GameContext : IGameContext
     public bool IsRunning => _isRunningEvaluator();
     public bool IsInGame => Player.IsInGame;
 
-    public GameContext(MonoReflector reflector, Func<bool> isRunningEvaluator)
+    public GameContext(MonoReflector reflector, Func<bool> isRunningEvaluator, Guid contextId = default)
     {
+        ContextId = contextId == Guid.Empty ? Guid.NewGuid() : contextId;
         Reflector = reflector;
         _isRunningEvaluator = isRunningEvaluator;
 

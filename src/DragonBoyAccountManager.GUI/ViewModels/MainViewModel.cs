@@ -50,6 +50,7 @@ public sealed partial class MainViewModel : ObservableObject
         UtilitiesTab.SetTargetResolver(ResolveRunningTargetAccountIds);
         UtilitiesTab.SetSpeedTargetResolver(() => ResolveRunningSpeedTargetAccountIds(UtilitiesTab.IsApplySpeedToAll));
         AutoTab.SetTargetResolver(ResolveRunningTargetAccountIds);
+        AutoTab.SetAccountResolver(id => AccountsPanel.Accounts.FirstOrDefault(a => a.Id == id));
 
         AccountsPanel.OnAccountSelectionChanged += selected =>
         {
@@ -67,6 +68,7 @@ public sealed partial class MainViewModel : ObservableObject
                 if (SelectedTabIndex == 0)
                 {
                     UtilitiesTab.StopPolling();
+                    AutoTab.SaveCurrentAccountSettings();
                     AutoTab.StopPolling();
                     AccountForm.StartPolling();
                     AccountForm.RefreshSkills();
@@ -75,6 +77,7 @@ public sealed partial class MainViewModel : ObservableObject
                 else if (SelectedTabIndex == 1)
                 {
                     AccountForm.StopPolling();
+                    AutoTab.SaveCurrentAccountSettings();
                     AutoTab.StopPolling();
                     UtilitiesTab.StartPolling();
                     UtilitiesTab.RefreshMapData();
@@ -92,6 +95,7 @@ public sealed partial class MainViewModel : ObservableObject
                 {
                     AccountForm.StopPolling();
                     UtilitiesTab.StopPolling();
+                    AutoTab.SaveCurrentAccountSettings();
                     AutoTab.StopPolling();
                 }
             }

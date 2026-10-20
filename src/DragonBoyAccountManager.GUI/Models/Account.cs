@@ -11,4 +11,5 @@ public sealed class Account
     public DateTime? LastLogin { get; set; }
     public float GameSpeed { get; set; } = 1.0f;
     public bool AutoLogin { get; set; } = true;
+    public AccountAutoSettings AutoSettings { get; set; } = new();
 }

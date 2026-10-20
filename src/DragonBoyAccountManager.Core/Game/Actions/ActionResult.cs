@@ -25,5 +25,21 @@ public record ActionResult(ActionStatus Status, string Message = "", Exception? 
 public interface IGameAction
 {
     string Name { get; }
+    bool IsRunning { get; }
+    IGameContext? CurrentContext { get; }
     Task<ActionResult> ExecuteAsync(IGameContext context, IProgress<string>? progress = null, CancellationToken cancellationToken = default);
+}
+
+public interface IConfigurableAction : IGameAction
+{
+    object CurrentOptions { get; }
+    void UpdateOptions(object newOptions);
+}
+
+public interface IConfigurableAction<TOptions> : IConfigurableAction
+    where TOptions : class
+{
+    TOptions Options { get; }
+    void UpdateOptions(TOptions newOptions);
+    event Action<TOptions>? OptionsChanged;
 }

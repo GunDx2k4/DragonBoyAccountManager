@@ -31,14 +31,14 @@ public sealed class GameInstance : IDisposable
 
     private readonly System.Collections.Concurrent.ConcurrentDictionary<Type, object> _modules = new();
 
-    public GameInstance(Process process, MonoContext monoContext)
+    public GameInstance(Process process, MonoContext monoContext, Guid contextId = default)
     {
         Process = process;
         Process.EnableRaisingEvents = true;
         MonoContext = monoContext;
         Reflector = new MonoReflector(monoContext);
 
-        Context = new GameContext(Reflector, () => IsRunning);
+        Context = new GameContext(Reflector, () => IsRunning, contextId);
 
         RegisterModule(Context);
         RegisterModule(Context.Player);

@@ -124,6 +124,7 @@ public sealed class CoreGameEngineAdapter(ISettingsService? settingsService = nu
 
             var options = new LaunchOptions
             {
+                SessionId = account.Id,
                 GamePath = gamePath,
                 LogPrefix = string.IsNullOrWhiteSpace(account.Username) ? "DBAM" : account.Username,
                 AdditionalArguments = additionalArgs
@@ -766,6 +767,14 @@ public sealed class CoreGameEngineAdapter(ISettingsService? settingsService = nu
         }
     }
 
+    public void UpdateAutoChatConfig(Guid accountId, IReadOnlyList<string> messages, TimeSpan interval, ChatType type = ChatType.Map, bool isRandom = false)
+    {
+        if (_sessions.TryGetValue(accountId, out var session) && session.CurrentAutoChatAction != null)
+        {
+            session.CurrentAutoChatAction.UpdateConfig(messages, interval, type, isRandom);
+        }
+    }
+
     public void StopAutoChat(Guid accountId)
     {
         if (_sessions.TryGetValue(accountId, out var session))
@@ -825,6 +834,14 @@ public sealed class CoreGameEngineAdapter(ISettingsService? settingsService = nu
                     OnAutoTrainStateChanged?.Invoke(accountId, false);
                 }
             }, cts.Token);
+        }
+    }
+
+    public void UpdateAutoTrainOptions(Guid accountId, DragonBoyAccountManager.Core.Game.Actions.AutoTrainOptions options)
+    {
+        if (_sessions.TryGetValue(accountId, out var session) && session.CurrentAutoTrainAction != null)
+        {
+            session.CurrentAutoTrainAction.UpdateOptions(options);
         }
     }
 
