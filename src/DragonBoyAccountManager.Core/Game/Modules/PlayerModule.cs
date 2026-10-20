@@ -13,6 +13,7 @@ public interface IPlayerModule
 
     int Id { get; }
     string Name { get; }
+    int StatusMe { get; }
     long Hp { get; }
     long MaxHp { get; }
     long Mp { get; }
@@ -37,6 +38,14 @@ public interface IPlayerModule
     (bool Success, string Message) SelectSkill(int slotIndex);
     (bool Success, string Message) UseSkill(int slotIndex);
     (bool Success, string Message) AutoAssignSkills();
+
+    IntPtr CurrentMovePoint { get; }
+    void SetDirection(int direction);
+    void SetSkillLastTimeUsed(long timestampMs);
+    void SetVelocityY(int cvy, int statusMe = 3);
+    bool SetMoveTarget(int targetX, int targetY);
+    void ClearMoveTarget();
+    void SetPosition(int x, int y);
 }
 
 public class PlayerModule(MonoReflector reflector) : IPlayerModule
@@ -58,8 +67,8 @@ public class PlayerModule(MonoReflector reflector) : IPlayerModule
         }
     }
 
-    public bool IsAlive => Pointer != IntPtr.Zero;
-    public bool IsInGame => IsAlive && !string.IsNullOrWhiteSpace(Name);
+    public bool IsInGame => Pointer != IntPtr.Zero && !string.IsNullOrWhiteSpace(Name);
+    public bool IsAlive => Pointer != IntPtr.Zero && Hp > 0 && StatusMe != 14 && StatusMe != 5;
 
     public bool IsChangingMap
     {
@@ -79,9 +88,10 @@ public class PlayerModule(MonoReflector reflector) : IPlayerModule
                 bool isStopMsg = _reflector.ReadStatic<bool>(GameSchema.Controller.ClassName, GameSchema.Controller.StaticIsStopReadMessage);
                 if (isStopMsg) return true;
 
-                if (IsAlive)
+                var ptr = Pointer;
+                if (ptr != IntPtr.Zero)
                 {
-                    bool isTeleport = _reflector.ReadField<bool>(GameSchema.Char.ClassName, GameSchema.Char.FieldIsTeleport, Pointer);
+                    bool isTeleport = _reflector.ReadField<bool>(GameSchema.Char.ClassName, GameSchema.Char.FieldIsTeleport, ptr);
                     if (isTeleport) return true;
                 }
 
@@ -94,17 +104,18 @@ public class PlayerModule(MonoReflector reflector) : IPlayerModule
         }
     }
 
-    public int Id => IsAlive ? _reflector.ReadField<int>(GameSchema.Char.ClassName, GameSchema.Char.FieldCharId, Pointer) : 0;
-    public string Name => IsAlive ? _reflector.ReadStringField(GameSchema.Char.ClassName, GameSchema.Char.FieldName, Pointer) : string.Empty;
-    public long Hp => IsAlive ? _reflector.ReadField<long>(GameSchema.Char.ClassName, GameSchema.Char.FieldHp, Pointer) : 0;
-    public long MaxHp => IsAlive ? _reflector.ReadField<long>(GameSchema.Char.ClassName, GameSchema.Char.FieldHpFull, Pointer) : 0;
-    public long Mp => IsAlive ? _reflector.ReadField<long>(GameSchema.Char.ClassName, GameSchema.Char.FieldMp, Pointer) : 0;
-    public long MaxMp => IsAlive ? _reflector.ReadField<long>(GameSchema.Char.ClassName, GameSchema.Char.FieldMpFull, Pointer) : 0;
-    public long Power => IsAlive ? _reflector.ReadField<long>(GameSchema.Char.ClassName, GameSchema.Char.FieldPower, Pointer) : 0;
-    public int Gender => IsAlive ? _reflector.ReadField<int>(GameSchema.Char.ClassName, GameSchema.Char.FieldGender, Pointer) : 0;
-    public int X => IsAlive ? _reflector.ReadField<int>(GameSchema.Char.ClassName, GameSchema.Char.FieldX, Pointer) : 0;
-    public int Y => IsAlive ? _reflector.ReadField<int>(GameSchema.Char.ClassName, GameSchema.Char.FieldY, Pointer) : 0;
-    public IntPtr MobFocusPtr => IsAlive ? _reflector.ReadFieldPtr(GameSchema.Char.ClassName, GameSchema.Char.FieldMobFocus, Pointer) : IntPtr.Zero;
+    public int Id => Pointer != IntPtr.Zero ? _reflector.ReadField<int>(GameSchema.Char.ClassName, GameSchema.Char.FieldCharId, Pointer) : 0;
+    public string Name => Pointer != IntPtr.Zero ? _reflector.ReadStringField(GameSchema.Char.ClassName, GameSchema.Char.FieldName, Pointer) : string.Empty;
+    public int StatusMe => Pointer != IntPtr.Zero ? _reflector.ReadField<int>(GameSchema.Char.ClassName, GameSchema.Char.FieldStatusMe, Pointer) : 0;
+    public long Hp => Pointer != IntPtr.Zero ? _reflector.ReadField<long>(GameSchema.Char.ClassName, GameSchema.Char.FieldHp, Pointer) : 0;
+    public long MaxHp => Pointer != IntPtr.Zero ? _reflector.ReadField<long>(GameSchema.Char.ClassName, GameSchema.Char.FieldHpFull, Pointer) : 0;
+    public long Mp => Pointer != IntPtr.Zero ? _reflector.ReadField<long>(GameSchema.Char.ClassName, GameSchema.Char.FieldMp, Pointer) : 0;
+    public long MaxMp => Pointer != IntPtr.Zero ? _reflector.ReadField<long>(GameSchema.Char.ClassName, GameSchema.Char.FieldMpFull, Pointer) : 0;
+    public long Power => Pointer != IntPtr.Zero ? _reflector.ReadField<long>(GameSchema.Char.ClassName, GameSchema.Char.FieldPower, Pointer) : 0;
+    public int Gender => Pointer != IntPtr.Zero ? _reflector.ReadField<int>(GameSchema.Char.ClassName, GameSchema.Char.FieldGender, Pointer) : 0;
+    public int X => Pointer != IntPtr.Zero ? _reflector.ReadField<int>(GameSchema.Char.ClassName, GameSchema.Char.FieldX, Pointer) : 0;
+    public int Y => Pointer != IntPtr.Zero ? _reflector.ReadField<int>(GameSchema.Char.ClassName, GameSchema.Char.FieldY, Pointer) : 0;
+    public IntPtr MobFocusPtr => Pointer != IntPtr.Zero ? _reflector.ReadFieldPtr(GameSchema.Char.ClassName, GameSchema.Char.FieldMobFocus, Pointer) : IntPtr.Zero;
 
     public bool IsTdltActive
     {
@@ -127,6 +138,7 @@ public class PlayerModule(MonoReflector reflector) : IPlayerModule
         {
             int id = _reflector.ReadField<int>(GameSchema.Char.ClassName, GameSchema.Char.FieldCharId, ptr);
             string name = _reflector.ReadStringField(GameSchema.Char.ClassName, GameSchema.Char.FieldName, ptr);
+            int status = _reflector.ReadField<int>(GameSchema.Char.ClassName, GameSchema.Char.FieldStatusMe, ptr);
             long hp = _reflector.ReadField<long>(GameSchema.Char.ClassName, GameSchema.Char.FieldHp, ptr);
             long maxHp = _reflector.ReadField<long>(GameSchema.Char.ClassName, GameSchema.Char.FieldHpFull, ptr);
             long mp = _reflector.ReadField<long>(GameSchema.Char.ClassName, GameSchema.Char.FieldMp, ptr);
@@ -137,7 +149,8 @@ public class PlayerModule(MonoReflector reflector) : IPlayerModule
             int y = _reflector.ReadField<int>(GameSchema.Char.ClassName, GameSchema.Char.FieldY, ptr);
 
             bool isInGame = !string.IsNullOrWhiteSpace(name);
-            return new PlayerSnapshot(id, name, hp, maxHp, power, gender, x, y, true, isInGame, IsChangingMap, mp, maxMp);
+            bool isAlive = hp > 0 && status != 14 && status != 5;
+            return new PlayerSnapshot(id, name, hp, maxHp, power, gender, x, y, isAlive, isInGame, IsChangingMap, mp, maxMp);
         }
         catch
         {
@@ -237,23 +250,25 @@ public class PlayerModule(MonoReflector reflector) : IPlayerModule
         }
 
         var bag = GetBagItems();
-        foreach (var item in bag)
+        IntPtr bagArrayPtr = _reflector.ReadFieldPtr(GameSchema.Char.ClassName, GameSchema.Char.FieldArrItemBag, Pointer);
+        if (bagArrayPtr != IntPtr.Zero)
         {
-            IntPtr bagArrayPtr = _reflector.ReadFieldPtr(GameSchema.Char.ClassName, GameSchema.Char.FieldArrItemBag, Pointer);
-            if (bagArrayPtr == IntPtr.Zero) break;
             IntPtr[] itemPtrs = _reflector.ReadMonoPointerArray(bagArrayPtr);
-            if (item.Index >= 0 && item.Index < itemPtrs.Length)
+            foreach (var item in bag)
             {
-                IntPtr itemPtr = itemPtrs[item.Index];
-                if (itemPtr != IntPtr.Zero)
+                if (item.Index >= 0 && item.Index < itemPtrs.Length)
                 {
-                    IntPtr templatePtr = _reflector.ReadFieldPtr(GameSchema.Item.ClassName, GameSchema.Item.FieldTemplate, itemPtr);
-                    if (templatePtr != IntPtr.Zero)
+                    IntPtr itemPtr = itemPtrs[item.Index];
+                    if (itemPtr != IntPtr.Zero)
                     {
-                        sbyte type = _reflector.ReadField<sbyte>(GameSchema.ItemTemplate.ClassName, GameSchema.ItemTemplate.FieldType, templatePtr);
-                        if (type == 6)
+                        IntPtr templatePtr = _reflector.ReadFieldPtr(GameSchema.Item.ClassName, GameSchema.Item.FieldTemplate, itemPtr);
+                        if (templatePtr != IntPtr.Zero)
                         {
-                            return UseItem(-1, item.TemplateId);
+                            sbyte type = _reflector.ReadField<sbyte>(GameSchema.ItemTemplate.ClassName, GameSchema.ItemTemplate.FieldType, templatePtr);
+                            if (type == 6)
+                            {
+                                return UseItem(-1, item.TemplateId);
+                            }
                         }
                     }
                 }
@@ -540,6 +555,90 @@ public class PlayerModule(MonoReflector reflector) : IPlayerModule
         catch
         {
             return null;
+        }
+    }
+
+    public IntPtr CurrentMovePoint => Pointer != IntPtr.Zero
+        ? _reflector.ReadFieldPtr(GameSchema.Char.ClassName, GameSchema.Char.FieldCurrentMovePoint, Pointer)
+        : IntPtr.Zero;
+
+    public void SetDirection(int direction)
+    {
+        var ptr = Pointer;
+        if (ptr != IntPtr.Zero)
+        {
+            _reflector.WriteField(GameSchema.Char.ClassName, GameSchema.Char.FieldCdir, ptr, direction);
+        }
+    }
+
+    public void SetSkillLastTimeUsed(long timestampMs)
+    {
+        var ptr = Pointer;
+        if (ptr != IntPtr.Zero)
+        {
+            IntPtr mySkillPtr = _reflector.ReadFieldPtr(GameSchema.Char.ClassName, GameSchema.Char.FieldMySkill, ptr);
+            if (mySkillPtr != IntPtr.Zero)
+            {
+                _reflector.WriteField(GameSchema.Skill.ClassName, GameSchema.Skill.FieldLastTimeUseThisSkill, mySkillPtr, timestampMs);
+            }
+        }
+    }
+
+    public void SetVelocityY(int cvy, int statusMe = 3)
+    {
+        var ptr = Pointer;
+        if (ptr != IntPtr.Zero)
+        {
+            _reflector.WriteField(GameSchema.Char.ClassName, GameSchema.Char.FieldCvy, ptr, cvy);
+            _reflector.WriteField(GameSchema.Char.ClassName, GameSchema.Char.FieldStatusMe, ptr, statusMe);
+        }
+    }
+
+    public bool SetMoveTarget(int targetX, int targetY)
+    {
+        var ptr = Pointer;
+        if (ptr == IntPtr.Zero) return false;
+
+        try
+        {
+            IntPtr mp = _reflector.CreateInstance(GameSchema.MovePoint.ClassName, targetX, targetY);
+            if (mp != IntPtr.Zero)
+            {
+                int curX = X;
+                _reflector.WriteField(GameSchema.MovePoint.ClassName, GameSchema.MovePoint.FieldXEnd, mp, targetX);
+                _reflector.WriteField(GameSchema.MovePoint.ClassName, GameSchema.MovePoint.FieldYEnd, mp, targetY);
+                _reflector.WriteField(GameSchema.Char.ClassName, GameSchema.Char.FieldCurrentMovePoint, ptr, mp);
+                _reflector.WriteField(GameSchema.Char.ClassName, GameSchema.Char.FieldCdir, ptr, targetX >= curX ? 1 : -1);
+                _reflector.WriteField(GameSchema.Char.ClassName, GameSchema.Char.FieldEndMovePointCommand, ptr, IntPtr.Zero);
+                return true;
+            }
+            return false;
+        }
+        catch
+        {
+            return false;
+        }
+    }
+
+    public void ClearMoveTarget()
+    {
+        var ptr = Pointer;
+        if (ptr != IntPtr.Zero)
+        {
+            _reflector.WriteField(GameSchema.Char.ClassName, GameSchema.Char.FieldCurrentMovePoint, ptr, IntPtr.Zero);
+            _reflector.WriteField(GameSchema.Char.ClassName, GameSchema.Char.FieldEndMovePointCommand, ptr, IntPtr.Zero);
+            _reflector.WriteField(GameSchema.Char.ClassName, GameSchema.Char.FieldCvx, ptr, 0);
+            _reflector.WriteField(GameSchema.Char.ClassName, GameSchema.Char.FieldCvy, ptr, 0);
+        }
+    }
+
+    public void SetPosition(int x, int y)
+    {
+        var ptr = Pointer;
+        if (ptr != IntPtr.Zero)
+        {
+            _reflector.WriteField(GameSchema.Char.ClassName, GameSchema.Char.FieldX, ptr, x);
+            _reflector.WriteField(GameSchema.Char.ClassName, GameSchema.Char.FieldY, ptr, y);
         }
     }
 }

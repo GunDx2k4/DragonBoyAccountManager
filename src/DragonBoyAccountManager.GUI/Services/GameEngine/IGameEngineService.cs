@@ -1,5 +1,6 @@
 using DragonBoyAccountManager.Core.Game.Models;
 using DragonBoyAccountManager.Core.Game.Modules;
+using DragonBoyAccountManager.Core.Game.Routines.Training;
 using DragonBoyAccountManager.Core.Game.Snapshots;
 using DragonBoyAccountManager.GUI.Models;
 
@@ -53,8 +54,8 @@ public interface IGameEngineService
     IReadOnlyList<GameSkillInfo> GetSkills(Guid accountId);
     (bool Success, string Message) AutoAssignSkills(Guid accountId);
 
-    void StartAutoTrain(Guid accountId, DragonBoyAccountManager.Core.Game.Actions.AutoTrainOptions options);
-    void UpdateAutoTrainOptions(Guid accountId, DragonBoyAccountManager.Core.Game.Actions.AutoTrainOptions options);
+    void StartAutoTrain(Guid accountId, AutoTrainOptions options);
+    void UpdateAutoTrainOptions(Guid accountId, AutoTrainOptions options);
     void StopAutoTrain(Guid accountId);
     bool IsAutoTrainRunning(Guid accountId);
 

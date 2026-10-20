@@ -1,6 +1,7 @@
 using Spectre.Console;
 using DragonBoyAccountManager.Core.Game;
 using DragonBoyAccountManager.Core.Game.Actions;
+using DragonBoyAccountManager.Core.Game.Routines.Login;
 
 AnsiConsole.Write(new Rule("[bold cyan]DBAM[/]").Centered());
 AnsiConsole.WriteLine();
@@ -87,8 +88,8 @@ while (instance.IsRunning)
         case "Read Client Info":
             PrintKV("VERSION", instance.Engine.Version);
             PrintKV("intVERSION", instance.Engine.IntVersion.ToString());
-            PrintKV("IP", instance.Engine.ServerIP);
-            PrintKV("PORT", instance.Engine.ServerPort.ToString());
+            PrintKV("IP", instance.Network.CurrentHost ?? string.Empty);
+            PrintKV("PORT", instance.Network.CurrentPort.ToString());
             break;
 
         case "Read Player":
@@ -168,7 +169,8 @@ static async Task RunAutoLogin(GameController ctrl)
                 ctx.Status(Markup.Escape(msg));
                 AnsiConsole.MarkupLine($"[grey][[{DateTime.Now:HH:mm:ss}]][/] {Markup.Escape(msg)}");
             });
-            ok = (await ctrl.ExecuteAsync(new AutoLoginAction(user, pass, serverId), progress)).IsSuccess;
+            await ctrl.Routines.StartAsync(new AutoLoginRoutine(user, pass, serverId), progress);
+            ok = ctrl.Instance.Player.IsInGame;
         });
 
     if (ok)

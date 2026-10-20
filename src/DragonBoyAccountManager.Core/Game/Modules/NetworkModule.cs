@@ -14,8 +14,6 @@ public interface INetworkModule
     string[]? ServerNames { get; }
     string[]? ServerAddresses { get; }
     short[]? ServerPorts { get; }
-    int SelectedServerId { get; set; }
-    void SelectServer(int serverId);
 
     void Connect();
     void Connect(string host, int port);
@@ -34,6 +32,7 @@ public interface INetworkModule
     bool PickItem(int itemMapId);
     bool SendPlayerAttack(IntPtr mobPtr);
     bool SelectSkill(int skillTemplateId);
+    bool WakeUpFromDead();
 }
 
 public class NetworkModule(MonoReflector reflector) : INetworkModule
@@ -138,64 +137,6 @@ public class NetworkModule(MonoReflector reflector) : INetworkModule
             }
             catch { }
             return null;
-        }
-    }
-
-    public int SelectedServerId
-    {
-        get
-        {
-            try { return _reflector.ReadStatic<int>(GameSchema.ServerListScreen.ClassName, GameSchema.ServerListScreen.StaticIpSelect); }
-            catch { return -1; }
-        }
-        set
-        {
-            try { _reflector.WriteStatic(GameSchema.ServerListScreen.ClassName, GameSchema.ServerListScreen.StaticIpSelect, value); }
-            catch { }
-        }
-    }
-
-    public void SelectServer(int serverId)
-    {
-        Close();
-
-        try
-        {
-            _reflector.CallMethod(
-                GameSchema.ServerListScreen.ClassName,
-                GameSchema.ServerListScreen.MethodSetIpSelect,
-                IntPtr.Zero,
-                serverId,
-                true);
-        }
-        catch
-        {
-            SelectedServerId = serverId;
-        }
-
-        var addrs = ServerAddresses;
-        var ports = ServerPorts;
-        var names = ServerNames;
-        if (names != null && serverId >= 0 && serverId < names.Length)
-        {
-            try
-            {
-                IntPtr nameStr = _reflector.CreateMonoString(names[serverId]);
-                if (nameStr != IntPtr.Zero)
-                {
-                    _reflector.WriteStatic(GameSchema.LoginScr.ClassName, GameSchema.LoginScr.StaticServerName, nameStr);
-                }
-            }
-            catch { }
-        }
-
-        if (addrs != null && ports != null && serverId >= 0 && serverId < addrs.Length && serverId < ports.Length)
-        {
-            Connect(addrs[serverId], ports[serverId]);
-        }
-        else
-        {
-            Connect();
         }
     }
 
@@ -450,6 +391,18 @@ public class NetworkModule(MonoReflector reflector) : INetworkModule
             IntPtr service = ServicePointer;
             if (service == IntPtr.Zero) return false;
             _reflector.CallMethod(GameSchema.Service.ClassName, GameSchema.Service.MethodSelectSkill, service, skillTemplateId);
+            return true;
+        }
+        catch { return false; }
+    }
+
+    public bool WakeUpFromDead()
+    {
+        try
+        {
+            IntPtr service = ServicePointer;
+            if (service == IntPtr.Zero) return false;
+            _reflector.CallMethod(GameSchema.Service.ClassName, GameSchema.Service.MethodWakeUpFromDead, service);
             return true;
         }
         catch { return false; }

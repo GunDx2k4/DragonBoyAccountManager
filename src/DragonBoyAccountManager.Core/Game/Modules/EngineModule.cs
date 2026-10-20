@@ -10,8 +10,6 @@ public interface IEngineModule
 
     string Version { get; }
     int IntVersion { get; }
-    string ServerIP { get; }
-    int ServerPort { get; }
     bool IsQuitRequested { get; }
 
     bool SetTimeScale(float value);
@@ -26,8 +24,14 @@ public class EngineModule(MonoReflector reflector) : IEngineModule
     {
         get
         {
-            try { return _reflector.ReadStatic<bool>(GameSchema.Main.ClassName, GameSchema.Main.StaticIsQuitApp); }
-            catch { return false; }
+            try
+            {
+                return _reflector.ReadStatic<bool>(GameSchema.Main.ClassName, GameSchema.Main.StaticIsQuitApp);
+            }
+            catch
+            {
+                return false;
+            }
         }
     }
 
@@ -53,24 +57,6 @@ public class EngineModule(MonoReflector reflector) : IEngineModule
         get
         {
             try { return _reflector.ReadStatic<int>(GameSchema.GameMidlet.ClassName, GameSchema.GameMidlet.StaticIntVersion); }
-            catch { return 0; }
-        }
-    }
-
-    public string ServerIP
-    {
-        get
-        {
-            try { return _reflector.ReadStaticString(GameSchema.GameMidlet.ClassName, GameSchema.GameMidlet.StaticIp) ?? string.Empty; }
-            catch { return string.Empty; }
-        }
-    }
-
-    public int ServerPort
-    {
-        get
-        {
-            try { return _reflector.ReadStatic<int>(GameSchema.GameMidlet.ClassName, GameSchema.GameMidlet.StaticPort); }
             catch { return 0; }
         }
     }

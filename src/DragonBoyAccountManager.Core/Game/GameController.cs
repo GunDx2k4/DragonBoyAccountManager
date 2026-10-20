@@ -2,7 +2,7 @@ using DragonBoyAccountManager.Core.Game.Actions;
 
 namespace DragonBoyAccountManager.Core.Game;
 
-public class GameController(GameInstance instance) : IDisposable, IAsyncDisposable
+public class GameController : IDisposable, IAsyncDisposable
 {
     private readonly SemaphoreSlim _actionLock = new(1, 1);
     private readonly object _periodicLock = new();
@@ -10,18 +10,27 @@ public class GameController(GameInstance instance) : IDisposable, IAsyncDisposab
     private Task? _loopTask;
     private bool _isPaused;
 
-    public GameInstance Instance { get; } = instance;
+    public GameInstance Instance { get; }
+    public RoutineCoordinator Routines { get; }
+
     public bool IsRunning => _loopTask != null && !_loopTask.IsCompleted;
     public bool IsPaused => _isPaused;
 
     public IGameAction? CurrentAction { get; private set; }
     public bool IsExecutingAction => CurrentAction != null;
+    public bool IsRoutineRunning => Routines.IsAnyRoutineRunning;
 
     public event Action<IGameAction?>? ActionChanged;
     public event Action<GameInstance>? Ticked;
     public event Action<Exception>? ErrorOccurred;
 
     public List<IGameAction> PeriodicActions { get; } = [];
+
+    public GameController(GameInstance instance)
+    {
+        Instance = instance ?? throw new ArgumentNullException(nameof(instance));
+        Routines = new RoutineCoordinator(instance.Context, (action, prog, ct) => ExecuteAsync(action, prog, ct));
+    }
 
     public void AddPeriodicAction(IGameAction action)
     {
@@ -78,14 +87,14 @@ public class GameController(GameInstance instance) : IDisposable, IAsyncDisposab
         {
             using var timer = new PeriodicTimer(interval);
 
-            while (Instance.IsRunning && !token.IsCancellationRequested)
+            while (Instance.IsRunning && !Instance.IsQuitRequested && !token.IsCancellationRequested)
             {
                 try
                 {
                     if (!await timer.WaitForNextTickAsync(token))
                         break;
 
-                    if (!Instance.IsRunning || token.IsCancellationRequested)
+                    if (!Instance.IsRunning || Instance.IsQuitRequested || token.IsCancellationRequested)
                         break;
 
                     if (_isPaused) continue;
@@ -100,12 +109,12 @@ public class GameController(GameInstance instance) : IDisposable, IAsyncDisposab
 
                         foreach (var action in actions)
                         {
-                            if (token.IsCancellationRequested || !Instance.IsRunning) break;
-                            await action.ExecuteAsync(Instance.Context, null, token);
+                            if (token.IsCancellationRequested || !Instance.IsRunning || Instance.IsQuitRequested) break;
+                            await ExecuteAsync(action, null, token);
                         }
                     }
 
-                    if (!Instance.IsRunning || token.IsCancellationRequested)
+                    if (!Instance.IsRunning || Instance.IsQuitRequested || token.IsCancellationRequested)
                         break;
 
                     Ticked?.Invoke(Instance);
@@ -125,6 +134,8 @@ public class GameController(GameInstance instance) : IDisposable, IAsyncDisposab
 
     public async Task StopAsync()
     {
+        Routines.StopAll();
+
         if (_cts != null)
         {
             _cts.Cancel();
@@ -145,6 +156,8 @@ public class GameController(GameInstance instance) : IDisposable, IAsyncDisposab
 
     public void Stop()
     {
+        Routines.StopAll();
+
         if (_cts != null)
         {
             _cts.Cancel();
@@ -157,6 +170,7 @@ public class GameController(GameInstance instance) : IDisposable, IAsyncDisposab
     public async ValueTask DisposeAsync()
     {
         await StopAsync().ConfigureAwait(false);
+        Routines.Dispose();
         _actionLock.Dispose();
         GC.SuppressFinalize(this);
     }
@@ -164,6 +178,7 @@ public class GameController(GameInstance instance) : IDisposable, IAsyncDisposab
     public void Dispose()
     {
         Stop();
+        Routines.Dispose();
         _actionLock.Dispose();
         GC.SuppressFinalize(this);
     }

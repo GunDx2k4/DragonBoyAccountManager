@@ -1,14 +1,7 @@
+using DragonBoyAccountManager.Core.Game.Actions;
 using DragonBoyAccountManager.Core.Game.Context;
 
-namespace DragonBoyAccountManager.Core.Game.Actions;
-
-public interface IActionInterrupter
-{
-    string Name { get; }
-    int Priority { get; }
-    bool ShouldInterrupt(IGameContext context);
-    Task<ActionResult> HandleAsync(IGameContext context, CancellationToken cancellationToken = default);
-}
+namespace DragonBoyAccountManager.Core.Game.Interrupters;
 
 public class InterrupterPipeline
 {
@@ -32,7 +25,7 @@ public class InterrupterPipeline
         foreach (var interrupter in _interrupters)
         {
             if (cancellationToken.IsCancellationRequested || !context.IsRunning)
-                return ActionResult.Failure("Bị hủy hoặc game đã dừng.");
+                return ActionResult.Failure("Bị hủy hoặc trò chơi đã dừng.");
 
             if (interrupter.ShouldInterrupt(context))
             {

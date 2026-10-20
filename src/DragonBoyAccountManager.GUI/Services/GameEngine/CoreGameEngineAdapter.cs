@@ -7,6 +7,9 @@ using DragonBoyAccountManager.Core.Game.Actions;
 using DragonBoyAccountManager.Core.Game.Entities;
 using DragonBoyAccountManager.Core.Game.Models;
 using DragonBoyAccountManager.Core.Game.Modules;
+using DragonBoyAccountManager.Core.Game.Routines.Chat;
+using DragonBoyAccountManager.Core.Game.Routines.Login;
+using DragonBoyAccountManager.Core.Game.Routines.Training;
 using DragonBoyAccountManager.Core.Game.Schema;
 using DragonBoyAccountManager.Core.Game.Snapshots;
 using DragonBoyAccountManager.GUI.Helpers;
@@ -23,10 +26,6 @@ public sealed class CoreGameEngineAdapter(ISettingsService? settingsService = nu
         public GameController Controller { get; } = controller;
         public Account Account { get; } = account;
         public CancellationTokenSource Cts { get; } = new();
-        public AutoChatAction? CurrentAutoChatAction { get; set; }
-        public CancellationTokenSource? AutoTrainCts { get; set; }
-        public Task? AutoTrainTask { get; set; }
-        public DragonBoyAccountManager.Core.Game.Actions.AutoTrainAction? CurrentAutoTrainAction { get; set; }
         public bool HasAssignedSkills { get; set; }
 
         private int _isLoggingIn;
@@ -37,44 +36,22 @@ public sealed class CoreGameEngineAdapter(ISettingsService? settingsService = nu
         public async Task StopAsync()
         {
             try { Cts.Cancel(); } catch { }
-            Cts.Dispose();
-            if (AutoTrainCts != null)
-            {
-                try { AutoTrainCts.Cancel(); } catch { }
-                AutoTrainCts.Dispose();
-                AutoTrainCts = null;
-                CurrentAutoTrainAction = null;
-            }
-            if (CurrentAutoChatAction != null)
-            {
-                Controller.RemovePeriodicAction(CurrentAutoChatAction);
-                CurrentAutoChatAction = null;
-            }
-            await Controller.StopAsync();
-            Controller.Dispose();
+            Controller.Routines.StopAll();
             Instance.Kill();
+            await Controller.StopAsync();
+            Cts.Dispose();
+            Controller.Dispose();
             Instance.Dispose();
         }
 
         public void Dispose()
         {
             try { Cts.Cancel(); } catch { }
-            Cts.Dispose();
-            if (AutoTrainCts != null)
-            {
-                try { AutoTrainCts.Cancel(); } catch { }
-                AutoTrainCts.Dispose();
-                AutoTrainCts = null;
-                CurrentAutoTrainAction = null;
-            }
-            if (CurrentAutoChatAction != null)
-            {
-                Controller.RemovePeriodicAction(CurrentAutoChatAction);
-                CurrentAutoChatAction = null;
-            }
-            Controller.Stop();
-            Controller.Dispose();
+            Controller.Routines.StopAll();
             Instance.Kill();
+            Controller.Stop();
+            Cts.Dispose();
+            Controller.Dispose();
             Instance.Dispose();
         }
     }
@@ -116,18 +93,12 @@ public sealed class CoreGameEngineAdapter(ISettingsService? settingsService = nu
             PreSetWindowRms(customW, customH);
             PreSetRegistryResolution(gamePath, customW, customH);
 
-            string? additionalArgs = null;
-            if (customW > 0 && customH > 0)
-            {
-                additionalArgs = $"-screen-width {customW} -screen-height {customH} -screen-fullscreen 0";
-            }
-
             var options = new LaunchOptions
             {
                 SessionId = account.Id,
                 GamePath = gamePath,
                 LogPrefix = string.IsNullOrWhiteSpace(account.Username) ? "DBAM" : account.Username,
-                AdditionalArguments = additionalArgs
+                AdditionalArguments = null
             };
 
             var instance = await _coreLauncher.LaunchAsync(options);
@@ -135,6 +106,14 @@ public sealed class CoreGameEngineAdapter(ISettingsService? settingsService = nu
             var session = new ActiveSession(instance, controller, account);
 
             _sessions[account.Id] = session;
+
+            controller.Routines.RoutineStateChanged += (routine, isRunning) =>
+            {
+                if (routine is AutoTrainRoutine)
+                {
+                    OnAutoTrainStateChanged?.Invoke(account.Id, isRunning);
+                }
+            };
 
             string serverInfo = !string.IsNullOrWhiteSpace(account.ServerName) ? $" ({account.ServerName})" : "";
             string initialTitle = $"DBAM - {account.Username}{serverInfo}";
@@ -146,7 +125,7 @@ public sealed class CoreGameEngineAdapter(ISettingsService? settingsService = nu
                     return $"DBAM - {account.Username}{serverInfo} [{session.Instance.Player.Name}]";
                 }
                 return initialTitle;
-            }, customW, customH));
+            }, 0, 0));
 
             instance.Exited += (_, _) =>
             {
@@ -243,34 +222,6 @@ public sealed class CoreGameEngineAdapter(ISettingsService? settingsService = nu
                 instance.Engine.SetTimeScale(account.GameSpeed);
             }
 
-            if (customW > 0 && customH > 0)
-            {
-                try
-                {
-                    instance.Engine.SetResolution(customW, customH);
-                }
-                catch { }
-
-                _ = Task.Run(async () =>
-                {
-                    for (int i = 0; i < 40; i++)
-                    {
-                        if (!instance.IsRunning) return;
-                        try
-                        {
-                            if (instance.Reflector.ReadStatic<bool>(GameSchema.Main.ClassName, GameSchema.Main.StaticStarted))
-                            {
-                                await Task.Delay(200);
-                                GameWindowHelper.ResizeWindow(instance.Process, customW, customH);
-                                break;
-                            }
-                        }
-                        catch { }
-                        await Task.Delay(150);
-                    }
-                });
-            }
-
             if (_settingsService?.Current.AutoArrangeWindows == true)
             {
                 ArrangeWindows(_sessions.Keys);
@@ -334,47 +285,35 @@ public sealed class CoreGameEngineAdapter(ISettingsService? settingsService = nu
 
         try
         {
-            while (instance.IsRunning && !session.Cts.IsCancellationRequested && !instance.Player.IsInGame)
-            {
-                var loginAction = new AutoLoginAction(account.Username, account.Password, account.ServerId, account.ServerName);
-                bool success = await controller.ExecuteAsync(loginAction, progress, session.Cts.Token);
-                if (success || instance.Player.IsInGame)
-                {
-                    OnSessionMessageUpdated?.Invoke(account.Id, "Đăng nhập thành công!");
-                    if (instance.Player.IsInGame)
-                    {
-                        if (!session.HasAssignedSkills && _settingsService?.Current.AutoAssignSkills == true)
-                        {
-                            session.HasAssignedSkills = true;
-                            _ = Task.Run(() =>
-                            {
-                                try
-                                {
-                                    instance.Player.AutoAssignSkills();
-                                }
-                                catch { }
-                            });
-                        }
+            var loginRoutine = new AutoLoginRoutine(new AutoLoginOptions(
+                account.Username,
+                account.Password,
+                account.ServerId,
+                account.ServerName,
+                maxAttempts: account.AutoLogin ? 15 : 3));
 
-                        var worldSnapshot = instance.World.GetSnapshot();
-                        var playerSnapshot = instance.Player.GetSnapshot();
-                        var sessionSnapshot = new GameSessionSnapshot(playerSnapshot, worldSnapshot);
-                        OnSessionUpdated?.Invoke(account.Id, GameSessionStatus.Active, sessionSnapshot);
-                    }
-                    return true;
-                }
-
-                if (!instance.IsRunning || session.Cts.IsCancellationRequested)
-                    break;
-
-                if (!account.AutoLogin)
-                    break;
-
-                await Task.Delay(1500, session.Cts.Token);
-            }
+            await controller.Routines.StartAsync(loginRoutine, progress, session.Cts.Token);
 
             if (instance.Player.IsInGame)
             {
+                OnSessionMessageUpdated?.Invoke(account.Id, "Đăng nhập thành công!");
+                if (!session.HasAssignedSkills && _settingsService?.Current.AutoAssignSkills == true)
+                {
+                    session.HasAssignedSkills = true;
+                    _ = Task.Run(() =>
+                    {
+                        try
+                        {
+                            instance.Player.AutoAssignSkills();
+                        }
+                        catch { }
+                    });
+                }
+
+                var worldSnapshot = instance.World.GetSnapshot();
+                var playerSnapshot = instance.Player.GetSnapshot();
+                var sessionSnapshot = new GameSessionSnapshot(playerSnapshot, worldSnapshot);
+                OnSessionUpdated?.Invoke(account.Id, GameSessionStatus.Active, sessionSnapshot);
                 return true;
             }
 
@@ -527,19 +466,6 @@ public sealed class CoreGameEngineAdapter(ISettingsService? settingsService = nu
 
     public bool SetResolution(Guid accountId, int width, int height)
     {
-        if (width <= 0 || height <= 0) return false;
-
-        if (_sessions.TryGetValue(accountId, out var session) && session.Instance.IsRunning)
-        {
-            try
-            {
-                session.Instance.Engine.SetResolution(width, height);
-            }
-            catch { }
-
-            return GameWindowHelper.ResizeWindow(session.Instance.Process, width, height);
-        }
-
         return false;
     }
 
@@ -695,7 +621,7 @@ public sealed class CoreGameEngineAdapter(ISettingsService? settingsService = nu
     {
         if (_sessions.TryGetValue(accountId, out var session) && session.Instance.IsRunning && session.Instance.Player.IsInGame)
         {
-            bool res = session.Instance.World.FocusOrClickObject(entityType, entityId);
+            bool res = session.Instance.World.FocusTarget(entityType, entityId);
             PublishSessionUpdate(session);
             return res;
         }
@@ -760,18 +686,18 @@ public sealed class CoreGameEngineAdapter(ISettingsService? settingsService = nu
         if (_sessions.TryGetValue(accountId, out var session) && session.Instance.IsRunning)
         {
             StopAutoChat(accountId);
-            var action = new AutoChatAction(messages, interval, type, isRandom);
-            action.ChatSent += (msg, count) => OnChatSent?.Invoke(accountId, msg, count);
-            session.CurrentAutoChatAction = action;
-            session.Controller.AddPeriodicAction(action);
+            var routine = new AutoChatRoutine(messages, interval, type, isRandom);
+            routine.ChatSent += (msg, count) => OnChatSent?.Invoke(accountId, msg, count);
+            _ = session.Controller.Routines.StartAsync(routine, null, session.Cts.Token);
         }
     }
 
     public void UpdateAutoChatConfig(Guid accountId, IReadOnlyList<string> messages, TimeSpan interval, ChatType type = ChatType.Map, bool isRandom = false)
     {
-        if (_sessions.TryGetValue(accountId, out var session) && session.CurrentAutoChatAction != null)
+        if (_sessions.TryGetValue(accountId, out var session))
         {
-            session.CurrentAutoChatAction.UpdateConfig(messages, interval, type, isRandom);
+            var routine = session.Controller.Routines.Get<AutoChatRoutine>();
+            routine?.UpdateConfig(messages, interval, type, isRandom);
         }
     }
 
@@ -779,20 +705,16 @@ public sealed class CoreGameEngineAdapter(ISettingsService? settingsService = nu
     {
         if (_sessions.TryGetValue(accountId, out var session))
         {
-            if (session.CurrentAutoChatAction != null)
-            {
-                session.Controller.RemovePeriodicAction(session.CurrentAutoChatAction);
-                session.CurrentAutoChatAction = null;
-            }
+            session.Controller.Routines.Stop<AutoChatRoutine>();
         }
     }
 
     public bool IsAutoChatRunning(Guid accountId)
     {
-        return _sessions.TryGetValue(accountId, out var session) && session.CurrentAutoChatAction != null;
+        return _sessions.TryGetValue(accountId, out var session) && session.Controller.Routines.IsRunning<AutoChatRoutine>();
     }
 
-    public void StartAutoTrain(Guid accountId, DragonBoyAccountManager.Core.Game.Actions.AutoTrainOptions options)
+    public void StartAutoTrain(Guid accountId, AutoTrainOptions options)
     {
         if (_sessions.TryGetValue(accountId, out var session) && session.Instance.IsRunning)
         {
@@ -800,48 +722,27 @@ public sealed class CoreGameEngineAdapter(ISettingsService? settingsService = nu
 
             try
             {
-                session.Instance.Reflector.WriteStatic(GameSchema.GameScr.ClassName, GameSchema.GameScr.StaticIsAutoPlay, false);
+                session.Instance.World.SuppressAutoPlay();
             }
             catch { }
 
-            var cts = CancellationTokenSource.CreateLinkedTokenSource(session.Cts.Token);
-            var action = new DragonBoyAccountManager.Core.Game.Actions.AutoTrainAction(options);
-
-            session.AutoTrainCts = cts;
-            session.CurrentAutoTrainAction = action;
+            var routine = new AutoTrainRoutine(options);
 
             var progress = new Progress<string>(msg =>
             {
                 OnAutoTrainStatusChanged?.Invoke(accountId, msg);
             });
 
-            session.AutoTrainTask = Task.Run(async () =>
-            {
-                try
-                {
-                    OnAutoTrainStateChanged?.Invoke(accountId, true);
-                    await action.ExecuteAsync(session.Instance.Context, progress, cts.Token);
-                }
-                catch (OperationCanceledException) { }
-                catch (Exception ex)
-                {
-                    OnAutoTrainStatusChanged?.Invoke(accountId, $"Lỗi auto: {ex.Message}");
-                }
-                finally
-                {
-                    session.AutoTrainCts = null;
-                    session.CurrentAutoTrainAction = null;
-                    OnAutoTrainStateChanged?.Invoke(accountId, false);
-                }
-            }, cts.Token);
+            _ = session.Controller.Routines.StartAsync(routine, progress, session.Cts.Token);
         }
     }
 
-    public void UpdateAutoTrainOptions(Guid accountId, DragonBoyAccountManager.Core.Game.Actions.AutoTrainOptions options)
+    public void UpdateAutoTrainOptions(Guid accountId, AutoTrainOptions options)
     {
-        if (_sessions.TryGetValue(accountId, out var session) && session.CurrentAutoTrainAction != null)
+        if (_sessions.TryGetValue(accountId, out var session))
         {
-            session.CurrentAutoTrainAction.UpdateOptions(options);
+            var routine = session.Controller.Routines.Get<AutoTrainRoutine>();
+            routine?.UpdateOptions(options);
         }
     }
 
@@ -849,31 +750,20 @@ public sealed class CoreGameEngineAdapter(ISettingsService? settingsService = nu
     {
         if (_sessions.TryGetValue(accountId, out var session))
         {
-            if (session.AutoTrainCts != null)
+            session.Controller.Routines.Stop<AutoTrainRoutine>();
+            try
             {
-                try { session.AutoTrainCts.Cancel(); } catch { }
-                session.AutoTrainCts.Dispose();
-                session.AutoTrainCts = null;
-                session.CurrentAutoTrainAction = null;
-                try
-                {
-                    session.Instance.Reflector.WriteStatic(GameSchema.GameScr.ClassName, GameSchema.GameScr.StaticIsAutoPlay, false);
-                    IntPtr gameScrPtr = session.Instance.Reflector.ReadStatic<IntPtr>(GameSchema.GameScr.ClassName, GameSchema.GameScr.StaticInstance);
-                    if (gameScrPtr != IntPtr.Zero)
-                    {
-                        session.Instance.Reflector.WriteField(GameSchema.GameScr.ClassName, GameSchema.GameScr.FieldAuto, gameScrPtr, 0);
-                    }
-                }
-                catch { }
-                OnAutoTrainStateChanged?.Invoke(accountId, false);
-                OnAutoTrainStatusChanged?.Invoke(accountId, "Đã dừng tự động luyện tập.");
+                session.Instance.World.SuppressAutoPlay();
             }
+            catch { }
+            OnAutoTrainStateChanged?.Invoke(accountId, false);
+            OnAutoTrainStatusChanged?.Invoke(accountId, "Đã dừng tự động luyện tập.");
         }
     }
 
     public bool IsAutoTrainRunning(Guid accountId)
     {
-        return _sessions.TryGetValue(accountId, out var session) && session.AutoTrainCts != null && !session.AutoTrainCts.IsCancellationRequested;
+        return _sessions.TryGetValue(accountId, out var session) && session.Controller.Routines.IsRunning<AutoTrainRoutine>();
     }
 
     public (bool Success, string Message) UseCapsule(Guid accountId)

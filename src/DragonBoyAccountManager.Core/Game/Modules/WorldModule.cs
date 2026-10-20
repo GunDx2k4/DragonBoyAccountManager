@@ -27,8 +27,8 @@ public interface IWorldModule
     IReadOnlyList<WorldZoneInfo> GetZones();
 
     bool Focus(WorldEntity entity);
-    bool FocusOrClick(string entityType, int entityId);
-    bool FocusOrClickObject(string entityType, int entityId);
+    bool FocusTarget(string entityType, int entityId);
+    void SuppressAutoPlay();
     bool MoveToWaypoint(int targetX, int targetY);
     int GetYGround(int x);
 
@@ -439,21 +439,31 @@ public class WorldModule(MonoReflector reflector, IUIModule ui, INetworkModule n
         }
     }
 
-    public bool FocusOrClick(string entityType, int entityId)
+    public void SuppressAutoPlay()
     {
         try
         {
-            IntPtr myCharPtr = _reflector.ReadStatic<IntPtr>(GameSchema.Char.ClassName, GameSchema.Char.StaticMyChar);
-            if (myCharPtr == IntPtr.Zero) return false;
+            _reflector.WriteStatic(GameSchema.GameScr.ClassName, GameSchema.GameScr.StaticIsAutoPlay, false);
+            IntPtr gs = GameScrPointer;
+            if (gs != IntPtr.Zero)
+            {
+                _reflector.WriteField(GameSchema.GameScr.ClassName, GameSchema.GameScr.FieldAuto, gs, 0);
+            }
+        }
+        catch { }
+    }
 
+    public bool FocusTarget(string entityType, int entityId)
+    {
+        try
+        {
             string actualType = entityType?.ToLowerInvariant() ?? "";
             if (actualType is "mob" or "mobentity")
             {
                 var mob = GetMonsters().FirstOrDefault(m => m.Id == entityId);
                 if (mob != null && mob.IsAlive)
                 {
-                    _reflector.CallMethod(GameSchema.Char.ClassName, GameSchema.Char.MethodFocusManualTo, myCharPtr, 0, mob.Pointer);
-                    return true;
+                    return Focus(mob);
                 }
             }
             else if (actualType is "char" or "player" or "playerentity")
@@ -461,8 +471,7 @@ public class WorldModule(MonoReflector reflector, IUIModule ui, INetworkModule n
                 var p = GetPlayers().FirstOrDefault(c => c.Id == entityId);
                 if (p != null && p.IsAlive)
                 {
-                    _reflector.CallMethod(GameSchema.Char.ClassName, GameSchema.Char.MethodFocusManualTo, myCharPtr, 1, p.Pointer);
-                    return true;
+                    return Focus(p);
                 }
             }
             else if (actualType is "npc" or "npcentity")
@@ -470,7 +479,6 @@ public class WorldModule(MonoReflector reflector, IUIModule ui, INetworkModule n
                 var npc = GetNpcs().FirstOrDefault(n => n.Id == entityId);
                 if (npc != null)
                 {
-                    _reflector.CallMethod(GameSchema.Char.ClassName, GameSchema.Char.MethodFocusManualTo, myCharPtr, 2, npc.Pointer);
                     DoDoubleClickToObj(npc.Pointer);
                     return true;
                 }
@@ -480,7 +488,6 @@ public class WorldModule(MonoReflector reflector, IUIModule ui, INetworkModule n
                 var item = GetGroundItems().FirstOrDefault(i => i.Id == entityId);
                 if (item != null)
                 {
-                    _reflector.CallMethod(GameSchema.Char.ClassName, GameSchema.Char.MethodFocusManualTo, myCharPtr, 3, item.Pointer);
                     DoDoubleClickToObj(item.Pointer);
                     return true;
                 }
@@ -492,8 +499,6 @@ public class WorldModule(MonoReflector reflector, IUIModule ui, INetworkModule n
             return false;
         }
     }
-
-    public bool FocusOrClickObject(string entityType, int entityId) => FocusOrClick(entityType, entityId);
 
     public bool MoveToWaypoint(int targetX, int targetY)
     {

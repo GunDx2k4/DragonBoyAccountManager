@@ -6,6 +6,7 @@ public static class GameSchema
     {
         public const string ClassName = "GameCanvas";
         public const string StaticInstance = "instance";
+        public const string StaticBRun = "bRun";
         public const string StaticGameCanvas = "gameCanvas";
         public const string StaticCurrentScreen = "currentScreen";
         public const string StaticCurrentDialog = "currentDialog";
@@ -46,7 +47,6 @@ public static class GameSchema
     public static class ServerListScreen
     {
         public const string ClassName = "ServerListScreen";
-        public const string ClassNameAlt = "ServerScr";
         public const string StaticIpSelect = "ipSelect";
         public const string StaticNameServer = "nameServer";
         public const string StaticAddress = "address";
@@ -353,6 +353,7 @@ public static class GameSchema
         public const string MethodPickItem = "pickItem";
         public const string MethodSendPlayerAttack = "sendPlayerAttack";
         public const string MethodSelectSkill = "selectSkill";
+        public const string MethodWakeUpFromDead = "wakeUpFromDead";
     }
 
     public static class MyVector

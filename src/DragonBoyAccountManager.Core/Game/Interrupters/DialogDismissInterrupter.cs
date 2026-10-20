@@ -1,6 +1,7 @@
+using DragonBoyAccountManager.Core.Game.Actions;
 using DragonBoyAccountManager.Core.Game.Context;
 
-namespace DragonBoyAccountManager.Core.Game.Actions.Interrupters;
+namespace DragonBoyAccountManager.Core.Game.Interrupters;
 
 public class DialogDismissInterrupter(int priority = 100) : IActionInterrupter
 {
@@ -19,6 +20,6 @@ public class DialogDismissInterrupter(int priority = 100) : IActionInterrupter
         context.UI.CloseDialog();
         await Task.Delay(150, cancellationToken);
 
-        return ActionResult.Success($"Đã tự động đóng dialog: '{dialogText}'");
+        return ActionResult.Success($"Đã tự động đóng hộp thoại: '{dialogText}'");
     }
 }

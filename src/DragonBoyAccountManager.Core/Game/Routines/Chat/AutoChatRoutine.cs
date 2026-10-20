@@ -1,17 +1,11 @@
+using DragonBoyAccountManager.Core.Game.Actions;
 using DragonBoyAccountManager.Core.Game.Context;
 using DragonBoyAccountManager.Core.Game.Modules;
+using DragonBoyAccountManager.Core.Game.Routines.Abstractions;
 
-namespace DragonBoyAccountManager.Core.Game.Actions;
+namespace DragonBoyAccountManager.Core.Game.Routines.Chat;
 
-public sealed class AutoChatOptions
-{
-    public IReadOnlyList<string> Messages { get; init; } = [];
-    public TimeSpan Delay { get; init; } = TimeSpan.FromSeconds(5);
-    public ChatType ChatType { get; init; } = ChatType.Map;
-    public bool IsRandom { get; init; }
-}
-
-public class AutoChatAction : GameAction<AutoChatOptions>
+public class AutoChatRoutine : AutomationRoutine<AutoChatOptions>
 {
     private int _currentIndex;
     private DateTime _lastSentTime = DateTime.MinValue;
@@ -22,9 +16,13 @@ public class AutoChatAction : GameAction<AutoChatOptions>
 
     public event Action<string, int>? ChatSent;
 
-    public AutoChatAction(AutoChatOptions options) : base("Auto Chat", options) { }
+    public AutoChatRoutine(AutoChatOptions options)
+        : base("Auto Chat", options, RoutinePriority.Background, "AutoChat")
+    {
+        _currentIndex = 0;
+    }
 
-    public AutoChatAction(
+    public AutoChatRoutine(
         IReadOnlyList<string> messages,
         TimeSpan delay,
         ChatType chatType = ChatType.Map,
@@ -66,42 +64,42 @@ public class AutoChatAction : GameAction<AutoChatOptions>
         _lastSentTime = DateTime.MinValue;
     }
 
-    protected override Task<ActionResult> OnExecuteAsync(
+    protected override async Task OnTickAsync(
         IGameContext context,
         IProgress<string>? progress,
         CancellationToken cancellationToken)
     {
         var messages = Options.Messages;
-        if (messages.Count == 0)
+        if (messages.Count == 0 || !context.IsRunning || !context.Player.IsInGame)
         {
-            return Task.FromResult(ActionResult.Failure("Danh sách nội dung chat trống."));
-        }
-
-        if (!context.IsRunning || !context.Player.IsInGame)
-        {
-            return Task.FromResult(ActionResult.Success("Đang chờ nhân vật vào game..."));
+            await Task.Delay(1000, cancellationToken);
+            return;
         }
 
         if (_lastSentTime != DateTime.MinValue && DateTime.UtcNow - _lastSentTime < Options.Delay)
         {
-            return Task.FromResult(ActionResult.Success("Chưa tới chu kỳ gửi tiếp theo."));
+            var remaining = Options.Delay - (DateTime.UtcNow - _lastSentTime);
+            int sleepMs = (int)Math.Clamp(remaining.TotalMilliseconds, 200, 1000);
+            await Task.Delay(sleepMs, cancellationToken);
+            return;
         }
 
         string message = Options.IsRandom
             ? messages[Random.Shared.Next(messages.Count)]
             : messages[_currentIndex++ % messages.Count];
 
-        bool success = context.Network.SendChat(message, Options.ChatType);
-        if (success)
+        var chatAction = new SendChatAction(message, Options.ChatType);
+        var result = await ExecuteActionAsync(chatAction, context, progress, cancellationToken);
+
+        if (result.IsSuccess)
         {
             _lastSentTime = DateTime.UtcNow;
             SentCount++;
             LastMessage = message;
-            progress?.Report($"[AutoChat] Đã gửi: {message} ({Options.ChatType}) [Tổng: {SentCount}]");
             ChatSent?.Invoke(message, SentCount);
-            return Task.FromResult(ActionResult.Success($"Đã gửi: {message}"));
+            progress?.Report($"[Auto Chat] Đã gửi: {message} ({Options.ChatType}) [Tổng: {SentCount}]");
         }
 
-        return Task.FromResult(ActionResult.Failure("Không thể gửi tin nhắn chat."));
+        await Task.Delay(1000, cancellationToken);
     }
 }

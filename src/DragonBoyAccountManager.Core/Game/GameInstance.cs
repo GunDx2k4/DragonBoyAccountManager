@@ -29,8 +29,6 @@ public sealed class GameInstance : IDisposable
         remove => Process.Exited -= value;
     }
 
-    private readonly System.Collections.Concurrent.ConcurrentDictionary<Type, object> _modules = new();
-
     public GameInstance(Process process, MonoContext monoContext, Guid contextId = default)
     {
         Process = process;
@@ -38,28 +36,7 @@ public sealed class GameInstance : IDisposable
         MonoContext = monoContext;
         Reflector = new MonoReflector(monoContext);
 
-        Context = new GameContext(Reflector, () => IsRunning, contextId);
-
-        RegisterModule(Context);
-        RegisterModule(Context.Player);
-        RegisterModule(Context.World);
-        RegisterModule(Context.UI);
-        RegisterModule(Context.Network);
-        RegisterModule(Context.Engine);
-    }
-
-    public void RegisterModule<T>(T module) where T : class
-    {
-        _modules[typeof(T)] = module;
-    }
-
-    public T? GetModule<T>() where T : class
-    {
-        if (_modules.TryGetValue(typeof(T), out var obj))
-        {
-            return obj as T;
-        }
-        return null;
+        Context = new GameContext(Reflector, () => IsRunning && !IsQuitRequested, contextId);
     }
 
     public void Kill()

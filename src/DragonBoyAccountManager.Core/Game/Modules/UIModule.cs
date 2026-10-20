@@ -86,7 +86,7 @@ public class UIModule(MonoReflector reflector) : IUIModule
                     if (nData != -1) return true;
                 }
 
-                if (curScr is GameSchema.ServerListScreen.ClassName or GameSchema.ServerListScreen.ClassNameAlt)
+                if (curScr == GameSchema.ServerListScreen.ClassName)
                 {
                     bool bigOk = _reflector.ReadStatic<bool>(GameSchema.ServerListScreen.ClassName, GameSchema.ServerListScreen.StaticBigOk);
                     if (bigOk) return false;
@@ -126,7 +126,7 @@ public class UIModule(MonoReflector reflector) : IUIModule
                     }
                 }
 
-                if (curScr is GameSchema.ServerListScreen.ClassName or GameSchema.ServerListScreen.ClassNameAlt)
+                if (curScr == GameSchema.ServerListScreen.ClassName)
                 {
                     return _reflector.ReadStatic<int>(GameSchema.ServerListScreen.ClassName, GameSchema.ServerListScreen.StaticPercent);
                 }
@@ -145,7 +145,7 @@ public class UIModule(MonoReflector reflector) : IUIModule
         try
         {
             string? curScr = CurrentScreenName;
-            if (curScr is GameSchema.ServerListScreen.ClassName or GameSchema.ServerListScreen.ClassNameAlt)
+            if (curScr == GameSchema.ServerListScreen.ClassName)
             {
                 bool bigOk = _reflector.ReadStatic<bool>(GameSchema.ServerListScreen.ClassName, GameSchema.ServerListScreen.StaticBigOk);
                 bool loadScreen = _reflector.ReadStatic<bool>(GameSchema.ServerListScreen.ClassName, GameSchema.ServerListScreen.StaticLoadScreen);
