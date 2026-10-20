@@ -1,4 +1,4 @@
-﻿
+
 namespace DragonBoyAccountManager.Core.Lifecycle;
 
 public class GameController : IDisposable, IAsyncDisposable
@@ -20,6 +20,7 @@ public class GameController : IDisposable, IAsyncDisposable
     public bool IsRoutineRunning => Routines.IsAnyRoutineRunning;
 
     public event Action<IGameAction?>? ActionChanged;
+    public event Action<ActionExecutionReport>? ActionReported;
     public event Action<GameInstance>? Ticked;
     public event Action<Exception>? ErrorOccurred;
 
@@ -47,6 +48,8 @@ public class GameController : IDisposable, IAsyncDisposable
         }
     }
 
+    public void ReportExecution(ActionExecutionReport report) => ActionReported?.Invoke(report);
+
     public void ClearPeriodicActions()
     {
         lock (_periodicLock)
@@ -62,10 +65,13 @@ public class GameController : IDisposable, IAsyncDisposable
     {
         await _actionLock.WaitAsync(cancellationToken);
         CurrentAction = action;
+        ActionReported?.Invoke(ActionExecutionReport.Running(action.Name));
         ActionChanged?.Invoke(action);
         try
         {
-            return await action.ExecuteAsync(Instance.Context, progress, cancellationToken);
+            var result = await action.ExecuteAsync(Instance.Context, progress, cancellationToken);
+            ActionReported?.Invoke(ActionExecutionReport.Completed(action.Name, result));
+            return result;
         }
         finally
         {
