@@ -1,9 +1,8 @@
 using Spectre.Console;
-using DragonBoyAccountManager.Core.Lifecycle;
-using DragonBoyAccountManager.Core.Lifecycle.Options;
-using DragonBoyAccountManager.Core.Lifecycle.Validation;
-using DragonBoyAccountManager.Core.Automation.Actions.Abstractions;
-using DragonBoyAccountManager.Core.Automation.Routines.Login;
+using DragonBoyAccountManager.Core.Sessions;
+using DragonBoyAccountManager.Core.Sessions.Validation;
+using DragonBoyAccountManager.Core.Automation.Behaviors.Combat;
+using DragonBoyAccountManager.Core.Automation.Behaviors.Lifecycle;
 
 AnsiConsole.Write(new Rule("[bold cyan]DBAM[/]").Centered());
 AnsiConsole.WriteLine();
@@ -13,7 +12,7 @@ ResolvedGamePaths paths;
 
 try
 {
-    paths = GameLauncher.Validate(gamePath);
+    paths = SessionLauncher.Validate(gamePath);
 }
 catch (ArgumentException ex)
 {
@@ -25,12 +24,12 @@ PrintKV("Data", paths.DataPath);
 PrintKV("Managed", paths.ManagedPath);
 AnsiConsole.WriteLine();
 
-var launcher = new GameLauncher();
-GameInstance instance;
+var launcher = new SessionLauncher();
+GameSession session;
 
 try
 {
-    instance = await AnsiConsole.Status()
+    session = await AnsiConsole.Status()
         .Spinner(Spinner.Known.Dots)
         .StartAsync("Launching...", async _ =>
         {
@@ -47,79 +46,78 @@ catch (Exception ex)
     return;
 }
 
-using var controller = new GameController(instance);
-
-AnsiConsole.MarkupLine($"[green]Attached[/] PID={instance.ProcessId} RootDomain=0x{instance.MonoContext.RootDomain:X}");
+AnsiConsole.MarkupLine($"[green]Attached[/] PID={session.ProcessId} RootDomain=0x{session.Mono.RootDomain:X}");
 AnsiConsole.WriteLine();
 
-instance.Exited += (_, _) => AnsiConsole.MarkupLine("[yellow]Game exited.[/]");
+session.Exited += (_, _) => AnsiConsole.MarkupLine("[yellow]Game exited.[/]");
 
-while (instance.IsRunning)
+CancellationTokenSource? loopCts = null;
+Task? loopTask = null;
+
+while (session.IsRunning)
 {
+    bool isLoopRunning = loopTask != null && !loopTask.IsCompleted;
     var choice = AnsiConsole.Prompt(
         new SelectionPrompt<string>()
             .Title("Action:")
             .HighlightStyle(Style.Parse("cyan"))
             .AddChoices(
                 "Status",
-                "TimeScale (Speed)",
+                "Tick Once",
                 "Auto Login",
-                "Read Client Info",
                 "Read Player",
-                controller.IsRunning ? "Stop Loop" : "Start Loop (1s)",
+                isLoopRunning ? "Stop Loop" : "Start Loop (1s)",
                 "Kill",
                 "Exit"));
 
     switch (choice)
     {
         case "Status":
-            PrintStatus(instance, controller);
+            PrintStatus(session);
             break;
 
-        case "TimeScale (Speed)":
-            float current = instance.Engine.TimeScale;
-            float newSpeed = AnsiConsole.Ask<float>($"Current TimeScale: [yellow]{current:0.0}x[/]. Enter new value:");
-            instance.Engine.SetTimeScale(newSpeed);
-            AnsiConsole.MarkupLine($"[green]TimeScale updated to {instance.Engine.TimeScale:0.0}x[/]");
+        case "Tick Once":
+            session.Tick();
+            PrintPlayer(session);
             break;
 
         case "Auto Login":
-            await RunAutoLogin(controller);
-            break;
-
-        case "Read Client Info":
-            PrintKV("VERSION", instance.Engine.Version);
-            PrintKV("intVERSION", instance.Engine.IntVersion.ToString());
-            PrintKV("IP", instance.Network.CurrentHost ?? string.Empty);
-            PrintKV("PORT", instance.Network.CurrentPort.ToString());
+            await RunAutoLogin(session);
             break;
 
         case "Read Player":
-            if (!instance.Player.IsInGame)
-            {
-                AnsiConsole.MarkupLine("[yellow]Character not in game (player pointer is null).[/]");
-            }
-            else
-            {
-                PrintKV("Name", instance.Player.Name);
-                PrintKV("Power", instance.Player.Power.ToString("N0"));
-            }
+            session.Tick();
+            PrintPlayer(session);
             break;
 
         case "Start Loop (1s)":
-            controller.Ticked += OnControllerTicked;
-            controller.Start(TimeSpan.FromSeconds(1));
+            loopCts = new CancellationTokenSource();
+            var token = loopCts.Token;
+            loopTask = Task.Run(async () =>
+            {
+                while (!token.IsCancellationRequested && session.IsRunning)
+                {
+                    session.Tick();
+                    if (session.CurrentPlayer.IsInGame)
+                    {
+                        AnsiConsole.MarkupLine($"[dim][[Tick]][/] Char: [cyan]{Markup.Escape(session.CurrentPlayer.Name)}[/] | Power: [yellow]{session.CurrentPlayer.Power:N0}[/]");
+                    }
+                    await Task.Delay(1000, token);
+                }
+            }, token);
             AnsiConsole.MarkupLine("[green]Loop started (ticking every 1s).[/]");
             break;
 
         case "Stop Loop":
-            controller.Ticked -= OnControllerTicked;
-            controller.Stop();
+            loopCts?.Cancel();
+            loopCts?.Dispose();
+            loopCts = null;
+            loopTask = null;
             AnsiConsole.MarkupLine("[yellow]Loop stopped.[/]");
             break;
 
         case "Kill":
-            instance.Kill();
+            session.Kill();
             break;
 
         case "Exit":
@@ -128,32 +126,37 @@ while (instance.IsRunning)
 }
 
 done:
-controller.Stop();
-instance.Dispose();
+loopCts?.Cancel();
+session.Dispose();
 
 static void PrintKV(string key, string value)
     => AnsiConsole.MarkupLine($"[grey]{Markup.Escape(key)}:[/] {Markup.Escape(value)}");
 
-static void PrintStatus(GameInstance inst, GameController ctrl)
+static void PrintStatus(GameSession sess)
 {
-    PrintKV("PID", inst.ProcessId.ToString());
-    PrintKV("Running", inst.IsRunning.ToString());
-    PrintKV("RootDomain", $"0x{inst.MonoContext.RootDomain:X}");
-    PrintKV("In Game", inst.Player.IsInGame ? "Yes" : "No");
-    PrintKV("Loop Running", ctrl.IsRunning ? "Yes" : "No");
-    PrintKV("Canvas Alive", inst.UI.CanvasPointer != IntPtr.Zero ? "Yes" : "No");
-    PrintKV("Session Connected", inst.Network.IsConnected ? "Yes" : "No");
+    PrintKV("PID", sess.ProcessId.ToString());
+    PrintKV("Running", sess.IsRunning.ToString());
+    PrintKV("RootDomain", $"0x{sess.Mono.RootDomain:X}");
+    PrintKV("In Game", sess.CurrentPlayer.IsInGame ? "Yes" : "No");
 }
 
-static void OnControllerTicked(GameInstance inst)
+static void PrintPlayer(GameSession sess)
 {
-    if (inst.Player.IsInGame)
+    if (!sess.CurrentPlayer.IsInGame)
     {
-        AnsiConsole.MarkupLine($"[dim][[Tick]][/] Char: [cyan]{Markup.Escape(inst.Player.Name)}[/] | Power: [yellow]{inst.Player.Power:N0}[/]");
+        AnsiConsole.MarkupLine("[yellow]Character not in game.[/]");
+    }
+    else
+    {
+        PrintKV("Name", sess.CurrentPlayer.Name);
+        PrintKV("HP", $"{sess.CurrentPlayer.Hp}/{sess.CurrentPlayer.MaxHp}");
+        PrintKV("MP", $"{sess.CurrentPlayer.Mp}/{sess.CurrentPlayer.MaxMp}");
+        PrintKV("Power", sess.CurrentPlayer.Power.ToString("N0"));
+        PrintKV("Position", $"({sess.CurrentPlayer.X}, {sess.CurrentPlayer.Y})");
     }
 }
 
-static async Task RunAutoLogin(GameController ctrl)
+static async Task RunAutoLogin(GameSession sess)
 {
     string user = AnsiConsole.Ask<string>("Username:");
     string pass = AnsiConsole.Prompt(new TextPrompt<string>("Password:").Secret());
@@ -161,7 +164,14 @@ static async Task RunAutoLogin(GameController ctrl)
         new TextPrompt<int>("Server ID:")
             .DefaultValue(0));
 
-    bool ok = false;
+    var options = new AutoLoginOptions
+    {
+        Username = user,
+        Password = pass,
+        ServerId = serverId
+    };
+
+    var behavior = new AutoLoginBehavior(options, sess.Mono);
     await AnsiConsole.Status()
         .Spinner(Spinner.Known.Dots)
         .StartAsync("Logging in...", async ctx =>
@@ -171,16 +181,22 @@ static async Task RunAutoLogin(GameController ctrl)
                 ctx.Status(Markup.Escape(msg));
                 AnsiConsole.MarkupLine($"[grey][[{DateTime.Now:HH:mm:ss}]][/] {Markup.Escape(msg)}");
             });
-            await ctrl.Routines.StartAsync(new AutoLoginRoutine(user, pass, serverId), progress);
-            ok = ctrl.Instance.Player.IsInGame;
+
+            await behavior.StartAsync(
+                () => sess.PlayerScraper.ScrapePlayer(),
+                () => sess.WorldScraper.ScrapeWorld(),
+                () => sess.MapScraper.ScrapeMap(),
+                sess.Dispatcher,
+                progress);
         });
 
-    if (ok)
+    sess.Tick();
+    if (sess.CurrentPlayer.IsInGame)
     {
-        AnsiConsole.MarkupLine($"[green]Login successful![/] Character: [cyan]{Markup.Escape(ctrl.Instance.Player.Name)}[/]");
+        AnsiConsole.MarkupLine($"[green]Login successful![/] Character: [cyan]{Markup.Escape(sess.CurrentPlayer.Name)}[/]");
     }
     else
     {
-        AnsiConsole.MarkupLine("[red]Login failed (timed out or game was closed).[/]");
+        AnsiConsole.MarkupLine("[red]Login failed or timed out.[/]");
     }
 }

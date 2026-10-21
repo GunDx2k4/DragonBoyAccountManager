@@ -1,0 +1,390 @@
+﻿using System.Diagnostics;
+using System.IO;
+
+using CommunityToolkit.Mvvm.ComponentModel;
+using CommunityToolkit.Mvvm.Input;
+
+
+namespace DragonBoyAccountManager.GUI.ViewModels;
+
+public sealed partial class GuideViewModel : ObservableObject
+{
+    private readonly ISettingsService _settingsService;
+    private readonly IDialogService _dialogService;
+    private readonly IGameEnvironmentService _envService;
+    private readonly IAppUpdaterService _updaterService;
+
+    [ObservableProperty]
+    private string _appVersion;
+
+    [ObservableProperty]
+    private ClientStatus _status = ClientStatus.GameNotFound;
+
+    [ObservableProperty]
+    private string _assemblyStatus = "Chưa chọn file game .exe";
+
+    [ObservableProperty]
+    private string _updateStatusMessage = "Vui lòng chọn đường dẫn game để kiểm tra phiên bản.";
+
+    [ObservableProperty]
+    private string _assemblyStatusTooltip = string.Empty;
+
+    [ObservableProperty]
+    private string _assemblyPath = string.Empty;
+
+    [ObservableProperty]
+    private string _assemblyHash = string.Empty;
+
+    [ObservableProperty]
+    private string _gameVersion = string.Empty;
+
+    [ObservableProperty]
+    private bool _isCheckingUpdate;
+
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(CanApplyUpdate))]
+    private AppUpdateInfo? _availableAppUpdate;
+
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(CanApplyUpdate))]
+    private bool _hasAppUpdate;
+
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(CanApplyUpdate))]
+    private bool _isUpdatingApp;
+
+    [ObservableProperty]
+    private double _updateProgress;
+
+    [ObservableProperty]
+    private string _appUpdateStatusText = string.Empty;
+
+    [ObservableProperty]
+    private string _releaseNotes = string.Empty;
+
+    [ObservableProperty]
+    private bool _isAssemblyMissing = true;
+
+    public bool CanApplyUpdate => HasAppUpdate && !IsUpdatingApp;
+
+    public event Action? OnRequestNavigateToGuide;
+    public event Action<string>? OnGamePathConfigured;
+
+
+    public GuideViewModel(
+        ISettingsService settingsService,
+        IDialogService dialogService,
+        IGameEnvironmentService envService,
+        IAppUpdaterService updaterService)
+    {
+        _settingsService = settingsService;
+        _dialogService = dialogService;
+        _envService = envService;
+        _updaterService = updaterService;
+
+        var version = System.Reflection.Assembly.GetExecutingAssembly().GetName().Version;
+        _appVersion = version != null ? $"{version.Major}.{version.Minor}.{version.Build}" : "1.0.0";
+
+        _releaseNotes = LoadReleaseNotes();
+        SyncWithEnvironment();
+        _envService.EnvironmentChanged += SyncWithEnvironment;
+        _ = CheckAppUpdateOnStartupAsync();
+    }
+
+    public string LoadReleaseNotes()
+    {
+        try
+        {
+            string baseDir = AppDomain.CurrentDomain.BaseDirectory;
+            string[] searchPaths =
+            [
+                Path.Combine(baseDir, "RELEASE_NOTES.md"),
+                Path.Combine(baseDir, "..", "RELEASE_NOTES.md"),
+                Path.Combine(baseDir, "..", "..", "RELEASE_NOTES.md"),
+                Path.Combine(baseDir, "..", "..", "..", "RELEASE_NOTES.md"),
+                Path.Combine(baseDir, "..", "..", "..", "..", "RELEASE_NOTES.md")
+            ];
+
+            foreach (var path in searchPaths)
+            {
+                if (File.Exists(path))
+                {
+                    return File.ReadAllText(path);
+                }
+            }
+
+            var asm = typeof(GuideViewModel).Assembly;
+            var resourceName = asm.GetManifestResourceNames()
+                .FirstOrDefault(n => n.EndsWith("RELEASE_NOTES.md", StringComparison.OrdinalIgnoreCase));
+            if (!string.IsNullOrEmpty(resourceName))
+            {
+                using var stream = asm.GetManifestResourceStream(resourceName);
+                if (stream != null)
+                {
+                    using var reader = new StreamReader(stream);
+                    return reader.ReadToEnd();
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            Debug.WriteLine($"[GuideViewModel] Lỗi nạp nhật ký phiên bản: {ex.Message}");
+        }
+
+        return "Hiện chưa có thông tin nhật ký phiên bản.";
+    }
+
+    public async Task CheckAppUpdateOnStartupAsync()
+    {
+        try
+        {
+            await Task.Delay(1200);
+
+            var currentVer = System.Reflection.Assembly.GetExecutingAssembly().GetName().Version;
+            var update = await _updaterService.CheckForUpdatesAsync("GunDx2k4/DragonBoyAccountManager", currentVer);
+            if (update != null)
+            {
+                AvailableAppUpdate = update;
+                HasAppUpdate = true;
+
+                string size = update.SizeBytes.HasValue ? $" ({update.SizeBytes.Value / 1024.0 / 1024.0:F1} MB)" : "";
+                string notes = !string.IsNullOrWhiteSpace(update.ReleaseNotes) ? $"\n\nNội dung cập nhật:\n{update.ReleaseNotes}" : "";
+
+                string title = update.IsShaUpdateOnly ? "CẬP NHẬT TOOL DBAM (BẢN VÁ)" : "ĐÃ CÓ PHIÊN BẢN MỚI!";
+                string desc = update.IsShaUpdateOnly
+                    ? $"Phát hiện bản vá mới cho phiên bản: v{update.Version}{size}\nPhiên bản hiện tại: v{AppVersion}{notes}\n\nBạn có muốn cập nhật ngay bây giờ không?"
+                    : $"Phát hiện phiên bản mới: v{update.Version}{size}\nPhiên bản hiện tại: v{AppVersion}{notes}\n\nBạn có muốn cập nhật ngay bây giờ không?";
+
+                bool confirm = _dialogService.ShowConfirmation(title, desc, yesText: "Cập nhật ngay", noText: "Để sau");
+                if (confirm)
+                {
+                    OnRequestNavigateToGuide?.Invoke();
+                    await ApplyAppUpdateAsync();
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            Debug.WriteLine($"[GuideViewModel] Lỗi kiểm tra cập nhật khi khởi động: {ex.Message}");
+        }
+    }
+
+    public async Task CheckAppUpdateSilentlyAsync()
+    {
+        await CheckAppUpdateOnStartupAsync();
+    }
+
+    public async Task LoadSha256ChecksumsAsync()
+    {
+        await _envService.LoadChecksumsAndVerifyAsync();
+    }
+
+    private void SyncWithEnvironment()
+    {
+        Status = _envService.Status;
+        AssemblyStatus = _envService.AssemblyStatus;
+        AssemblyStatusTooltip = _envService.AssemblyStatusTooltip;
+        AssemblyPath = _envService.AssemblyPath;
+        GameVersion = _envService.GameVersion;
+        IsAssemblyMissing = _envService.IsAssemblyMissing;
+
+        var metadata = _envService.CurrentMetadata;
+        if (metadata != null)
+        {
+            AssemblyHash = metadata.ActualSha256 ?? string.Empty;
+
+            switch (metadata.Status)
+            {
+                case ClientStatus.OfficialVersionMatch:
+                    UpdateStatusMessage = $"Phiên bản game hiện tại hoàn toàn khớp với bản gốc chính thức v{metadata.DetectedVersion}. Hệ thống hoạt động tốt.";
+                    break;
+                case ClientStatus.OutdatedVersion:
+                    string oldVerState = metadata.IsShaMatch ? "Bản gốc cũ" : "Bản mod cũ";
+                    UpdateStatusMessage = $"Phiên bản game v{metadata.DetectedVersion} ({oldVerState}) đã cũ hơn phiên bản mới nhất v{metadata.TargetVersion}. Vui lòng tải bản mới tại ngocrongonline.com.";
+                    break;
+                case ClientStatus.ModifiedOrMod:
+                    UpdateStatusMessage = metadata.IsCorrectVersion
+                        ? $"Đúng phiên bản v{metadata.DetectedVersion} nhưng không khớp mã băm gốc SHA-256. Phát hiện file game đã qua can thiệp (Bản Mod)!"
+                        : "Phát hiện file game không hợp lệ (Bản Mod) và không đúng phiên bản.";
+                    break;
+                case ClientStatus.GameNotFound:
+                    UpdateStatusMessage = "Chưa thiết lập đường dẫn game. Vui lòng bấm \"Chọn file game (.exe)\" để bắt đầu.";
+                    break;
+                case ClientStatus.AssemblyNotFound:
+                    UpdateStatusMessage = "Đã nhận file .exe nhưng không tìm thấy Assembly-CSharp.dll trong Data\\Managed.";
+                    break;
+                case ClientStatus.Error:
+                    UpdateStatusMessage = $"Lỗi: {metadata.ErrorMessage}";
+                    break;
+            }
+        }
+    }
+
+    public void CheckAssemblyStatus()
+    {
+        _envService.CheckStatus();
+        SyncWithEnvironment();
+    }
+
+    [RelayCommand]
+    private async Task CheckForUpdatesAsync()
+    {
+        IsCheckingUpdate = true;
+        UpdateStatusMessage = "Đang kiểm tra phiên bản...";
+        try
+        {
+            await Task.Delay(200);
+            await LoadSha256ChecksumsAsync();
+
+            AppUpdateInfo? update = null;
+            try
+            {
+                var currentVer = System.Reflection.Assembly.GetExecutingAssembly().GetName().Version;
+                update = await _updaterService.CheckForUpdatesAsync("GunDx2k4/DragonBoyAccountManager", currentVer);
+            }
+            catch (Exception ex)
+            {
+                Debug.WriteLine($"[GuideViewModel] Lỗi kiểm tra cập nhật DBAM: {ex.Message}");
+            }
+
+            if (update != null)
+            {
+                AvailableAppUpdate = update;
+                HasAppUpdate = true;
+
+                string size = update.SizeBytes.HasValue ? $" ({update.SizeBytes.Value / 1024.0 / 1024.0:F1} MB)" : "";
+                string notes = !string.IsNullOrWhiteSpace(update.ReleaseNotes) ? $"\n\nNội dung cập nhật:\n{update.ReleaseNotes}" : "";
+
+                string title = update.IsShaUpdateOnly ? "Cập nhật Tool DBAM (Bản vá)" : "Cập nhật Tool DBAM";
+                string desc = update.IsShaUpdateOnly
+                    ? $"Phát hiện bản vá mới cho phiên bản: v{update.Version}{size}\nPhiên bản hiện tại: v{AppVersion}{notes}\n\nBạn có muốn cập nhật ngay bây giờ không?"
+                    : $"Phát hiện phiên bản mới: v{update.Version}{size}\nPhiên bản hiện tại: v{AppVersion}{notes}\n\nBạn có muốn cập nhật ngay bây giờ không?";
+
+                bool confirm = _dialogService.ShowConfirmation(title, desc, yesText: "Cập nhật ngay", noText: "Để sau");
+
+                if (confirm)
+                {
+                    await ApplyAppUpdateAsync();
+                    return;
+                }
+            }
+            else
+            {
+                HasAppUpdate = false;
+                AvailableAppUpdate = null;
+
+                try
+                {
+                    var latestNotes = await _updaterService.GetLatestReleaseNotesAsync();
+                    if (!string.IsNullOrWhiteSpace(latestNotes))
+                    {
+                        ReleaseNotes = latestNotes;
+                    }
+                }
+                catch { }
+            }
+
+            string path = _envService.GamePath;
+            if (!string.IsNullOrEmpty(path) && File.Exists(path))
+            {
+                string toolInfo = HasAppUpdate
+                    ? $"\n\n[MỚI] Có bản cập nhật Tool mới: v{AvailableAppUpdate?.Version}"
+                    : $"\n\nTool DBAM đang ở phiên bản mới nhất (v{AppVersion}).";
+                _dialogService.ShowInfo("Kiểm tra phiên bản", $"Trạng thái Game Client: {AssemblyStatus}\n{UpdateStatusMessage}{toolInfo}");
+            }
+            else
+            {
+                if (!HasAppUpdate)
+                {
+                    _dialogService.ShowInfo("Kiểm tra phiên bản", $"Tool DBAM đang ở phiên bản mới nhất (v{AppVersion}).\n(Chưa chọn file game .exe)");
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            UpdateStatusMessage = $"Không thể kiểm tra cập nhật: {ex.Message}";
+        }
+        finally
+        {
+            IsCheckingUpdate = false;
+        }
+    }
+
+    [RelayCommand]
+    private async Task ApplyAppUpdateAsync()
+    {
+        if (AvailableAppUpdate == null || IsUpdatingApp) return;
+
+        IsUpdatingApp = true;
+        UpdateProgress = 0;
+        AppUpdateStatusText = "Đang kết nối máy chủ cập nhật...";
+
+        try
+        {
+            var progress = new Progress<double>(p =>
+            {
+                UpdateProgress = p;
+                AppUpdateStatusText = $"Đang tải bản cập nhật: {p:F1}%";
+            });
+
+            await _updaterService.ApplyUpdateAsync(AvailableAppUpdate, progress);
+        }
+        catch (Exception ex)
+        {
+            IsUpdatingApp = false;
+            AppUpdateStatusText = string.Empty;
+            _dialogService.ShowError("Lỗi cập nhật", $"Không thể hoàn tất cập nhật: {ex.Message}");
+        }
+    }
+
+    [RelayCommand]
+    private void BrowseGamePath()
+    {
+        var initialDir = !string.IsNullOrEmpty(_envService.GamePath)
+            ? Path.GetDirectoryName(_envService.GamePath)
+            : null;
+
+        var selectedFile = _dialogService.ShowOpenFileDialog(
+            "Chọn tệp thực thi game Dragon Boy",
+            "Game Executable (*.exe)|*.exe|Tất cả tệp (*.*)|*.*",
+            initialDir);
+
+        if (!string.IsNullOrEmpty(selectedFile))
+        {
+            if (!string.Equals(Path.GetExtension(selectedFile), ".exe", StringComparison.OrdinalIgnoreCase))
+            {
+                _dialogService.ShowWarning("File không hợp lệ", "Đường dẫn game bắt buộc phải là file thực thi (.exe)!");
+                return;
+            }
+
+            _envService.GamePath = selectedFile;
+            OnGamePathConfigured?.Invoke(selectedFile);
+        }
+    }
+
+    [RelayCommand]
+    private void OpenGameFolder()
+    {
+        string path = _envService.GamePath;
+        if (!string.IsNullOrEmpty(path) && File.Exists(path))
+        {
+            try
+            {
+                string dir = Path.GetDirectoryName(path)!;
+                Process.Start(new ProcessStartInfo
+                {
+                    FileName = dir,
+                    UseShellExecute = true
+                });
+            }
+            catch (Exception ex)
+            {
+                _dialogService.ShowError("Lỗi mở thư mục", ex.Message);
+            }
+        }
+        else
+        {
+            _dialogService.ShowWarning("Thông báo", "Chưa cài đặt đường dẫn game hợp lệ.");
+        }
+    }
+}

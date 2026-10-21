@@ -9,8 +9,6 @@ public static class Constants
     public const int PointerSize32 = 4;
     public const int PointerSize64 = 8;
 
-    public const byte X64CallAllocStack = 0x28;
-
     public const int DefaultPollingIntervalMs = 100;
     public const int DefaultTimeoutMs = 10000;
 

@@ -1,21 +1,11 @@
 using System;
 using System.Windows;
-using DragonBoyAccountManager.GUI.Services.Hotkey;
-using DragonBoyAccountManager.GUI.Services.Windowing;
-using DragonBoyAccountManager.GUI.Services.Updater;
-using DragonBoyAccountManager.GUI.Services.Dialog;
-using DragonBoyAccountManager.GUI.Services.Feedback;
-using DragonBoyAccountManager.GUI.Services.GameEngine;
-using DragonBoyAccountManager.GUI.Services.Images;
-using DragonBoyAccountManager.GUI.Services.Settings;
-using DragonBoyAccountManager.GUI.Services.Storage;
-using DragonBoyAccountManager.GUI.ViewModels;
-using DragonBoyAccountManager.GUI.Views;
+
 using Microsoft.Extensions.DependencyInjection;
 
 namespace DragonBoyAccountManager.GUI;
 
-public partial class App : Application
+public partial class App : System.Windows.Application
 {
     public static IServiceProvider Services { get; private set; } = null!;
 
@@ -30,11 +20,19 @@ public partial class App : Application
     {
         services.AddSingleton<IWindowManagerService, WindowManagerService>();
         services.AddSingleton<IGameClientValidator, GameClientValidator>();
+        services.AddSingleton<IGameEnvironmentService, GameEnvironmentService>();
         services.AddSingleton<IAppUpdaterService, AppUpdaterService>();
         services.AddSingleton<IAccountStorageService, AccountStorageService>();
         services.AddSingleton<ISettingsService, SettingsService>();
         services.AddSingleton<IDialogService, DialogService>();
-        services.AddSingleton<IGameEngineService, CoreGameEngineAdapter>();
+        services.AddSingleton<IGameEngine, GameEngine>();
+        services.AddSingleton<CoreGameEngineAdapter>();
+        services.AddSingleton<IGameEngineService>(sp => sp.GetRequiredService<CoreGameEngineAdapter>());
+        services.AddSingleton<ISessionManagementService>(sp => sp.GetRequiredService<CoreGameEngineAdapter>());
+        services.AddSingleton<IGameWindowControlService>(sp => sp.GetRequiredService<CoreGameEngineAdapter>());
+        services.AddSingleton<IGameActionService>(sp => sp.GetRequiredService<CoreGameEngineAdapter>());
+        services.AddSingleton<IGameAutomationService>(sp => sp.GetRequiredService<CoreGameEngineAdapter>());
+        services.AddSingleton<IGameInputService, GameInputService>();
         services.AddSingleton<IGameImageService, GameImageService>();
         services.AddSingleton<IFeedbackService, DiscordFeedbackService>();
         services.AddSingleton<IHotkeyRoutingService, HotkeyRoutingService>();
