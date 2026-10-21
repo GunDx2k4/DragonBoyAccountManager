@@ -47,15 +47,10 @@ public interface IGameEngine : IDisposable
     bool IsBehaviorRunning(Guid accountId, string behaviorId);
     IReadOnlyCollection<IBehavior> GetBehaviors(Guid accountId);
 
-    Result UseCapsule(Guid accountId);
     Task<Result> UseCapsuleAsync(Guid accountId, CancellationToken cancellationToken = default);
-    Result UseTdlt(Guid accountId);
     Task<Result> UseTdltAsync(Guid accountId, CancellationToken cancellationToken = default);
-    Result UsePean(Guid accountId);
     Task<Result> UsePeanAsync(Guid accountId, CancellationToken cancellationToken = default);
-    Result SelectSkill(Guid accountId, int slotIndex);
     Task<Result> SelectSkillAsync(Guid accountId, int slotIndex, CancellationToken cancellationToken = default);
-    Result AutoAssignSkills(Guid accountId);
     Task<Result> AutoAssignSkillsAsync(Guid accountId, CancellationToken cancellationToken = default);
     IReadOnlyList<GameSkillInfo> GetSkills(Guid accountId);
 
@@ -69,6 +64,8 @@ public interface IGameEngine : IDisposable
     void SendGameKeyDown(Guid accountId, int keyCode);
     void SendGameKeyUp(Guid accountId, int keyCode);
     Task SendGameKeyPressAsync(Guid accountId, int keyCode, int holdMs = 120);
+
+    event Action<SessionEvent>? OnSessionEvent;
 
     event Action<Guid, GameSessionStatus, GameSessionSnapshot?>? OnSessionUpdated;
     event Action<Guid, string>? OnSessionMessageUpdated;

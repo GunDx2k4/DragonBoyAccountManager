@@ -1,202 +1,290 @@
-using Spectre.Console;
-using DragonBoyAccountManager.Core.Sessions;
-using DragonBoyAccountManager.Core.Sessions.Validation;
+using System.Text;
+using DragonBoyAccountManager.Core.Accounts;
 using DragonBoyAccountManager.Core.Automation.Behaviors.Combat;
-using DragonBoyAccountManager.Core.Automation.Behaviors.Lifecycle;
+using DragonBoyAccountManager.Core.Common;
+using DragonBoyAccountManager.Core.Common.Results;
+using DragonBoyAccountManager.Core.Engine;
+using DragonBoyAccountManager.Core.Engine.Events;
+using DragonBoyAccountManager.Core.Engine.Models;
+using DragonBoyAccountManager.Core.Sessions;
+using DragonBoyAccountManager.Core.Storage;
+using Spectre.Console;
 
-AnsiConsole.Write(new Rule("[bold cyan]DBAM[/]").Centered());
+Console.OutputEncoding = Encoding.UTF8;
+
+AnsiConsole.Write(new Rule("[bold cyan]DragonBoy Account Manager - CLI Host[/]").Centered());
 AnsiConsole.WriteLine();
 
-string gamePath = AnsiConsole.Ask<string>("Game path:");
-ResolvedGamePaths paths;
+IAccountStorageService storage = new AccountStorageService();
+var accounts = await storage.LoadAllAsync();
 
-try
+var engine = new GameEngine();
+
+engine.OnSessionEvent += evt =>
 {
-    paths = SessionLauncher.Validate(gamePath);
-}
-catch (ArgumentException ex)
-{
-    AnsiConsole.MarkupLine($"[red]{Markup.Escape(ex.Message)}[/]");
-    return;
-}
-
-PrintKV("Data", paths.DataPath);
-PrintKV("Managed", paths.ManagedPath);
-AnsiConsole.WriteLine();
-
-var launcher = new SessionLauncher();
-GameSession session;
-
-try
-{
-    session = await AnsiConsole.Status()
-        .Spinner(Spinner.Known.Dots)
-        .StartAsync("Launching...", async _ =>
-        {
-            return await launcher.LaunchAsync(new LaunchOptions
+    switch (evt)
+    {
+        case SessionStateChangedEvent e:
+            if (e.Status == GameSessionStatus.Active && e.Snapshot?.Player != null)
             {
-                GamePath = gamePath,
-                LogPrefix = "DBAM"
-            });
-        });
-}
-catch (Exception ex)
+                var p = e.Snapshot.Player;
+                AnsiConsole.MarkupLine($"[grey][[{DateTime.Now:HH:mm:ss}]][/] [green][[Active]][/] [cyan]{Markup.Escape(p.Name)}[/] | HP: [red]{p.Hp}/{p.MaxHp}[/] | Power: [yellow]{p.Power:N0}[/] | Pos: ({p.X}, {p.Y})");
+            }
+            else
+            {
+                AnsiConsole.MarkupLine($"[grey][[{DateTime.Now:HH:mm:ss}]][/] [yellow][[Status]][/] Trạng thái: [cyan]{e.Status}[/]");
+            }
+            break;
+
+        case SessionMessageEvent e:
+            AnsiConsole.MarkupLine($"[grey][[{DateTime.Now:HH:mm:ss}]][/] [dim][[Log]][/] {Markup.Escape(e.Message)}");
+            break;
+
+        case ActionReportedEvent e:
+            var color = e.Report.Status switch
+            {
+                ActionStatus.Success => "green",
+                ActionStatus.Failure => "red",
+                ActionStatus.Running => "cyan",
+                _ => "grey"
+            };
+            AnsiConsole.MarkupLine($"[grey][[{DateTime.Now:HH:mm:ss}]][/] [{color}][[{e.Report.ActionName}]][/] {Markup.Escape(e.Report.Message)}");
+            break;
+
+        case BehaviorStateChangedEvent e:
+            var state = e.IsRunning ? "[green]BẬT[/]" : "[red]TẮT[/]";
+            AnsiConsole.MarkupLine($"[grey][[{DateTime.Now:HH:mm:ss}]][/] [yellow][[Hành vi]][/] [cyan]{Markup.Escape(e.BehaviorId)}[/]: {state}");
+            break;
+
+        case ChatSentEvent e:
+            AnsiConsole.MarkupLine($"[grey][[{DateTime.Now:HH:mm:ss}]][/] [dim][[Chat]][/] {Markup.Escape(e.Message)}");
+            break;
+
+        case SessionProcessExitedEvent e:
+            AnsiConsole.MarkupLine($"[grey][[{DateTime.Now:HH:mm:ss}]][/] [red][[Exited]][/] Tiến trình game đã thoát. (Người dùng yêu cầu: {e.UserInitiated})");
+            break;
+    }
+};
+
+Account selectedAccount;
+
+if (accounts.Count > 0)
 {
-    AnsiConsole.MarkupLine($"[red]{Markup.Escape(ex.Message)}[/]");
-    return;
-}
+    var table = new Table();
+    table.Border(TableBorder.Rounded);
+    table.AddColumn("[bold]STT[/]");
+    table.AddColumn("[bold]Tên tài khoản[/]");
+    table.AddColumn("[bold]Máy chủ[/]");
+    table.AddColumn("[bold]Tự động login[/]");
 
-AnsiConsole.MarkupLine($"[green]Attached[/] PID={session.ProcessId} RootDomain=0x{session.Mono.RootDomain:X}");
-AnsiConsole.WriteLine();
+    for (int i = 0; i < accounts.Count; i++)
+    {
+        var acc = accounts[i];
+        table.AddRow(
+            (i + 1).ToString(),
+            Markup.Escape(acc.Username),
+            Markup.Escape(acc.ServerName ?? "Mặc định"),
+            acc.AutoLogin ? "[green]Bật[/]" : "[grey]Tắt[/]");
+    }
 
-session.Exited += (_, _) => AnsiConsole.MarkupLine("[yellow]Game exited.[/]");
+    AnsiConsole.Write(table);
+    AnsiConsole.WriteLine();
 
-CancellationTokenSource? loopCts = null;
-Task? loopTask = null;
+    var promptChoices = accounts.Select(a => $"{a.Username} ({a.ServerName ?? "Mặc định"})").ToList();
+    promptChoices.Add("Nhập tài khoản mới / Chạy trực tiếp");
+    promptChoices.Add("Thoát");
 
-while (session.IsRunning)
-{
-    bool isLoopRunning = loopTask != null && !loopTask.IsCompleted;
     var choice = AnsiConsole.Prompt(
         new SelectionPrompt<string>()
-            .Title("Action:")
+            .Title("Chọn tài khoản để khởi chạy:")
+            .HighlightStyle(Style.Parse("cyan"))
+            .AddChoices(promptChoices));
+
+    if (choice == "Thoát")
+    {
+        return;
+    }
+
+    if (choice == "Nhập tài khoản mới / Chạy trực tiếp")
+    {
+        selectedAccount = PromptNewAccount();
+    }
+    else
+    {
+        int idx = promptChoices.IndexOf(choice);
+        selectedAccount = accounts[idx];
+    }
+}
+else
+{
+    AnsiConsole.MarkupLine("[yellow]Chưa có tài khoản nào được lưu trữ.[/]");
+    selectedAccount = PromptNewAccount();
+}
+
+string gamePath = string.Empty;
+while (string.IsNullOrWhiteSpace(gamePath) || !File.Exists(gamePath))
+{
+    gamePath = AnsiConsole.Ask<string>("Nhập đường dẫn game client ([cyan]DragonBoy250.exe[/]):");
+    try
+    {
+        SessionLauncher.Validate(gamePath);
+    }
+    catch (Exception ex)
+    {
+        AnsiConsole.MarkupLine($"[red]Đường dẫn không hợp lệ:[/] {Markup.Escape(ex.Message)}");
+        gamePath = string.Empty;
+    }
+}
+
+var launchOptions = new AccountLaunchOptions
+{
+    AccountId = selectedAccount.Id,
+    Username = selectedAccount.Username,
+    Password = selectedAccount.Password,
+    ServerId = selectedAccount.ServerId,
+    ServerName = selectedAccount.ServerName,
+    GamePath = gamePath,
+    AutoLogin = selectedAccount.AutoLogin,
+    AutoAssignSkills = false,
+    GameSpeed = selectedAccount.GameSpeed > 0 ? selectedAccount.GameSpeed : 1.0f
+};
+
+AnsiConsole.MarkupLine($"[green]Đang khởi chạy tài khoản:[/] [cyan]{Markup.Escape(selectedAccount.Username)}[/]...");
+
+bool started = await engine.StartAccountAsync(launchOptions);
+if (!started)
+{
+    AnsiConsole.MarkupLine("[red]Khởi chạy tài khoản thất bại.[/]");
+    return;
+}
+
+var accId = selectedAccount.Id;
+
+while (engine.IsRunning(accId))
+{
+    var menu = AnsiConsole.Prompt(
+        new SelectionPrompt<string>()
+            .Title("[bold]Menu điều khiển phiên game:[/]")
             .HighlightStyle(Style.Parse("cyan"))
             .AddChoices(
-                "Status",
-                "Tick Once",
-                "Auto Login",
-                "Read Player",
-                isLoopRunning ? "Stop Loop" : "Start Loop (1s)",
-                "Kill",
-                "Exit"));
+                "Xem thông tin nhân vật (Snapshot)",
+                engine.IsAutoTrainRunning(accId) ? "Dừng tự động luyện tập" : "Bật tự động luyện tập",
+                engine.IsAutoChatRunning(accId) ? "Dừng tự động chat" : "Bật tự động chat",
+                "Gán phím kỹ năng tự động",
+                "Sử dụng Capsule",
+                "Sử dụng Đậu thần",
+                "Sử dụng TDLT",
+                "Đổi khu vực (Zone)",
+                "Dừng phiên game (Stop)",
+                "Thoát CLI"));
 
-    switch (choice)
+    switch (menu)
     {
-        case "Status":
-            PrintStatus(session);
-            break;
-
-        case "Tick Once":
-            session.Tick();
-            PrintPlayer(session);
-            break;
-
-        case "Auto Login":
-            await RunAutoLogin(session);
-            break;
-
-        case "Read Player":
-            session.Tick();
-            PrintPlayer(session);
-            break;
-
-        case "Start Loop (1s)":
-            loopCts = new CancellationTokenSource();
-            var token = loopCts.Token;
-            loopTask = Task.Run(async () =>
+        case "Xem thông tin nhân vật (Snapshot)":
+            var player = engine.GetPlayerSnapshot(accId);
+            if (player == null || !player.IsInGame)
             {
-                while (!token.IsCancellationRequested && session.IsRunning)
-                {
-                    session.Tick();
-                    if (session.CurrentPlayer.IsInGame)
-                    {
-                        AnsiConsole.MarkupLine($"[dim][[Tick]][/] Char: [cyan]{Markup.Escape(session.CurrentPlayer.Name)}[/] | Power: [yellow]{session.CurrentPlayer.Power:N0}[/]");
-                    }
-                    await Task.Delay(1000, token);
-                }
-            }, token);
-            AnsiConsole.MarkupLine("[green]Loop started (ticking every 1s).[/]");
+                AnsiConsole.MarkupLine("[yellow]Nhân vật chưa vào game.[/]");
+            }
+            else
+            {
+                var pTable = new Table().Border(TableBorder.Rounded);
+                pTable.AddColumn("Thuộc tính");
+                pTable.AddColumn("Giá trị");
+                pTable.AddRow("Tên nhân vật", Markup.Escape(player.Name));
+                pTable.AddRow("HP", $"{player.Hp}/{player.MaxHp}");
+                pTable.AddRow("MP", $"{player.Mp}/{player.MaxMp}");
+                pTable.AddRow("Sức mạnh", player.Power.ToString("N0"));
+                pTable.AddRow("Tọa độ", $"({player.X}, {player.Y})");
+                pTable.AddRow("Trạng thái TDLT", player.IsTdltActive ? "[green]Bật[/]" : "[grey]Tắt[/]");
+                AnsiConsole.Write(pTable);
+            }
             break;
 
-        case "Stop Loop":
-            loopCts?.Cancel();
-            loopCts?.Dispose();
-            loopCts = null;
-            loopTask = null;
-            AnsiConsole.MarkupLine("[yellow]Loop stopped.[/]");
+        case "Bật tự động luyện tập":
+            engine.StartAutoTrain(accId, new AutoTrainOptions
+            {
+                UseTdlt = selectedAccount.AutoSettings.UseTdlt,
+                AutoPickItems = selectedAccount.AutoSettings.AutoPickItems,
+                AutoUsePean = selectedAccount.AutoSettings.AutoUsePean,
+                AvoidSuperMobs = selectedAccount.AutoSettings.AvoidSuperMobs
+            });
             break;
 
-        case "Kill":
-            session.Kill();
+        case "Dừng tự động luyện tập":
+            engine.StopAutoTrain(accId);
             break;
 
-        case "Exit":
+        case "Bật tự động chat":
+            engine.StartAutoChat(accId, new AutoChatOptions
+            {
+                Messages = ["Auto DBAM CLI", "DragonBoy Account Manager"],
+                Delay = TimeSpan.FromSeconds(15)
+            });
+            break;
+
+        case "Dừng tự động chat":
+            engine.StopAutoChat(accId);
+            break;
+
+        case "Gán phím kỹ năng tự động":
+            await engine.AutoAssignSkillsAsync(accId);
+            break;
+
+        case "Sử dụng Capsule":
+            await engine.UseCapsuleAsync(accId);
+            break;
+
+        case "Sử dụng Đậu thần":
+            await engine.UsePeanAsync(accId);
+            break;
+
+        case "Sử dụng TDLT":
+            await engine.UseTdltAsync(accId);
+            break;
+
+        case "Đổi khu vực (Zone)":
+            int zoneId = AnsiConsole.Prompt(new TextPrompt<int>("Nhập khu vực muốn đến (0-20):").DefaultValue(0));
+            engine.ChangeZone(accId, zoneId);
+            break;
+
+        case "Dừng phiên game (Stop)":
+            await engine.StopAccountAsync(accId);
+            AnsiConsole.MarkupLine("[yellow]Đã dừng phiên game.[/]");
+            break;
+
+        case "Thoát CLI":
+            await engine.StopAccountAsync(accId);
             goto done;
     }
+
+    AnsiConsole.WriteLine();
 }
 
 done:
-loopCts?.Cancel();
-session.Dispose();
+engine.Dispose();
+AnsiConsole.MarkupLine("[green]Đã hoàn tất phiên làm việc CLI.[/]");
 
-static void PrintKV(string key, string value)
-    => AnsiConsole.MarkupLine($"[grey]{Markup.Escape(key)}:[/] {Markup.Escape(value)}");
-
-static void PrintStatus(GameSession sess)
+static Account PromptNewAccount()
 {
-    PrintKV("PID", sess.ProcessId.ToString());
-    PrintKV("Running", sess.IsRunning.ToString());
-    PrintKV("RootDomain", $"0x{sess.Mono.RootDomain:X}");
-    PrintKV("In Game", sess.CurrentPlayer.IsInGame ? "Yes" : "No");
-}
+    string user = AnsiConsole.Ask<string>("Tên đăng nhập:");
+    string pass = AnsiConsole.Prompt(new TextPrompt<string>("Mật khẩu:").Secret());
+    int serverId = AnsiConsole.Prompt(new TextPrompt<int>("Server ID:").DefaultValue(0));
+    string serverName = AnsiConsole.Prompt(new TextPrompt<string>("Tên Server:").DefaultValue("Vũ trụ 1"));
 
-static void PrintPlayer(GameSession sess)
-{
-    if (!sess.CurrentPlayer.IsInGame)
-    {
-        AnsiConsole.MarkupLine("[yellow]Character not in game.[/]");
-    }
-    else
-    {
-        PrintKV("Name", sess.CurrentPlayer.Name);
-        PrintKV("HP", $"{sess.CurrentPlayer.Hp}/{sess.CurrentPlayer.MaxHp}");
-        PrintKV("MP", $"{sess.CurrentPlayer.Mp}/{sess.CurrentPlayer.MaxMp}");
-        PrintKV("Power", sess.CurrentPlayer.Power.ToString("N0"));
-        PrintKV("Position", $"({sess.CurrentPlayer.X}, {sess.CurrentPlayer.Y})");
-    }
-}
-
-static async Task RunAutoLogin(GameSession sess)
-{
-    string user = AnsiConsole.Ask<string>("Username:");
-    string pass = AnsiConsole.Prompt(new TextPrompt<string>("Password:").Secret());
-    int serverId = AnsiConsole.Prompt(
-        new TextPrompt<int>("Server ID:")
-            .DefaultValue(0));
-
-    var options = new AutoLoginOptions
+    return new Account
     {
         Username = user,
         Password = pass,
-        ServerId = serverId
-    };
-
-    var behavior = new AutoLoginBehavior(options, sess.Mono);
-    await AnsiConsole.Status()
-        .Spinner(Spinner.Known.Dots)
-        .StartAsync("Logging in...", async ctx =>
+        ServerId = serverId,
+        ServerName = serverName,
+        AutoLogin = true,
+        AutoSettings = new AccountAutoSettings
         {
-            var progress = new Progress<string>(msg =>
-            {
-                ctx.Status(Markup.Escape(msg));
-                AnsiConsole.MarkupLine($"[grey][[{DateTime.Now:HH:mm:ss}]][/] {Markup.Escape(msg)}");
-            });
-
-            await behavior.StartAsync(
-                () => sess.PlayerScraper.ScrapePlayer(),
-                () => sess.WorldScraper.ScrapeWorld(),
-                () => sess.MapScraper.ScrapeMap(),
-                sess.Dispatcher,
-                progress);
-        });
-
-    sess.Tick();
-    if (sess.CurrentPlayer.IsInGame)
-    {
-        AnsiConsole.MarkupLine($"[green]Login successful![/] Character: [cyan]{Markup.Escape(sess.CurrentPlayer.Name)}[/]");
-    }
-    else
-    {
-        AnsiConsole.MarkupLine("[red]Login failed or timed out.[/]");
-    }
+            UseTdlt = true,
+            AutoPickItems = true,
+            AutoUsePean = true,
+            AvoidSuperMobs = true
+        }
+    };
 }

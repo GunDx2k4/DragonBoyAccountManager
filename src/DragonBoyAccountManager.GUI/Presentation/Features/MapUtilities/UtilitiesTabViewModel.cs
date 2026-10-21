@@ -26,7 +26,7 @@ public sealed partial class UtilitiesTabViewModel : ObservableObject
     private AccountItemViewModel? _activeAccount;
 
     [ObservableProperty]
-    private string _activeAccountInfo = "Chua ch?n t�i kho?n";
+    private string _activeAccountInfo = "Chưa chọn tài khoản";
 
     [ObservableProperty]
     private bool _hasActiveAccount;
@@ -35,7 +35,7 @@ public sealed partial class UtilitiesTabViewModel : ObservableObject
     private bool _isAccountRunning;
 
     [ObservableProperty]
-    private string _currentMapName = "Chua v�o game";
+    private string _currentMapName = "Chưa vào game";
 
     [ObservableProperty]
     private int _currentMapId = -1;
@@ -77,7 +77,7 @@ public sealed partial class UtilitiesTabViewModel : ObservableObject
     private string _statusText = string.Empty;
 
     [ObservableProperty]
-    private string _syncTargetDisplay = "1 t�i kho?n";
+    private string _syncTargetDisplay = "1 tài khoản";
 
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(GameSpeedText))]
@@ -153,7 +153,7 @@ public sealed partial class UtilitiesTabViewModel : ObservableObject
                         else if (m.Status == GameSessionStatus.Offline)
                         {
                             IsAccountRunning = false;
-                            CurrentMapName = "T�i kho?n dang t?t";
+                            CurrentMapName = "Tài khoản đang tắt";
                             ClearData();
                         }
                     });
@@ -212,8 +212,8 @@ public sealed partial class UtilitiesTabViewModel : ObservableObject
 
         if (account == null)
         {
-            ActiveAccountInfo = "Chua ch?n t�i kho?n";
-            CurrentMapName = "Chua ch?n t�i kho?n";
+            ActiveAccountInfo = "Chưa chọn tài khoản";
+            CurrentMapName = "Chưa chọn tài khoản";
             CurrentMapId = -1;
             CurrentZoneId = -1;
             CurrentPlayers = 0;
@@ -258,7 +258,7 @@ public sealed partial class UtilitiesTabViewModel : ObservableObject
         if (ActiveAccount == null || !ActiveAccount.IsRunning)
         {
             IsAccountRunning = false;
-            CurrentMapName = ActiveAccount == null ? "Chua ch?n t�i kho?n" : "T�i kho?n dang t?t";
+            CurrentMapName = ActiveAccount == null ? "Chưa chọn tài khoản" : "Tài khoản đang tắt";
             CurrentMapId = -1;
             CurrentZoneId = -1;
             CurrentPlayers = 0;
@@ -271,7 +271,7 @@ public sealed partial class UtilitiesTabViewModel : ObservableObject
         if (ActiveAccount.Status != GameSessionStatus.Active)
         {
             IsAccountRunning = true;
-            CurrentMapName = "�ang dang nh?p / chua v�o map...";
+            CurrentMapName = "Đang đăng nhập / chưa vào map...";
             CurrentMapId = -1;
             CurrentZoneId = -1;
             CurrentPlayers = 0;
@@ -293,7 +293,7 @@ public sealed partial class UtilitiesTabViewModel : ObservableObject
     {
         if (snapshot == null || snapshot.MapId < 0)
         {
-            CurrentMapName = "�ang t?i d? li?u b?n d?...";
+            CurrentMapName = "Đang tải dữ liệu bản đồ...";
             return;
         }
 
@@ -329,7 +329,7 @@ public sealed partial class UtilitiesTabViewModel : ObservableObject
         UpdateCollection(WaypointButtons, newWaypointButtons);
 
         UpdateSyncTargetDisplay();
-        StatusText = $"C?p nh?t l�c: {DateTime.Now:HH:mm:ss}";
+        StatusText = $"Cập nhật lúc: {DateTime.Now:HH:mm:ss}";
     }
 
     private void UpdateZones(IReadOnlyList<WorldZoneInfo> newZones, int currentZoneId)
@@ -481,7 +481,7 @@ public sealed partial class UtilitiesTabViewModel : ObservableObject
             }
         }
 
-        StatusText = $"�� chuy?n sang Khu {targetZone} ({successCount}/{targetIds.Count} t�i kho?n)";
+        StatusText = $"Đã chuyển sang Khu {targetZone} ({successCount}/{targetIds.Count} tài khoản)";
         _ = Task.Run(async () =>
         {
             await Task.Delay(1000);
@@ -559,7 +559,7 @@ public sealed partial class UtilitiesTabViewModel : ObservableObject
         var cts = new CancellationTokenSource();
         _moveWaypointCts = cts;
 
-        StatusText = $"�ang di chuy?n t?i {wp.Name}...";
+        StatusText = $"Đang di chuyển tới {wp.Name}...";
 
         bool isTeleport = FastTeleport;
 
@@ -602,7 +602,7 @@ public sealed partial class UtilitiesTabViewModel : ObservableObject
 
             if (!cts.Token.IsCancellationRequested)
             {
-                StatusText = $"�� chuy?n t?i {wp.Name} ({targetIds.Count} t�i kho?n)";
+                StatusText = $"Đã chuyển tới {wp.Name} ({targetIds.Count} tài khoản)";
             }
         }
         catch (OperationCanceledException)
@@ -659,7 +659,7 @@ public sealed partial class UtilitiesTabViewModel : ObservableObject
         var targetIds = GetTargetAccountIds();
         if (targetIds.Count == 0) return;
 
-        StatusText = $"�ang ti?p c?n v� ch?n {entityName}...";
+        StatusText = $"Đang tiếp cận và chọn {entityName}...";
 
         bool isTeleport = FastTeleport;
 
@@ -673,14 +673,14 @@ public sealed partial class UtilitiesTabViewModel : ObservableObject
         });
 
         await Task.WhenAll(tasks);
-        StatusText = $"�� ch?n {entityName} ({targetIds.Count} t�i kho?n)";
+        StatusText = $"Đã chọn {entityName} ({targetIds.Count} tài khoản)";
     }
 
     public void UpdateSyncTargetDisplay()
     {
         var targets = GetTargetAccountIds();
         int count = targets.Count;
-        SyncTargetDisplay = count > 1 ? $"�?ng b?: {count} t�i kho?n" : (count == 1 ? "1 t�i kho?n" : "Chua ch?n t�i kho?n");
+        SyncTargetDisplay = count > 1 ? $"Đồng bộ: {count} tài khoản" : (count == 1 ? "1 tài khoản" : "Chưa chọn tài khoản");
     }
 
     [RelayCommand]
@@ -689,7 +689,7 @@ public sealed partial class UtilitiesTabViewModel : ObservableObject
         var targets = GetTargetAccountIds();
         if (targets.Count == 0)
         {
-            StatusText = "Chua ch?n t�i kho?n dang ch?y n�o!";
+            StatusText = "Chưa chọn tài khoản đang chạy nào!";
             return;
         }
 
@@ -711,7 +711,7 @@ public sealed partial class UtilitiesTabViewModel : ObservableObject
         }
         else
         {
-            StatusText = $"D�ng Capsule: {successCount}/{targets.Count} t�i kho?n th�nh c�ng";
+            StatusText = $"Dùng Capsule: {successCount}/{targets.Count} tài khoản thành công";
         }
     }
 
@@ -721,7 +721,7 @@ public sealed partial class UtilitiesTabViewModel : ObservableObject
         var targets = GetTargetAccountIds();
         if (targets.Count == 0)
         {
-            StatusText = "Chua ch?n t�i kho?n dang ch?y n�o!";
+            StatusText = "Chưa chọn tài khoản đang chạy nào!";
             return;
         }
 
@@ -743,7 +743,7 @@ public sealed partial class UtilitiesTabViewModel : ObservableObject
         }
         else
         {
-            StatusText = $"D�ng TDLT: {successCount}/{targets.Count} t�i kho?n th�nh c�ng";
+            StatusText = $"Dùng TDLT: {successCount}/{targets.Count} tài khoản thành công";
         }
     }
 
@@ -758,7 +758,7 @@ public sealed partial class UtilitiesTabViewModel : ObservableObject
             _gameEngine.SetGameSpeed(id, value);
         }
 
-        StatusText = $"�� d?t t?c d? {value:0.0}x ({targets.Count} t�i kho?n)";
+        StatusText = $"Đã đặt tốc độ {value:0.0}x ({targets.Count} tài khoản)";
     }
 
     [RelayCommand]

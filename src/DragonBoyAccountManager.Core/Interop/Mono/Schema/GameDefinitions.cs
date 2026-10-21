@@ -17,6 +17,9 @@ public static class GameDefinitions
         521, 1523, 1524
     ];
 
+    public const short DefaultCapsuleTemplateId = 193;
+    public const short DefaultTdltTemplateId = 521;
+    public const short DefaultPeanTemplateId = 13;
     public const sbyte ItemTypePean = 6;
 
     public static bool IsPean(short templateId, sbyte type) =>

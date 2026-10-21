@@ -26,6 +26,8 @@ public interface ISessionManager
     bool IsBehaviorRunning(Guid accountId, string behaviorId);
     IReadOnlyCollection<IBehavior> GetBehaviors(Guid accountId);
 
+    event Action<SessionEvent>? EventPublished;
+
     event Action<Guid, GameSessionStatus, GameSessionSnapshot?>? SessionUpdated;
     event Action<Guid, string>? MessageUpdated;
     event Action<Guid, ActionExecutionReport>? ActionReported;

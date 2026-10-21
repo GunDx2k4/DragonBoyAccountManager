@@ -118,7 +118,7 @@ public sealed partial class MainViewModel : ObservableObject
         {
             if (e.PropertyName == nameof(GuideViewModel.HasAppUpdate) && Guide.HasAppUpdate && Guide.AvailableAppUpdate != null)
             {
-                StatusBar.StatusMessage = $"[C?P NH?T] �� c� b?n m?i v{Guide.AvailableAppUpdate.Version}! V�o tab Hu?ng d?n d? xem chi ti?t.";
+                StatusBar.StatusMessage = $"[CẬP NHẬT] Đã có bản mới v{Guide.AvailableAppUpdate.Version}! Vào tab Hướng dẫn để xem chi tiết.";
             }
         };
 
@@ -151,12 +151,12 @@ public sealed partial class MainViewModel : ObservableObject
             {
                 await _storageService.AddOrUpdateAsync(account);
                 AccountsPanel.AddOrUpdateItem(account);
-                StatusBar.StatusMessage = $"�� luu t�i kho?n: {account.Username}";
-                _dialogService.ShowInfo("Th�nh c�ng", $"�� luu t�i kho?n '{account.Username}' th�nh c�ng!");
+                StatusBar.StatusMessage = $"Đã lưu tài khoản: {account.Username}";
+                _dialogService.ShowInfo("Thành công", $"Đã lưu tài khoản '{account.Username}' thành công!");
             }
             catch (Exception ex)
             {
-                _dialogService.ShowError("L?i", $"Kh�ng th? luu t�i kho?n: {ex.Message}");
+                _dialogService.ShowError("Lỗi", $"Không thể lưu tài khoản: {ex.Message}");
             }
         };
 
@@ -166,11 +166,11 @@ public sealed partial class MainViewModel : ObservableObject
             {
                 await _storageService.DeleteAsync(id);
                 AccountsPanel.RemoveItem(id);
-                StatusBar.StatusMessage = "�� x�a t�i kho?n.";
+                StatusBar.StatusMessage = "Đã xóa tài khoản.";
             }
             catch (Exception ex)
             {
-                _dialogService.ShowError("L?i", $"Kh�ng th? x�a t�i kho?n: {ex.Message}");
+                _dialogService.ShowError("Lỗi", $"Không thể xóa tài khoản: {ex.Message}");
             }
         };
 
@@ -185,7 +185,7 @@ public sealed partial class MainViewModel : ObservableObject
         }
         catch (Exception ex)
         {
-            System.Diagnostics.Debug.WriteLine($"[MainViewModel] L?i kh?i d?ng: {ex.Message}");
+            System.Diagnostics.Debug.WriteLine($"[MainViewModel] Lỗi khởi động: {ex.Message}");
         }
     }
 
@@ -196,6 +196,6 @@ public sealed partial class MainViewModel : ObservableObject
         {
             AccountsPanel.SelectedAccount = AccountsPanel.Accounts[0];
         }
-        StatusBar.StatusMessage = $"S?n s�ng ({AccountsPanel.TotalAccountsCount} t�i kho?n)";
+        StatusBar.StatusMessage = $"Sẵn sàng ({AccountsPanel.TotalAccountsCount} tài khoản)";
     }
 }

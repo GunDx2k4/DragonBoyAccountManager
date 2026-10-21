@@ -18,6 +18,8 @@ public sealed class SessionManager : ISessionManager, IDisposable
 
     public IReadOnlyCollection<Guid> ActiveSessionIds => _workers.Keys.ToList();
 
+    public event Action<SessionEvent>? EventPublished;
+
     public event Action<Guid, GameSessionStatus, GameSessionSnapshot?>? SessionUpdated;
     public event Action<Guid, string>? MessageUpdated;
     public event Action<Guid, ActionExecutionReport>? ActionReported;
@@ -26,6 +28,41 @@ public sealed class SessionManager : ISessionManager, IDisposable
     public event Action<Guid, bool>? AutoTrainStateChanged;
     public event Action<Guid, Process>? SessionStarted;
     public event Action<Guid>? SessionExited;
+
+    private void Publish(SessionEvent evt)
+    {
+        EventPublished?.Invoke(evt);
+
+        switch (evt)
+        {
+            case SessionStateChangedEvent e:
+                SessionUpdated?.Invoke(e.AccountId, e.Status, e.Snapshot);
+                break;
+            case SessionMessageEvent e:
+                MessageUpdated?.Invoke(e.AccountId, e.Message);
+                break;
+            case SessionProcessStartedEvent e:
+                SessionStarted?.Invoke(e.AccountId, e.Process);
+                break;
+            case SessionProcessExitedEvent e:
+                SessionExited?.Invoke(e.AccountId);
+                break;
+            case ActionReportedEvent e:
+                ActionReported?.Invoke(e.AccountId, e.Report);
+                break;
+            case ChatSentEvent e:
+                ChatSent?.Invoke(e.AccountId, e.Message, e.Channel);
+                break;
+            case BehaviorStateChangedEvent e when e.BehaviorId == "AutoTrain":
+                AutoTrainStateChanged?.Invoke(e.AccountId, e.IsRunning);
+                if (e.StatusMessage != null)
+                    AutoTrainStatusChanged?.Invoke(e.AccountId, e.StatusMessage);
+                break;
+            case BehaviorProgressEvent e when e.BehaviorId == "AutoTrain":
+                AutoTrainStatusChanged?.Invoke(e.AccountId, e.Message);
+                break;
+        }
+    }
 
     public bool IsRunning(Guid accountId)
     {
@@ -61,8 +98,8 @@ public sealed class SessionManager : ISessionManager, IDisposable
 
         try
         {
-            SessionUpdated?.Invoke(options.AccountId, GameSessionStatus.Waiting, null);
-            MessageUpdated?.Invoke(options.AccountId, "Đang khởi tạo game client...");
+            Publish(new SessionStateChangedEvent(options.AccountId, GameSessionStatus.Waiting, null));
+            Publish(new SessionMessageEvent(options.AccountId, "Đang khởi tạo game client..."));
 
             GameRmsStorage.SetServerSelection(options.ServerId);
 
@@ -78,12 +115,7 @@ public sealed class SessionManager : ISessionManager, IDisposable
             var session = await _launcher.LaunchAsync(launchOptions, cancellationToken);
             var worker = new SessionWorker(session, options);
 
-            worker.SessionUpdated += (id, status, snap) => SessionUpdated?.Invoke(id, status, snap);
-            worker.MessageUpdated += (id, msg) => MessageUpdated?.Invoke(id, msg);
-            worker.ActionReported += (id, rep) => ActionReported?.Invoke(id, rep);
-            worker.ChatSent += (id, msg, cnt) => ChatSent?.Invoke(id, msg, cnt);
-            worker.AutoTrainStatusChanged += (id, st) => AutoTrainStatusChanged?.Invoke(id, st);
-            worker.AutoTrainStateChanged += (id, run) => AutoTrainStateChanged?.Invoke(id, run);
+            worker.EventPublished += evt => Publish(evt);
 
             _workers[options.AccountId] = worker;
 
@@ -100,16 +132,16 @@ public sealed class SessionManager : ISessionManager, IDisposable
                     removed.Dispose();
                 }
 
-                SessionUpdated?.Invoke(options.AccountId, GameSessionStatus.Offline, null);
+                Publish(new SessionStateChangedEvent(options.AccountId, GameSessionStatus.Offline, null));
                 if (!userInitiated)
                 {
-                    MessageUpdated?.Invoke(options.AccountId, "Tiến trình game đã thoát bất ngờ.");
+                    Publish(new SessionMessageEvent(options.AccountId, "Tiến trình game đã thoát bất ngờ."));
                 }
 
-                SessionExited?.Invoke(options.AccountId);
+                Publish(new SessionProcessExitedEvent(options.AccountId, userInitiated));
             };
 
-            SessionStarted?.Invoke(options.AccountId, session.Process);
+            Publish(new SessionProcessStartedEvent(options.AccountId, session.Process));
 
             worker.StartLoop();
 
@@ -126,14 +158,14 @@ public sealed class SessionManager : ISessionManager, IDisposable
             }
             else
             {
-                SessionUpdated?.Invoke(options.AccountId, GameSessionStatus.Running, null);
+                Publish(new SessionStateChangedEvent(options.AccountId, GameSessionStatus.Running, null));
                 return true;
             }
         }
         catch (Exception ex)
         {
-            SessionUpdated?.Invoke(options.AccountId, GameSessionStatus.Offline, null);
-            MessageUpdated?.Invoke(options.AccountId, $"Lỗi khởi động: {ex.Message}");
+            Publish(new SessionStateChangedEvent(options.AccountId, GameSessionStatus.Offline, null));
+            Publish(new SessionMessageEvent(options.AccountId, $"Lỗi khởi động: {ex.Message}"));
             return false;
         }
     }
@@ -150,7 +182,7 @@ public sealed class SessionManager : ISessionManager, IDisposable
             await worker.StopAsync();
         }
 
-        SessionUpdated?.Invoke(accountId, GameSessionStatus.Offline, null);
+        Publish(new SessionStateChangedEvent(accountId, GameSessionStatus.Offline, null));
     }
 
     public async Task StopAllSessionsAsync()

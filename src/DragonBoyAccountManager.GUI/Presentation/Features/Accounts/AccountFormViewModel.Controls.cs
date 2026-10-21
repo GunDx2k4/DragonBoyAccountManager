@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Globalization;
 using System.Linq;
@@ -131,7 +131,7 @@ public sealed partial class AccountFormViewModel
         var targets = ResolveKeyTargets();
         foreach (var id in targets)
         {
-            _gameEngine.UseSkill(id, slotIndex);
+            _ = _gameEngine.SelectSkillAsync(id, slotIndex);
         }
 
         if (targetItem != null)
@@ -142,12 +142,12 @@ public sealed partial class AccountFormViewModel
     }
 
     [RelayCommand]
-    public void AutoAssignSkills()
+    public async Task AutoAssignSkillsAsync()
     {
         var targets = ResolveKeyTargets();
         foreach (var id in targets)
         {
-            _gameEngine.AutoAssignSkills(id);
+            await _gameEngine.AutoAssignSkillsAsync(id);
         }
         RefreshSkills();
     }

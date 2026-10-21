@@ -24,7 +24,7 @@ public sealed partial class AccountFormViewModel : ObservableObject
     private string _password = string.Empty;
 
     [ObservableProperty]
-    private string _selectedServer = "Vu tr? 1";
+    private string _selectedServer = "Vũ trụ 1";
 
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(CanDelete))]
@@ -275,7 +275,7 @@ public sealed partial class AccountFormViewModel : ObservableObject
         _editingAccount = null;
         Username = string.Empty;
         Password = string.Empty;
-        SelectedServer = AvailableServers.FirstOrDefault() ?? "Vu tr? 1";
+        SelectedServer = AvailableServers.FirstOrDefault() ?? "Vũ trụ 1";
         GameSpeed = 1.0f;
         AutoLogin = true;
         CurrentZoneId = null;
@@ -359,11 +359,11 @@ public sealed partial class AccountFormViewModel : ObservableObject
 
         if (_editingAccount.IsRunning)
         {
-            _dialogService.ShowWarning("Kh�ng th? x�a", $"T�i kho?n '{_editingAccount.Username}' dang ch?y game. Vui l�ng d�ng game tru?c khi x�a!");
+            _dialogService.ShowWarning("Không thể xóa", $"Tài khoản '{_editingAccount.Username}' đang chạy game. Vui lòng đóng game trước khi xóa!");
             return;
         }
 
-        bool confirm = _dialogService.ShowConfirmation("X�c nh?n x�a", $"B?n c� ch?c ch?n mu?n x�a t�i kho?n '{_editingAccount.Username}'?");
+        bool confirm = _dialogService.ShowConfirmation("Xác nhận xóa", $"Bạn có chắc chắn muốn xóa tài khoản '{_editingAccount.Username}'?");
         if (!confirm) return;
 
         if (OnAccountDeleted != null)

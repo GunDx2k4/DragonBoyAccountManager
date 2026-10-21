@@ -8,6 +8,7 @@ global using DragonBoyAccountManager.Core.Common;
 global using DragonBoyAccountManager.Core.Common.Results;
 global using DragonBoyAccountManager.Core.Engine;
 global using DragonBoyAccountManager.Core.Engine.Abstractions;
+global using DragonBoyAccountManager.Core.Engine.Events;
 global using DragonBoyAccountManager.Core.Engine.Models;
 global using DragonBoyAccountManager.Core.Sessions;
 global using DragonBoyAccountManager.Core.Sessions.Validation;

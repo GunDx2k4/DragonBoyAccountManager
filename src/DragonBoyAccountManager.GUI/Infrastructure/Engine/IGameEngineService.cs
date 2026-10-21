@@ -47,17 +47,11 @@ public interface IGameActionService
     bool SendChat(Guid accountId, string text, ChatType type = ChatType.Map);
     Task<bool> SendChatAsync(Guid accountId, string text, ChatType type = ChatType.Map, CancellationToken cancellationToken = default);
 
-    Result UseCapsule(Guid accountId);
     Task<Result> UseCapsuleAsync(Guid accountId, CancellationToken cancellationToken = default);
-    Result UseTdlt(Guid accountId);
     Task<Result> UseTdltAsync(Guid accountId, CancellationToken cancellationToken = default);
-    Result UsePean(Guid accountId);
     Task<Result> UsePeanAsync(Guid accountId, CancellationToken cancellationToken = default);
-    Result SelectSkill(Guid accountId, int slotIndex);
     Task<Result> SelectSkillAsync(Guid accountId, int slotIndex, CancellationToken cancellationToken = default);
-    Result UseSkill(Guid accountId, int slotIndex);
     IReadOnlyList<GameSkillInfo> GetSkills(Guid accountId);
-    Result AutoAssignSkills(Guid accountId);
     Task<Result> AutoAssignSkillsAsync(Guid accountId, CancellationToken cancellationToken = default);
 }
 
@@ -81,6 +75,7 @@ public interface IGameAutomationService
 
 public interface IGameEngineEvents
 {
+    event Action<SessionEvent>? OnSessionEvent;
     event Action<Guid, GameSessionStatus, GameSessionSnapshot?>? OnSessionUpdated;
     event Action<Guid, string>? OnSessionMessageUpdated;
     event Action<Guid, ActionExecutionReport>? OnActionReported;

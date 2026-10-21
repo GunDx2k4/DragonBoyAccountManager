@@ -54,7 +54,7 @@ public sealed partial class AccountsPanelViewModel : ObservableObject
     private string _searchKeyword = string.Empty;
 
     [ObservableProperty]
-    private string _selectedServerFilter = "T?t c?";
+    private string _selectedServerFilter = "Tất cả";
 
     [ObservableProperty]
     private bool _isAllSelected;
@@ -176,7 +176,7 @@ public sealed partial class AccountsPanelViewModel : ObservableObject
                     {
                         item.StatusMessage = message;
                     }
-                    OnStatusMessageUpdated?.Invoke($"[{item?.Username ?? "T�i kho?n"}]: {message}");
+                    OnStatusMessageUpdated?.Invoke($"[{item?.Username ?? "Tài khoản"}]: {message}");
                 });
             }
         };
@@ -185,7 +185,7 @@ public sealed partial class AccountsPanelViewModel : ObservableObject
     private void InitServerFilters()
     {
         FilterServers.Clear();
-        FilterServers.Add("T?t c?");
+        FilterServers.Add("Tất cả");
         foreach (var server in ServerOption.DefaultServers)
         {
             FilterServers.Add(server.ServerName);
@@ -200,22 +200,22 @@ public sealed partial class AccountsPanelViewModel : ObservableObject
         if (ClientStatus == ClientStatus.GameNotFound)
         {
             AssemblyGuidanceTitle = "CHUA THI?T L?P FILE GAME G?C 2.5.0 (.EXE)";
-            AssemblyGuidanceMessage = "DBAM y�u c?u phi�n b?n game PC g?c 2.5.0 t?i t?i trang ch? (ngocrongonline.com) � tuy?t d?i kh�ng c�i b?n mod. Vui l�ng b?m \"Ch?n file game (.exe)\" d? b?t d?u.";
+            AssemblyGuidanceMessage = "DBAM yêu cầu phiên bản game PC gốc 2.5.0 tải tại trang chủ (ngocrongonline.com) — tuyệt đối không cài bản mod. Vui lòng bấm \"Chọn file game (.exe)\" để bắt đầu.";
         }
         else if (ClientStatus == ClientStatus.AssemblyNotFound)
         {
-            AssemblyGuidanceTitle = "KH�NG T�M TH?Y ASSEMBLY-CSHARP.DLL";
-            AssemblyGuidanceMessage = "�� nh?n file .exe nhung thi?u file Assembly-CSharp.dll trong Data\\Managed. Vui l�ng t?i b?n game PC 2.5.0 g?c t?i trang ch? (kh�ng d�ng b?n mod) v� ki?m tra l?i thu m?c game.";
+            AssemblyGuidanceTitle = "KHÔNG TÌM THẤY ASSEMBLY-CSHARP.DLL";
+            AssemblyGuidanceMessage = "Đã nhận file .exe nhưng thiếu file Assembly-CSharp.dll trong Data\\Managed. Vui lòng tải bản game PC 2.5.0 gốc tại trang chủ (không dùng bản mod) và kiểm tra lại thư mục game.";
         }
         else if (ClientStatus == ClientStatus.ModifiedOrMod)
         {
-            AssemblyGuidanceTitle = "PH�T HI?N FILE GAME B? S?A �?I HO?C B?N MOD";
-            AssemblyGuidanceMessage = "DBAM ch? h? tr? phi�n b?n g?c 2.5.0 ch�nh th?c t? trang ch?. C�c b?n mod (Mod, Auto, Hack, DLL d� can thi?p) c� th? g�y l?i b? nh? ho?c kh�ng tuong th�ch!";
+            AssemblyGuidanceTitle = "PHÁT HIỆN FILE GAME BỊ SỬA ĐỔI HOẶC BẢN MOD";
+            AssemblyGuidanceMessage = "DBAM chỉ hỗ trợ phiên bản gốc 2.5.0 chính thức từ trang chủ. Các bản mod (Mod, Auto, Hack, DLL đã can thiệp) có thể gây lỗi bộ nhớ hoặc không tương thích!";
         }
         else if (ClientStatus == ClientStatus.OutdatedVersion)
         {
-            AssemblyGuidanceTitle = "PHI�N B?N GAME �� CU";
-            AssemblyGuidanceMessage = "Phi�n b?n game hi?n t?i kh�ng ph?i 2.5.0. Vui l�ng t?i b?n m?i nh?t t?i ngocrongonline.com d? s? d?ng.";
+            AssemblyGuidanceTitle = "PHIÊN BẢN GAME ĐÃ CŨ";
+            AssemblyGuidanceMessage = "Phiên bản game hiện tại không phải 2.5.0. Vui lòng tải bản mới nhất tại ngocrongonline.com để sử dụng.";
         }
         else
         {
@@ -234,14 +234,14 @@ public sealed partial class AccountsPanelViewModel : ObservableObject
 
         var selectedFile = _dialogService.ShowOpenFileDialog(
             "Ch?n t?p th?c thi game Dragon Boy",
-            "Game Executable (*.exe)|*.exe|T?t c? t?p (*.*)|*.*",
+            "Game Executable (*.exe)|*.exe|Tất cả tệp (*.*)|*.*",
             initialDir);
 
         if (!string.IsNullOrEmpty(selectedFile))
         {
             if (!string.Equals(Path.GetExtension(selectedFile), ".exe", StringComparison.OrdinalIgnoreCase))
             {
-                _dialogService.ShowWarning("File kh�ng h?p l?", "�u?ng d?n game b?t bu?c ph?i l� file th?c thi (.exe)!");
+                _dialogService.ShowWarning("File không hợp lệ", "Đường dẫn game bắt buộc phải là file thực thi (.exe)!");
                 return;
             }
 
@@ -397,7 +397,7 @@ public sealed partial class AccountsPanelViewModel : ObservableObject
     public void ClearFilter()
     {
         SearchKeyword = string.Empty;
-        SelectedServerFilter = "T?t c?";
+        SelectedServerFilter = "Tất cả";
         AccountsView.Refresh();
         SyncIsAllSelectedState();
     }
@@ -412,7 +412,7 @@ public sealed partial class AccountsPanelViewModel : ObservableObject
     {
         if (item is not AccountItemViewModel acc) return false;
 
-        if (SelectedServerFilter != "T?t c?" && !string.Equals(acc.Server, SelectedServerFilter, StringComparison.OrdinalIgnoreCase))
+        if (SelectedServerFilter != "Tất cả" && !string.Equals(acc.Server, SelectedServerFilter, StringComparison.OrdinalIgnoreCase))
         {
             return false;
         }
@@ -491,22 +491,22 @@ public sealed partial class AccountsPanelViewModel : ObservableObject
         if (metadata?.Status == ClientStatus.AssemblyNotFound)
         {
             _dialogService.ShowWarning(
-                "Kh�ng t�m th?y Assembly-CSharp",
-                $"�� nh?n di?n file th?c thi game: {Path.GetFileName(gamePath)}\n" +
-                "Nhung kh�ng t�m th?y file Assembly-CSharp.dll trong thu m?c d? li?u Data\\Managed.\n\n" +
-                "Vui l�ng t?i b?n game PC g?c 2.5.0 t?i trang ch? (ngocrongonline.com) � kh�ng d�ng b?n mod, v� d?m b?o c?u tr�c:\n" +
-                "- [T�nGame].exe\n" +
-                "- [T�nGame]_Data\\Managed\\Assembly-CSharp.dll");
+                "Không tìm thấy Assembly-CSharp",
+                $"Đã nhận diện file thực thi game: {Path.GetFileName(gamePath)}\n" +
+                "Nhưng không tìm thấy file Assembly-CSharp.dll trong thư mục dữ liệu Data\\Managed.\n\n" +
+                "Vui lòng tải bản game PC gốc 2.5.0 tại trang chủ (ngocrongonline.com) — không dùng bản mod, và đảm bảo cấu trúc:\n" +
+                "- [TênGame].exe\n" +
+                "- [TênGame]_Data\\Managed\\Assembly-CSharp.dll");
         }
         else
         {
             bool chooseNow = _dialogService.ShowConfirmation(
-                "Chua c�i d?t du?ng d?n game",
-                "Chua ch?n t?p th?c thi game (.exe) ho?c du?ng d?n kh�ng t?n t?i.\n\n" +
-                "Vui l�ng t?i b?n game PC g?c 2.5.0 t?i trang ch? (ngocrongonline.com) � tuy?t d?i kh�ng c�i b?n mod.\n\n" +
-                "B?n c� mu?n ch?n file game (.exe) ngay b�y gi? kh�ng?",
+                "Chưa cài đặt đường dẫn game",
+                "Chưa chọn tệp thực thi game (.exe) hoặc đường dẫn không tồn tại.\n\n" +
+                "Vui lòng tải bản game PC gốc 2.5.0 tại trang chủ (ngocrongonline.com) — tuyệt đối không cài bản mod.\n\n" +
+                "Bạn có muốn chọn file game (.exe) ngay bây giờ không?",
                 "Ch?n file ngay",
-                "�? sau");
+                "Để sau");
             if (chooseNow)
             {
                 BrowseGamePath();
@@ -522,7 +522,7 @@ public sealed partial class AccountsPanelViewModel : ObservableObject
         var targets = GetTargetAccounts(target);
         if (targets.Count == 0)
         {
-            _dialogService.ShowWarning("Th�ng b�o", "Vui l�ng ch?n �t nh?t m?t t�i kho?n d? m? game!");
+            _dialogService.ShowWarning("Thông báo", "Vui lòng chọn ít nhất một tài khoản để mở game!");
             return;
         }
 
@@ -534,7 +534,7 @@ public sealed partial class AccountsPanelViewModel : ObservableObject
         var toLaunch = targets.Where(a => !a.IsRunning).ToList();
         if (toLaunch.Count == 0)
         {
-            OnStatusMessageUpdated?.Invoke("T?t c? t�i kho?n du?c ch?n d?u dang m? game!");
+            OnStatusMessageUpdated?.Invoke("Tất cả tài khoản được chọn đều đang mở game!");
             return;
         }
 
@@ -542,7 +542,7 @@ public sealed partial class AccountsPanelViewModel : ObservableObject
         for (int i = 0; i < toLaunch.Count; i++)
         {
             var item = toLaunch[i];
-            OnStatusMessageUpdated?.Invoke($"�ang m? game ({i + 1}/{toLaunch.Count}): {item.Username}...");
+            OnStatusMessageUpdated?.Invoke($"Đang mở game ({i + 1}/{toLaunch.Count}): {item.Username}...");
             bool ok = await _gameEngine.StartAsync(item.Model, gamePath);
             if (ok) launched++;
 
@@ -552,7 +552,7 @@ public sealed partial class AccountsPanelViewModel : ObservableObject
             }
         }
 
-        OnStatusMessageUpdated?.Invoke($"�� m? th�nh c�ng {launched}/{toLaunch.Count} t�i kho?n game.");
+        OnStatusMessageUpdated?.Invoke($"Đã mở thành công {launched}/{toLaunch.Count} tài khoản game.");
         NotifyCountsChanged();
     }
 
@@ -562,7 +562,7 @@ public sealed partial class AccountsPanelViewModel : ObservableObject
         var targets = GetTargetAccounts(target);
         if (targets.Count == 0)
         {
-            _dialogService.ShowWarning("Th�ng b�o", "Vui l�ng ch?n �t nh?t m?t t�i kho?n d? dang nh?p!");
+            _dialogService.ShowWarning("Thông báo", "Vui lòng chọn ít nhất một tài khoản để đăng nhập!");
             return;
         }
 
@@ -577,11 +577,11 @@ public sealed partial class AccountsPanelViewModel : ObservableObject
             var item = targets[i];
             if (string.IsNullOrWhiteSpace(item.Username) || string.IsNullOrWhiteSpace(item.Password))
             {
-                OnStatusMessageUpdated?.Invoke($"B? qua '{item.Username}': Thi?u t�n t�i kho?n ho?c m?t kh?u.");
+                OnStatusMessageUpdated?.Invoke($"Bỏ qua '{item.Username}': Thiếu tên tài khoản hoặc mật khẩu.");
                 continue;
             }
 
-            OnStatusMessageUpdated?.Invoke($"�ang x? l� dang nh?p ({i + 1}/{targets.Count}): {item.Username}...");
+            OnStatusMessageUpdated?.Invoke($"Đang xử lý đăng nhập ({i + 1}/{targets.Count}): {item.Username}...");
 
             bool ok;
             if (!item.IsRunning)
@@ -597,11 +597,11 @@ public sealed partial class AccountsPanelViewModel : ObservableObject
             if (ok)
             {
                 successCount++;
-                OnStatusMessageUpdated?.Invoke($"[{item.Username}]: �ang nh?p th�nh c�ng!");
+                OnStatusMessageUpdated?.Invoke($"[{item.Username}]: Đăng nhập thành công!");
             }
             else
             {
-                OnStatusMessageUpdated?.Invoke($"[{item.Username}]: �ang nh?p kh�ng th�nh c�ng.");
+                OnStatusMessageUpdated?.Invoke($"[{item.Username}]: Đăng nhập không thành công.");
             }
 
             if (i < targets.Count - 1)
@@ -610,7 +610,7 @@ public sealed partial class AccountsPanelViewModel : ObservableObject
             }
         }
 
-        OnStatusMessageUpdated?.Invoke($"Ho�n t?t: {successCount}/{targets.Count} t�i kho?n dang nh?p th�nh c�ng.");
+        OnStatusMessageUpdated?.Invoke($"Hoàn tất: {successCount}/{targets.Count} tài khoản đăng nhập thành công.");
         NotifyCountsChanged();
     }
 
@@ -620,14 +620,14 @@ public sealed partial class AccountsPanelViewModel : ObservableObject
         var targets = GetTargetAccounts(target);
         if (targets.Count == 0)
         {
-            _dialogService.ShowWarning("Th�ng b�o", "Vui l�ng ch?n �t nh?t m?t t�i kho?n d? d�ng game!");
+            _dialogService.ShowWarning("Thông báo", "Vui lòng chọn ít nhất một tài khoản để đóng game!");
             return;
         }
 
         var running = targets.Where(a => a.IsRunning).ToList();
         if (running.Count == 0)
         {
-            OnStatusMessageUpdated?.Invoke("Kh�ng c� t�i kho?n n�o dang ch?y trong danh s�ch d� ch?n.");
+            OnStatusMessageUpdated?.Invoke("Không có tài khoản nào đang chạy trong danh sách đã chọn.");
             return;
         }
 
@@ -638,7 +638,7 @@ public sealed partial class AccountsPanelViewModel : ObservableObject
             stopped++;
         }
 
-        OnStatusMessageUpdated?.Invoke($"�� d�ng {stopped} t�i kho?n game.");
+        OnStatusMessageUpdated?.Invoke($"Đã đóng {stopped} tài khoản game.");
         NotifyCountsChanged();
     }
 
@@ -650,11 +650,11 @@ public sealed partial class AccountsPanelViewModel : ObservableObject
 
         if (item.IsRunning)
         {
-            _dialogService.ShowWarning("Kh�ng th? x�a", $"T�i kho?n '{item.Username}' dang ch?y game. Vui l�ng d�ng game tru?c khi x�a!");
+            _dialogService.ShowWarning("Không thể xóa", $"Tài khoản '{item.Username}' đang chạy game. Vui lòng đóng game trước khi xóa!");
             return;
         }
 
-        bool confirm = _dialogService.ShowConfirmation("X�c nh?n x�a", $"B?n c� ch?c ch?n mu?n x�a t�i kho?n '{item.Username}'?");
+        bool confirm = _dialogService.ShowConfirmation("Xác nhận xóa", $"Bạn có chắc chắn muốn xóa tài khoản '{item.Username}'?");
         if (!confirm) return;
 
         await _storageService.DeleteAsync(item.Id);
@@ -663,7 +663,7 @@ public sealed partial class AccountsPanelViewModel : ObservableObject
 
         NotifyCountsChanged();
         AccountsView.Refresh();
-        OnStatusMessageUpdated?.Invoke($"�� x�a t�i kho?n {item.Username}.");
+        OnStatusMessageUpdated?.Invoke($"Đã xóa tài khoản {item.Username}.");
     }
 
     [RelayCommand]
@@ -676,11 +676,11 @@ public sealed partial class AccountsPanelViewModel : ObservableObject
         if (running.Count > 0)
         {
             var names = string.Join(", ", running.Select(a => $"'{a.Username}'"));
-            _dialogService.ShowWarning("Kh�ng th? x�a", $"C� {running.Count} t�i kho?n dang ch?y game ({names}). Vui l�ng d�ng game tru?c khi x�a!");
+            _dialogService.ShowWarning("Không thể xóa", $"Có {running.Count} tài khoản đang chạy game ({names}). Vui lòng đóng game trước khi xóa!");
             return;
         }
 
-        bool confirm = _dialogService.ShowConfirmation("X�c nh?n x�a", $"B?n c� ch?c ch?n mu?n x�a {targets.Count} t�i kho?n d� ch?n?");
+        bool confirm = _dialogService.ShowConfirmation("Xác nhận xóa", $"Bạn có chắc chắn muốn xóa {targets.Count} tài khoản đã chọn?");
         if (!confirm) return;
 
         foreach (var item in targets)
@@ -692,7 +692,7 @@ public sealed partial class AccountsPanelViewModel : ObservableObject
         SelectedAccount = null;
         NotifyCountsChanged();
         AccountsView.Refresh();
-        OnStatusMessageUpdated?.Invoke($"�� x�a {targets.Count} t�i kho?n.");
+        OnStatusMessageUpdated?.Invoke($"Đã xóa {targets.Count} tài khoản.");
     }
 
     [RelayCommand]
@@ -711,8 +711,8 @@ public sealed partial class AccountsPanelViewModel : ObservableObject
         var running = Accounts.Where(a => a.IsRunning).ToList();
         if (running.Count == 0)
         {
-            OnStatusMessageUpdated?.Invoke("Kh�ng c� t�i kho?n n�o dang m? game d? s?p x?p!");
-            _dialogService.ShowInfo("S?p x?p c?a s?", "Hi?n t?i kh�ng c� t�i kho?n n�o dang m? game.");
+            OnStatusMessageUpdated?.Invoke("Không có tài khoản nào đang mở game để sắp xếp!");
+            _dialogService.ShowInfo("Sắp xếp cửa sổ", "Hiện tại không có tài khoản nào đang mở game.");
             return;
         }
 
@@ -720,7 +720,7 @@ public sealed partial class AccountsPanelViewModel : ObservableObject
         var targets = selectedRunning.Count > 1 ? selectedRunning : running;
 
         _gameEngine.ArrangeWindows(targets.Select(a => a.Id));
-        OnStatusMessageUpdated?.Invoke($"�� s?p x?p {targets.Count} c?a s? game.");
+        OnStatusMessageUpdated?.Invoke($"Đã sắp xếp {targets.Count} cửa sổ game.");
     }
 
     public void AddOrUpdateItem(Account account)

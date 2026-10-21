@@ -4,6 +4,7 @@ using DragonBoyAccountManager.Core.Common.Results;
 using DragonBoyAccountManager.Core.Engine.Abstractions;
 using DragonBoyAccountManager.Core.Engine.Models;
 using DragonBoyAccountManager.Core.Execution.Commands;
+using DragonBoyAccountManager.Core.Interop.Mono.Schema;
 using DragonBoyAccountManager.Core.Telemetry.Snapshots;
 
 namespace DragonBoyAccountManager.Core.Engine;
@@ -12,6 +13,7 @@ public sealed class GameEngine : IGameEngine
 {
     public ISessionManager Sessions { get; }
 
+    public event Action<SessionEvent>? OnSessionEvent;
     public event Action<Guid, GameSessionStatus, GameSessionSnapshot?>? OnSessionUpdated;
     public event Action<Guid, string>? OnSessionMessageUpdated;
     public event Action<Guid, ActionExecutionReport>? OnActionReported;
@@ -23,6 +25,7 @@ public sealed class GameEngine : IGameEngine
     {
         Sessions = sessionManager ?? new SessionManager();
 
+        Sessions.EventPublished += evt => OnSessionEvent?.Invoke(evt);
         Sessions.SessionUpdated += (id, status, snap) => OnSessionUpdated?.Invoke(id, status, snap);
         Sessions.MessageUpdated += (id, msg) => OnSessionMessageUpdated?.Invoke(id, msg);
         Sessions.ActionReported += (id, rep) => OnActionReported?.Invoke(id, rep);
@@ -215,15 +218,12 @@ public sealed class GameEngine : IGameEngine
     public IReadOnlyCollection<IBehavior> GetBehaviors(Guid accountId)
         => Sessions.GetBehaviors(accountId);
 
-    public Result UseCapsule(Guid accountId)
-        => UseCapsuleAsync(accountId).GetAwaiter().GetResult();
-
     public async Task<Result> UseCapsuleAsync(Guid accountId, CancellationToken cancellationToken = default)
     {
         var session = Sessions.GetSession(accountId);
         if (session != null && session.IsRunning)
         {
-            var res = await session.Dispatcher.DispatchAsync(new UseItemCommand(-1, 193, "Capsule"), cancellationToken);
+            var res = await session.Dispatcher.DispatchAsync(new UseItemCommand(-1, GameDefinitions.DefaultCapsuleTemplateId, "Capsule"), cancellationToken);
             var report = res.IsSuccess
                 ? ActionExecutionReport.Success("Sử dụng Capsule", res.Message)
                 : ActionExecutionReport.Failure("Sử dụng Capsule", res.Message);
@@ -233,15 +233,12 @@ public sealed class GameEngine : IGameEngine
         return Result.Failure("Tài khoản chưa vào game.");
     }
 
-    public Result UseTdlt(Guid accountId)
-        => UseTdltAsync(accountId).GetAwaiter().GetResult();
-
     public async Task<Result> UseTdltAsync(Guid accountId, CancellationToken cancellationToken = default)
     {
         var session = Sessions.GetSession(accountId);
         if (session != null && session.IsRunning)
         {
-            var res = await session.Dispatcher.DispatchAsync(new UseItemCommand(-1, 521, "TDLT"), cancellationToken);
+            var res = await session.Dispatcher.DispatchAsync(new UseItemCommand(-1, GameDefinitions.DefaultTdltTemplateId, "TDLT"), cancellationToken);
             var report = res.IsSuccess
                 ? ActionExecutionReport.Success("Sử dụng TDLT", res.Message)
                 : ActionExecutionReport.Failure("Sử dụng TDLT", res.Message);
@@ -251,15 +248,12 @@ public sealed class GameEngine : IGameEngine
         return Result.Failure("Tài khoản chưa vào game.");
     }
 
-    public Result UsePean(Guid accountId)
-        => UsePeanAsync(accountId).GetAwaiter().GetResult();
-
     public async Task<Result> UsePeanAsync(Guid accountId, CancellationToken cancellationToken = default)
     {
         var session = Sessions.GetSession(accountId);
         if (session != null && session.IsRunning)
         {
-            var res = await session.Dispatcher.DispatchAsync(new UseItemCommand(-1, 13, "Đậu thần"), cancellationToken);
+            var res = await session.Dispatcher.DispatchAsync(new UseItemCommand(-1, GameDefinitions.DefaultPeanTemplateId, "Đậu thần"), cancellationToken);
             var report = res.IsSuccess
                 ? ActionExecutionReport.Success("Sử dụng Đậu thần", res.Message)
                 : ActionExecutionReport.Failure("Sử dụng Đậu thần", res.Message);
@@ -268,9 +262,6 @@ public sealed class GameEngine : IGameEngine
         }
         return Result.Failure("Tài khoản chưa vào game.");
     }
-
-    public Result SelectSkill(Guid accountId, int slotIndex)
-        => SelectSkillAsync(accountId, slotIndex).GetAwaiter().GetResult();
 
     public async Task<Result> SelectSkillAsync(Guid accountId, int slotIndex, CancellationToken cancellationToken = default)
     {
@@ -286,9 +277,6 @@ public sealed class GameEngine : IGameEngine
         }
         return Result.Failure("Tài khoản chưa vào game.");
     }
-
-    public Result AutoAssignSkills(Guid accountId)
-        => AutoAssignSkillsAsync(accountId).GetAwaiter().GetResult();
 
     public async Task<Result> AutoAssignSkillsAsync(Guid accountId, CancellationToken cancellationToken = default)
     {

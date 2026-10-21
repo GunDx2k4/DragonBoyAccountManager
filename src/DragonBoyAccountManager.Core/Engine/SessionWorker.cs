@@ -36,12 +36,43 @@ public sealed class SessionWorker : IDisposable
         set => Interlocked.Exchange(ref _isAutoChatRunning, value ? 1 : 0);
     }
 
+    public event Action<SessionEvent>? EventPublished;
+
     public event Action<Guid, GameSessionStatus, GameSessionSnapshot?>? SessionUpdated;
     public event Action<Guid, string>? MessageUpdated;
     public event Action<Guid, ActionExecutionReport>? ActionReported;
     public event Action<Guid, string, int>? ChatSent;
     public event Action<Guid, string>? AutoTrainStatusChanged;
     public event Action<Guid, bool>? AutoTrainStateChanged;
+
+    public void Publish(SessionEvent evt)
+    {
+        EventPublished?.Invoke(evt);
+
+        switch (evt)
+        {
+            case SessionStateChangedEvent e:
+                SessionUpdated?.Invoke(e.AccountId, e.Status, e.Snapshot);
+                break;
+            case SessionMessageEvent e:
+                MessageUpdated?.Invoke(e.AccountId, e.Message);
+                break;
+            case ActionReportedEvent e:
+                ActionReported?.Invoke(e.AccountId, e.Report);
+                break;
+            case ChatSentEvent e:
+                ChatSent?.Invoke(e.AccountId, e.Message, e.Channel);
+                break;
+            case BehaviorStateChangedEvent e when e.BehaviorId == "AutoTrain":
+                AutoTrainStateChanged?.Invoke(e.AccountId, e.IsRunning);
+                if (e.StatusMessage != null)
+                    AutoTrainStatusChanged?.Invoke(e.AccountId, e.StatusMessage);
+                break;
+            case BehaviorProgressEvent e when e.BehaviorId == "AutoTrain":
+                AutoTrainStatusChanged?.Invoke(e.AccountId, e.Message);
+                break;
+        }
+    }
 
     public SessionWorker(GameSession session, AccountLaunchOptions options)
     {
@@ -114,7 +145,7 @@ public sealed class SessionWorker : IDisposable
             if (Session.CurrentPlayer.IsInGame)
             {
                 var snapshot = new GameSessionSnapshot(Session.CurrentPlayer, Session.CurrentWorld);
-                SessionUpdated?.Invoke(Options.AccountId, GameSessionStatus.Active, snapshot);
+                Publish(new SessionStateChangedEvent(Options.AccountId, GameSessionStatus.Active, snapshot));
             }
         }
         catch
@@ -133,12 +164,12 @@ public sealed class SessionWorker : IDisposable
             return false;
         }
 
-        SessionUpdated?.Invoke(Options.AccountId, GameSessionStatus.LoggingIn, null);
-        MessageUpdated?.Invoke(Options.AccountId, "Bắt đầu đăng nhập...");
+        Publish(new SessionStateChangedEvent(Options.AccountId, GameSessionStatus.LoggingIn, null));
+        Publish(new SessionMessageEvent(Options.AccountId, "Bắt đầu đăng nhập..."));
 
         var progress = new Progress<string>(msg =>
         {
-            MessageUpdated?.Invoke(Options.AccountId, msg);
+            Publish(new SessionMessageEvent(Options.AccountId, msg));
         });
 
         try
@@ -164,7 +195,7 @@ public sealed class SessionWorker : IDisposable
             Session.Tick();
             if (Session.CurrentPlayer.IsInGame)
             {
-                MessageUpdated?.Invoke(Options.AccountId, "Đăng nhập thành công!");
+                Publish(new SessionMessageEvent(Options.AccountId, "Đăng nhập thành công!"));
                 if (!HasAssignedSkills && Options.AutoAssignSkills)
                 {
                     HasAssignedSkills = true;
@@ -172,14 +203,14 @@ public sealed class SessionWorker : IDisposable
                 }
 
                 var snapshot = new GameSessionSnapshot(Session.CurrentPlayer, Session.CurrentWorld);
-                SessionUpdated?.Invoke(Options.AccountId, GameSessionStatus.Active, snapshot);
+                Publish(new SessionStateChangedEvent(Options.AccountId, GameSessionStatus.Active, snapshot));
                 return true;
             }
 
             if (Session.IsRunning && !Cts.IsCancellationRequested)
             {
-                SessionUpdated?.Invoke(Options.AccountId, GameSessionStatus.Running, null);
-                MessageUpdated?.Invoke(Options.AccountId, "Đăng nhập chưa hoàn tất.");
+                Publish(new SessionStateChangedEvent(Options.AccountId, GameSessionStatus.Running, null));
+                Publish(new SessionMessageEvent(Options.AccountId, "Đăng nhập chưa hoàn tất."));
             }
             return false;
         }
@@ -191,8 +222,8 @@ public sealed class SessionWorker : IDisposable
         {
             if (Session.IsRunning && !Cts.IsCancellationRequested)
             {
-                SessionUpdated?.Invoke(Options.AccountId, GameSessionStatus.Running, null);
-                MessageUpdated?.Invoke(Options.AccountId, $"Lỗi đăng nhập: {ex.Message}");
+                Publish(new SessionStateChangedEvent(Options.AccountId, GameSessionStatus.Running, null));
+                Publish(new SessionMessageEvent(Options.AccountId, $"Lỗi đăng nhập: {ex.Message}"));
             }
             return false;
         }
@@ -211,7 +242,7 @@ public sealed class SessionWorker : IDisposable
             var report = res.IsSuccess
                 ? ActionExecutionReport.Success("Gán phím kỹ năng", res.Message)
                 : ActionExecutionReport.Failure("Gán phím kỹ năng", res.Message);
-            ActionReported?.Invoke(Options.AccountId, report);
+            Publish(new ActionReportedEvent(Options.AccountId, report));
             return res;
         }
         return Result.Failure("Tài khoản chưa vào game.");
@@ -228,11 +259,11 @@ public sealed class SessionWorker : IDisposable
 
         var progress = new Progress<string>(msg =>
         {
-            AutoTrainStatusChanged?.Invoke(Options.AccountId, msg);
-            ActionReported?.Invoke(Options.AccountId, ActionExecutionReport.Running("Tự động luyện tập", msg));
+            Publish(new BehaviorProgressEvent(Options.AccountId, "AutoTrain", msg));
+            Publish(new ActionReportedEvent(Options.AccountId, ActionExecutionReport.Running("Tự động luyện tập", msg)));
         });
 
-        AutoTrainStateChanged?.Invoke(Options.AccountId, true);
+        Publish(new BehaviorStateChangedEvent(Options.AccountId, "AutoTrain", true));
 
         _ = Session.TrainBehavior.StartAsync(
             () => Session.PlayerScraper.ScrapePlayer(),
@@ -247,9 +278,8 @@ public sealed class SessionWorker : IDisposable
     {
         Session.TrainBehavior.Stop();
         IsAutoTrainRunning = false;
-        AutoTrainStateChanged?.Invoke(Options.AccountId, false);
-        AutoTrainStatusChanged?.Invoke(Options.AccountId, "Đã dừng tự động luyện tập.");
-        ActionReported?.Invoke(Options.AccountId, ActionExecutionReport.Success("Tự động luyện tập", "Đã dừng tự động luyện tập."));
+        Publish(new BehaviorStateChangedEvent(Options.AccountId, "AutoTrain", false, "Đã dừng tự động luyện tập."));
+        Publish(new ActionReportedEvent(Options.AccountId, ActionExecutionReport.Success("Tự động luyện tập", "Đã dừng tự động luyện tập.")));
     }
 
     public void StartAutoChat(AutoChatOptions options)
@@ -262,7 +292,7 @@ public sealed class SessionWorker : IDisposable
 
         var progress = new Progress<string>(msg =>
         {
-            ChatSent?.Invoke(Options.AccountId, msg, 1);
+            Publish(new ChatSentEvent(Options.AccountId, msg, 1));
         });
 
         _ = Session.ChatBehavior.StartAsync(
@@ -287,9 +317,11 @@ public sealed class SessionWorker : IDisposable
 
         var progress = new Progress<string>(msg =>
         {
-            ActionReported?.Invoke(Options.AccountId, ActionExecutionReport.Running(behavior.Name, msg));
+            Publish(new BehaviorProgressEvent(Options.AccountId, behavior.Id, msg));
+            Publish(new ActionReportedEvent(Options.AccountId, ActionExecutionReport.Running(behavior.Name, msg)));
         });
 
+        Publish(new BehaviorStateChangedEvent(Options.AccountId, behavior.Id, true));
         _ = behavior.StartAsync(Session, progress, Cts.Token);
         return true;
     }
@@ -300,7 +332,8 @@ public sealed class SessionWorker : IDisposable
         if (behavior == null) return false;
 
         behavior.Stop();
-        ActionReported?.Invoke(Options.AccountId, ActionExecutionReport.Success(behavior.Name, $"Đã dừng {behavior.Name}."));
+        Publish(new BehaviorStateChangedEvent(Options.AccountId, behavior.Id, false, $"Đã dừng {behavior.Name}."));
+        Publish(new ActionReportedEvent(Options.AccountId, ActionExecutionReport.Success(behavior.Name, $"Đã dừng {behavior.Name}.")));
         return true;
     }
 
@@ -332,8 +365,7 @@ public sealed class SessionWorker : IDisposable
     public async Task StopAsync()
     {
         try { Cts.Cancel(); } catch { }
-        Session.TrainBehavior.Stop();
-        Session.ChatBehavior.Stop();
+        Session.StopAllBehaviors();
         Session.Kill();
         if (LoopTask != null)
         {
@@ -346,8 +378,7 @@ public sealed class SessionWorker : IDisposable
     public void Dispose()
     {
         try { Cts.Cancel(); } catch { }
-        Session.TrainBehavior.Stop();
-        Session.ChatBehavior.Stop();
+        Session.StopAllBehaviors();
         Session.Kill();
         Cts.Dispose();
         Session.Dispose();

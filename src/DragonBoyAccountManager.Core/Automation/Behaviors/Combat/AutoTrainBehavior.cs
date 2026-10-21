@@ -71,7 +71,7 @@ public sealed class AutoTrainBehavior : AutomationBehavior<AutoTrainOptions>
             _lastTdltCheckTime = DateTime.UtcNow;
             if (!player.IsTdltActive)
             {
-                await dispatcher.DispatchAsync(new UseItemCommand(-1, 521, "TDLT"), cancellationToken);
+                await dispatcher.DispatchAsync(new UseItemCommand(-1, GameDefinitions.DefaultTdltTemplateId, "TDLT"), cancellationToken);
             }
         }
 

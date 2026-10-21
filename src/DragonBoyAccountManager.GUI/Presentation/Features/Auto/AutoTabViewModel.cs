@@ -599,10 +599,10 @@ public sealed partial class AutoTabViewModel : ObservableObject
     }
 
     [RelayCommand]
-    public void UseSkillSlot(SkillButtonItem? item)
+    public async Task UseSkillSlotAsync(SkillButtonItem? item)
     {
         if (item == null || ActiveAccount == null || !ActiveAccount.IsRunning) return;
-        _gameEngine.UseSkill(ActiveAccount.Id, item.SlotIndex);
+        await _gameEngine.SelectSkillAsync(ActiveAccount.Id, item.SlotIndex);
         item.LastTimeUse = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
         item.UpdateCooldown(item.LastTimeUse);
     }

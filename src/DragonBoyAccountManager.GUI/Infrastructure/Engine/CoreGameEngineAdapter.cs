@@ -19,6 +19,7 @@ public sealed class CoreGameEngineAdapter : IGameEngineService, IDisposable
     private readonly ISettingsService? _settingsService;
     private readonly ConcurrentDictionary<Guid, Account> _accounts = new();
 
+    public event Action<SessionEvent>? OnSessionEvent;
     public event Action<Guid, GameSessionStatus, GameSessionSnapshot?>? OnSessionUpdated;
     public event Action<Guid, string>? OnSessionMessageUpdated;
     public event Action<Guid, ActionExecutionReport>? OnActionReported;
@@ -35,6 +36,7 @@ public sealed class CoreGameEngineAdapter : IGameEngineService, IDisposable
         _settingsService = settingsService;
         _windowManager = windowManager ?? new WindowManagerService();
 
+        _gameEngine.OnSessionEvent += evt => OnSessionEvent?.Invoke(evt);
         _gameEngine.OnSessionUpdated += HandleSessionUpdated;
         _gameEngine.OnSessionMessageUpdated += (id, msg) => OnSessionMessageUpdated?.Invoke(id, msg);
         _gameEngine.OnActionReported += (id, rep) => OnActionReported?.Invoke(id, rep);
@@ -247,18 +249,12 @@ public sealed class CoreGameEngineAdapter : IGameEngineService, IDisposable
     public void StopAutoChat(Guid accountId) => _gameEngine.StopAutoChat(accountId);
     public bool IsAutoChatRunning(Guid accountId) => _gameEngine.IsAutoChatRunning(accountId);
 
-    public Result UseCapsule(Guid accountId) => _gameEngine.UseCapsule(accountId);
     public Task<Result> UseCapsuleAsync(Guid accountId, CancellationToken cancellationToken = default) => _gameEngine.UseCapsuleAsync(accountId, cancellationToken);
-    public Result UseTdlt(Guid accountId) => _gameEngine.UseTdlt(accountId);
     public Task<Result> UseTdltAsync(Guid accountId, CancellationToken cancellationToken = default) => _gameEngine.UseTdltAsync(accountId, cancellationToken);
-    public Result UsePean(Guid accountId) => _gameEngine.UsePean(accountId);
     public Task<Result> UsePeanAsync(Guid accountId, CancellationToken cancellationToken = default) => _gameEngine.UsePeanAsync(accountId, cancellationToken);
-    public Result SelectSkill(Guid accountId, int slotIndex) => _gameEngine.SelectSkill(accountId, slotIndex);
     public Task<Result> SelectSkillAsync(Guid accountId, int slotIndex, CancellationToken cancellationToken = default) => _gameEngine.SelectSkillAsync(accountId, slotIndex, cancellationToken);
-    public Result UseSkill(Guid accountId, int slotIndex) => _gameEngine.SelectSkill(accountId, slotIndex);
 
     public IReadOnlyList<GameSkillInfo> GetSkills(Guid accountId) => _gameEngine.GetSkills(accountId);
-    public Result AutoAssignSkills(Guid accountId) => _gameEngine.AutoAssignSkills(accountId);
     public Task<Result> AutoAssignSkillsAsync(Guid accountId, CancellationToken cancellationToken = default) => _gameEngine.AutoAssignSkillsAsync(accountId, cancellationToken);
 
     public void StartAutoTrain(Guid accountId, AutoTrainOptions options) => _gameEngine.StartAutoTrain(accountId, options);
