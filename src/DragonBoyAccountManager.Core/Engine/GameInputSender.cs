@@ -34,12 +34,18 @@ public static class GameInputSender
         }
     }
 
-    public static async Task SendKeyPressAsync(IMonoRuntime mono, int keyCode, int holdMs = 120)
+    public static async Task SendKeyPressAsync(IMonoRuntime mono, int keyCode, int holdMs = 120, CancellationToken cancellationToken = default)
     {
         if (keyCode == 0) return;
         SendKeyDown(mono, keyCode);
-        await Task.Delay(holdMs);
-        SendKeyUp(mono, keyCode);
+        try
+        {
+            await Task.Delay(holdMs, cancellationToken);
+        }
+        finally
+        {
+            SendKeyUp(mono, keyCode);
+        }
     }
 
     public static void SendKeyDown(IMonoRuntime mono, GameKey key) =>
@@ -48,6 +54,6 @@ public static class GameInputSender
     public static void SendKeyUp(IMonoRuntime mono, GameKey key) =>
         SendKeyUp(mono, GameKeyMapper.MapToKeyCode(key));
 
-    public static Task SendKeyPressAsync(IMonoRuntime mono, GameKey key, int holdMs = 120) =>
-        SendKeyPressAsync(mono, GameKeyMapper.MapToKeyCode(key), holdMs);
+    public static Task SendKeyPressAsync(IMonoRuntime mono, GameKey key, int holdMs = 120, CancellationToken cancellationToken = default) =>
+        SendKeyPressAsync(mono, GameKeyMapper.MapToKeyCode(key), holdMs, cancellationToken);
 }

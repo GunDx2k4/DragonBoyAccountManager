@@ -18,6 +18,9 @@ public sealed class SessionWorker : IDisposable
 
     public bool HasAssignedSkills { get; set; }
     public float GameSpeed { get; private set; } = 1.0f;
+    public bool IsMasked { get; private set; }
+    public string? OriginalCharacterName { get; private set; }
+    public string? OriginalServerListCaption { get; private set; }
 
     private int _isLoggingIn;
     public bool IsLoggingIn => Volatile.Read(ref _isLoggingIn) == 1;
@@ -79,6 +82,7 @@ public sealed class SessionWorker : IDisposable
         Session = session;
         Options = options;
         GameSpeed = options.GameSpeed;
+        IsMasked = options.IsMasked;
     }
 
     public void StartLoop()
@@ -101,12 +105,19 @@ public sealed class SessionWorker : IDisposable
 
                 Session.Tick();
 
+                if (IsMasked || !string.IsNullOrEmpty(OriginalServerListCaption))
+                {
+                    ApplyEarlyMaskingGuard();
+                }
+
                 if (Session.CurrentPlayer.IsInGame)
                 {
+                    SyncInGameCharacterNameMasking();
+
                     if (!HasAssignedSkills && Options.AutoAssignSkills)
                     {
                         HasAssignedSkills = true;
-                        _ = Task.Run(() => AutoAssignSkillsAsync());
+                        _ = Task.Run(() => AutoAssignSkillsAsync(token), token);
                     }
 
                     PublishSessionUpdate();
@@ -114,12 +125,13 @@ public sealed class SessionWorker : IDisposable
                 else
                 {
                     HasAssignedSkills = false;
+                    OriginalCharacterName = null;
                     if (Options.AutoLogin && !IsLoggingIn && Session.IsRunning && !Session.IsQuitRequested && !Cts.IsCancellationRequested)
                     {
                         _ = Task.Run(async () =>
                         {
                             try { await ExecuteLoginAsync(); } catch { }
-                        });
+                        }, token);
                     }
                 }
 
@@ -180,7 +192,8 @@ public sealed class SessionWorker : IDisposable
                 Password = Options.Password,
                 ServerId = Options.ServerId,
                 ServerName = Options.ServerName,
-                MaxAttempts = Options.AutoLogin ? 15 : 3
+                MaxAttempts = Options.AutoLogin ? 15 : 3,
+                IsMasked = IsMasked
             };
 
             var behavior = new AutoLoginBehavior(loginOptions, Session.Mono);
@@ -360,6 +373,195 @@ public sealed class SessionWorker : IDisposable
     public void UpdateLaunchOptions(AccountLaunchOptions options)
     {
         Options = options;
+    }
+
+    public void SetMasked(bool isMasked)
+    {
+        IsMasked = isMasked;
+        Options = Options with { IsMasked = isMasked };
+        ApplyEarlyMaskingGuard();
+        SyncInGameCharacterNameMasking();
+    }
+
+    private void ApplyEarlyMaskingGuard()
+    {
+        if (!Session.IsRunning) return;
+
+        try
+        {
+            if (IsMasked)
+            {
+                IntPtr serverScreen = Session.Mono.ReadStatic<IntPtr>(GameSchema.GameCanvas.ClassName, GameSchema.GameCanvas.StaticServerScreen);
+                if (serverScreen != IntPtr.Zero)
+                {
+                    IntPtr cmdArr = Session.Mono.ReadFieldPtr(GameSchema.ServerListScreen.ClassName, GameSchema.ServerListScreen.FieldCmd, serverScreen);
+                    if (cmdArr != IntPtr.Zero)
+                    {
+                        IntPtr[] cmds = Session.Mono.ReadMonoPointerArray(cmdArr);
+                        if (cmds.Length > 0 && cmds[0] != IntPtr.Zero)
+                        {
+                            string caption = Session.Mono.ReadStringField(GameSchema.Command.ClassName, GameSchema.Command.FieldCaption, cmds[0]) ?? string.Empty;
+                            if (!string.IsNullOrEmpty(caption) && caption.Contains(':') && !caption.Contains('*'))
+                            {
+                                OriginalServerListCaption ??= caption;
+                                int colonIdx = caption.IndexOf(':');
+                                string prefix = caption[..(colonIdx + 1)];
+                                string rawAcc = caption[(colonIdx + 1)..].Trim();
+                                if (!string.IsNullOrEmpty(rawAcc))
+                                {
+                                    string maskedAcc = !string.IsNullOrWhiteSpace(Options.Username)
+                                        ? TextMaskHelper.MaskText(Options.Username)
+                                        : TextMaskHelper.MaskText(rawAcc.TrimEnd('.'));
+
+                                    string maskedCaption = $"{prefix} {maskedAcc}";
+                                    if (maskedCaption.Length > 23)
+                                    {
+                                        maskedCaption = maskedCaption[..23] + "...";
+                                    }
+                                    Session.Mono.WriteStringField(GameSchema.Command.ClassName, GameSchema.Command.FieldCaption, cmds[0], maskedCaption);
+                                }
+                            }
+                        }
+                    }
+                }
+
+                IntPtr loginScr = Session.Mono.ReadStatic<IntPtr>(GameSchema.GameCanvas.ClassName, GameSchema.GameCanvas.StaticLoginScr);
+                if (loginScr != IntPtr.Zero)
+                {
+                    IntPtr tfUser = Session.Mono.ReadFieldPtr(GameSchema.LoginScr.ClassName, GameSchema.LoginScr.FieldTfUser, loginScr);
+                    IntPtr tfPass = Session.Mono.ReadFieldPtr(GameSchema.LoginScr.ClassName, GameSchema.LoginScr.FieldTfPass, loginScr);
+
+                    if (tfUser != IntPtr.Zero)
+                    {
+                        int inputType = Session.Mono.ReadField<int>(GameSchema.TField.ClassName, GameSchema.TField.FieldInputType, tfUser);
+                        if (inputType != GameSchema.TField.InputTypePassword)
+                        {
+                            Session.Mono.WriteField(GameSchema.TField.ClassName, GameSchema.TField.FieldInputType, tfUser, GameSchema.TField.InputTypePassword);
+                        }
+
+                        if (!Session.CurrentPlayer.IsInGame)
+                        {
+                            string curText = Session.Mono.ReadStringField(GameSchema.TField.ClassName, GameSchema.TField.FieldText, tfUser) ?? string.Empty;
+                            if (!string.IsNullOrEmpty(curText) && !string.Equals(curText, Options.Username, StringComparison.Ordinal) && !curText.Contains('*'))
+                            {
+                                string masked = TextMaskHelper.MaskText(curText);
+                                Session.Mono.WriteStringField(GameSchema.TField.ClassName, GameSchema.TField.FieldText, tfUser, masked);
+                                Session.Mono.WriteStringField(GameSchema.TField.ClassName, GameSchema.TField.FieldPaintedText, tfUser, masked);
+                            }
+                        }
+                    }
+
+                    if (tfPass != IntPtr.Zero)
+                    {
+                        int passInputType = Session.Mono.ReadField<int>(GameSchema.TField.ClassName, GameSchema.TField.FieldInputType, tfPass);
+                        if (passInputType != GameSchema.TField.InputTypePassword)
+                        {
+                            Session.Mono.WriteField(GameSchema.TField.ClassName, GameSchema.TField.FieldInputType, tfPass, GameSchema.TField.InputTypePassword);
+                        }
+                    }
+                }
+            }
+            else
+            {
+                if (!string.IsNullOrEmpty(OriginalServerListCaption))
+                {
+                    IntPtr serverScreen = Session.Mono.ReadStatic<IntPtr>(GameSchema.GameCanvas.ClassName, GameSchema.GameCanvas.StaticServerScreen);
+                    if (serverScreen != IntPtr.Zero)
+                    {
+                        IntPtr cmdArr = Session.Mono.ReadFieldPtr(GameSchema.ServerListScreen.ClassName, GameSchema.ServerListScreen.FieldCmd, serverScreen);
+                        if (cmdArr != IntPtr.Zero)
+                        {
+                            IntPtr[] cmds = Session.Mono.ReadMonoPointerArray(cmdArr);
+                            if (cmds.Length > 0 && cmds[0] != IntPtr.Zero)
+                            {
+                                Session.Mono.WriteStringField(GameSchema.Command.ClassName, GameSchema.Command.FieldCaption, cmds[0], OriginalServerListCaption);
+                            }
+                        }
+                    }
+                    OriginalServerListCaption = null;
+                }
+
+                IntPtr loginScr = Session.Mono.ReadStatic<IntPtr>(GameSchema.GameCanvas.ClassName, GameSchema.GameCanvas.StaticLoginScr);
+                if (loginScr != IntPtr.Zero)
+                {
+                    IntPtr tfUser = Session.Mono.ReadFieldPtr(GameSchema.LoginScr.ClassName, GameSchema.LoginScr.FieldTfUser, loginScr);
+                    if (tfUser != IntPtr.Zero)
+                    {
+                        int inputType = Session.Mono.ReadField<int>(GameSchema.TField.ClassName, GameSchema.TField.FieldInputType, tfUser);
+                        if (inputType == GameSchema.TField.InputTypePassword)
+                        {
+                            Session.Mono.WriteField(GameSchema.TField.ClassName, GameSchema.TField.FieldInputType, tfUser, 0);
+                        }
+                    }
+                }
+            }
+        }
+        catch
+        {
+        }
+    }
+
+    private void SyncInGameCharacterNameMasking()
+    {
+        if (!Session.IsRunning || !Session.CurrentPlayer.IsInGame) return;
+
+        try
+        {
+            IntPtr myCharPtr = Session.Mono.ReadStatic<IntPtr>(GameSchema.Char.ClassName, GameSchema.Char.StaticMyChar);
+            if (myCharPtr != IntPtr.Zero)
+            {
+                string currentCName = Session.Mono.ReadStringField(GameSchema.Char.ClassName, GameSchema.Char.FieldName, myCharPtr) ?? string.Empty;
+
+                if (IsMasked)
+                {
+                    if (!string.IsNullOrWhiteSpace(currentCName) && !currentCName.Contains('*'))
+                    {
+                        OriginalCharacterName ??= currentCName;
+                        string masked = TextMaskHelper.MaskText(currentCName);
+                        Session.Mono.WriteStringField(GameSchema.Char.ClassName, GameSchema.Char.FieldName, myCharPtr, masked);
+                    }
+                }
+                else
+                {
+                    if (!string.IsNullOrWhiteSpace(OriginalCharacterName) && currentCName != OriginalCharacterName)
+                    {
+                        Session.Mono.WriteStringField(GameSchema.Char.ClassName, GameSchema.Char.FieldName, myCharPtr, OriginalCharacterName);
+                        OriginalCharacterName = null;
+                    }
+                }
+            }
+
+            IntPtr loginScr = Session.Mono.ReadStatic<IntPtr>(GameSchema.GameCanvas.ClassName, GameSchema.GameCanvas.StaticLoginScr);
+            if (loginScr != IntPtr.Zero)
+            {
+                IntPtr tfUser = Session.Mono.ReadFieldPtr(GameSchema.LoginScr.ClassName, GameSchema.LoginScr.FieldTfUser, loginScr);
+                if (tfUser != IntPtr.Zero)
+                {
+                    string currentTfUser = Session.Mono.ReadStringField(GameSchema.TField.ClassName, GameSchema.TField.FieldText, tfUser) ?? string.Empty;
+                    if (IsMasked)
+                    {
+                        string maskedUser = TextMaskHelper.MaskText(Options.Username);
+                        if (!string.IsNullOrEmpty(maskedUser) && currentTfUser != maskedUser)
+                        {
+                            Session.Mono.WriteStringField(GameSchema.TField.ClassName, GameSchema.TField.FieldText, tfUser, maskedUser);
+                            Session.Mono.WriteStringField(GameSchema.TField.ClassName, GameSchema.TField.FieldPaintedText, tfUser, maskedUser);
+                            Session.Mono.WriteField(GameSchema.TField.ClassName, GameSchema.TField.FieldInputType, tfUser, GameSchema.TField.InputTypePassword);
+                        }
+                    }
+                    else
+                    {
+                        if (!string.IsNullOrEmpty(Options.Username) && currentTfUser != Options.Username)
+                        {
+                            Session.Mono.WriteStringField(GameSchema.TField.ClassName, GameSchema.TField.FieldText, tfUser, Options.Username);
+                            Session.Mono.WriteStringField(GameSchema.TField.ClassName, GameSchema.TField.FieldPaintedText, tfUser, Options.Username);
+                        }
+                    }
+                }
+            }
+        }
+        catch
+        {
+        }
     }
 
     public async Task StopAsync()

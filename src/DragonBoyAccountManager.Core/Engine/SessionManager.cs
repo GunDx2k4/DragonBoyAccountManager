@@ -245,6 +245,22 @@ public sealed class SessionManager : ISessionManager, IDisposable
         return _workers.TryGetValue(accountId, out var worker) ? worker.GetBehaviors() : [];
     }
 
+    public void SetMasked(Guid accountId, bool isMasked)
+    {
+        if (_workers.TryGetValue(accountId, out var worker))
+        {
+            worker.SetMasked(isMasked);
+        }
+    }
+
+    public void SetAllMasked(bool isMasked)
+    {
+        foreach (var worker in _workers.Values)
+        {
+            worker.SetMasked(isMasked);
+        }
+    }
+
     public void Dispose()
     {
         StopAllSessions();

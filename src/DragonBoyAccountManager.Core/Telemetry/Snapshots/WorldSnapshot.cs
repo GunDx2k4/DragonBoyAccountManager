@@ -12,8 +12,7 @@ public sealed record WorldMobInfo(
     bool IsAlive,
     bool IsBoss,
     bool IsSuperMob = false,
-    bool IsFlying = false,
-    IntPtr Pointer = default
+    bool IsFlying = false
 )
 {
     public double DistanceTo(int targetX, int targetY)
@@ -30,8 +29,7 @@ public sealed record WorldBossInfo(
     long Hp,
     long MaxHp,
     int X,
-    int Y,
-    IntPtr Pointer = default
+    int Y
 )
 {
     public double DistanceTo(int targetX, int targetY)
@@ -48,8 +46,7 @@ public sealed record WorldPlayerInfo(
     long Hp,
     long MaxHp,
     int X,
-    int Y,
-    IntPtr Pointer = default
+    int Y
 )
 {
     public double DistanceTo(int targetX, int targetY)

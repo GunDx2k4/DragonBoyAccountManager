@@ -365,6 +365,16 @@ public sealed class GameEngine : IGameEngine
         return Task.CompletedTask;
     }
 
+    public void SetMasked(Guid accountId, bool isMasked)
+    {
+        Sessions.SetMasked(accountId, isMasked);
+    }
+
+    public void SetAllMasked(bool isMasked)
+    {
+        Sessions.SetAllMasked(isMasked);
+    }
+
     public void Dispose()
     {
         StopAllAccounts();

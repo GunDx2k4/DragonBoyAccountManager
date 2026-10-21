@@ -65,32 +65,29 @@ public class CombatHandler(IMonoRuntime mono) :
         return Task.FromResult(Result.Success($"Đã chọn kỹ năng ô {command.SlotIndex + 1}"));
     }
 
-    public Task<Result> HandleAsync(AttackMobCommand command, CancellationToken cancellationToken)
+    public async Task<Result> HandleAsync(AttackMobCommand command, CancellationToken cancellationToken)
     {
-        IntPtr mobPtr = command.MobPointer;
-        if (mobPtr == IntPtr.Zero)
+        IntPtr mobPtr = IntPtr.Zero;
+        IntPtr vMobPtr = _mono.ReadStatic<IntPtr>(GameSchema.GameScr.ClassName, GameSchema.GameScr.StaticVMob);
+        if (vMobPtr != IntPtr.Zero)
         {
-            IntPtr vMobPtr = _mono.ReadStatic<IntPtr>(GameSchema.GameScr.ClassName, GameSchema.GameScr.StaticVMob);
-            if (vMobPtr != IntPtr.Zero)
+            var pointers = CollectionHelper.ReadMyVector(_mono, vMobPtr);
+            foreach (var ptr in pointers)
             {
-                var pointers = CollectionHelper.ReadMyVector(_mono, vMobPtr);
-                foreach (var ptr in pointers)
+                if (ptr != IntPtr.Zero && _mono.ReadField<int>(GameSchema.Mob.ClassName, GameSchema.Mob.FieldMobId, ptr) == command.MobId)
                 {
-                    if (ptr != IntPtr.Zero && _mono.ReadField<int>(GameSchema.Mob.ClassName, GameSchema.Mob.FieldMobId, ptr) == command.MobId)
-                    {
-                        mobPtr = ptr;
-                        break;
-                    }
+                    mobPtr = ptr;
+                    break;
                 }
             }
         }
 
         if (mobPtr == IntPtr.Zero)
-            return Task.FromResult(Result.Failure($"Không tìm thấy quái #{command.MobId} hoặc con trỏ không hợp lệ."));
+            return Result.Failure($"Không tìm thấy quái #{command.MobId} hoặc con trỏ không hợp lệ.");
 
         IntPtr charPtr = GetMyCharPtr();
         if (charPtr == IntPtr.Zero)
-            return Task.FromResult(Result.Failure("Nhân vật chưa vào game."));
+            return Result.Failure("Nhân vật chưa vào game.");
 
         int playerX = _mono.ReadField<int>(GameSchema.Char.ClassName, GameSchema.Char.FieldX, charPtr);
         int cdir = command.TargetX >= playerX ? 1 : -1;
@@ -98,12 +95,12 @@ public class CombatHandler(IMonoRuntime mono) :
 
         if (command.SkillSlot >= 0)
         {
-            _ = HandleAsync(new SelectSkillCommand(command.SkillSlot), cancellationToken);
+            await HandleAsync(new SelectSkillCommand(command.SkillSlot), cancellationToken);
         }
 
         IntPtr service = GetServicePointer();
         if (service == IntPtr.Zero)
-            return Task.FromResult(Result.Failure("Không tìm thấy Service."));
+            return Result.Failure("Không tìm thấy Service.");
 
         _mono.WriteStatic(GameSchema.GameScr.ClassName, GameSchema.GameScr.StaticIsAutoPlay, false);
         IntPtr gs = _mono.ReadStatic<IntPtr>(GameSchema.GameScr.ClassName, GameSchema.GameScr.StaticInstance);
@@ -116,7 +113,7 @@ public class CombatHandler(IMonoRuntime mono) :
         IntPtr vChar = _mono.CreateInstance(GameSchema.MyVector.ClassName);
 
         if (vMob == IntPtr.Zero || vChar == IntPtr.Zero)
-            return Task.FromResult(Result.Failure("Không thể tạo vector tấn công."));
+            return Result.Failure("Không thể tạo vector tấn công.");
 
         _mono.CallMethod(GameSchema.MyVector.ClassName, GameSchema.MyVector.MethodAddElement, vMob, mobPtr);
 
@@ -129,6 +126,6 @@ public class CombatHandler(IMonoRuntime mono) :
             _mono.WriteField(GameSchema.Skill.ClassName, GameSchema.Skill.FieldLastTimeUseThisSkill, mySkillPtr, nowMs);
         }
 
-        return Task.FromResult(Result.Success($"Đã đánh {command.MobName} #{command.MobId}"));
+        return Result.Success($"Đã đánh {command.MobName} #{command.MobId}");
     }
 }

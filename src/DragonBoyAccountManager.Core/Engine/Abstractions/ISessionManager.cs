@@ -26,6 +26,9 @@ public interface ISessionManager
     bool IsBehaviorRunning(Guid accountId, string behaviorId);
     IReadOnlyCollection<IBehavior> GetBehaviors(Guid accountId);
 
+    void SetMasked(Guid accountId, bool isMasked);
+    void SetAllMasked(bool isMasked);
+
     event Action<SessionEvent>? EventPublished;
 
     event Action<Guid, GameSessionStatus, GameSessionSnapshot?>? SessionUpdated;

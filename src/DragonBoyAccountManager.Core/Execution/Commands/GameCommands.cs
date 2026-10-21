@@ -4,15 +4,9 @@ public sealed record AttackMobCommand(
     int MobId,
     string MobName = "Quái",
     int TargetX = 0,
-    int SkillSlot = 0,
-    IntPtr MobPointer = default
+    int SkillSlot = 0
 ) : IGameCommand
 {
-    public AttackMobCommand(IntPtr mobPointer, int mobId, string mobName, int targetX, int skillSlot = 0)
-        : this(mobId, mobName, targetX, skillSlot, mobPointer)
-    {
-    }
-
     public string Name => $"Tấn công {MobName} #{MobId}";
 }
 

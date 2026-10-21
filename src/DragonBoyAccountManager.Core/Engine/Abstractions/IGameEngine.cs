@@ -65,6 +65,9 @@ public interface IGameEngine : IDisposable
     void SendGameKeyUp(Guid accountId, int keyCode);
     Task SendGameKeyPressAsync(Guid accountId, int keyCode, int holdMs = 120);
 
+    void SetMasked(Guid accountId, bool isMasked);
+    void SetAllMasked(bool isMasked);
+
     event Action<SessionEvent>? OnSessionEvent;
 
     event Action<Guid, GameSessionStatus, GameSessionSnapshot?>? OnSessionUpdated;

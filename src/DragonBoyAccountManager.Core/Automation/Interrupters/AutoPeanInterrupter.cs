@@ -39,7 +39,7 @@ public class AutoPeanInterrupter : IInterrupter
 
         if (needHp || needMp)
         {
-            var res = await dispatcher.DispatchAsync(new UseItemCommand(-1, 13, "Đậu thần"), cancellationToken);
+            var res = await dispatcher.DispatchAsync(new UseItemCommand(-1, GameDefinitions.DefaultPeanTemplateId, "Đậu thần"), cancellationToken);
             if (res.IsSuccess)
             {
                 _lastPeanTime = DateTime.UtcNow;

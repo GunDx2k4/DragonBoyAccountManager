@@ -82,7 +82,7 @@ public class WorldScraper(IMonoRuntime mono)
             var (name, isFlying) = GetMobTemplateInfo(templateId);
 
             result.Add(new WorldMobInfo(
-                id, templateId, name, hp, maxHp, x, y, status, isAlive, isBoss, levelBoss > 0, isFlying, ptr));
+                id, templateId, name, hp, maxHp, x, y, status, isAlive, isBoss, levelBoss > 0, isFlying));
         }
 
         return result;
@@ -116,11 +116,11 @@ public class WorldScraper(IMonoRuntime mono)
 
             if (isBoss)
             {
-                bosses.Add(new WorldBossInfo(id, name, hp, maxHp, x, y, ptr));
+                bosses.Add(new WorldBossInfo(id, name, hp, maxHp, x, y));
             }
             else
             {
-                players.Add(new WorldPlayerInfo(id, name, hp, maxHp, x, y, ptr));
+                players.Add(new WorldPlayerInfo(id, name, hp, maxHp, x, y));
             }
         }
 
@@ -238,14 +238,14 @@ public class WorldScraper(IMonoRuntime mono)
     private int[]? ReadMonoIntArray(IntPtr monoArrayPtr)
     {
         if (monoArrayPtr == IntPtr.Zero) return null;
-        int length = ((MonoRuntime)_mono).Memory.ReadInt(monoArrayPtr + (((MonoRuntime)_mono).Memory.PointerSize * 3));
+        int length = _mono.Memory.ReadInt(monoArrayPtr + (_mono.Memory.PointerSize * 3));
         if (length <= 0 || length > 100) return null;
 
         int[] result = new int[length];
-        int dataOffset = ((MonoRuntime)_mono).Memory.PointerSize * 4;
+        int dataOffset = _mono.Memory.PointerSize * 4;
         for (int i = 0; i < length; i++)
         {
-            result[i] = ((MonoRuntime)_mono).Memory.ReadInt(monoArrayPtr + dataOffset + i * 4);
+            result[i] = _mono.Memory.ReadInt(monoArrayPtr + dataOffset + i * 4);
         }
         return result;
     }

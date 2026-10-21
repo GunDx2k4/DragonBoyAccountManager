@@ -58,16 +58,16 @@ public class MapScraper(IMonoRuntime mono)
     private int[]? ReadMonoIntArray(IntPtr monoArrayPtr, int expectedLength)
     {
         if (monoArrayPtr == IntPtr.Zero) return null;
-        int length = ((MonoRuntime)_mono).Memory.ReadInt(monoArrayPtr + (((MonoRuntime)_mono).Memory.PointerSize * 3));
+        int length = _mono.Memory.ReadInt(monoArrayPtr + (_mono.Memory.PointerSize * 3));
         if (length <= 0 || length > 1_000_000) return null;
 
         int actualLength = Math.Min(length, expectedLength);
         int[] result = new int[actualLength];
-        int dataOffset = ((MonoRuntime)_mono).Memory.PointerSize * 4;
+        int dataOffset = _mono.Memory.PointerSize * 4;
 
         for (int i = 0; i < actualLength; i++)
         {
-            result[i] = ((MonoRuntime)_mono).Memory.ReadInt(monoArrayPtr + dataOffset + i * 4);
+            result[i] = _mono.Memory.ReadInt(monoArrayPtr + dataOffset + i * 4);
         }
         return result;
     }

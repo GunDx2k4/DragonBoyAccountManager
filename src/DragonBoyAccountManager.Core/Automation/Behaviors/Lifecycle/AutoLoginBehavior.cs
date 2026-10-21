@@ -1,3 +1,4 @@
+using DragonBoyAccountManager.Core.Common;
 using DragonBoyAccountManager.Core.Execution;
 using DragonBoyAccountManager.Core.Interop.Mono;
 using DragonBoyAccountManager.Core.Interop.Mono.Schema;
@@ -12,6 +13,7 @@ public sealed class AutoLoginOptions
     public int ServerId { get; init; }
     public string? ServerName { get; init; }
     public int MaxAttempts { get; init; } = 10;
+    public bool IsMasked { get; init; }
 }
 
 public sealed class AutoLoginBehavior : AutomationBehavior<AutoLoginOptions>
@@ -43,6 +45,10 @@ public sealed class AutoLoginBehavior : AutomationBehavior<AutoLoginOptions>
     {
         if (player.IsInGame)
         {
+            if (Options.IsMasked)
+            {
+                ClearSensitiveInputs();
+            }
             progress?.Report($"[Auto Login] Nhân vật đã vào game: {player.Name}");
             Stop();
             return;
@@ -147,6 +153,8 @@ public sealed class AutoLoginBehavior : AutomationBehavior<AutoLoginOptions>
         }
         else if (curScreen == GameSchema.ServerListScreen.ClassName)
         {
+            PreMaskServerListScreen();
+
             bool loadScreen = false;
             try { loadScreen = _mono.ReadStatic<bool>(GameSchema.ServerListScreen.ClassName, GameSchema.ServerListScreen.StaticLoadScreen); } catch { }
             bool bigOk = false;
@@ -196,16 +204,16 @@ public sealed class AutoLoginBehavior : AutomationBehavior<AutoLoginOptions>
                 await Task.Delay(600, cancellationToken);
             }
         }
-        else if (curScreen == "SelectCharScr")
+        else if (curScreen == GameSchema.SelectCharScr.ClassName)
         {
             progress?.Report("[Auto Login] Đang ở màn hình chọn nhân vật, tiến hành vào game...");
-            PerformScreenAction("SelectCharScr", 100);
+            PerformScreenAction(GameSchema.SelectCharScr.ClassName, GameSchema.SelectCharScr.ActionSelect);
             await Task.Delay(800, cancellationToken);
         }
-        else if (curScreen == "ChooseCharScr")
+        else if (curScreen == GameSchema.ChooseCharScr.ClassName)
         {
             progress?.Report("[Auto Login] Đang ở màn hình chọn nhân vật, tiến hành vào game...");
-            PerformScreenAction("ChooseCharScr", 1);
+            PerformScreenAction(GameSchema.ChooseCharScr.ClassName, GameSchema.ChooseCharScr.ActionSelect);
             await Task.Delay(800, cancellationToken);
         }
         else
@@ -287,20 +295,20 @@ public sealed class AutoLoginBehavior : AutomationBehavior<AutoLoginOptions>
                 return;
             }
 
-            if (checkScreen == "SelectCharScr")
+            if (checkScreen == GameSchema.SelectCharScr.ClassName)
             {
                 progress?.Report("[Auto Login] Chọn nhân vật vào game...");
                 await Task.Delay(500, cancellationToken);
-                PerformScreenAction("SelectCharScr", 100);
+                PerformScreenAction(GameSchema.SelectCharScr.ClassName, GameSchema.SelectCharScr.ActionSelect);
                 loginWaitTimeout = DateTime.UtcNow.AddSeconds(15);
                 continue;
             }
 
-            if (checkScreen == "ChooseCharScr")
+            if (checkScreen == GameSchema.ChooseCharScr.ClassName)
             {
                 progress?.Report("[Auto Login] Chọn nhân vật vào game...");
                 await Task.Delay(500, cancellationToken);
-                PerformScreenAction("ChooseCharScr", 1);
+                PerformScreenAction(GameSchema.ChooseCharScr.ClassName, GameSchema.ChooseCharScr.ActionSelect);
                 loginWaitTimeout = DateTime.UtcNow.AddSeconds(15);
                 continue;
             }
@@ -512,6 +520,7 @@ public sealed class AutoLoginBehavior : AutomationBehavior<AutoLoginOptions>
 
     private void OpenLoginScreen()
     {
+        PreMaskLoginFields();
         try
         {
             IntPtr serverScreen = _mono.ReadStatic<IntPtr>(GameSchema.GameCanvas.ClassName, GameSchema.GameCanvas.StaticServerScreen);
@@ -582,6 +591,16 @@ public sealed class AutoLoginBehavior : AutomationBehavior<AutoLoginOptions>
         IntPtr tfPass = _mono.ReadFieldPtr(GameSchema.LoginScr.ClassName, GameSchema.LoginScr.FieldTfPass, loginScr);
         if (tfUser == IntPtr.Zero || tfPass == IntPtr.Zero) return false;
 
+        if (Options.IsMasked)
+        {
+            try
+            {
+                _mono.WriteField(GameSchema.TField.ClassName, GameSchema.TField.FieldInputType, tfUser, GameSchema.TField.InputTypePassword);
+                _mono.WriteField(GameSchema.TField.ClassName, GameSchema.TField.FieldInputType, tfPass, GameSchema.TField.InputTypePassword);
+            }
+            catch { }
+        }
+
         SetTFieldText(tfUser, username);
         SetTFieldText(tfPass, password);
 
@@ -645,8 +664,104 @@ public sealed class AutoLoginBehavior : AutomationBehavior<AutoLoginOptions>
         catch { return null; }
     }
 
+    private void PreMaskServerListScreen()
+    {
+        if (!Options.IsMasked) return;
+        try
+        {
+            IntPtr serverScreen = _mono.ReadStatic<IntPtr>(GameSchema.GameCanvas.ClassName, GameSchema.GameCanvas.StaticServerScreen);
+            if (serverScreen != IntPtr.Zero)
+            {
+                IntPtr cmdArr = _mono.ReadFieldPtr(GameSchema.ServerListScreen.ClassName, GameSchema.ServerListScreen.FieldCmd, serverScreen);
+                if (cmdArr != IntPtr.Zero)
+                {
+                    IntPtr[] cmds = _mono.ReadMonoPointerArray(cmdArr);
+                    if (cmds.Length > 0 && cmds[0] != IntPtr.Zero)
+                    {
+                        string caption = _mono.ReadStringField(GameSchema.Command.ClassName, GameSchema.Command.FieldCaption, cmds[0]) ?? string.Empty;
+                        if (!string.IsNullOrEmpty(caption) && caption.Contains(':') && !caption.Contains('*'))
+                        {
+                            int colonIdx = caption.IndexOf(':');
+                            string prefix = caption[..(colonIdx + 1)];
+                            string rawAcc = caption[(colonIdx + 1)..].Trim();
+                            if (!string.IsNullOrEmpty(rawAcc))
+                            {
+                                string maskedAcc = !string.IsNullOrWhiteSpace(Options.Username)
+                                    ? TextMaskHelper.MaskText(Options.Username)
+                                    : TextMaskHelper.MaskText(rawAcc.TrimEnd('.'));
+
+                                string maskedCaption = $"{prefix} {maskedAcc}";
+                                if (maskedCaption.Length > 23)
+                                {
+                                    maskedCaption = maskedCaption[..23] + "...";
+                                }
+                                _mono.WriteStringField(GameSchema.Command.ClassName, GameSchema.Command.FieldCaption, cmds[0], maskedCaption);
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        catch { }
+    }
+
+    private void PreMaskLoginFields()
+    {
+        if (!Options.IsMasked) return;
+        try
+        {
+            IntPtr loginScr = GetLoginScreenPointer();
+            if (loginScr != IntPtr.Zero)
+            {
+                IntPtr tfUser = _mono.ReadFieldPtr(GameSchema.LoginScr.ClassName, GameSchema.LoginScr.FieldTfUser, loginScr);
+                IntPtr tfPass = _mono.ReadFieldPtr(GameSchema.LoginScr.ClassName, GameSchema.LoginScr.FieldTfPass, loginScr);
+                if (tfUser != IntPtr.Zero)
+                {
+                    _mono.WriteField(GameSchema.TField.ClassName, GameSchema.TField.FieldInputType, tfUser, GameSchema.TField.InputTypePassword);
+                    string curText = GetTFieldText(tfUser) ?? string.Empty;
+                    if (!string.IsNullOrEmpty(curText) && !string.Equals(curText, Options.Username, StringComparison.Ordinal) && !curText.Contains('*'))
+                    {
+                        string masked = TextMaskHelper.MaskText(curText);
+                        SetTFieldText(tfUser, masked);
+                    }
+                }
+                if (tfPass != IntPtr.Zero)
+                {
+                    _mono.WriteField(GameSchema.TField.ClassName, GameSchema.TField.FieldInputType, tfPass, GameSchema.TField.InputTypePassword);
+                    SetTFieldText(tfPass, string.Empty);
+                }
+            }
+        }
+        catch { }
+    }
+
+    private void ClearSensitiveInputs()
+    {
+        try
+        {
+            IntPtr loginScr = GetLoginScreenPointer();
+            if (loginScr != IntPtr.Zero)
+            {
+                IntPtr tfUser = _mono.ReadFieldPtr(GameSchema.LoginScr.ClassName, GameSchema.LoginScr.FieldTfUser, loginScr);
+                IntPtr tfPass = _mono.ReadFieldPtr(GameSchema.LoginScr.ClassName, GameSchema.LoginScr.FieldTfPass, loginScr);
+                if (tfUser != IntPtr.Zero)
+                {
+                    string masked = TextMaskHelper.MaskText(Options.Username);
+                    SetTFieldText(tfUser, masked);
+                    _mono.WriteField(GameSchema.TField.ClassName, GameSchema.TField.FieldInputType, tfUser, GameSchema.TField.InputTypePassword);
+                }
+                if (tfPass != IntPtr.Zero) SetTFieldText(tfPass, string.Empty);
+            }
+
+            _mono.CallMethod(GameSchema.Rms.ClassName, GameSchema.Rms.MethodSaveRMSString, IntPtr.Zero, GameSchema.Rms.KeyAcc, string.Empty);
+            _mono.CallMethod(GameSchema.Rms.ClassName, GameSchema.Rms.MethodSaveRMSString, IntPtr.Zero, GameSchema.Rms.KeyPass, string.Empty);
+        }
+        catch { }
+    }
+
     private void SwitchToLoginScreen()
     {
+        PreMaskLoginFields();
         try
         {
             IntPtr loginScr = _mono.ReadStatic<IntPtr>(GameSchema.GameCanvas.ClassName, GameSchema.GameCanvas.StaticLoginScr);

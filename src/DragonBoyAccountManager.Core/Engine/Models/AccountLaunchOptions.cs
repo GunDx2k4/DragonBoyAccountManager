@@ -15,6 +15,7 @@ public record AccountLaunchOptions
     public float GameSpeed { get; init; } = 1.0f;
     public bool AutoLogin { get; init; } = true;
     public bool AutoAssignSkills { get; init; }
+    public bool IsMasked { get; init; }
     public AutoTrainOptions? TrainOptions { get; init; }
     public AutoChatOptions? ChatOptions { get; init; }
 }

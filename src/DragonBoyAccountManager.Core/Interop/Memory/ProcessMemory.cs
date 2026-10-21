@@ -1,3 +1,4 @@
+using System.Buffers.Binary;
 using System.Collections.Concurrent;
 using System.Text;
 using DragonBoyAccountManager.Core.Interop.Native;
@@ -209,13 +210,18 @@ public class ProcessMemory(IntPtr handle) : IMemoryAccessor
     {
         if (data == null || data.Length == 0) return IntPtr.Zero;
 
-        byte[] bytes = new byte[data.Length * PointerSize];
+        int ptrSize = PointerSize;
+        byte[] bytes = new byte[data.Length * ptrSize];
         for (int i = 0; i < data.Length; i++)
         {
-            byte[] ptrBytes = Is64Bit
-                ? BitConverter.GetBytes(data[i].ToInt64())
-                : BitConverter.GetBytes(unchecked((int)(long)data[i]));
-            Buffer.BlockCopy(ptrBytes, 0, bytes, i * PointerSize, PointerSize);
+            if (Is64Bit)
+            {
+                BinaryPrimitives.WriteInt64LittleEndian(bytes.AsSpan(i * 8, 8), data[i].ToInt64());
+            }
+            else
+            {
+                BinaryPrimitives.WriteInt32LittleEndian(bytes.AsSpan(i * 4, 4), unchecked((int)(long)data[i]));
+            }
         }
         return AllocateAndWrite(bytes);
     }

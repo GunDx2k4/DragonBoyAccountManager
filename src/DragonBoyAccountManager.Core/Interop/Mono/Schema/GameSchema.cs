@@ -71,11 +71,13 @@ public static class GameSchema
         public const string StaticBigOk = "bigOk";
         public const string StaticPercent = "percent";
         public const string StaticWaitToLogin = "waitToLogin";
+        public const string FieldCmd = "cmd";
     }
 
     public static class Command
     {
         public const string ClassName = "Command";
+        public const string FieldCaption = "caption";
         public const string MethodPerformAction = "performAction";
     }
 
@@ -92,9 +94,11 @@ public static class GameSchema
         public const string FieldText = "text";
         public const string FieldPaintedText = "paintedText";
         public const string FieldPasswordText = "passwordText";
+        public const string FieldInputType = "inputType";
         public const string FieldCaretPos = "caretPos";
         public const string MethodSetText = "setText";
         public const string MethodGetText = "getText";
+        public const int InputTypePassword = 2;
     }
 
     public static class Rms
@@ -102,6 +106,7 @@ public static class GameSchema
         public const string ClassName = "Rms";
         public const string MethodSaveRMSString = "saveRMSString";
         public const string MethodSaveRMSInt = "saveRMSInt";
+        public const string MethodLoadRMSString = "loadRMSString";
         public const string KeyAcc = "acc";
         public const string KeyPass = "pass";
         public const string KeySvSelect = "svselect";
@@ -363,12 +368,42 @@ public static class GameSchema
         public const string MethodWakeUpFromDead = "wakeUpFromDead";
     }
 
+    public static class Namespaces
+    {
+        public const string SystemCollections = "System.Collections";
+        public const string Mscorlib = "mscorlib";
+        public const string UnityEngine = "UnityEngine";
+        public const string UnityEngineCoreModule = "UnityEngine.CoreModule";
+    }
+
     public static class MyVector
     {
         public const string ClassName = "MyVector";
+        public const string FieldA = "a";
         public const string MethodAddElement = "addElement";
         public const string MethodSize = "size";
         public const string MethodElementAt = "elementAt";
+    }
+
+    public static class ArrayList
+    {
+        public const string ClassName = "ArrayList";
+        public const string FieldSize = "_size";
+        public const string FieldSizeAlt = "size";
+        public const string FieldItems = "_items";
+        public const string FieldItemsAlt = "items";
+    }
+
+    public static class SelectCharScr
+    {
+        public const string ClassName = "SelectCharScr";
+        public const int ActionSelect = 100;
+    }
+
+    public static class ChooseCharScr
+    {
+        public const string ClassName = "ChooseCharScr";
+        public const int ActionSelect = 1;
     }
 
     public static class MsgDlg

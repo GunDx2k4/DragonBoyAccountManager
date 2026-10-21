@@ -138,7 +138,7 @@ public sealed class AutoTrainBehavior : AutomationBehavior<AutoTrainOptions>
 
         _lastAttackTime = DateTime.UtcNow;
         var attackResult = await dispatcher.DispatchAsync(
-            new AttackMobCommand(targetMob.Id, targetMob.Name, targetMob.X, skillSlot, targetMob.Pointer),
+            new AttackMobCommand(targetMob.Id, targetMob.Name, targetMob.X, skillSlot),
             cancellationToken);
 
         if (attackResult.IsSuccess)

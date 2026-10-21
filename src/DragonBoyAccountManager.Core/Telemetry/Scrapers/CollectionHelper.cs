@@ -1,4 +1,5 @@
 using DragonBoyAccountManager.Core.Interop.Mono;
+using DragonBoyAccountManager.Core.Interop.Mono.Schema;
 
 namespace DragonBoyAccountManager.Core.Telemetry.Scrapers;
 
@@ -11,13 +12,13 @@ public static class CollectionHelper
 
         try
         {
-            IntPtr arrayListPtr = mono.ReadFieldPtr("MyVector", "a", vectorPtr);
+            IntPtr arrayListPtr = mono.ReadFieldPtr(GameSchema.MyVector.ClassName, GameSchema.MyVector.FieldA, vectorPtr);
             if (arrayListPtr != IntPtr.Zero)
             {
-                var sizeField = mono.GetFieldInfo("ArrayList", "_size", "System.Collections", "mscorlib")
-                             ?? mono.GetFieldInfo("ArrayList", "size", "System.Collections", "mscorlib");
-                var itemsField = mono.GetFieldInfo("ArrayList", "_items", "System.Collections", "mscorlib")
-                              ?? mono.GetFieldInfo("ArrayList", "items", "System.Collections", "mscorlib");
+                var sizeField = mono.GetFieldInfo(GameSchema.ArrayList.ClassName, GameSchema.ArrayList.FieldSize, GameSchema.Namespaces.SystemCollections, GameSchema.Namespaces.Mscorlib)
+                             ?? mono.GetFieldInfo(GameSchema.ArrayList.ClassName, GameSchema.ArrayList.FieldSizeAlt, GameSchema.Namespaces.SystemCollections, GameSchema.Namespaces.Mscorlib);
+                var itemsField = mono.GetFieldInfo(GameSchema.ArrayList.ClassName, GameSchema.ArrayList.FieldItems, GameSchema.Namespaces.SystemCollections, GameSchema.Namespaces.Mscorlib)
+                              ?? mono.GetFieldInfo(GameSchema.ArrayList.ClassName, GameSchema.ArrayList.FieldItemsAlt, GameSchema.Namespaces.SystemCollections, GameSchema.Namespaces.Mscorlib);
 
                 if (sizeField != null && itemsField != null)
                 {
