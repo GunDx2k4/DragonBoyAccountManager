@@ -7,6 +7,8 @@ using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using CommunityToolkit.Mvvm.Messaging;
 using DragonBoyAccountManager.Core.Common;
+using DragonBoyAccountManager.Core.Storage;
+using DragonBoyAccountManager.GUI.Application.Messaging;
 
 
 namespace DragonBoyAccountManager.GUI.ViewModels;
@@ -16,6 +18,8 @@ public sealed partial class AccountFormViewModel : ObservableObject
     private readonly IGameEngineService _gameEngine;
     private readonly IDialogService _dialogService;
     private readonly IGameImageService _gameImageService;
+    private readonly IAccountStorageService _storageService;
+    private readonly ISettingsService _settingsService;
 
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(DisplayUsername))]
@@ -100,12 +104,17 @@ public sealed partial class AccountFormViewModel : ObservableObject
         IGameEngineService gameEngine,
         IDialogService dialogService,
         IGameImageService gameImageService,
+        IAccountStorageService storageService,
+        ISettingsService settingsService,
         IActiveSelectionService? selectionService = null)
     {
         _gameEngine = gameEngine;
         _dialogService = dialogService;
         _gameImageService = gameImageService;
+        _storageService = storageService;
+        _settingsService = settingsService;
         _selectionService = selectionService;
+        _isMasked = _settingsService.Current.IsMasked;
 
         if (_selectionService != null)
         {
@@ -211,6 +220,7 @@ public sealed partial class AccountFormViewModel : ObservableObject
         if (item != null)
         {
             item.PropertyChanged += OnEditingAccountPropertyChanged;
+            IsMasked = item.IsMasked;
             Username = item.Username;
             Password = item.Password;
             SelectedServer = item.Server;
@@ -242,6 +252,13 @@ public sealed partial class AccountFormViewModel : ObservableObject
             {
                 RequestZoneList();
                 RefreshSkills();
+            }
+        }
+        else if (e.PropertyName == nameof(AccountItemViewModel.IsMasked))
+        {
+            if (_editingAccount != null && IsMasked != _editingAccount.IsMasked)
+            {
+                IsMasked = _editingAccount.IsMasked;
             }
         }
         else if (e.PropertyName == nameof(AccountItemViewModel.ZoneId))
@@ -309,10 +326,44 @@ public sealed partial class AccountFormViewModel : ObservableObject
     }
 
     [RelayCommand]
+    public void SwitchToAddMode()
+    {
+        ClearForm();
+        WeakReferenceMessenger.Default.Send(new ClearAccountSelectionMessage());
+    }
+
+    [RelayCommand]
     private async Task SaveAsync()
     {
-        if (string.IsNullOrWhiteSpace(Username))
+        string trimmedUser = Username.Trim();
+        if (string.IsNullOrWhiteSpace(trimmedUser))
+        {
+            _dialogService.ShowWarning("Thiếu thông tin", "Vui lòng nhập tên tài khoản!");
             return;
+        }
+
+        string trimmedPass = Password.Trim();
+        if (string.IsNullOrWhiteSpace(trimmedPass))
+        {
+            _dialogService.ShowWarning("Thiếu thông tin", "Vui lòng nhập mật khẩu tài khoản!");
+            return;
+        }
+
+        if (!IsEditing)
+        {
+            var existingAccounts = await _storageService.LoadAllAsync();
+            bool exists = existingAccounts.Any(a =>
+                string.Equals(a.Username, trimmedUser, StringComparison.OrdinalIgnoreCase) &&
+                string.Equals(a.ServerName, SelectedServer, StringComparison.OrdinalIgnoreCase));
+
+            if (exists)
+            {
+                string displayUser = IsMasked ? TextMaskHelper.MaskText(trimmedUser) : trimmedUser;
+                _dialogService.ShowWarning("Tài khoản đã tồn tại",
+                    $"Tài khoản '{displayUser}' trên máy chủ '{SelectedServer}' đã có sẵn trong danh sách!\n\nNếu muốn cập nhật, vui lòng chọn tài khoản đó từ danh sách bên trái.");
+                return;
+            }
+        }
 
         var serverOpt = ServerOption.DefaultServers.FirstOrDefault(s => string.Equals(s.ServerName, SelectedServer, StringComparison.OrdinalIgnoreCase));
         int serverId = serverOpt?.Id ?? 0;
@@ -321,8 +372,8 @@ public sealed partial class AccountFormViewModel : ObservableObject
         if (_editingAccount != null)
         {
             account = _editingAccount.Model;
-            account.Username = Username.Trim();
-            account.Password = Password.Trim();
+            account.Username = trimmedUser;
+            account.Password = trimmedPass;
             account.ServerName = SelectedServer;
             account.ServerId = serverId;
             account.GameSpeed = GameSpeed;
@@ -332,8 +383,8 @@ public sealed partial class AccountFormViewModel : ObservableObject
         {
             account = new Account
             {
-                Username = Username.Trim(),
-                Password = Password.Trim(),
+                Username = trimmedUser,
+                Password = trimmedPass,
                 ServerName = SelectedServer,
                 ServerId = serverId,
                 GameSpeed = GameSpeed,
@@ -351,6 +402,7 @@ public sealed partial class AccountFormViewModel : ObservableObject
     private void Cancel()
     {
         ClearForm();
+        WeakReferenceMessenger.Default.Send(new ClearAccountSelectionMessage());
     }
 
     [RelayCommand]
@@ -358,13 +410,14 @@ public sealed partial class AccountFormViewModel : ObservableObject
     {
         if (_editingAccount == null) return;
 
+        string displayUser = _editingAccount.DisplayUsername;
         if (_editingAccount.IsRunning)
         {
-            _dialogService.ShowWarning("Không thể xóa", $"Tài khoản '{_editingAccount.Username}' đang chạy game. Vui lòng đóng game trước khi xóa!");
+            _dialogService.ShowWarning("Không thể xóa", $"Tài khoản '{displayUser}' đang chạy game. Vui lòng đóng game trước khi xóa!");
             return;
         }
 
-        bool confirm = _dialogService.ShowConfirmation("Xác nhận xóa", $"Bạn có chắc chắn muốn xóa tài khoản '{_editingAccount.Username}'?");
+        bool confirm = _dialogService.ShowConfirmation("Xác nhận xóa", $"Bạn có chắc chắn muốn xóa tài khoản '{displayUser}'?");
         if (!confirm) return;
 
         if (OnAccountDeleted != null)
@@ -384,6 +437,9 @@ public sealed partial class AccountFormViewModel : ObservableObject
     private void ToggleHideAccounts()
     {
         IsMasked = !IsMasked;
+        _settingsService.Current.IsMasked = IsMasked;
+        _ = _settingsService.SaveAsync();
+        _gameEngine.SetMasked(IsMasked);
     }
 }
 

@@ -1,3 +1,4 @@
+using DragonBoyAccountManager.GUI.Application.Messaging;
 using CommunityToolkit.Mvvm.Messaging;
 using System.Collections.ObjectModel;
 using System.ComponentModel;
@@ -63,6 +64,14 @@ public sealed partial class AccountsPanelViewModel : ObservableObject
 
     [ObservableProperty]
     private bool _isMasked;
+
+    partial void OnIsMaskedChanged(bool value)
+    {
+        foreach (var acc in Accounts)
+        {
+            acc.IsMasked = value;
+        }
+    }
 
     [ObservableProperty]
     private bool _isApplySpeedToAll = true;
@@ -177,10 +186,15 @@ public sealed partial class AccountsPanelViewModel : ObservableObject
                     {
                         item.StatusMessage = message;
                     }
-                    OnStatusMessageUpdated?.Invoke($"[{item?.Username ?? "Tài khoản"}]: {message}");
+                    OnStatusMessageUpdated?.Invoke($"[{item?.DisplayUsername ?? "Tài khoản"}]: {message}");
                 });
             }
         };
+
+        WeakReferenceMessenger.Default.Register<ClearAccountSelectionMessage>(this, (_, _) =>
+        {
+            SelectedAccount = null;
+        });
     }
 
     private void InitServerFilters()
@@ -391,10 +405,6 @@ public sealed partial class AccountsPanelViewModel : ObservableObject
         _settingsService.Current.IsMasked = IsMasked;
         _ = _settingsService.SaveAsync();
         _gameEngine.SetMasked(IsMasked);
-        foreach (var acc in Accounts)
-        {
-            acc.IsMasked = IsMasked;
-        }
     }
 
     [RelayCommand]
@@ -410,6 +420,8 @@ public sealed partial class AccountsPanelViewModel : ObservableObject
     public void OpenAddAccount()
     {
         SelectedAccount = null;
+        WeakReferenceMessenger.Default.Send(new RequestNavigateToTabMessage(0));
+        OnStatusMessageUpdated?.Invoke("Đang ở chế độ thêm tài khoản mới. Vui lòng nhập thông tin bên phải.");
     }
 
     private bool FilterAccounts(object item)
@@ -546,7 +558,7 @@ public sealed partial class AccountsPanelViewModel : ObservableObject
         for (int i = 0; i < toLaunch.Count; i++)
         {
             var item = toLaunch[i];
-            OnStatusMessageUpdated?.Invoke($"Đang mở game ({i + 1}/{toLaunch.Count}): {item.Username}...");
+            OnStatusMessageUpdated?.Invoke($"Đang mở game ({i + 1}/{toLaunch.Count}): {item.DisplayUsername}...");
             bool ok = await _gameEngine.StartAsync(item.Model, gamePath);
             if (ok) launched++;
 
@@ -679,7 +691,7 @@ public sealed partial class AccountsPanelViewModel : ObservableObject
         var running = targets.Where(a => a.IsRunning).ToList();
         if (running.Count > 0)
         {
-            var names = string.Join(", ", running.Select(a => $"'{a.Username}'"));
+            var names = string.Join(", ", running.Select(a => $"'{a.DisplayUsername}'"));
             _dialogService.ShowWarning("Không thể xóa", $"Có {running.Count} tài khoản đang chạy game ({names}). Vui lòng đóng game trước khi xóa!");
             return;
         }

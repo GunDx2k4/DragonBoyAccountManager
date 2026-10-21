@@ -195,14 +195,27 @@
                                                             VerticalAlignment="Center"
                                                             FontSize="12.5"
                                                             FontWeight="ExtraBold"
-                                                            Foreground="{DynamicResource GameTextDarkBrush}">
+                                                            Foreground="{DynamicResource GameTextDarkBrush}"
+                                                            TextTrimming="CharacterEllipsis"
+                                                            ToolTip="{Binding Text, RelativeSource={RelativeSource Self}}">
                                                             <TextBlock.Style>
                                                                 <Style TargetType="TextBlock">
                                                                     <Setter Property="Text" Value="CẤU HÌNH CHO TÀI KHOẢN" />
                                                                     <Style.Triggers>
-                                                                        <DataTrigger Binding="{Binding AccountForm.IsEditing}" Value="False">
+                                                                        <MultiDataTrigger>
+                                                                            <MultiDataTrigger.Conditions>
+                                                                                <Condition Binding="{Binding SelectedIndex, ElementName=ConfigTabControl}" Value="0" />
+                                                                                <Condition Binding="{Binding AccountForm.IsEditing}" Value="False" />
+                                                                            </MultiDataTrigger.Conditions>
                                                                             <Setter Property="Text" Value="THÊM TÀI KHOẢN MỚI" />
-                                                                        </DataTrigger>
+                                                                        </MultiDataTrigger>
+                                                                        <MultiDataTrigger>
+                                                                            <MultiDataTrigger.Conditions>
+                                                                                <Condition Binding="{Binding SelectedIndex, ElementName=ConfigTabControl}" Value="0" />
+                                                                                <Condition Binding="{Binding AccountForm.IsEditing}" Value="True" />
+                                                                            </MultiDataTrigger.Conditions>
+                                                                            <Setter Property="Text" Value="{Binding AccountForm.DisplayUsername, StringFormat='CẬP NHẬT TÀI KHOẢN: {0}'}" />
+                                                                        </MultiDataTrigger>
                                                                         <DataTrigger Binding="{Binding SelectedIndex, ElementName=ConfigTabControl}" Value="1">
                                                                             <Setter Property="Text" Value="TIỆN ÍCH BẢN ĐỒ &amp; ĐỔI KHU" />
                                                                         </DataTrigger>

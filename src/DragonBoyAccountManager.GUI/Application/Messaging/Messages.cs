@@ -6,6 +6,8 @@ namespace DragonBoyAccountManager.GUI.Application.Messaging;
 
 public sealed record AccountSelectedMessage(AccountItemViewModel? Account);
 
+public sealed record ClearAccountSelectionMessage;
+
 public sealed record TargetAccountsChangedMessage(IReadOnlyList<Guid> TargetAccountIds);
 
 public sealed record SpeedTargetAccountsChangedMessage(IReadOnlyList<Guid> TargetAccountIds, float Speed);

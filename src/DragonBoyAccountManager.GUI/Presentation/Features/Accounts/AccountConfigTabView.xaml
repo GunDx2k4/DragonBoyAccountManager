@@ -18,9 +18,117 @@
             <RowDefinition Height="Auto" />
             <RowDefinition Height="Auto" />
             <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
         </Grid.RowDefinitions>
 
-        <Grid Grid.Row="0" Margin="0,0,0,4">
+        <Border
+            Grid.Row="0"
+            Margin="0,0,0,5"
+            Padding="6,4"
+            Background="{DynamicResource GameBgAltBrush}"
+            BorderBrush="{DynamicResource GameBorderBrush}"
+            BorderThickness="1.5"
+            CornerRadius="4"
+            SnapsToDevicePixels="True">
+            <Grid>
+                <Grid>
+                    <Grid.Style>
+                        <Style TargetType="Grid">
+                            <Setter Property="Visibility" Value="Collapsed" />
+                            <Style.Triggers>
+                                <DataTrigger Binding="{Binding IsEditing}" Value="False">
+                                    <Setter Property="Visibility" Value="Visible" />
+                                </DataTrigger>
+                            </Style.Triggers>
+                        </Style>
+                    </Grid.Style>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="Auto" />
+                        <ColumnDefinition Width="*" />
+                    </Grid.ColumnDefinitions>
+
+                    <Border
+                        Grid.Column="0"
+                        Padding="6,2"
+                        Background="{DynamicResource GamePillVersionBgBrush}"
+                        BorderBrush="{DynamicResource GamePillVersionBorderBrush}"
+                        BorderThickness="1"
+                        CornerRadius="3">
+                        <TextBlock
+                            FontSize="9"
+                            FontWeight="ExtraBold"
+                            Foreground="{DynamicResource GameTextLightBrush}"
+                            Text="[+] THÊM MỚI" />
+                    </Border>
+
+                    <TextBlock
+                        Grid.Column="1"
+                        Margin="8,0,0,0"
+                        VerticalAlignment="Center"
+                        FontSize="10"
+                        FontWeight="Bold"
+                        Foreground="{DynamicResource GameTextDarkBrush}"
+                        Text="Thêm tài khoản mới vào hệ thống"
+                        TextTrimming="CharacterEllipsis" />
+                </Grid>
+
+                <Grid>
+                    <Grid.Style>
+                        <Style TargetType="Grid">
+                            <Setter Property="Visibility" Value="Collapsed" />
+                            <Style.Triggers>
+                                <DataTrigger Binding="{Binding IsEditing}" Value="True">
+                                    <Setter Property="Visibility" Value="Visible" />
+                                </DataTrigger>
+                            </Style.Triggers>
+                        </Style>
+                    </Grid.Style>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="Auto" />
+                        <ColumnDefinition Width="*" />
+                        <ColumnDefinition Width="Auto" />
+                    </Grid.ColumnDefinitions>
+
+                    <Border
+                        Grid.Column="0"
+                        Padding="6,2"
+                        Background="{DynamicResource GameBadgeShortcutBgBrush}"
+                        BorderBrush="{DynamicResource GameBorderBrush}"
+                        BorderThickness="1"
+                        CornerRadius="3">
+                        <TextBlock
+                            FontSize="9"
+                            FontWeight="ExtraBold"
+                            Foreground="{DynamicResource GameBadgeShortcutTextBrush}"
+                            Text="[*] CẬP NHẬT" />
+                    </Border>
+
+                    <TextBlock
+                        Grid.Column="1"
+                        Margin="8,0,0,0"
+                        VerticalAlignment="Center"
+                        FontSize="10"
+                        FontWeight="Bold"
+                        Foreground="{DynamicResource GameTextDarkBrush}"
+                        Text="{Binding DisplayUsername, StringFormat='Chỉnh sửa tài khoản: {0}'}"
+                        TextTrimming="CharacterEllipsis"
+                        ToolTip="{Binding DisplayUsername, StringFormat='Chỉnh sửa tài khoản: {0}'}" />
+
+                    <Button
+                        Grid.Column="2"
+                        Height="20"
+                        Padding="6,0"
+                        Command="{Binding SwitchToAddModeCommand}"
+                        Content="[+] TẠO MỚI"
+                        FontSize="8.5"
+                        FontWeight="ExtraBold"
+                        Style="{StaticResource GameSecondaryButton}"
+                        ToolTip="Bỏ chọn tài khoản hiện tại và chuyển sang thêm mới" />
+                </Grid>
+            </Grid>
+        </Border>
+
+        <Grid Grid.Row="1" Margin="0,0,0,4">
                 <Grid.ColumnDefinitions>
                     <ColumnDefinition Width="*" />
                     <ColumnDefinition Width="8" />
@@ -43,15 +151,41 @@
                             Padding="8,1,25,1"
                             Cursor="Arrow"
                             IsReadOnly="True"
-                            Style="{StaticResource GameTextBoxStyle}"
-                            Text="{Binding DisplayUsername, Mode=OneWay}"
-                            Visibility="{Binding IsMasked, Converter={StaticResource BooleanToVisibilityConverter}}" />
+                            Text="{Binding DisplayUsername, Mode=OneWay}">
+                            <TextBox.Style>
+                                <Style BasedOn="{StaticResource GameTextBoxStyle}" TargetType="TextBox">
+                                    <Setter Property="Visibility" Value="Collapsed" />
+                                    <Style.Triggers>
+                                        <MultiDataTrigger>
+                                            <MultiDataTrigger.Conditions>
+                                                <Condition Binding="{Binding IsMasked}" Value="True" />
+                                                <Condition Binding="{Binding IsEditing}" Value="True" />
+                                            </MultiDataTrigger.Conditions>
+                                            <Setter Property="Visibility" Value="Visible" />
+                                        </MultiDataTrigger>
+                                    </Style.Triggers>
+                                </Style>
+                            </TextBox.Style>
+                        </TextBox>
 
                         <TextBox
                             Padding="8,1,25,1"
-                            Style="{StaticResource GameTextBoxStyle}"
-                            Text="{Binding Username, UpdateSourceTrigger=PropertyChanged}"
-                            Visibility="{Binding IsMasked, Converter={StaticResource BooleanToVisibilityConverter}, ConverterParameter=Invert}" />
+                            Text="{Binding Username, UpdateSourceTrigger=PropertyChanged}">
+                            <TextBox.Style>
+                                <Style BasedOn="{StaticResource GameTextBoxStyle}" TargetType="TextBox">
+                                    <Setter Property="Visibility" Value="Visible" />
+                                    <Style.Triggers>
+                                        <MultiDataTrigger>
+                                            <MultiDataTrigger.Conditions>
+                                                <Condition Binding="{Binding IsMasked}" Value="True" />
+                                                <Condition Binding="{Binding IsEditing}" Value="True" />
+                                            </MultiDataTrigger.Conditions>
+                                            <Setter Property="Visibility" Value="Collapsed" />
+                                        </MultiDataTrigger>
+                                    </Style.Triggers>
+                                </Style>
+                            </TextBox.Style>
+                        </TextBox>
 
                         <Button
                             Width="18"
@@ -112,7 +246,7 @@
             </Grid>
 
             <Border
-                Grid.Row="1"
+                Grid.Row="2"
                 Margin="0,2,0,0"
                 Padding="6,4"
                 Background="{DynamicResource GameBgBrush}"
@@ -883,7 +1017,7 @@
             </Border>
 
             <StackPanel
-                Grid.Row="2"
+                Grid.Row="3"
                 Margin="0,5,0,0"
                 HorizontalAlignment="Center"
                 Orientation="Horizontal">
@@ -891,17 +1025,39 @@
                     Height="26"
                     MinWidth="80"
                     Margin="0,0,6,0"
-                    Command="{Binding SaveCommand}"
-                    Content="LƯU"
-                    Style="{StaticResource GamePrimaryButton}" />
+                    Command="{Binding SaveCommand}">
+                    <Button.Style>
+                        <Style BasedOn="{StaticResource GamePrimaryButton}" TargetType="Button">
+                            <Setter Property="Content" Value="THÊM MỚI" />
+                            <Setter Property="ToolTip" Value="Lưu tài khoản mới vào danh sách" />
+                            <Style.Triggers>
+                                <DataTrigger Binding="{Binding IsEditing}" Value="True">
+                                    <Setter Property="Content" Value="CẬP NHẬT" />
+                                    <Setter Property="ToolTip" Value="Lưu các thay đổi của tài khoản đang chọn" />
+                                </DataTrigger>
+                            </Style.Triggers>
+                        </Style>
+                    </Button.Style>
+                </Button>
 
                 <Button
                     Height="26"
                     MinWidth="70"
                     Margin="0,0,6,0"
-                    Command="{Binding CancelCommand}"
-                    Content="HỦY"
-                    Style="{StaticResource GameSecondaryButton}" />
+                    Command="{Binding CancelCommand}">
+                    <Button.Style>
+                        <Style BasedOn="{StaticResource GameSecondaryButton}" TargetType="Button">
+                            <Setter Property="Content" Value="LÀM MỚI" />
+                            <Setter Property="ToolTip" Value="Xóa trắng các ô nhập" />
+                            <Style.Triggers>
+                                <DataTrigger Binding="{Binding IsEditing}" Value="True">
+                                    <Setter Property="Content" Value="HỦY SỬA" />
+                                    <Setter Property="ToolTip" Value="Thoát chế độ sửa và chuyển sang thêm tài khoản mới" />
+                                </DataTrigger>
+                            </Style.Triggers>
+                        </Style>
+                    </Button.Style>
+                </Button>
 
                 <Button
                     Height="26"
@@ -909,7 +1065,9 @@
                     Command="{Binding DeleteCommand}"
                     Content="XÓA"
                     IsEnabled="{Binding CanDelete}"
-                    Style="{StaticResource GameDangerButton}" />
+                    Style="{StaticResource GameDangerButton}"
+                    ToolTip="Xóa tài khoản đang chọn"
+                    Visibility="{Binding IsEditing, Converter={StaticResource BooleanToVisibilityConverter}}" />
             </StackPanel>
     </Grid>
 </UserControl>

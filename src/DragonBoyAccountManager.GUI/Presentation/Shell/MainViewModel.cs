@@ -127,7 +127,10 @@ public sealed partial class MainViewModel : ObservableObject
         {
             if (e.PropertyName == nameof(AccountsPanelViewModel.IsMasked))
             {
-                AccountForm.IsMasked = AccountsPanel.IsMasked;
+                if (AccountForm.IsMasked != AccountsPanel.IsMasked)
+                {
+                    AccountForm.IsMasked = AccountsPanel.IsMasked;
+                }
             }
         };
 
@@ -137,20 +140,32 @@ public sealed partial class MainViewModel : ObservableObject
             {
                 if (AccountsPanel.IsMasked != AccountForm.IsMasked)
                 {
-                    AccountsPanel.ToggleHideAccounts();
+                    AccountsPanel.IsMasked = AccountForm.IsMasked;
                 }
             }
         };
+
+        AccountForm.IsMasked = AccountsPanel.IsMasked;
 
         AccountForm.OnAccountSaved += async account =>
         {
             try
             {
+                bool isNew = !AccountsPanel.Accounts.Any(a => a.Id == account.Id);
                 await _storageService.AddOrUpdateAsync(account);
                 AccountsPanel.AddOrUpdateItem(account);
                 string displayUser = AccountsPanel.IsMasked ? TextMaskHelper.MaskText(account.Username) : account.Username;
-                StatusBar.StatusMessage = $"Đã lưu tài khoản: {displayUser}";
-                _dialogService.ShowInfo("Thành công", $"Đã lưu tài khoản '{displayUser}' thành công!");
+
+                if (isNew)
+                {
+                    StatusBar.StatusMessage = $"Đã thêm tài khoản mới: {displayUser}";
+                    _dialogService.ShowInfo("Thành công", $"Đã thêm tài khoản mới '{displayUser}' thành công!");
+                }
+                else
+                {
+                    StatusBar.StatusMessage = $"Đã cập nhật thông tin tài khoản: {displayUser}";
+                    _dialogService.ShowInfo("Thành công", $"Đã cập nhật thông tin tài khoản '{displayUser}' thành công!");
+                }
             }
             catch (Exception ex)
             {
