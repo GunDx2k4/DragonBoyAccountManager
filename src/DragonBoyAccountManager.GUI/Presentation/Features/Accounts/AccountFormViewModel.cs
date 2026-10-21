@@ -1,4 +1,4 @@
-﻿using System.Collections.ObjectModel;
+using System.Collections.ObjectModel;
 using System.ComponentModel;
 using System.Globalization;
 using System.Windows.Threading;
@@ -6,6 +6,7 @@ using System.Windows.Threading;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using CommunityToolkit.Mvvm.Messaging;
+using DragonBoyAccountManager.Core.Common;
 
 
 namespace DragonBoyAccountManager.GUI.ViewModels;

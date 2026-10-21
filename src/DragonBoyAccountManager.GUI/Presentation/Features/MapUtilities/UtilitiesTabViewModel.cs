@@ -1,4 +1,4 @@
-﻿using System.Collections.ObjectModel;
+using System.Collections.ObjectModel;
 using System.Windows.Threading;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
@@ -224,8 +224,8 @@ public sealed partial class UtilitiesTabViewModel : ObservableObject
         else
         {
             string server = !string.IsNullOrWhiteSpace(account.Server) ? $" ({account.Server})" : "";
-            string charName = !string.IsNullOrWhiteSpace(account.CharacterName) ? $" [{account.CharacterName}]" : "";
-            ActiveAccountInfo = $"{account.Username}{server}{charName}";
+            string charName = !string.IsNullOrWhiteSpace(account.DisplayCharacterName) ? $" [{account.DisplayCharacterName}]" : "";
+            ActiveAccountInfo = $"{account.DisplayUsername}{server}{charName}";
             if (account.IsRunning && account.Status == GameSessionStatus.Active)
             {
                 _gameEngine.RequestZoneList(account.Id);

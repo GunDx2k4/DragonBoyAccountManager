@@ -18,6 +18,8 @@ public partial class App : System.Windows.Application
 
     private static void ConfigureServices(IServiceCollection services)
     {
+        services.AddSingleton<IDispatcherService, WpfDispatcherService>();
+        services.AddSingleton<IActiveSelectionService, ActiveSelectionStore>();
         services.AddSingleton<IWindowManagerService, WindowManagerService>();
         services.AddSingleton<IGameClientValidator, GameClientValidator>();
         services.AddSingleton<IGameEnvironmentService, GameEnvironmentService>();

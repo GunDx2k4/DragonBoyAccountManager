@@ -120,10 +120,10 @@
                                     Foreground="{DynamicResource GameTextDarkBrush}">
                                     <TextBlock.Style>
                                         <Style TargetType="TextBlock">
-                                            <Setter Property="Text" Value="ẨN MẬT KHẨU" />
+                                            <Setter Property="Text" Value="ẨN TÀI KHOẢN" />
                                             <Style.Triggers>
                                                 <DataTrigger Binding="{Binding IsMasked}" Value="True">
-                                                    <Setter Property="Text" Value="HIỆN MẬT KHẨU" />
+                                                    <Setter Property="Text" Value="HIỆN TÀI KHOẢN" />
                                                 </DataTrigger>
                                             </Style.Triggers>
                                         </Style>

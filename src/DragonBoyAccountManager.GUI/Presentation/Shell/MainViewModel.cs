@@ -3,6 +3,7 @@ using System.Linq;
 using System.Threading.Tasks;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Messaging;
+using DragonBoyAccountManager.Core.Common;
 
 namespace DragonBoyAccountManager.GUI.ViewModels;
 
@@ -136,11 +137,7 @@ public sealed partial class MainViewModel : ObservableObject
             {
                 if (AccountsPanel.IsMasked != AccountForm.IsMasked)
                 {
-                    AccountsPanel.IsMasked = AccountForm.IsMasked;
-                    foreach (var acc in AccountsPanel.Accounts)
-                    {
-                        acc.IsMasked = AccountForm.IsMasked;
-                    }
+                    AccountsPanel.ToggleHideAccounts();
                 }
             }
         };
@@ -151,8 +148,9 @@ public sealed partial class MainViewModel : ObservableObject
             {
                 await _storageService.AddOrUpdateAsync(account);
                 AccountsPanel.AddOrUpdateItem(account);
-                StatusBar.StatusMessage = $"Đã lưu tài khoản: {account.Username}";
-                _dialogService.ShowInfo("Thành công", $"Đã lưu tài khoản '{account.Username}' thành công!");
+                string displayUser = AccountsPanel.IsMasked ? TextMaskHelper.MaskText(account.Username) : account.Username;
+                StatusBar.StatusMessage = $"Đã lưu tài khoản: {displayUser}";
+                _dialogService.ShowInfo("Thành công", $"Đã lưu tài khoản '{displayUser}' thành công!");
             }
             catch (Exception ex)
             {

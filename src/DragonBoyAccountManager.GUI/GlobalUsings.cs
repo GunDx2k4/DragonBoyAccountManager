@@ -42,7 +42,6 @@ global using DragonBoyAccountManager.GUI.Infrastructure.Updater;
 global using DragonBoyAccountManager.GUI.Presentation.DesignSystem.Assists;
 global using DragonBoyAccountManager.GUI.Presentation.DesignSystem.Controls;
 global using DragonBoyAccountManager.GUI.Presentation.DesignSystem.Converters;
-global using DragonBoyAccountManager.GUI.Presentation.DesignSystem.Helpers;
 global using DragonBoyAccountManager.GUI.Presentation.Shell.Dialogs;
 
 global using DragonBoyAccountManager.GUI.ViewModels;

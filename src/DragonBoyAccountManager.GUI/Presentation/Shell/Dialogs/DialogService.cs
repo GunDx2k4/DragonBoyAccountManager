@@ -74,7 +74,7 @@ public sealed class DialogService : IDialogService
                 Title = title,
                 Message = message,
                 Severity = DialogSeverity.Confirm,
-                PrimaryButtonText = "Đóng",
+                PrimaryButtonText = yesText,
                 SecondaryButtonText = noText,
                 IsConfirmation = true
             };

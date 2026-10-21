@@ -18,6 +18,7 @@ public sealed class CoreGameEngineAdapter : IGameEngineService, IDisposable
     private readonly IWindowManagerService _windowManager;
     private readonly ISettingsService? _settingsService;
     private readonly ConcurrentDictionary<Guid, Account> _accounts = new();
+    private bool _isMasked;
 
     public event Action<SessionEvent>? OnSessionEvent;
     public event Action<Guid, GameSessionStatus, GameSessionSnapshot?>? OnSessionUpdated;
@@ -35,6 +36,7 @@ public sealed class CoreGameEngineAdapter : IGameEngineService, IDisposable
         _gameEngine = gameEngine ?? new DragonBoyAccountManager.Core.Engine.GameEngine();
         _settingsService = settingsService;
         _windowManager = windowManager ?? new WindowManagerService();
+        _isMasked = settingsService?.Current.IsMasked ?? false;
 
         _gameEngine.OnSessionEvent += evt => OnSessionEvent?.Invoke(evt);
         _gameEngine.OnSessionUpdated += HandleSessionUpdated;
@@ -45,6 +47,18 @@ public sealed class CoreGameEngineAdapter : IGameEngineService, IDisposable
         _gameEngine.OnAutoTrainStateChanged += (id, run) => OnAutoTrainStateChanged?.Invoke(id, run);
 
         _gameEngine.Sessions.SessionStarted += HandleSessionStarted;
+    }
+
+    private string FormatWindowTitle(string username, string serverName, string? charName)
+    {
+        string displayUser = _isMasked ? TextMaskHelper.MaskText(username) : username;
+        string serverInfo = !string.IsNullOrWhiteSpace(serverName) ? $" ({serverName})" : string.Empty;
+        if (!string.IsNullOrWhiteSpace(charName))
+        {
+            string displayChar = _isMasked ? TextMaskHelper.MaskText(charName) : charName;
+            return $"DBAM - {displayUser}{serverInfo} [{displayChar}]";
+        }
+        return $"DBAM - {displayUser}{serverInfo}";
     }
 
     private void HandleSessionUpdated(Guid accountId, GameSessionStatus status, GameSessionSnapshot? snapshot)
@@ -60,8 +74,7 @@ public sealed class CoreGameEngineAdapter : IGameEngineService, IDisposable
                 var account = _accounts.GetValueOrDefault(accountId);
                 string username = account?.Username ?? string.Empty;
                 string serverName = account?.ServerName ?? string.Empty;
-                string serverInfo = !string.IsNullOrWhiteSpace(serverName) ? $" ({serverName})" : string.Empty;
-                string title = $"DBAM - {username}{serverInfo} [{snapshot.Player.Name}]";
+                string title = FormatWindowTitle(username, serverName, snapshot.Player.Name);
                 _windowManager.UpdateWindowTitle(session.Process, title);
             }
         }
@@ -72,17 +85,14 @@ public sealed class CoreGameEngineAdapter : IGameEngineService, IDisposable
         int customW = _settingsService?.Current.WindowCustomWidth ?? 0;
         int customH = _settingsService?.Current.WindowCustomHeight ?? 0;
         var account = _accounts.GetValueOrDefault(accountId);
-        string serverInfo = !string.IsNullOrWhiteSpace(account?.ServerName) ? $" ({account.ServerName})" : string.Empty;
-        string initialTitle = $"DBAM - {account?.Username ?? accountId.ToString()}{serverInfo}";
+        string username = account?.Username ?? accountId.ToString();
+        string serverName = account?.ServerName ?? string.Empty;
 
         _ = Task.Run(() => _windowManager.ApplyWindowStyleAsync(process, () =>
         {
             var snap = _gameEngine.GetPlayerSnapshot(accountId);
-            if (snap != null && snap.IsInGame && !string.IsNullOrWhiteSpace(snap.Name))
-            {
-                return $"{initialTitle} [{snap.Name}]";
-            }
-            return initialTitle;
+            string? charName = (snap != null && snap.IsInGame && !string.IsNullOrWhiteSpace(snap.Name)) ? snap.Name : null;
+            return FormatWindowTitle(username, serverName, charName);
         }, customW, customH));
     }
 
@@ -107,7 +117,8 @@ public sealed class CoreGameEngineAdapter : IGameEngineService, IDisposable
             ScreenHeight = height,
             GameSpeed = account.GameSpeed,
             AutoLogin = account.AutoLogin,
-            AutoAssignSkills = _settingsService?.Current.AutoAssignSkills == true
+            AutoAssignSkills = _settingsService?.Current.AutoAssignSkills == true,
+            IsMasked = _isMasked
         };
 
         bool started = await _gameEngine.StartAccountAsync(options);
@@ -178,6 +189,27 @@ public sealed class CoreGameEngineAdapter : IGameEngineService, IDisposable
     {
         var session = _gameEngine.Sessions.GetSession(accountId);
         return session != null && _windowManager.ResizeWindow(session.Process, width, height);
+    }
+
+    public void SetMasked(bool isMasked)
+    {
+        _isMasked = isMasked;
+        _gameEngine.SetAllMasked(isMasked);
+
+        foreach (var accountId in _gameEngine.Sessions.ActiveSessionIds)
+        {
+            var session = _gameEngine.Sessions.GetSession(accountId);
+            if (session != null && session.IsRunning)
+            {
+                var account = _accounts.GetValueOrDefault(accountId);
+                string username = account?.Username ?? string.Empty;
+                string serverName = account?.ServerName ?? string.Empty;
+                var snap = _gameEngine.GetPlayerSnapshot(accountId);
+                string? charName = (snap != null && snap.IsInGame && !string.IsNullOrWhiteSpace(snap.Name)) ? snap.Name : null;
+                string title = FormatWindowTitle(username, serverName, charName);
+                _windowManager.UpdateWindowTitle(session.Process, title);
+            }
+        }
     }
 
     public void SetGameSpeed(Guid accountId, float speed)

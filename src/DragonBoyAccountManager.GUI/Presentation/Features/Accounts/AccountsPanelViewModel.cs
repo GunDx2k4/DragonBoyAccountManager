@@ -130,6 +130,7 @@ public sealed partial class AccountsPanelViewModel : ObservableObject
         _settingsService = settingsService;
         _envService = envService;
         _selectionService = selectionService;
+        _isMasked = _settingsService.Current.IsMasked;
 
         _selectionService?.RegisterAccountsProvider(
             () => Accounts,
@@ -387,6 +388,9 @@ public sealed partial class AccountsPanelViewModel : ObservableObject
     public void ToggleHideAccounts()
     {
         IsMasked = !IsMasked;
+        _settingsService.Current.IsMasked = IsMasked;
+        _ = _settingsService.SaveAsync();
+        _gameEngine.SetMasked(IsMasked);
         foreach (var acc in Accounts)
         {
             acc.IsMasked = IsMasked;
@@ -577,11 +581,11 @@ public sealed partial class AccountsPanelViewModel : ObservableObject
             var item = targets[i];
             if (string.IsNullOrWhiteSpace(item.Username) || string.IsNullOrWhiteSpace(item.Password))
             {
-                OnStatusMessageUpdated?.Invoke($"Bỏ qua '{item.Username}': Thiếu tên tài khoản hoặc mật khẩu.");
+                OnStatusMessageUpdated?.Invoke($"Bỏ qua '{item.DisplayUsername}': Thiếu tên tài khoản hoặc mật khẩu.");
                 continue;
             }
 
-            OnStatusMessageUpdated?.Invoke($"Đang xử lý đăng nhập ({i + 1}/{targets.Count}): {item.Username}...");
+            OnStatusMessageUpdated?.Invoke($"Đang xử lý đăng nhập ({i + 1}/{targets.Count}): {item.DisplayUsername}...");
 
             bool ok;
             if (!item.IsRunning)
@@ -597,11 +601,11 @@ public sealed partial class AccountsPanelViewModel : ObservableObject
             if (ok)
             {
                 successCount++;
-                OnStatusMessageUpdated?.Invoke($"[{item.Username}]: Đăng nhập thành công!");
+                OnStatusMessageUpdated?.Invoke($"[{item.DisplayUsername}]: Đăng nhập thành công!");
             }
             else
             {
-                OnStatusMessageUpdated?.Invoke($"[{item.Username}]: Đăng nhập không thành công.");
+                OnStatusMessageUpdated?.Invoke($"[{item.DisplayUsername}]: Đăng nhập không thành công.");
             }
 
             if (i < targets.Count - 1)
@@ -650,11 +654,11 @@ public sealed partial class AccountsPanelViewModel : ObservableObject
 
         if (item.IsRunning)
         {
-            _dialogService.ShowWarning("Không thể xóa", $"Tài khoản '{item.Username}' đang chạy game. Vui lòng đóng game trước khi xóa!");
+            _dialogService.ShowWarning("Không thể xóa", $"Tài khoản '{item.DisplayUsername}' đang chạy game. Vui lòng đóng game trước khi xóa!");
             return;
         }
 
-        bool confirm = _dialogService.ShowConfirmation("Xác nhận xóa", $"Bạn có chắc chắn muốn xóa tài khoản '{item.Username}'?");
+        bool confirm = _dialogService.ShowConfirmation("Xác nhận xóa", $"Bạn có chắc chắn muốn xóa tài khoản '{item.DisplayUsername}'?");
         if (!confirm) return;
 
         await _storageService.DeleteAsync(item.Id);
@@ -663,7 +667,7 @@ public sealed partial class AccountsPanelViewModel : ObservableObject
 
         NotifyCountsChanged();
         AccountsView.Refresh();
-        OnStatusMessageUpdated?.Invoke($"Đã xóa tài khoản {item.Username}.");
+        OnStatusMessageUpdated?.Invoke($"Đã xóa tài khoản {item.DisplayUsername}.");
     }
 
     [RelayCommand]

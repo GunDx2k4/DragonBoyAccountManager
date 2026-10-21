@@ -307,8 +307,8 @@ public sealed partial class AutoTabViewModel : ObservableObject
         else
         {
             string server = !string.IsNullOrWhiteSpace(account.Server) ? $" ({account.Server})" : "";
-            string charName = !string.IsNullOrWhiteSpace(account.CharacterName) ? $" [{account.CharacterName}]" : "";
-            ActiveAccountInfo = $"{account.Username}{server}{charName}";
+            string charName = !string.IsNullOrWhiteSpace(account.DisplayCharacterName) ? $" [{account.DisplayCharacterName}]" : "";
+            ActiveAccountInfo = $"{account.DisplayUsername}{server}{charName}";
 
             LoadAccountSettings(account);
             RefreshAutoTrainSkills();
