@@ -135,7 +135,8 @@ public sealed class SessionWorker : IDisposable
                     }
                 }
 
-                await Task.Delay(500, token);
+                int delayMs = Session.CurrentPlayer.IsInGame ? 500 : 200;
+                await Task.Delay(delayMs, token);
             }
             catch (OperationCanceledException)
             {
@@ -391,6 +392,12 @@ public sealed class SessionWorker : IDisposable
         {
             if (IsMasked)
             {
+                string curRmsAcc = Session.Mono.ReadStaticString(GameSchema.Rms.ClassName, GameSchema.Rms.StaticRMS_acc);
+                if (curRmsAcc != "DBAM")
+                {
+                    Session.Mono.WriteStaticString(GameSchema.Rms.ClassName, GameSchema.Rms.StaticRMS_acc, "DBAM");
+                }
+
                 IntPtr serverScreen = Session.Mono.ReadStatic<IntPtr>(GameSchema.GameCanvas.ClassName, GameSchema.GameCanvas.StaticServerScreen);
                 if (serverScreen != IntPtr.Zero)
                 {
@@ -401,25 +408,10 @@ public sealed class SessionWorker : IDisposable
                         if (cmds.Length > 0 && cmds[0] != IntPtr.Zero)
                         {
                             string caption = Session.Mono.ReadStringField(GameSchema.Command.ClassName, GameSchema.Command.FieldCaption, cmds[0]) ?? string.Empty;
-                            if (!string.IsNullOrEmpty(caption) && caption.Contains(':') && !caption.Contains('*'))
+                            if (caption != "DragonBoy Account Manager")
                             {
                                 OriginalServerListCaption ??= caption;
-                                int colonIdx = caption.IndexOf(':');
-                                string prefix = caption[..(colonIdx + 1)];
-                                string rawAcc = caption[(colonIdx + 1)..].Trim();
-                                if (!string.IsNullOrEmpty(rawAcc))
-                                {
-                                    string maskedAcc = !string.IsNullOrWhiteSpace(Options.Username)
-                                        ? TextMaskHelper.MaskText(Options.Username)
-                                        : TextMaskHelper.MaskText(rawAcc.TrimEnd('.'));
-
-                                    string maskedCaption = $"{prefix} {maskedAcc}";
-                                    if (maskedCaption.Length > 23)
-                                    {
-                                        maskedCaption = maskedCaption[..23] + "...";
-                                    }
-                                    Session.Mono.WriteStringField(GameSchema.Command.ClassName, GameSchema.Command.FieldCaption, cmds[0], maskedCaption);
-                                }
+                                Session.Mono.WriteStringField(GameSchema.Command.ClassName, GameSchema.Command.FieldCaption, cmds[0], "DragonBoy Account Manager");
                             }
                         }
                     }
@@ -463,6 +455,12 @@ public sealed class SessionWorker : IDisposable
             }
             else
             {
+                string curRmsAcc = Session.Mono.ReadStaticString(GameSchema.Rms.ClassName, GameSchema.Rms.StaticRMS_acc);
+                if (curRmsAcc != "acc")
+                {
+                    Session.Mono.WriteStaticString(GameSchema.Rms.ClassName, GameSchema.Rms.StaticRMS_acc, "acc");
+                }
+
                 if (!string.IsNullOrEmpty(OriginalServerListCaption))
                 {
                     IntPtr serverScreen = Session.Mono.ReadStatic<IntPtr>(GameSchema.GameCanvas.ClassName, GameSchema.GameCanvas.StaticServerScreen);

@@ -553,16 +553,41 @@ public sealed class AutoLoginBehavior : AutomationBehavior<AutoLoginOptions>
 
     private void SubmitLogin()
     {
-        IntPtr loginScr = GetLoginScreenPointer();
-        if (loginScr != IntPtr.Zero)
+        try
         {
-            try
+            if (Options.IsMasked)
+            {
+                IntPtr serviceInst = _mono.ReadStatic<IntPtr>(GameSchema.Service.ClassName, GameSchema.Service.StaticInstance);
+                if (serviceInst == IntPtr.Zero)
+                {
+                    serviceInst = _mono.CallMethod(GameSchema.Service.ClassName, GameSchema.Service.MethodGI, IntPtr.Zero);
+                }
+
+                if (serviceInst != IntPtr.Zero)
+                {
+                    bool connected = false;
+                    try { connected = _mono.ReadStatic<bool>(GameSchema.Session.ClassName, GameSchema.Session.StaticConnected); } catch { }
+                    if (!connected)
+                    {
+                        try { _mono.CallMethod(GameSchema.GameCanvas.ClassName, GameSchema.GameCanvas.MethodConnect, IntPtr.Zero); } catch { }
+                    }
+
+                    string version = _mono.ReadStaticString(GameSchema.GameMidlet.ClassName, GameSchema.GameMidlet.StaticVersion) ?? "2.5.0";
+                    _mono.CallMethod(GameSchema.Service.ClassName, "login", serviceInst, Options.Username.Trim(), Options.Password.Trim(), version, (sbyte)0);
+                    try { _mono.CallMethod(GameSchema.GameCanvas.ClassName, GameSchema.GameCanvas.MethodStartWaitDlg, IntPtr.Zero); } catch { }
+                    return;
+                }
+            }
+
+            IntPtr loginScr = GetLoginScreenPointer();
+            if (loginScr != IntPtr.Zero)
             {
                 _mono.CallMethod(GameSchema.LoginScr.ClassName, GameSchema.LoginScr.MethodDoLogin, loginScr);
                 return;
             }
-            catch { }
         }
+        catch { }
+
         PerformScreenAction(GameSchema.LoginScr.ClassName, GameSchema.LoginScr.ActionSubmit);
     }
 
@@ -604,12 +629,15 @@ public sealed class AutoLoginBehavior : AutomationBehavior<AutoLoginOptions>
         SetTFieldText(tfUser, username);
         SetTFieldText(tfPass, password);
 
-        try
+        if (!Options.IsMasked)
         {
-            _mono.CallMethod(GameSchema.Rms.ClassName, GameSchema.Rms.MethodSaveRMSString, IntPtr.Zero, GameSchema.Rms.KeyAcc, username.Trim());
-            _mono.CallMethod(GameSchema.Rms.ClassName, GameSchema.Rms.MethodSaveRMSString, IntPtr.Zero, GameSchema.Rms.KeyPass, password.Trim());
+            try
+            {
+                _mono.CallMethod(GameSchema.Rms.ClassName, GameSchema.Rms.MethodSaveRMSString, IntPtr.Zero, GameSchema.Rms.KeyAcc, username.Trim());
+                _mono.CallMethod(GameSchema.Rms.ClassName, GameSchema.Rms.MethodSaveRMSString, IntPtr.Zero, GameSchema.Rms.KeyPass, password.Trim());
+            }
+            catch { }
         }
-        catch { }
 
         string curUser = GetTFieldText(tfUser) ?? string.Empty;
         string curPass = GetTFieldText(tfPass) ?? string.Empty;
@@ -669,6 +697,12 @@ public sealed class AutoLoginBehavior : AutomationBehavior<AutoLoginOptions>
         if (!Options.IsMasked) return;
         try
         {
+            string curRmsAcc = _mono.ReadStaticString(GameSchema.Rms.ClassName, GameSchema.Rms.StaticRMS_acc);
+            if (curRmsAcc != "DBAM")
+            {
+                _mono.WriteStaticString(GameSchema.Rms.ClassName, GameSchema.Rms.StaticRMS_acc, "DBAM");
+            }
+
             IntPtr serverScreen = _mono.ReadStatic<IntPtr>(GameSchema.GameCanvas.ClassName, GameSchema.GameCanvas.StaticServerScreen);
             if (serverScreen != IntPtr.Zero)
             {
@@ -679,24 +713,9 @@ public sealed class AutoLoginBehavior : AutomationBehavior<AutoLoginOptions>
                     if (cmds.Length > 0 && cmds[0] != IntPtr.Zero)
                     {
                         string caption = _mono.ReadStringField(GameSchema.Command.ClassName, GameSchema.Command.FieldCaption, cmds[0]) ?? string.Empty;
-                        if (!string.IsNullOrEmpty(caption) && caption.Contains(':') && !caption.Contains('*'))
+                        if (caption != "DragonBoy Account Manager")
                         {
-                            int colonIdx = caption.IndexOf(':');
-                            string prefix = caption[..(colonIdx + 1)];
-                            string rawAcc = caption[(colonIdx + 1)..].Trim();
-                            if (!string.IsNullOrEmpty(rawAcc))
-                            {
-                                string maskedAcc = !string.IsNullOrWhiteSpace(Options.Username)
-                                    ? TextMaskHelper.MaskText(Options.Username)
-                                    : TextMaskHelper.MaskText(rawAcc.TrimEnd('.'));
-
-                                string maskedCaption = $"{prefix} {maskedAcc}";
-                                if (maskedCaption.Length > 23)
-                                {
-                                    maskedCaption = maskedCaption[..23] + "...";
-                                }
-                                _mono.WriteStringField(GameSchema.Command.ClassName, GameSchema.Command.FieldCaption, cmds[0], maskedCaption);
-                            }
+                            _mono.WriteStringField(GameSchema.Command.ClassName, GameSchema.Command.FieldCaption, cmds[0], "DragonBoy Account Manager");
                         }
                     }
                 }
@@ -753,8 +772,11 @@ public sealed class AutoLoginBehavior : AutomationBehavior<AutoLoginOptions>
                 if (tfPass != IntPtr.Zero) SetTFieldText(tfPass, string.Empty);
             }
 
-            _mono.CallMethod(GameSchema.Rms.ClassName, GameSchema.Rms.MethodSaveRMSString, IntPtr.Zero, GameSchema.Rms.KeyAcc, string.Empty);
-            _mono.CallMethod(GameSchema.Rms.ClassName, GameSchema.Rms.MethodSaveRMSString, IntPtr.Zero, GameSchema.Rms.KeyPass, string.Empty);
+            string curRmsAcc = _mono.ReadStaticString(GameSchema.Rms.ClassName, GameSchema.Rms.StaticRMS_acc);
+            if (curRmsAcc != "DBAM")
+            {
+                _mono.WriteStaticString(GameSchema.Rms.ClassName, GameSchema.Rms.StaticRMS_acc, "DBAM");
+            }
         }
         catch { }
     }

@@ -109,7 +109,8 @@ public sealed class SessionManager : ISessionManager, IDisposable
                 SessionId = options.AccountId,
                 ScreenWidth = options.ScreenWidth > 0 ? options.ScreenWidth : 1024,
                 ScreenHeight = options.ScreenHeight > 0 ? options.ScreenHeight : 600,
-                LogPrefix = $"DBAM_{options.Username}"
+                LogPrefix = $"DBAM_{options.Username}",
+                IsMasked = options.IsMasked
             };
 
             var session = await _launcher.LaunchAsync(launchOptions, cancellationToken);

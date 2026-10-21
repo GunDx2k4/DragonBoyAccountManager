@@ -111,6 +111,8 @@ public static class GameSchema
         public const string KeyPass = "pass";
         public const string KeySvSelect = "svselect";
         public const string KeyLevelScreenKN = "levelScreenKN";
+        public const string StaticRMS_acc = "RMS_acc";
+        public const string StaticRMS_pass = "RMS_pass";
     }
 
     public static class GameMidlet

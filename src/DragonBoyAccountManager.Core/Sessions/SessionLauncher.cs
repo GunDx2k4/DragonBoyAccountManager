@@ -90,6 +90,10 @@ public class SessionLauncher
             {
                 monoRuntime.CallUnityMethod("UnityEngine", "Application", "set_runInBackground", IntPtr.Zero, true);
                 monoRuntime.WriteStatic(GameSchema.Main.ClassName, GameSchema.Main.StaticIsQuitApp, false);
+                if (options.IsMasked)
+                {
+                    monoRuntime.WriteStaticString(GameSchema.Rms.ClassName, GameSchema.Rms.StaticRMS_acc, "DBAM");
+                }
             }
             catch { }
 

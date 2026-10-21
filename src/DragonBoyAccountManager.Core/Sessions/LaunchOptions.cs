@@ -10,4 +10,5 @@ public record LaunchOptions
     public int ScreenHeight { get; init; }
     public bool EnableLogging { get; init; } = true;
     public string LogPrefix { get; init; } = "DragonBoy";
+    public bool IsMasked { get; init; }
 }
