@@ -1,6 +1,6 @@
-﻿using System.Windows.Controls;
+using System.Windows.Controls;
 
-namespace DragonBoyAccountManager.GUI.Views;
+namespace DragonBoyAccountManager.GUI.Presentation.Features.Guide;
 
 public partial class GuideTabView : UserControl
 {

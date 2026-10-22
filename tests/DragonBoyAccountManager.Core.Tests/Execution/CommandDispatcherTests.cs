@@ -74,4 +74,17 @@ public class CommandDispatcherTests
         Assert.Equal("Pre:TestCommand", trace[0]);
         Assert.Equal("Post:TestCommand", trace[1]);
     }
+
+    [Fact]
+    public async Task DispatchAsync_ViaPolymorphicInterface_ExecutesRegisteredConcreteHandler()
+    {
+        var dispatcher = new CommandDispatcher();
+        dispatcher.RegisterHandler(new TestCommandHandler());
+
+        IGameCommand polymorphicCommand = new TestCommand("Polymorphic");
+        var result = await dispatcher.DispatchAsync(polymorphicCommand);
+
+        Assert.True(result.IsSuccess);
+        Assert.Equal("Processed: Polymorphic", result.Message);
+    }
 }

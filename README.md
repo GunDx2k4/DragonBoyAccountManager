@@ -32,10 +32,13 @@ Dự án tuân thủ nghiêm ngặt nguyên tắc **"Zero Client Patching"** (kh
 
 ```text
 DBAM/
+├── docs/                               # Tài liệu kiến trúc giải pháp & cẩm nang mở rộng
 ├── src/
-│   ├── DragonBoyAccountManager.Core/   # Thư viện lõi: Mono runtime, Win32 P/Invoke, Game Engine, Auto-Update
-│   ├── DragonBoyAccountManager.GUI/    # Giao diện đồ họa WPF (.NET 10, MVVM, Retro Pixel Design)
+│   ├── DragonBoyAccountManager.Core/   # Thư viện lõi UI-agnostic: Mono runtime, Win32 P/Invoke, Telemetry, CQRS, Automation, Game Engine
+│   ├── DragonBoyAccountManager.GUI/    # Giao diện đồ họa WPF (.NET 10, 3-Tier MVVM, Retro Pixel Design, Auto-Update)
 │   └── DragonBoyAccountManager.CLI/    # Giao diện dòng lệnh Console (Spectre.Console)
+├── tests/
+│   └── DragonBoyAccountManager.Core.Tests/ # Bộ kiểm thử đơn vị (xUnit)
 ├── DBAM.slnx                           # Solution định dạng hiện đại (.slnx)
 └── README.md                           # Tài liệu tổng quan dự án
 ```

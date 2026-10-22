@@ -1,13 +1,11 @@
 using System.Diagnostics;
 using System.IO;
-using System.Reflection;
-
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
-
+using CommunityToolkit.Mvvm.Messaging;
 using DragonBoyAccountManager.Core.Sessions.Validation;
 
-namespace DragonBoyAccountManager.GUI.ViewModels;
+namespace DragonBoyAccountManager.GUI.Presentation.Shell.StatusBar;
 
 public sealed partial class AppStatusBarViewModel : ObservableObject
 {
@@ -48,9 +46,12 @@ public sealed partial class AppStatusBarViewModel : ObservableObject
     {
         _envService = envService;
         _dialogService = dialogService;
+        _appVersion = AppUpdaterService.CurrentVersionString;
 
-        var version = Assembly.GetExecutingAssembly().GetName().Version;
-        _appVersion = version != null ? $"{version.Major}.{version.Minor}.{version.Build}" : "1.0.0";
+        WeakReferenceMessenger.Default.Register<StatusMessageChangedMessage>(this, (_, m) =>
+        {
+            StatusMessage = m.Message;
+        });
 
         _envService.EnvironmentChanged += () =>
         {
@@ -71,22 +72,9 @@ public sealed partial class AppStatusBarViewModel : ObservableObject
     [RelayCommand]
     private void BrowseGamePath()
     {
-        var initialDir = !string.IsNullOrEmpty(GamePath) ? Path.GetDirectoryName(GamePath) : null;
-        var selectedFile = _dialogService.ShowOpenFileDialog(
-            "Chọn tệp thực thi game Dragon Boy",
-            "Game Executable (*.exe)|*.exe|Tất cả tệp (*.*)|*.*",
-            initialDir);
-
-        if (!string.IsNullOrEmpty(selectedFile))
+        if (_envService.BrowseAndSelectGamePath(_dialogService))
         {
-            if (!string.Equals(Path.GetExtension(selectedFile), ".exe", StringComparison.OrdinalIgnoreCase))
-            {
-                _dialogService.ShowWarning("File không hợp lệ", "Đường dẫn game bắt buộc phải là file thực thi (.exe)!");
-                return;
-            }
-
-            GamePath = selectedFile;
-            StatusMessage = $"Đã chọn game: {Path.GetFileName(selectedFile)}";
+            StatusMessage = $"Đã chọn game: {Path.GetFileName(GamePath)}";
         }
     }
 

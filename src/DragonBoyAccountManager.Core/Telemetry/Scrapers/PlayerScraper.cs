@@ -4,14 +4,14 @@ using DragonBoyAccountManager.Core.Telemetry.Snapshots;
 
 namespace DragonBoyAccountManager.Core.Telemetry.Scrapers;
 
-public class PlayerScraper(IMonoRuntime mono)
+public class PlayerScraper(IMonoRuntime mono, Func<string?>? originalNameResolver = null) : ISnapshotScraper<PlayerSnapshot>
 {
     private readonly IMonoRuntime _mono = mono;
+    private readonly Func<string?>? _originalNameResolver = originalNameResolver;
 
-    public IntPtr GetMyCharPtr()
-    {
-        return _mono.ReadStatic<IntPtr>(GameSchema.Char.ClassName, GameSchema.Char.StaticMyChar);
-    }
+    public PlayerSnapshot Scrape() => ScrapePlayer();
+
+    public IntPtr GetMyCharPtr() => _mono.GetMyCharPtr();
 
     public PlayerSnapshot ScrapePlayer()
     {
@@ -21,6 +21,14 @@ public class PlayerScraper(IMonoRuntime mono)
 
         int id = _mono.ReadField<int>(GameSchema.Char.ClassName, GameSchema.Char.FieldCharId, charPtr);
         string name = _mono.ReadStringField(GameSchema.Char.ClassName, GameSchema.Char.FieldName, charPtr);
+        if (!string.IsNullOrWhiteSpace(name) && name.Contains('*'))
+        {
+            string? originalName = _originalNameResolver?.Invoke();
+            if (!string.IsNullOrWhiteSpace(originalName))
+            {
+                name = originalName;
+            }
+        }
         long hp = _mono.ReadField<long>(GameSchema.Char.ClassName, GameSchema.Char.FieldHp, charPtr);
         long maxHp = _mono.ReadField<long>(GameSchema.Char.ClassName, GameSchema.Char.FieldHpFull, charPtr);
         long mp = _mono.ReadField<long>(GameSchema.Char.ClassName, GameSchema.Char.FieldMp, charPtr);
@@ -41,9 +49,12 @@ public class PlayerScraper(IMonoRuntime mono)
         }
         catch { }
 
+        var skills = isInGame ? ScrapeSkills(charPtr) : [];
+        var bagItems = isInGame ? ScrapeBagItems(charPtr) : [];
+
         return new PlayerSnapshot(
             id, name, hp, maxHp, power, gender, x, y,
-            isAlive, isInGame, isChangingMap, mp, maxMp, status, isTdltActive);
+            isAlive, isInGame, isChangingMap, mp, maxMp, status, isTdltActive, skills, bagItems);
     }
 
     public bool IsChangingMap(IntPtr charPtr = default)
@@ -60,10 +71,13 @@ public class PlayerScraper(IMonoRuntime mono)
         return false;
     }
 
-    public IReadOnlyList<InventoryItem> ScrapeBagItems()
+    public IReadOnlyList<InventoryItem> ScrapeBagItems(IntPtr charPtr = default)
     {
         var result = new List<InventoryItem>();
-        IntPtr charPtr = GetMyCharPtr();
+        if (charPtr == IntPtr.Zero)
+        {
+            charPtr = GetMyCharPtr();
+        }
         if (charPtr == IntPtr.Zero) return result;
 
         IntPtr arrBagPtr = _mono.ReadFieldPtr(GameSchema.Char.ClassName, GameSchema.Char.FieldArrItemBag, charPtr);
@@ -94,13 +108,16 @@ public class PlayerScraper(IMonoRuntime mono)
         return result;
     }
 
-    public IReadOnlyList<GameSkillInfo> ScrapeSkills()
+    public IReadOnlyList<GameSkillInfo> ScrapeSkills(IntPtr charPtr = default)
     {
         var result = new List<GameSkillInfo>();
         IntPtr keySkillArray = _mono.ReadStatic<IntPtr>(GameSchema.GameScr.ClassName, GameSchema.GameScr.StaticKeySkill);
         if (keySkillArray == IntPtr.Zero) return result;
 
-        IntPtr charPtr = GetMyCharPtr();
+        if (charPtr == IntPtr.Zero)
+        {
+            charPtr = GetMyCharPtr();
+        }
         IntPtr mySkillPtr = charPtr != IntPtr.Zero ? _mono.ReadFieldPtr(GameSchema.Char.ClassName, GameSchema.Char.FieldMySkill, charPtr) : IntPtr.Zero;
 
         IntPtr[] skillPtrs = _mono.ReadMonoPointerArray(keySkillArray);

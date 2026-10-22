@@ -1,9 +1,8 @@
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
-using DragonBoyAccountManager.GUI.ViewModels;
 
-namespace DragonBoyAccountManager.GUI.Views;
+namespace DragonBoyAccountManager.GUI.Presentation.Features.Auto;
 
 public partial class AutoTabView : UserControl
 {

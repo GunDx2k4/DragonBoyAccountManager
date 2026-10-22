@@ -1,8 +1,7 @@
 using System.Windows;
 using System.Windows.Input;
-using DragonBoyAccountManager.GUI.ViewModels;
 
-namespace DragonBoyAccountManager.GUI.Views;
+namespace DragonBoyAccountManager.GUI.Presentation.Shell.Dialogs;
 
 public partial class GameDialogWindow : Window
 {

@@ -1,7 +1,7 @@
 using CommunityToolkit.Mvvm.ComponentModel;
 using DragonBoyAccountManager.Core.Common;
 
-namespace DragonBoyAccountManager.GUI.ViewModels;
+namespace DragonBoyAccountManager.GUI.Presentation.Features.Accounts.Items;
 
 public sealed partial class AccountItemViewModel : ObservableObject
 {
@@ -157,7 +157,9 @@ public sealed partial class AccountItemViewModel : ObservableObject
     {
         get
         {
-            if (Status == GameSessionStatus.Offline && !string.IsNullOrWhiteSpace(StatusMessage) && StatusMessage.Contains("kết nối lại", StringComparison.OrdinalIgnoreCase))
+            if ((Status == GameSessionStatus.Offline || Status == GameSessionStatus.Waiting) &&
+                !string.IsNullOrWhiteSpace(StatusMessage) &&
+                StatusMessage.Contains("kết nối lại", StringComparison.OrdinalIgnoreCase))
             {
                 return "Kết nối lại...";
             }
@@ -336,6 +338,10 @@ public sealed partial class AccountItemViewModel : ObservableObject
             ProcessId = null;
             StatusMessage = string.Empty;
             LastActionReport = ActionExecutionReport.Idle();
+            IsAutoTrainRunning = false;
+            IsAutoChatRunning = false;
+            AutoTrainStatusText = "Chưa kích hoạt";
+            AutoChatStatusText = "Chưa kích hoạt";
             UpdateSnapshot(null);
         }
         else if (newStatus is GameSessionStatus.Error or GameSessionStatus.Banned && !string.IsNullOrWhiteSpace(message))

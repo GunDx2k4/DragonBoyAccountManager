@@ -11,22 +11,9 @@ public class CombatHandler(IMonoRuntime mono) :
 {
     private readonly IMonoRuntime _mono = mono;
 
-    private IntPtr GetServicePointer()
-    {
-        IntPtr service = _mono.ReadStatic<IntPtr>(GameSchema.Service.ClassName, GameSchema.Service.StaticInstance);
-        if (service == IntPtr.Zero)
-            service = _mono.CallMethod(GameSchema.Service.ClassName, GameSchema.Service.MethodGI, IntPtr.Zero);
-        return service;
-    }
-
-    private IntPtr GetMyCharPtr()
-    {
-        return _mono.ReadStatic<IntPtr>(GameSchema.Char.ClassName, GameSchema.Char.StaticMyChar);
-    }
-
     public Task<Result> HandleAsync(SelectSkillCommand command, CancellationToken cancellationToken)
     {
-        IntPtr charPtr = GetMyCharPtr();
+        IntPtr charPtr = _mono.GetMyCharPtr();
         if (charPtr == IntPtr.Zero)
             return Task.FromResult(Result.Failure("Nhân vật chưa vào game."));
 
@@ -42,10 +29,7 @@ public class CombatHandler(IMonoRuntime mono) :
 
         _mono.WriteField(GameSchema.Char.ClassName, GameSchema.Char.FieldMySkill, charPtr, skillPtr);
 
-        IntPtr gameScr = _mono.ReadStatic<IntPtr>(GameSchema.GameScr.ClassName, GameSchema.GameScr.StaticInstance);
-        if (gameScr == IntPtr.Zero)
-            gameScr = _mono.CallMethod(GameSchema.GameScr.ClassName, GameSchema.GameScr.MethodGI, IntPtr.Zero);
-
+        IntPtr gameScr = _mono.GetGameScrPtr();
         if (gameScr != IntPtr.Zero)
         {
             _mono.WriteField(GameSchema.GameScr.ClassName, GameSchema.GameScr.FieldLastSkill, gameScr, skillPtr);
@@ -55,7 +39,7 @@ public class CombatHandler(IMonoRuntime mono) :
         if (templatePtr != IntPtr.Zero)
         {
             sbyte templateId = _mono.ReadField<sbyte>(GameSchema.SkillTemplate.ClassName, GameSchema.SkillTemplate.FieldId, templatePtr);
-            IntPtr service = GetServicePointer();
+            IntPtr service = _mono.GetServicePtr();
             if (service != IntPtr.Zero)
             {
                 _mono.CallMethod(GameSchema.Service.ClassName, GameSchema.Service.MethodSelectSkill, service, (int)templateId);
@@ -85,7 +69,7 @@ public class CombatHandler(IMonoRuntime mono) :
         if (mobPtr == IntPtr.Zero)
             return Result.Failure($"Không tìm thấy quái #{command.MobId} hoặc con trỏ không hợp lệ.");
 
-        IntPtr charPtr = GetMyCharPtr();
+        IntPtr charPtr = _mono.GetMyCharPtr();
         if (charPtr == IntPtr.Zero)
             return Result.Failure("Nhân vật chưa vào game.");
 
@@ -98,7 +82,7 @@ public class CombatHandler(IMonoRuntime mono) :
             await HandleAsync(new SelectSkillCommand(command.SkillSlot), cancellationToken);
         }
 
-        IntPtr service = GetServicePointer();
+        IntPtr service = _mono.GetServicePtr();
         if (service == IntPtr.Zero)
             return Result.Failure("Không tìm thấy Service.");
 

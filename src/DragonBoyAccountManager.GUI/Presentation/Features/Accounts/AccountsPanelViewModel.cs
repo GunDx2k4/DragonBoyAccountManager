@@ -1,15 +1,22 @@
-using DragonBoyAccountManager.GUI.Application.Messaging;
-using CommunityToolkit.Mvvm.Messaging;
 using System.Collections.ObjectModel;
 using System.ComponentModel;
-using System.IO;
 using System.Windows.Data;
-
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
+using CommunityToolkit.Mvvm.Messaging;
+using DragonBoyAccountManager.Core.Accounts;
+using DragonBoyAccountManager.Core.Common;
+using DragonBoyAccountManager.Core.Engine.Events;
+using DragonBoyAccountManager.Core.Sessions.Validation;
+using DragonBoyAccountManager.GUI.Domain.Messaging;
+using DragonBoyAccountManager.GUI.Presentation.Features.Accounts.Items;
+using DragonBoyAccountManager.GUI.Services.Dialogs;
+using DragonBoyAccountManager.GUI.Services.Dispatching;
+using DragonBoyAccountManager.GUI.Services.Engine;
+using DragonBoyAccountManager.GUI.Services.Selection;
+using DragonBoyAccountManager.GUI.Services.Settings;
 
-
-namespace DragonBoyAccountManager.GUI.ViewModels;
+namespace DragonBoyAccountManager.GUI.Presentation.Features.Accounts;
 
 public sealed partial class AccountsPanelViewModel : ObservableObject
 {
@@ -19,6 +26,7 @@ public sealed partial class AccountsPanelViewModel : ObservableObject
     private readonly ISettingsService _settingsService;
     private readonly IGameEnvironmentService _envService;
     private readonly IActiveSelectionService? _selectionService;
+    private readonly IDispatcherService? _dispatcher;
 
     public ObservableCollection<AccountItemViewModel> Accounts { get; } = [];
     public ICollectionView AccountsView { get; }
@@ -45,9 +53,6 @@ public sealed partial class AccountsPanelViewModel : ObservableObject
     public bool IsGuidanceVisible => IsAssemblyMissing && !IsGuidanceDismissed;
     public bool ShowGuidanceButtonVisible => IsAssemblyMissing && IsGuidanceDismissed;
 
-    public event Action? OnRequestNavigateToGuide;
-    public event Action<string>? OnGamePathConfigured;
-
     [ObservableProperty]
     private AccountItemViewModel? _selectedAccount;
 
@@ -73,12 +78,6 @@ public sealed partial class AccountsPanelViewModel : ObservableObject
         }
     }
 
-    [ObservableProperty]
-    private bool _isApplySpeedToAll = true;
-
-    [ObservableProperty]
-    private float _globalGameSpeed = 1.0f;
-
     public ObservableCollection<string> FilterServers { get; } = [];
 
     private readonly List<AccountItemViewModel> _selectedRows = [];
@@ -103,15 +102,17 @@ public sealed partial class AccountsPanelViewModel : ObservableObject
             return SelectedAccount != null ? 1 : 0;
         }
     }
+
     public bool CanDeleteSelectedAccount
     {
         get
         {
             var targets = GetTargetAccounts();
-            if (targets.Count > 0) return targets.All(a => !a.IsRunning);
-            return SelectedAccount != null && !SelectedAccount.IsRunning;
+            if (targets.Count > 0) return targets.All(a => !a.IsRunning && !_gameEngine.IsRunning(a.Id));
+            return SelectedAccount != null && !SelectedAccount.IsRunning && !_gameEngine.IsRunning(SelectedAccount.Id);
         }
     }
+
     public bool CanControlAccount
     {
         get
@@ -122,7 +123,6 @@ public sealed partial class AccountsPanelViewModel : ObservableObject
         }
     }
 
-    public event Action<AccountItemViewModel?>? OnAccountSelectionChanged;
     public event Action<string>? OnStatusMessageUpdated;
 
     public AccountsPanelViewModel(
@@ -131,7 +131,8 @@ public sealed partial class AccountsPanelViewModel : ObservableObject
         IDialogService dialogService,
         ISettingsService settingsService,
         IGameEnvironmentService envService,
-        IActiveSelectionService? selectionService = null)
+        IActiveSelectionService? selectionService = null,
+        IDispatcherService? dispatcher = null)
     {
         _storageService = storageService;
         _gameEngine = gameEngine;
@@ -139,6 +140,7 @@ public sealed partial class AccountsPanelViewModel : ObservableObject
         _settingsService = settingsService;
         _envService = envService;
         _selectionService = selectionService;
+        _dispatcher = dispatcher;
         _isMasked = _settingsService.Current.IsMasked;
 
         _selectionService?.RegisterAccountsProvider(
@@ -153,48 +155,84 @@ public sealed partial class AccountsPanelViewModel : ObservableObject
 
         InitServerFilters();
 
-        _gameEngine.OnSessionUpdated += (accountId, status, snapshot) =>
-        {
-            var dispatcher = App.Current?.Dispatcher;
-            if (dispatcher != null)
-            {
-                _ = dispatcher.InvokeAsync(() =>
-                {
-                    var item = Accounts.FirstOrDefault(a => a.Id == accountId);
-                    if (item != null)
-                    {
-                        item.UpdateStatus(status, _gameEngine.GetProcessId(accountId));
-                        if (snapshot != null)
-                        {
-                            item.UpdateSnapshot(snapshot);
-                        }
-                        NotifyCountsChanged();
-                    }
-                });
-            }
-        };
-
-        _gameEngine.OnSessionMessageUpdated += (accountId, message) =>
-        {
-            var dispatcher = App.Current?.Dispatcher;
-            if (dispatcher != null)
-            {
-                _ = dispatcher.InvokeAsync(() =>
-                {
-                    var item = Accounts.FirstOrDefault(a => a.Id == accountId);
-                    if (item != null)
-                    {
-                        item.StatusMessage = message;
-                    }
-                    OnStatusMessageUpdated?.Invoke($"[{item?.DisplayUsername ?? "Tài khoản"}]: {message}");
-                });
-            }
-        };
+        _gameEngine.OnSessionEvent += HandleSessionEvent;
 
         WeakReferenceMessenger.Default.Register<ClearAccountSelectionMessage>(this, (_, _) =>
         {
             SelectedAccount = null;
         });
+
+        WeakReferenceMessenger.Default.Register<MaskingStateChangedMessage>(this, (_, m) =>
+        {
+            if (IsMasked != m.IsMasked)
+            {
+                IsMasked = m.IsMasked;
+            }
+        });
+    }
+
+    private void RunOnUi(Action action)
+    {
+        if (_dispatcher != null)
+        {
+            _ = _dispatcher.InvokeAsync(action);
+        }
+        else if (App.Current?.Dispatcher != null)
+        {
+            _ = App.Current.Dispatcher.InvokeAsync(action);
+        }
+        else
+        {
+            action();
+        }
+    }
+
+    private void NotifyStatusMessage(string message)
+    {
+        OnStatusMessageUpdated?.Invoke(message);
+        WeakReferenceMessenger.Default.Send(new StatusMessageChangedMessage(message));
+    }
+
+    private void HandleSessionEvent(SessionEvent evt)
+    {
+        switch (evt)
+        {
+            case SessionStateChangedEvent s:
+                RunOnUi(() =>
+                {
+                    var item = Accounts.FirstOrDefault(a => a.Id == s.AccountId);
+                    if (item != null)
+                    {
+                        item.UpdateStatus(s.Status, _gameEngine.GetProcessId(s.AccountId));
+                        if (s.Snapshot != null)
+                        {
+                            item.UpdateSnapshot(s.Snapshot);
+                        }
+                        NotifyCountsChanged();
+                    }
+                });
+                break;
+
+            case SessionMessageEvent m:
+                RunOnUi(() =>
+                {
+                    var item = Accounts.FirstOrDefault(a => a.Id == m.AccountId);
+                    if (item != null)
+                    {
+                        item.StatusMessage = m.Message;
+                    }
+                    NotifyStatusMessage($"[{item?.DisplayUsername ?? "Tài khoản"}]: {m.Message}");
+                });
+                break;
+
+            case ActionReportedEvent a:
+                RunOnUi(() =>
+                {
+                    var item = Accounts.FirstOrDefault(acc => acc.Id == a.AccountId);
+                    item?.UpdateActionReport(a.Report);
+                });
+                break;
+        }
     }
 
     private void InitServerFilters()
@@ -205,82 +243,6 @@ public sealed partial class AccountsPanelViewModel : ObservableObject
         {
             FilterServers.Add(server.ServerName);
         }
-    }
-
-    public void CheckAssemblyStatus()
-    {
-        ClientStatus = _envService.Status;
-        IsAssemblyMissing = _envService.IsAssemblyMissing;
-
-        if (ClientStatus == ClientStatus.GameNotFound)
-        {
-            AssemblyGuidanceTitle = "CHUA THI?T L?P FILE GAME G?C 2.5.0 (.EXE)";
-            AssemblyGuidanceMessage = "DBAM yêu cầu phiên bản game PC gốc 2.5.0 tải tại trang chủ (ngocrongonline.com) — tuyệt đối không cài bản mod. Vui lòng bấm \"Chọn file game (.exe)\" để bắt đầu.";
-        }
-        else if (ClientStatus == ClientStatus.AssemblyNotFound)
-        {
-            AssemblyGuidanceTitle = "KHÔNG TÌM THẤY ASSEMBLY-CSHARP.DLL";
-            AssemblyGuidanceMessage = "Đã nhận file .exe nhưng thiếu file Assembly-CSharp.dll trong Data\\Managed. Vui lòng tải bản game PC 2.5.0 gốc tại trang chủ (không dùng bản mod) và kiểm tra lại thư mục game.";
-        }
-        else if (ClientStatus == ClientStatus.ModifiedOrMod)
-        {
-            AssemblyGuidanceTitle = "PHÁT HIỆN FILE GAME BỊ SỬA ĐỔI HOẶC BẢN MOD";
-            AssemblyGuidanceMessage = "DBAM chỉ hỗ trợ phiên bản gốc 2.5.0 chính thức từ trang chủ. Các bản mod (Mod, Auto, Hack, DLL đã can thiệp) có thể gây lỗi bộ nhớ hoặc không tương thích!";
-        }
-        else if (ClientStatus == ClientStatus.OutdatedVersion)
-        {
-            AssemblyGuidanceTitle = "PHIÊN BẢN GAME ĐÃ CŨ";
-            AssemblyGuidanceMessage = "Phiên bản game hiện tại không phải 2.5.0. Vui lòng tải bản mới nhất tại ngocrongonline.com để sử dụng.";
-        }
-        else
-        {
-            AssemblyGuidanceTitle = string.Empty;
-            AssemblyGuidanceMessage = string.Empty;
-            IsGuidanceDismissed = false;
-        }
-    }
-
-    [RelayCommand]
-    public void BrowseGamePath()
-    {
-        var initialDir = !string.IsNullOrEmpty(_envService.GamePath)
-            ? Path.GetDirectoryName(_envService.GamePath)
-            : null;
-
-        var selectedFile = _dialogService.ShowOpenFileDialog(
-            "Ch?n t?p th?c thi game Dragon Boy",
-            "Game Executable (*.exe)|*.exe|Tất cả tệp (*.*)|*.*",
-            initialDir);
-
-        if (!string.IsNullOrEmpty(selectedFile))
-        {
-            if (!string.Equals(Path.GetExtension(selectedFile), ".exe", StringComparison.OrdinalIgnoreCase))
-            {
-                _dialogService.ShowWarning("File không hợp lệ", "Đường dẫn game bắt buộc phải là file thực thi (.exe)!");
-                return;
-            }
-
-            _envService.GamePath = selectedFile;
-            OnGamePathConfigured?.Invoke(selectedFile);
-        }
-    }
-
-    [RelayCommand]
-    public void OpenGuide()
-    {
-        OnRequestNavigateToGuide?.Invoke();
-    }
-
-    [RelayCommand]
-    public void DismissGuidance()
-    {
-        IsGuidanceDismissed = true;
-    }
-
-    [RelayCommand]
-    public void ShowGuidance()
-    {
-        IsGuidanceDismissed = false;
     }
 
     [RelayCommand]
@@ -307,7 +269,7 @@ public sealed partial class AccountsPanelViewModel : ObservableObject
         AccountsView.Refresh();
     }
 
-    private void OnAccountItemPropertyChanged(object? sender, System.ComponentModel.PropertyChangedEventArgs e)
+    private void OnAccountItemPropertyChanged(object? sender, PropertyChangedEventArgs e)
     {
         if (e.PropertyName == nameof(AccountItemViewModel.IsSelected))
         {
@@ -353,9 +315,10 @@ public sealed partial class AccountsPanelViewModel : ObservableObject
 
     partial void OnSelectedAccountChanged(AccountItemViewModel? value)
     {
-        if (_selectionService != null) _selectionService.SelectedAccount = value;
-        OnAccountSelectionChanged?.Invoke(value);
-        WeakReferenceMessenger.Default.Send(new AccountSelectedMessage(value));
+        if (_selectionService != null)
+        {
+            _selectionService.SelectedAccount = value;
+        }
         NotifyCountsChanged();
     }
 
@@ -405,6 +368,7 @@ public sealed partial class AccountsPanelViewModel : ObservableObject
         _settingsService.Current.IsMasked = IsMasked;
         _ = _settingsService.SaveAsync();
         _gameEngine.SetMasked(IsMasked);
+        WeakReferenceMessenger.Default.Send(new MaskingStateChangedMessage(IsMasked));
     }
 
     [RelayCommand]
@@ -420,8 +384,8 @@ public sealed partial class AccountsPanelViewModel : ObservableObject
     public void OpenAddAccount()
     {
         SelectedAccount = null;
-        WeakReferenceMessenger.Default.Send(new RequestNavigateToTabMessage(0));
-        OnStatusMessageUpdated?.Invoke("Đang ở chế độ thêm tài khoản mới. Vui lòng nhập thông tin bên phải.");
+        WeakReferenceMessenger.Default.Send(new RequestNavigateToTabMessage(AppTab.AccountConfig));
+        NotifyStatusMessage("Đang ở chế độ thêm tài khoản mới. Vui lòng nhập thông tin bên phải.");
     }
 
     private bool FilterAccounts(object item)
@@ -453,7 +417,6 @@ public sealed partial class AccountsPanelViewModel : ObservableObject
         OnPropertyChanged(nameof(CanDeleteSelectedAccount));
         OnPropertyChanged(nameof(CanControlAccount));
         _selectionService?.NotifyTargetsChanged();
-        WeakReferenceMessenger.Default.Send(new TargetAccountsChangedMessage(GetTargetAccounts().Select(a => a.Id).ToList()));
     }
 
     public List<AccountItemViewModel> GetTargetAccounts(AccountItemViewModel? specific = null)
@@ -477,266 +440,6 @@ public sealed partial class AccountsPanelViewModel : ObservableObject
         if (SelectedAccount != null) return [SelectedAccount];
 
         return [];
-    }
-
-    [RelayCommand]
-    public async Task OpenOrFocusAccountAsync(AccountItemViewModel? item)
-    {
-        item ??= SelectedAccount;
-        if (item == null) return;
-
-        if (item.IsRunning && item.Status == GameSessionStatus.Active)
-        {
-            FocusGameWindow(item);
-        }
-        else
-        {
-            await LoginSelectedAccountsCommand.ExecuteAsync(item);
-        }
-    }
-
-    private bool EnsureGameClientReady(out string gamePath)
-    {
-        gamePath = _envService.GamePath;
-        var metadata = _envService.CurrentMetadata;
-        if (metadata != null && metadata.IsFound)
-        {
-            return true;
-        }
-
-        if (metadata?.Status == ClientStatus.AssemblyNotFound)
-        {
-            _dialogService.ShowWarning(
-                "Không tìm thấy Assembly-CSharp",
-                $"Đã nhận diện file thực thi game: {Path.GetFileName(gamePath)}\n" +
-                "Nhưng không tìm thấy file Assembly-CSharp.dll trong thư mục dữ liệu Data\\Managed.\n\n" +
-                "Vui lòng tải bản game PC gốc 2.5.0 tại trang chủ (ngocrongonline.com) — không dùng bản mod, và đảm bảo cấu trúc:\n" +
-                "- [TênGame].exe\n" +
-                "- [TênGame]_Data\\Managed\\Assembly-CSharp.dll");
-        }
-        else
-        {
-            bool chooseNow = _dialogService.ShowConfirmation(
-                "Chưa cài đặt đường dẫn game",
-                "Chưa chọn tệp thực thi game (.exe) hoặc đường dẫn không tồn tại.\n\n" +
-                "Vui lòng tải bản game PC gốc 2.5.0 tại trang chủ (ngocrongonline.com) — tuyệt đối không cài bản mod.\n\n" +
-                "Bạn có muốn chọn file game (.exe) ngay bây giờ không?",
-                "Ch?n file ngay",
-                "Để sau");
-            if (chooseNow)
-            {
-                BrowseGamePath();
-            }
-        }
-
-        return false;
-    }
-
-    [RelayCommand]
-    public async Task LaunchSelectedAccountsAsync(AccountItemViewModel? target = null)
-    {
-        var targets = GetTargetAccounts(target);
-        if (targets.Count == 0)
-        {
-            _dialogService.ShowWarning("Thông báo", "Vui lòng chọn ít nhất một tài khoản để mở game!");
-            return;
-        }
-
-        if (!EnsureGameClientReady(out string gamePath))
-        {
-            return;
-        }
-
-        var toLaunch = targets.Where(a => !a.IsRunning).ToList();
-        if (toLaunch.Count == 0)
-        {
-            OnStatusMessageUpdated?.Invoke("Tất cả tài khoản được chọn đều đang mở game!");
-            return;
-        }
-
-        int launched = 0;
-        for (int i = 0; i < toLaunch.Count; i++)
-        {
-            var item = toLaunch[i];
-            OnStatusMessageUpdated?.Invoke($"Đang mở game ({i + 1}/{toLaunch.Count}): {item.DisplayUsername}...");
-            bool ok = await _gameEngine.StartAsync(item.Model, gamePath);
-            if (ok) launched++;
-
-            if (i < toLaunch.Count - 1)
-            {
-                await Task.Delay(Math.Max(1, _settingsService.Current.ReconnectDelaySeconds) * 1000);
-            }
-        }
-
-        OnStatusMessageUpdated?.Invoke($"Đã mở thành công {launched}/{toLaunch.Count} tài khoản game.");
-        NotifyCountsChanged();
-    }
-
-    [RelayCommand]
-    public async Task LoginSelectedAccountsAsync(AccountItemViewModel? target = null)
-    {
-        var targets = GetTargetAccounts(target);
-        if (targets.Count == 0)
-        {
-            _dialogService.ShowWarning("Thông báo", "Vui lòng chọn ít nhất một tài khoản để đăng nhập!");
-            return;
-        }
-
-        if (!EnsureGameClientReady(out string gamePath))
-        {
-            return;
-        }
-
-        int successCount = 0;
-        for (int i = 0; i < targets.Count; i++)
-        {
-            var item = targets[i];
-            if (string.IsNullOrWhiteSpace(item.Username) || string.IsNullOrWhiteSpace(item.Password))
-            {
-                OnStatusMessageUpdated?.Invoke($"Bỏ qua '{item.DisplayUsername}': Thiếu tên tài khoản hoặc mật khẩu.");
-                continue;
-            }
-
-            OnStatusMessageUpdated?.Invoke($"Đang xử lý đăng nhập ({i + 1}/{targets.Count}): {item.DisplayUsername}...");
-
-            bool ok;
-            if (!item.IsRunning)
-            {
-                item.Model.AutoLogin = true;
-                ok = await _gameEngine.StartAsync(item.Model, gamePath);
-            }
-            else
-            {
-                ok = await _gameEngine.LoginAsync(item.Id);
-            }
-
-            if (ok)
-            {
-                successCount++;
-                OnStatusMessageUpdated?.Invoke($"[{item.DisplayUsername}]: Đăng nhập thành công!");
-            }
-            else
-            {
-                OnStatusMessageUpdated?.Invoke($"[{item.DisplayUsername}]: Đăng nhập không thành công.");
-            }
-
-            if (i < targets.Count - 1)
-            {
-                await Task.Delay(Math.Max(1, _settingsService.Current.ReconnectDelaySeconds) * 1000);
-            }
-        }
-
-        OnStatusMessageUpdated?.Invoke($"Hoàn tất: {successCount}/{targets.Count} tài khoản đăng nhập thành công.");
-        NotifyCountsChanged();
-    }
-
-    [RelayCommand]
-    public async Task StopSelectedAccountsAsync(AccountItemViewModel? target = null)
-    {
-        var targets = GetTargetAccounts(target);
-        if (targets.Count == 0)
-        {
-            _dialogService.ShowWarning("Thông báo", "Vui lòng chọn ít nhất một tài khoản để đóng game!");
-            return;
-        }
-
-        var running = targets.Where(a => a.IsRunning).ToList();
-        if (running.Count == 0)
-        {
-            OnStatusMessageUpdated?.Invoke("Không có tài khoản nào đang chạy trong danh sách đã chọn.");
-            return;
-        }
-
-        int stopped = 0;
-        foreach (var item in running)
-        {
-            await _gameEngine.StopAsync(item.Id);
-            stopped++;
-        }
-
-        OnStatusMessageUpdated?.Invoke($"Đã đóng {stopped} tài khoản game.");
-        NotifyCountsChanged();
-    }
-
-    [RelayCommand]
-    public async Task DeleteAccountAsync(AccountItemViewModel? target = null)
-    {
-        var item = target ?? SelectedAccount;
-        if (item == null) return;
-
-        if (item.IsRunning)
-        {
-            _dialogService.ShowWarning("Không thể xóa", $"Tài khoản '{item.DisplayUsername}' đang chạy game. Vui lòng đóng game trước khi xóa!");
-            return;
-        }
-
-        bool confirm = _dialogService.ShowConfirmation("Xác nhận xóa", $"Bạn có chắc chắn muốn xóa tài khoản '{item.DisplayUsername}'?");
-        if (!confirm) return;
-
-        await _storageService.DeleteAsync(item.Id);
-        Accounts.Remove(item);
-        if (SelectedAccount == item) SelectedAccount = null;
-
-        NotifyCountsChanged();
-        AccountsView.Refresh();
-        OnStatusMessageUpdated?.Invoke($"Đã xóa tài khoản {item.DisplayUsername}.");
-    }
-
-    [RelayCommand]
-    public async Task DeleteSelectedAccountsAsync()
-    {
-        var targets = GetTargetAccounts();
-        if (targets.Count == 0) return;
-
-        var running = targets.Where(a => a.IsRunning).ToList();
-        if (running.Count > 0)
-        {
-            var names = string.Join(", ", running.Select(a => $"'{a.DisplayUsername}'"));
-            _dialogService.ShowWarning("Không thể xóa", $"Có {running.Count} tài khoản đang chạy game ({names}). Vui lòng đóng game trước khi xóa!");
-            return;
-        }
-
-        bool confirm = _dialogService.ShowConfirmation("Xác nhận xóa", $"Bạn có chắc chắn muốn xóa {targets.Count} tài khoản đã chọn?");
-        if (!confirm) return;
-
-        foreach (var item in targets)
-        {
-            await _storageService.DeleteAsync(item.Id);
-            Accounts.Remove(item);
-        }
-
-        SelectedAccount = null;
-        NotifyCountsChanged();
-        AccountsView.Refresh();
-        OnStatusMessageUpdated?.Invoke($"Đã xóa {targets.Count} tài khoản.");
-    }
-
-    [RelayCommand]
-    public void FocusGameWindow(AccountItemViewModel? target = null)
-    {
-        var item = target ?? SelectedAccount;
-        if (item != null && item.IsRunning)
-        {
-            _gameEngine.FocusWindow(item.Id);
-        }
-    }
-
-    [RelayCommand]
-    public void ArrangeWindows()
-    {
-        var running = Accounts.Where(a => a.IsRunning).ToList();
-        if (running.Count == 0)
-        {
-            OnStatusMessageUpdated?.Invoke("Không có tài khoản nào đang mở game để sắp xếp!");
-            _dialogService.ShowInfo("Sắp xếp cửa sổ", "Hiện tại không có tài khoản nào đang mở game.");
-            return;
-        }
-
-        var selectedRunning = running.Where(a => a.IsSelected).ToList();
-        var targets = selectedRunning.Count > 1 ? selectedRunning : running;
-
-        _gameEngine.ArrangeWindows(targets.Select(a => a.Id));
-        OnStatusMessageUpdated?.Invoke($"Đã sắp xếp {targets.Count} cửa sổ game.");
     }
 
     public void AddOrUpdateItem(Account account)

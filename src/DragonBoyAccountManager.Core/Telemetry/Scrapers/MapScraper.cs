@@ -4,11 +4,13 @@ using DragonBoyAccountManager.Core.Telemetry.Snapshots;
 
 namespace DragonBoyAccountManager.Core.Telemetry.Scrapers;
 
-public class MapScraper(IMonoRuntime mono)
+public class MapScraper(IMonoRuntime mono) : ISnapshotScraper<MapSnapshot>
 {
     private readonly IMonoRuntime _mono = mono;
     private int _cachedMapId = -1;
     private MapSnapshot? _cachedSnapshot;
+
+    public MapSnapshot Scrape() => ScrapeMap();
 
     public MapSnapshot ScrapeMap(bool forceRefresh = false)
     {
@@ -40,8 +42,8 @@ public class MapScraper(IMonoRuntime mono)
         if (typesPtr == IntPtr.Zero)
             return MapSnapshot.Empty;
 
-        int[]? types = ReadMonoIntArray(typesPtr, tmw * tmh);
-        if (types == null || types.Length == 0)
+        int[] types = _mono.ReadMonoIntArray(typesPtr, tmw * tmh);
+        if (types.Length == 0)
             return MapSnapshot.Empty;
 
         if (types.Length < tmw * tmh)
@@ -53,22 +55,5 @@ public class MapScraper(IMonoRuntime mono)
         _cachedMapId = mapId;
         _cachedSnapshot = snapshot;
         return snapshot;
-    }
-
-    private int[]? ReadMonoIntArray(IntPtr monoArrayPtr, int expectedLength)
-    {
-        if (monoArrayPtr == IntPtr.Zero) return null;
-        int length = _mono.Memory.ReadInt(monoArrayPtr + (_mono.Memory.PointerSize * 3));
-        if (length <= 0 || length > 1_000_000) return null;
-
-        int actualLength = Math.Min(length, expectedLength);
-        int[] result = new int[actualLength];
-        int dataOffset = _mono.Memory.PointerSize * 4;
-
-        for (int i = 0; i < actualLength; i++)
-        {
-            result[i] = _mono.Memory.ReadInt(monoArrayPtr + dataOffset + i * 4);
-        }
-        return result;
     }
 }

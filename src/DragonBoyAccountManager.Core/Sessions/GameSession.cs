@@ -1,9 +1,14 @@
+using System.Collections.Concurrent;
 using System.Diagnostics;
+using DragonBoyAccountManager.Core.Automation.Behaviors;
 using DragonBoyAccountManager.Core.Automation.Behaviors.Combat;
 using DragonBoyAccountManager.Core.Automation.Behaviors.Navigation;
 using DragonBoyAccountManager.Core.Execution;
+using DragonBoyAccountManager.Core.Execution.Commands;
 using DragonBoyAccountManager.Core.Execution.Handlers;
 using DragonBoyAccountManager.Core.Interop.Mono;
+using DragonBoyAccountManager.Core.Interop.Mono.Schema;
+using DragonBoyAccountManager.Core.Sessions.Controllers;
 using DragonBoyAccountManager.Core.Telemetry.Scrapers;
 using DragonBoyAccountManager.Core.Telemetry.Snapshots;
 
@@ -18,18 +23,31 @@ public sealed class GameSession : ISessionContext, IDisposable
     public PlayerScraper PlayerScraper { get; }
     public WorldScraper WorldScraper { get; }
     public MapScraper MapScraper { get; }
+    public SessionMaskingController MaskingController { get; }
+    public LoginScreenController LoginScreen { get; }
 
     public CommandDispatcher Dispatcher { get; }
     ICommandDispatcher ISessionContext.Dispatcher => Dispatcher;
     public AutoNavigator Navigator { get; }
 
-    public AutoTrainBehavior TrainBehavior { get; }
-    public AutoChatBehavior ChatBehavior { get; }
+    private readonly ConcurrentDictionary<Type, ISnapshotScraper> _scrapers = new();
+    private readonly ConcurrentDictionary<Type, object> _snapshots = new();
+    private readonly ConcurrentDictionary<Type, IBehavior> _behaviors = new();
 
-    private readonly System.Collections.Concurrent.ConcurrentDictionary<Type, IBehavior> _behaviors = new();
+    public void RegisterScraper<TSnapshot>(ISnapshotScraper<TSnapshot> scraper) where TSnapshot : class
+    {
+        ArgumentNullException.ThrowIfNull(scraper);
+        _scrapers[typeof(TSnapshot)] = scraper;
+    }
+
+    public TSnapshot? GetSnapshot<TSnapshot>() where TSnapshot : class
+    {
+        return _snapshots.TryGetValue(typeof(TSnapshot), out var snap) ? snap as TSnapshot : null;
+    }
 
     public void RegisterBehavior<TBehavior>(TBehavior behavior) where TBehavior : class, IBehavior
     {
+        ArgumentNullException.ThrowIfNull(behavior);
         _behaviors[typeof(TBehavior)] = behavior;
     }
 
@@ -43,9 +61,12 @@ public sealed class GameSession : ISessionContext, IDisposable
         return _behaviors.Values.FirstOrDefault(b => string.Equals(b.Id, behaviorId, StringComparison.OrdinalIgnoreCase));
     }
 
-    public PlayerSnapshot CurrentPlayer { get; private set; } = PlayerSnapshot.Empty;
-    public WorldSnapshot CurrentWorld { get; private set; } = WorldSnapshot.Empty;
-    public MapSnapshot CurrentMap { get; private set; } = MapSnapshot.Empty;
+    public PlayerSnapshot CurrentPlayer => GetSnapshot<PlayerSnapshot>() ?? PlayerSnapshot.Empty;
+    public WorldSnapshot CurrentWorld => GetSnapshot<WorldSnapshot>() ?? WorldSnapshot.Empty;
+    public MapSnapshot CurrentMap => GetSnapshot<MapSnapshot>() ?? MapSnapshot.Empty;
+
+    public GameSessionSnapshot CreateSessionSnapshot()
+        => new(CurrentPlayer, CurrentWorld, new Dictionary<Type, object>(_snapshots));
 
     public bool IsRunning => !Process.HasExited;
     public bool IsQuitRequested => CheckIsQuitRequested();
@@ -75,16 +96,26 @@ public sealed class GameSession : ISessionContext, IDisposable
         remove => Process.Exited -= value;
     }
 
-    public GameSession(Process process, IMonoRuntime mono, Guid sessionId = default)
+    public GameSession(Process process, IMonoRuntime mono, Guid sessionId = default, Action<GameSession>? configure = null)
     {
         SessionId = sessionId == default ? Guid.NewGuid() : sessionId;
         Process = process;
         Process.EnableRaisingEvents = true;
         Mono = mono;
 
-        PlayerScraper = new PlayerScraper(mono);
+        MaskingController = new SessionMaskingController(mono);
+        LoginScreen = new LoginScreenController(mono);
+        PlayerScraper = new PlayerScraper(mono, () => MaskingController.OriginalCharacterName);
         WorldScraper = new WorldScraper(mono);
         MapScraper = new MapScraper(mono);
+
+        RegisterScraper(PlayerScraper);
+        RegisterScraper(WorldScraper);
+        RegisterScraper(MapScraper);
+
+        _snapshots[typeof(PlayerSnapshot)] = PlayerSnapshot.Empty;
+        _snapshots[typeof(WorldSnapshot)] = WorldSnapshot.Empty;
+        _snapshots[typeof(MapSnapshot)] = MapSnapshot.Empty;
 
         Dispatcher = new CommandDispatcher();
 
@@ -101,24 +132,28 @@ public sealed class GameSession : ISessionContext, IDisposable
         Dispatcher.RegisterHandler<SendChatCommand>(interactionHandler);
         Dispatcher.RegisterHandler<WakeUpCommand>(interactionHandler);
         Dispatcher.RegisterHandler<ChangeZoneCommand>(interactionHandler);
+        Dispatcher.RegisterHandler<OpenZonePanelCommand>(interactionHandler);
+        Dispatcher.RegisterHandler<CloseZonePanelCommand>(interactionHandler);
         Dispatcher.RegisterHandler<LoginCommand>(interactionHandler);
+        Dispatcher.RegisterHandler<FocusEntityCommand>(interactionHandler);
         Dispatcher.RegisterHandler<AssignSkillsCommand>(skillAssignmentHandler);
 
         Navigator = new AutoNavigator(Dispatcher);
 
-        TrainBehavior = new AutoTrainBehavior(new AutoTrainOptions());
-        ChatBehavior = new AutoChatBehavior(new AutoChatOptions());
-        RegisterBehavior(TrainBehavior);
-        RegisterBehavior(ChatBehavior);
+        RegisterBehavior(new AutoTrainBehavior(new AutoTrainOptions()));
+        RegisterBehavior(new AutoChatBehavior(new AutoChatOptions()));
+
+        configure?.Invoke(this);
     }
 
     public void Tick()
     {
         if (!IsRunning || IsQuitRequested) return;
 
-        CurrentPlayer = PlayerScraper.ScrapePlayer();
-        CurrentWorld = WorldScraper.ScrapeWorld();
-        CurrentMap = MapScraper.ScrapeMap();
+        foreach (var (snapshotType, scraper) in _scrapers)
+        {
+            _snapshots[snapshotType] = scraper.Scrape();
+        }
 
         Ticked?.Invoke(this);
     }

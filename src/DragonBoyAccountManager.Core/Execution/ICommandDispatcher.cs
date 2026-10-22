@@ -6,6 +6,7 @@ namespace DragonBoyAccountManager.Core.Execution;
 public interface ICommandDispatcher
 {
     void AddMiddleware(ICommandMiddleware middleware);
+    void RegisterHandler<TCommand>(IGameCommandHandler<TCommand> handler) where TCommand : IGameCommand;
 
     Task<Result> DispatchAsync<TCommand>(TCommand command, CancellationToken cancellationToken = default)
         where TCommand : IGameCommand;

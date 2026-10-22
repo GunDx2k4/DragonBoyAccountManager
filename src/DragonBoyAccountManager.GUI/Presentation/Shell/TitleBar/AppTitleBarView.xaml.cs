@@ -2,7 +2,7 @@ using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
 
-namespace DragonBoyAccountManager.GUI.Views;
+namespace DragonBoyAccountManager.GUI.Presentation.Shell.TitleBar;
 
 public partial class AppTitleBarView : UserControl
 {

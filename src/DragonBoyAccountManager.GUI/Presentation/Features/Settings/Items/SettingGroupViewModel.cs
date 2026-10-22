@@ -3,7 +3,7 @@ using System.Collections.ObjectModel;
 using System.Linq;
 using CommunityToolkit.Mvvm.ComponentModel;
 
-namespace DragonBoyAccountManager.GUI.ViewModels;
+namespace DragonBoyAccountManager.GUI.Presentation.Features.Settings.Items;
 
 public partial class SettingGroupViewModel : ObservableObject
 {

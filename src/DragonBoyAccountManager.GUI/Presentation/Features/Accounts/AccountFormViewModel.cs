@@ -1,25 +1,45 @@
 using System.Collections.ObjectModel;
 using System.ComponentModel;
-using System.Globalization;
 using System.Windows.Threading;
-
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using CommunityToolkit.Mvvm.Messaging;
+using DragonBoyAccountManager.Core.Accounts;
 using DragonBoyAccountManager.Core.Common;
-using DragonBoyAccountManager.Core.Storage;
-using DragonBoyAccountManager.GUI.Application.Messaging;
+using DragonBoyAccountManager.Core.Telemetry.Snapshots;
+using DragonBoyAccountManager.GUI.Domain.Messaging;
+using DragonBoyAccountManager.GUI.Presentation.Features.Accounts.Items;
+using DragonBoyAccountManager.GUI.Presentation.Features.Auto.Items;
+using DragonBoyAccountManager.GUI.Services.Dialogs;
+using DragonBoyAccountManager.GUI.Services.Dispatching;
+using DragonBoyAccountManager.GUI.Services.Engine;
+using DragonBoyAccountManager.GUI.Services.Input;
+using DragonBoyAccountManager.GUI.Services.Selection;
+using DragonBoyAccountManager.GUI.Services.Settings;
 
+namespace DragonBoyAccountManager.GUI.Presentation.Features.Accounts;
 
-namespace DragonBoyAccountManager.GUI.ViewModels;
-
-public sealed partial class AccountFormViewModel : ObservableObject
+public sealed partial class AccountFormViewModel : ObservableObject, IActivatableTab
 {
+    public void OnTabActivated()
+    {
+        StartPolling();
+        RefreshSkills();
+        RequestZoneList();
+    }
+
+    public void OnTabDeactivated()
+    {
+        StopPolling();
+    }
     private readonly IGameEngineService _gameEngine;
     private readonly IDialogService _dialogService;
     private readonly IGameImageService _gameImageService;
     private readonly IAccountStorageService _storageService;
     private readonly ISettingsService _settingsService;
+    private readonly IActiveSelectionService? _selectionService;
+    private readonly IGameInputService _gameInput;
+    private readonly IDispatcherService? _dispatcher;
 
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(DisplayUsername))]
@@ -33,6 +53,7 @@ public sealed partial class AccountFormViewModel : ObservableObject
 
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(CanDelete))]
+    [NotifyPropertyChangedFor(nameof(CanModifyCredentials))]
     private bool _isEditing;
 
     [ObservableProperty]
@@ -66,12 +87,9 @@ public sealed partial class AccountFormViewModel : ObservableObject
         get => _selectedZone;
         set
         {
-            if (SetProperty(ref _selectedZone, value))
+            if (SetProperty(ref _selectedZone, value) && value != null && !_isRefreshingZones)
             {
-                if (value != null && !_isRefreshingZones)
-                {
-                    ExecuteChangeZone(value.ZoneId);
-                }
+                ExecuteChangeZone(value.ZoneId);
             }
         }
     }
@@ -83,21 +101,16 @@ public sealed partial class AccountFormViewModel : ObservableObject
     private string _zonePlayerDisplay = "0/15";
 
     private bool _isRefreshingZones;
-
     private AccountItemViewModel? _editingAccount;
-    private readonly IActiveSelectionService? _selectionService;
-    private Func<IEnumerable<Guid>>? _targetResolver;
-    private Func<IEnumerable<Guid>>? _keyTargetResolver;
-    private Func<IEnumerable<Guid>>? _speedTargetResolver;
 
     public string DisplayUsername => IsMasked ? TextMaskHelper.MaskText(Username) : Username;
 
     public bool CanDelete => IsEditing && _editingAccount != null && !_editingAccount.IsRunning;
+    public bool CanModifyCredentials => !IsEditing || _editingAccount == null || !_editingAccount.IsRunning;
 
     public event Func<Account, Task>? OnAccountSaved;
     public event Func<Guid, Task>? OnAccountDeleted;
 
-    private readonly DispatcherTimer _skillRefreshTimer;
     private readonly DispatcherTimer _cooldownTimer;
 
     public AccountFormViewModel(
@@ -106,7 +119,9 @@ public sealed partial class AccountFormViewModel : ObservableObject
         IGameImageService gameImageService,
         IAccountStorageService storageService,
         ISettingsService settingsService,
-        IActiveSelectionService? selectionService = null)
+        IActiveSelectionService? selectionService = null,
+        IGameInputService? gameInput = null,
+        IDispatcherService? dispatcher = null)
     {
         _gameEngine = gameEngine;
         _dialogService = dialogService;
@@ -114,6 +129,8 @@ public sealed partial class AccountFormViewModel : ObservableObject
         _storageService = storageService;
         _settingsService = settingsService;
         _selectionService = selectionService;
+        _gameInput = gameInput ?? new GameInputService(gameEngine, selectionService);
+        _dispatcher = dispatcher;
         _isMasked = _settingsService.Current.IsMasked;
 
         if (_selectionService != null)
@@ -140,74 +157,54 @@ public sealed partial class AccountFormViewModel : ObservableObject
             }
         }
 
-        _skillRefreshTimer = new DispatcherTimer
-        {
-            Interval = TimeSpan.FromSeconds(2)
-        };
-        _skillRefreshTimer.Tick += (_, _) =>
-        {
-            if (_editingAccount != null && _editingAccount.IsRunning)
-            {
-                RefreshSkills();
-            }
-        };
         _cooldownTimer = new DispatcherTimer
         {
             Interval = TimeSpan.FromMilliseconds(100)
         };
         _cooldownTimer.Tick += (_, _) => UpdateCooldowns();
 
-        WeakReferenceMessenger.Default.Register<AccountSelectedMessage>(this, (_, m) =>
-        {
-            SetEditingAccount(m.Account);
-        });
-
         WeakReferenceMessenger.Default.Register<SessionSnapshotUpdatedMessage>(this, (_, m) =>
         {
             if (_editingAccount?.Id == m.AccountId && m.Status == GameSessionStatus.Active)
             {
-                var dispatcher = App.Current?.Dispatcher;
-                if (dispatcher != null)
-                {
-                    _ = dispatcher.InvokeAsync(RefreshSkills);
-                }
+                RunOnUi(RefreshSkills);
+            }
+        });
+
+        WeakReferenceMessenger.Default.Register<MaskingStateChangedMessage>(this, (_, m) =>
+        {
+            if (IsMasked != m.IsMasked)
+            {
+                IsMasked = m.IsMasked;
             }
         });
     }
 
+    private void RunOnUi(Action action)
+    {
+        if (_dispatcher != null)
+        {
+            _ = _dispatcher.InvokeAsync(action);
+        }
+        else if (App.Current?.Dispatcher != null)
+        {
+            _ = App.Current.Dispatcher.InvokeAsync(action);
+        }
+        else
+        {
+            action();
+        }
+    }
+
     public void StartPolling()
     {
-        if (!_skillRefreshTimer.IsEnabled)
-        {
-            _skillRefreshTimer.Start();
-        }
-        if (!_cooldownTimer.IsEnabled)
-        {
-            _cooldownTimer.Start();
-        }
+        if (!_cooldownTimer.IsEnabled) _cooldownTimer.Start();
     }
 
     public void StopPolling()
     {
-        if (_skillRefreshTimer.IsEnabled)
-        {
-            _skillRefreshTimer.Stop();
-        }
-        if (_cooldownTimer.IsEnabled)
-        {
-            _cooldownTimer.Stop();
-        }
+        if (_cooldownTimer.IsEnabled) _cooldownTimer.Stop();
     }
-
-    public void SetTargetResolver(Func<IEnumerable<Guid>> resolver)
-    {
-        _targetResolver = resolver;
-        _keyTargetResolver = resolver;
-        _speedTargetResolver = resolver;
-    }
-
-    public void SetKeyTargetResolver(Func<IEnumerable<Guid>> resolver) => _keyTargetResolver = resolver;
-    public void SetSpeedTargetResolver(Func<IEnumerable<Guid>> resolver) => _speedTargetResolver = resolver;
 
     public void SetEditingAccount(AccountItemViewModel? item)
     {
@@ -241,6 +238,7 @@ public sealed partial class AccountFormViewModel : ObservableObject
             ClearForm();
         }
         OnPropertyChanged(nameof(CanDelete));
+        OnPropertyChanged(nameof(CanModifyCredentials));
     }
 
     private void OnEditingAccountPropertyChanged(object? sender, PropertyChangedEventArgs e)
@@ -248,6 +246,7 @@ public sealed partial class AccountFormViewModel : ObservableObject
         if (e.PropertyName == nameof(AccountItemViewModel.IsRunning))
         {
             OnPropertyChanged(nameof(CanDelete));
+            OnPropertyChanged(nameof(CanModifyCredentials));
             if (_editingAccount != null && _editingAccount.IsRunning)
             {
                 RequestZoneList();
@@ -301,13 +300,13 @@ public sealed partial class AccountFormViewModel : ObservableObject
         _selectedZone = null;
         OnPropertyChanged(nameof(SelectedZone));
         AvailableZones.Clear();
-        for (int i = 0; i < Skills.Count; i++)
+        foreach (var skill in Skills)
         {
-            Skills[i].Name = i == 9 ? "Skill 0" : $"Skill {i + 1}";
-            Skills[i].IsSelected = false;
+            skill.Reset(true);
         }
         IsEditing = false;
         OnPropertyChanged(nameof(CanDelete));
+        OnPropertyChanged(nameof(CanModifyCredentials));
     }
 
     partial void OnGameSpeedChanged(float value)
@@ -318,8 +317,7 @@ public sealed partial class AccountFormViewModel : ObservableObject
             _editingAccount.Model.GameSpeed = value;
         }
 
-        var targets = ResolveSpeedTargets();
-        foreach (var id in targets)
+        foreach (var id in ResolveSpeedTargets())
         {
             _gameEngine.SetGameSpeed(id, value);
         }
@@ -335,6 +333,12 @@ public sealed partial class AccountFormViewModel : ObservableObject
     [RelayCommand]
     private async Task SaveAsync()
     {
+        if (_editingAccount != null && _editingAccount.IsRunning)
+        {
+            _dialogService.ShowWarning("Không thể lưu", "Tài khoản đang chạy game. Vui lòng đóng game trước khi thay đổi thông tin!");
+            return;
+        }
+
         string trimmedUser = Username.Trim();
         if (string.IsNullOrWhiteSpace(trimmedUser))
         {
@@ -428,10 +432,7 @@ public sealed partial class AccountFormViewModel : ObservableObject
     }
 
     [RelayCommand]
-    private void TogglePasswordVisibility()
-    {
-        IsPasswordVisible = !IsPasswordVisible;
-    }
+    private void TogglePasswordVisibility() => IsPasswordVisible = !IsPasswordVisible;
 
     [RelayCommand]
     private void ToggleHideAccounts()
@@ -440,6 +441,6 @@ public sealed partial class AccountFormViewModel : ObservableObject
         _settingsService.Current.IsMasked = IsMasked;
         _ = _settingsService.SaveAsync();
         _gameEngine.SetMasked(IsMasked);
+        WeakReferenceMessenger.Default.Send(new MaskingStateChangedMessage(IsMasked));
     }
 }
-

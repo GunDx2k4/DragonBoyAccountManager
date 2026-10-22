@@ -1,6 +1,7 @@
 using System.Collections.Concurrent;
 using System.Diagnostics;
 using System.Reflection;
+using System.Runtime.InteropServices;
 using System.Text;
 using DragonBoyAccountManager.Core.Common;
 using DragonBoyAccountManager.Core.Interop.Memory;
@@ -439,20 +440,52 @@ public class MonoRuntime : IMonoRuntime
         return result;
     }
 
+    public int[] ReadMonoIntArray(IntPtr monoArrayPtr, int maxLength = 1_000_000)
+    {
+        if (monoArrayPtr == IntPtr.Zero || maxLength <= 0) return [];
+
+        int lengthOffset = _memory.PointerSize * 3;
+        int dataOffset = _memory.PointerSize * 4;
+
+        int length = _memory.ReadInt(monoArrayPtr + lengthOffset);
+        if (length <= 0 || length > 1_000_000) return [];
+
+        int actualLength = Math.Min(length, maxLength);
+        var result = new int[actualLength];
+        if (!_memory.TryReadBytes(monoArrayPtr + dataOffset, MemoryMarshal.AsBytes(result.AsSpan())))
+            return [];
+
+        return result;
+    }
+
     public IntPtr[] ReadMonoPointerArray(IntPtr monoArrayPtr)
     {
         if (monoArrayPtr == IntPtr.Zero) return [];
 
-        int lengthOffset = _memory.Is64Bit ? 0x18 : 0x0C;
-        int dataOffset = _memory.Is64Bit ? 0x20 : 0x10;
+        int ptrSize = _memory.PointerSize;
+        int lengthOffset = ptrSize * 3;
+        int dataOffset = ptrSize * 4;
 
         int length = _memory.ReadInt(monoArrayPtr + lengthOffset);
         if (length <= 0 || length > 10000) return [];
 
+        byte[] raw = _memory.ReadBytes(monoArrayPtr + dataOffset, length * ptrSize);
+        if (raw.Length < length * ptrSize) return [];
+
         var result = new IntPtr[length];
-        for (int i = 0; i < length; i++)
+        if (_memory.Is64Bit)
         {
-            result[i] = _memory.ReadIntPtr(monoArrayPtr + dataOffset + (i * _memory.PointerSize));
+            for (int i = 0; i < length; i++)
+            {
+                result[i] = (IntPtr)BitConverter.ToInt64(raw, i * 8);
+            }
+        }
+        else
+        {
+            for (int i = 0; i < length; i++)
+            {
+                result[i] = (IntPtr)BitConverter.ToInt32(raw, i * 4);
+            }
         }
         return result;
     }
@@ -608,26 +641,7 @@ public class MonoRuntime : IMonoRuntime
     {
         int paramCount = args?.Length ?? 0;
         IntPtr method = ResolveMethod(className, methodName, paramCount);
-        if (method == IntPtr.Zero) return IntPtr.Zero;
-
-        if (paramCount == 0)
-            return InvokeMethod(method, thisObj);
-
-        var tempAllocations = new List<IntPtr>();
-        var monoArgs = new IntPtr[paramCount];
-        try
-        {
-            for (int i = 0; i < paramCount; i++)
-            {
-                monoArgs[i] = MarshalArgument(args![i], tempAllocations);
-            }
-            return InvokeMethod(method, thisObj, monoArgs);
-        }
-        finally
-        {
-            foreach (var ptr in tempAllocations)
-                _memory.Free(ptr);
-        }
+        return InvokeResolvedMethod(method, thisObj, args);
     }
 
     public IntPtr CallUnityMethod(string ns, string className, string methodName, IntPtr thisObj, params object?[]? args)
@@ -636,12 +650,18 @@ public class MonoRuntime : IMonoRuntime
         IntPtr method = ResolveMethod(className, methodName, paramCount, ns, "UnityEngine");
         if (method == IntPtr.Zero)
             method = ResolveMethod(className, methodName, paramCount, ns, "UnityEngine.CoreModule");
+        return InvokeResolvedMethod(method, thisObj, args);
+    }
+
+    private IntPtr InvokeResolvedMethod(IntPtr method, IntPtr thisObj, object?[]? args)
+    {
         if (method == IntPtr.Zero) return IntPtr.Zero;
 
+        int paramCount = args?.Length ?? 0;
         if (paramCount == 0)
             return InvokeMethod(method, thisObj);
 
-        var tempAllocations = new List<IntPtr>();
+        var tempAllocations = new List<IntPtr>(paramCount);
         var monoArgs = new IntPtr[paramCount];
         try
         {

@@ -39,21 +39,19 @@ public class TileAStarFinderTests
         int height = 10;
         var mapTypes = new int[width * height];
 
-        // Place a solid wall at column 3, rows 0 to 4
         for (int y = 0; y <= 4; y++)
         {
             mapTypes[y * width + 3] = TileAStarFinder.T_SOLIDGROUND;
         }
 
-        int startX = 24;  // tile (1, 2)
+        int startX = 24;
         int startY = 48;
-        int targetX = 120; // tile (5, 2)
+        int targetX = 120;
         int targetY = 48;
 
         var path = TileAStarFinder.FindPath(startX, startY, targetX, targetY, width, height, mapTypes);
 
         Assert.NotEmpty(path);
-        // Ensure no point in path lies inside the wall at column 3, row <= 4
         foreach (var (px, py) in path)
         {
             int tx = px / TileAStarFinder.TileSize;

@@ -14,7 +14,7 @@ public class SkillAssignmentHandler(IMonoRuntime mono) : IGameCommandHandler<Ass
     {
         try
         {
-            IntPtr charPtr = _mono.ReadStatic<IntPtr>(GameSchema.Char.ClassName, GameSchema.Char.StaticMyChar);
+            IntPtr charPtr = _mono.GetMyCharPtr();
             if (charPtr == IntPtr.Zero)
                 return Task.FromResult(Result.Failure("Không tìm thấy con trỏ nhân vật."));
 
@@ -50,10 +50,7 @@ public class SkillAssignmentHandler(IMonoRuntime mono) : IGameCommandHandler<Ass
                 _mono.WriteField(GameSchema.Char.ClassName, GameSchema.Char.FieldMySkill, charPtr, validSkills[0]);
             }
 
-            IntPtr gameScr = _mono.ReadStatic<IntPtr>(GameSchema.GameScr.ClassName, GameSchema.GameScr.StaticInstance);
-            if (gameScr == IntPtr.Zero)
-                gameScr = _mono.CallMethod(GameSchema.GameScr.ClassName, GameSchema.GameScr.MethodGI, IntPtr.Zero);
-
+            IntPtr gameScr = _mono.GetGameScrPtr();
             if (gameScr != IntPtr.Zero)
             {
                 _mono.CallMethod(GameSchema.GameScr.ClassName, GameSchema.GameScr.MethodSaveKeySkillToRMS, gameScr);

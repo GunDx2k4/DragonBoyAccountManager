@@ -7,7 +7,7 @@ namespace DragonBoyAccountManager.Core.Execution;
 public class CommandDispatcher : ICommandDispatcher, IDisposable
 {
     private readonly SemaphoreSlim _lock = new(1, 1);
-    private readonly ConcurrentDictionary<Type, object> _handlers = new();
+    private readonly ConcurrentDictionary<Type, CommandExecutionDelegate> _handlers = new();
     private readonly List<ICommandMiddleware> _middlewares = [];
 
     public event Action<IGameCommand, Result>? CommandExecuted;
@@ -24,7 +24,8 @@ public class CommandDispatcher : ICommandDispatcher, IDisposable
 
     public void RegisterHandler<TCommand>(IGameCommandHandler<TCommand> handler) where TCommand : IGameCommand
     {
-        _handlers[typeof(TCommand)] = handler;
+        ArgumentNullException.ThrowIfNull(handler);
+        _handlers[typeof(TCommand)] = (cmd, ct) => handler.HandleAsync((TCommand)cmd, ct);
     }
 
     public async Task<Result> DispatchAsync<TCommand>(TCommand command, CancellationToken cancellationToken = default)
@@ -32,17 +33,16 @@ public class CommandDispatcher : ICommandDispatcher, IDisposable
     {
         if (command == null) return Result.Failure("Lệnh không thể là null.");
 
-        if (!_handlers.TryGetValue(typeof(TCommand), out var rawHandler) || rawHandler is not IGameCommandHandler<TCommand> handler)
+        var commandType = command.GetType();
+        if (!_handlers.TryGetValue(commandType, out var handlerDelegate))
         {
-            return Result.Failure($"Không tìm thấy handler cho lệnh {typeof(TCommand).Name}");
+            return Result.Failure($"Không tìm thấy handler cho lệnh {commandType.Name}");
         }
 
         await _lock.WaitAsync(cancellationToken);
         try
         {
             CommandExecuting?.Invoke(command);
-
-            CommandExecutionDelegate handlerDelegate = (cmd, ct) => handler.HandleAsync((TCommand)cmd, ct);
 
             CommandExecutionDelegate pipeline = handlerDelegate;
             lock (_middlewares)

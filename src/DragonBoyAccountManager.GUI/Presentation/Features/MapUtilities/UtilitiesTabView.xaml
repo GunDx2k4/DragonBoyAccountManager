@@ -1,11 +1,12 @@
 <UserControl
-    x:Class="DragonBoyAccountManager.GUI.Views.UtilitiesTabView"
+    x:Class="DragonBoyAccountManager.GUI.Presentation.Features.MapUtilities.UtilitiesTabView"
     xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
     xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
     xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
     xmlns:models="clr-namespace:DragonBoyAccountManager.Core.Telemetry.Snapshots;assembly=DragonBoyAccountManager.Core"
-    xmlns:viewmodels="clr-namespace:DragonBoyAccountManager.GUI.ViewModels"
+    xmlns:items="clr-namespace:DragonBoyAccountManager.GUI.Presentation.Features.MapUtilities.Items"
+    xmlns:viewmodels="clr-namespace:DragonBoyAccountManager.GUI.Presentation.Features.MapUtilities"
     d:DataContext="{d:DesignInstance Type=viewmodels:UtilitiesTabViewModel}"
     d:DesignHeight="550"
     d:DesignWidth="435"
@@ -364,7 +365,7 @@
                     </ItemsPanelTemplate>
                 </ItemsControl.ItemsPanel>
                 <ItemsControl.ItemTemplate>
-                    <DataTemplate DataType="{x:Type viewmodels:WaypointButtonItem}">
+                    <DataTemplate DataType="{x:Type items:WaypointButtonItem}">
                         <Button
                             Height="38"
                             MinWidth="0"

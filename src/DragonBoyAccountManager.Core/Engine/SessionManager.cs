@@ -1,11 +1,11 @@
 using System.Collections.Concurrent;
 using System.Diagnostics;
+using DragonBoyAccountManager.Core.Automation.Behaviors;
 using DragonBoyAccountManager.Core.Common;
-using DragonBoyAccountManager.Core.Common.Results;
 using DragonBoyAccountManager.Core.Engine.Abstractions;
+using DragonBoyAccountManager.Core.Engine.Events;
 using DragonBoyAccountManager.Core.Engine.Models;
 using DragonBoyAccountManager.Core.Sessions;
-using DragonBoyAccountManager.Core.Telemetry.Snapshots;
 
 namespace DragonBoyAccountManager.Core.Engine;
 
@@ -14,54 +14,17 @@ public sealed class SessionManager : ISessionManager, IDisposable
     private readonly ConcurrentDictionary<Guid, SessionWorker> _workers = new();
     private readonly HashSet<Guid> _userStoppedAccounts = [];
     private readonly object _userStoppedLock = new();
+    private readonly SemaphoreSlim _launchGate = new(1, 1);
     private readonly SessionLauncher _launcher = new();
 
+    public Action<GameSession>? SessionInitializer { get; set; }
     public IReadOnlyCollection<Guid> ActiveSessionIds => _workers.Keys.ToList();
 
     public event Action<SessionEvent>? EventPublished;
 
-    public event Action<Guid, GameSessionStatus, GameSessionSnapshot?>? SessionUpdated;
-    public event Action<Guid, string>? MessageUpdated;
-    public event Action<Guid, ActionExecutionReport>? ActionReported;
-    public event Action<Guid, string, int>? ChatSent;
-    public event Action<Guid, string>? AutoTrainStatusChanged;
-    public event Action<Guid, bool>? AutoTrainStateChanged;
-    public event Action<Guid, Process>? SessionStarted;
-    public event Action<Guid>? SessionExited;
-
     private void Publish(SessionEvent evt)
     {
         EventPublished?.Invoke(evt);
-
-        switch (evt)
-        {
-            case SessionStateChangedEvent e:
-                SessionUpdated?.Invoke(e.AccountId, e.Status, e.Snapshot);
-                break;
-            case SessionMessageEvent e:
-                MessageUpdated?.Invoke(e.AccountId, e.Message);
-                break;
-            case SessionProcessStartedEvent e:
-                SessionStarted?.Invoke(e.AccountId, e.Process);
-                break;
-            case SessionProcessExitedEvent e:
-                SessionExited?.Invoke(e.AccountId);
-                break;
-            case ActionReportedEvent e:
-                ActionReported?.Invoke(e.AccountId, e.Report);
-                break;
-            case ChatSentEvent e:
-                ChatSent?.Invoke(e.AccountId, e.Message, e.Channel);
-                break;
-            case BehaviorStateChangedEvent e when e.BehaviorId == "AutoTrain":
-                AutoTrainStateChanged?.Invoke(e.AccountId, e.IsRunning);
-                if (e.StatusMessage != null)
-                    AutoTrainStatusChanged?.Invoke(e.AccountId, e.StatusMessage);
-                break;
-            case BehaviorProgressEvent e when e.BehaviorId == "AutoTrain":
-                AutoTrainStatusChanged?.Invoke(e.AccountId, e.Message);
-                break;
-        }
     }
 
     public bool IsRunning(Guid accountId)
@@ -74,6 +37,11 @@ public sealed class SessionManager : ISessionManager, IDisposable
         return _workers.TryGetValue(accountId, out var worker) ? worker.Session.ProcessId : null;
     }
 
+    public Process? GetProcess(Guid accountId)
+    {
+        return _workers.TryGetValue(accountId, out var worker) && worker.Session.IsRunning ? worker.Session.Process : null;
+    }
+
     public GameSession? GetSession(Guid accountId)
     {
         return _workers.TryGetValue(accountId, out var worker) ? worker.Session : null;
@@ -82,6 +50,13 @@ public sealed class SessionManager : ISessionManager, IDisposable
     public SessionWorker? GetWorker(Guid accountId)
     {
         return _workers.TryGetValue(accountId, out var worker) ? worker : null;
+    }
+
+    public TSnapshot? GetSnapshot<TSnapshot>(Guid accountId) where TSnapshot : class
+    {
+        return _workers.TryGetValue(accountId, out var worker) && worker.Session.IsRunning
+            ? worker.Session.GetSnapshot<TSnapshot>()
+            : null;
     }
 
     public async Task<bool> StartSessionAsync(AccountLaunchOptions options, CancellationToken cancellationToken = default)
@@ -101,7 +76,15 @@ public sealed class SessionManager : ISessionManager, IDisposable
             Publish(new SessionStateChangedEvent(options.AccountId, GameSessionStatus.Waiting, null));
             Publish(new SessionMessageEvent(options.AccountId, "Đang khởi tạo game client..."));
 
-            GameRmsStorage.SetServerSelection(options.ServerId);
+            var globalInit = SessionInitializer;
+            var perAccountInit = options.ConfigureSession;
+            Action<GameSession>? combinedConfigure = (globalInit, perAccountInit) switch
+            {
+                (not null, not null) => s => { globalInit(s); perAccountInit(s); },
+                (not null, null) => globalInit,
+                (null, not null) => perAccountInit,
+                _ => null
+            };
 
             var launchOptions = new LaunchOptions
             {
@@ -110,13 +93,25 @@ public sealed class SessionManager : ISessionManager, IDisposable
                 ScreenWidth = options.ScreenWidth > 0 ? options.ScreenWidth : 1024,
                 ScreenHeight = options.ScreenHeight > 0 ? options.ScreenHeight : 600,
                 LogPrefix = $"DBAM_{options.Username}",
-                IsMasked = options.IsMasked
+                IsMasked = options.IsMasked,
+                ConfigureSession = combinedConfigure
             };
 
-            var session = await _launcher.LaunchAsync(launchOptions, cancellationToken);
+            GameSession session;
+            await _launchGate.WaitAsync(cancellationToken);
+            try
+            {
+                GameRmsStorage.SetServerSelection(options.ServerId);
+                session = await _launcher.LaunchAsync(launchOptions, cancellationToken);
+            }
+            finally
+            {
+                _launchGate.Release();
+            }
+
             var worker = new SessionWorker(session, options);
 
-            worker.EventPublished += evt => Publish(evt);
+            worker.EventPublished += Publish;
 
             _workers[options.AccountId] = worker;
 
@@ -202,7 +197,7 @@ public sealed class SessionManager : ISessionManager, IDisposable
         foreach (var (id, worker) in list)
         {
             try { await worker.StopAsync(); } catch { }
-            SessionUpdated?.Invoke(id, GameSessionStatus.Offline, null);
+            Publish(new SessionStateChangedEvent(id, GameSessionStatus.Offline, null));
         }
     }
 
@@ -222,8 +217,37 @@ public sealed class SessionManager : ISessionManager, IDisposable
         foreach (var (id, worker) in list)
         {
             try { worker.Dispose(); } catch { }
-            SessionUpdated?.Invoke(id, GameSessionStatus.Offline, null);
+            Publish(new SessionStateChangedEvent(id, GameSessionStatus.Offline, null));
         }
+    }
+
+    public bool StartBehavior<TBehavior, TOptions>(Guid accountId, TOptions options)
+        where TBehavior : class, IBehavior<TOptions>
+        where TOptions : class
+    {
+        return _workers.TryGetValue(accountId, out var worker) && worker.StartBehavior<TBehavior, TOptions>(options);
+    }
+
+    public bool UpdateBehaviorOptions<TBehavior, TOptions>(Guid accountId, TOptions options)
+        where TBehavior : class, IBehavior<TOptions>
+        where TOptions : class
+    {
+        return _workers.TryGetValue(accountId, out var worker) && worker.UpdateBehaviorOptions<TBehavior, TOptions>(options);
+    }
+
+    public bool StopBehavior<TBehavior>(Guid accountId) where TBehavior : class, IBehavior
+    {
+        return _workers.TryGetValue(accountId, out var worker) && worker.StopBehavior<TBehavior>();
+    }
+
+    public bool IsBehaviorRunning<TBehavior>(Guid accountId) where TBehavior : class, IBehavior
+    {
+        return _workers.TryGetValue(accountId, out var worker) && worker.IsBehaviorRunning<TBehavior>();
+    }
+
+    public TBehavior? GetBehavior<TBehavior>(Guid accountId) where TBehavior : class, IBehavior
+    {
+        return _workers.TryGetValue(accountId, out var worker) ? worker.Session.GetBehavior<TBehavior>() : null;
     }
 
     public bool StartBehavior(Guid accountId, string behaviorId)
@@ -265,6 +289,7 @@ public sealed class SessionManager : ISessionManager, IDisposable
     public void Dispose()
     {
         StopAllSessions();
+        _launchGate.Dispose();
         GC.SuppressFinalize(this);
     }
 }

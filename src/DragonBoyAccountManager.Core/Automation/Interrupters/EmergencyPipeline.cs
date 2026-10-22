@@ -1,5 +1,6 @@
 using DragonBoyAccountManager.Core.Common.Results;
 using DragonBoyAccountManager.Core.Execution;
+using DragonBoyAccountManager.Core.Sessions;
 using DragonBoyAccountManager.Core.Telemetry.Snapshots;
 
 namespace DragonBoyAccountManager.Core.Automation.Interrupters;
@@ -13,7 +14,15 @@ public class EmergencyPipeline
         _interrupters.Add(interrupter);
     }
 
+    public Task<Result?> CheckAndExecuteAsync(
+        PlayerSnapshot player,
+        WorldSnapshot world,
+        ICommandDispatcher dispatcher,
+        CancellationToken cancellationToken = default)
+        => CheckAndExecuteAsync(null, player, world, dispatcher, cancellationToken);
+
     public async Task<Result?> CheckAndExecuteAsync(
+        ISessionContext? context,
         PlayerSnapshot player,
         WorldSnapshot world,
         ICommandDispatcher dispatcher,
@@ -23,7 +32,7 @@ public class EmergencyPipeline
         {
             if (cancellationToken.IsCancellationRequested) break;
 
-            var result = await interrupter.CheckAndExecuteAsync(player, world, dispatcher, cancellationToken);
+            var result = await interrupter.CheckAndExecuteAsync(context, player, world, dispatcher, cancellationToken);
             if (result != null)
             {
                 return result;

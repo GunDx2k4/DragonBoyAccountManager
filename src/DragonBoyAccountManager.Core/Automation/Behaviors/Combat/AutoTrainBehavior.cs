@@ -5,8 +5,15 @@ using DragonBoyAccountManager.Core.Telemetry.Snapshots;
 
 namespace DragonBoyAccountManager.Core.Automation.Behaviors.Combat;
 
+public enum MobTargetMode
+{
+    ByTemplate = 0,
+    ByMobId = 1
+}
+
 public sealed class AutoTrainOptions
 {
+    public MobTargetMode TargetMode { get; init; } = MobTargetMode.ByTemplate;
     public IReadOnlyList<int> SelectedSkillSlots { get; init; } = [0];
     public IReadOnlyList<int> TargetMobTemplateIds { get; init; } = [];
     public IReadOnlyList<int> TargetMobIds { get; init; } = [];
@@ -21,6 +28,8 @@ public sealed class AutoTrainOptions
 
 public sealed class AutoTrainBehavior : AutomationBehavior<AutoTrainOptions>
 {
+    public const string BehaviorId = "AutoTrain";
+
     private readonly AutoReviveInterrupter _reviveInterrupter = new();
     private readonly AutoPeanInterrupter _peanInterrupter;
     private DateTime _lastAttackTime = DateTime.MinValue;
@@ -28,7 +37,7 @@ public sealed class AutoTrainBehavior : AutomationBehavior<AutoTrainOptions>
     private int _skillRotationIndex;
 
     public AutoTrainBehavior(AutoTrainOptions options)
-        : base("Auto Train", options, "AutoTrain")
+        : base("Auto Train", options, BehaviorId)
     {
         _peanInterrupter = new AutoPeanInterrupter(options.AutoUsePean, options.MinHpPercent, options.MinMpPercent);
         Interrupters.Register(_reviveInterrupter);
@@ -69,7 +78,7 @@ public sealed class AutoTrainBehavior : AutomationBehavior<AutoTrainOptions>
         if (Options.UseTdlt && DateTime.UtcNow - _lastTdltCheckTime > TimeSpan.FromSeconds(5))
         {
             _lastTdltCheckTime = DateTime.UtcNow;
-            if (!player.IsTdltActive)
+            if (!player.IsTdltActive && (player.BagItems == null || player.BagItemList.Any(i => i.IsTdlt && i.Quantity > 0)))
             {
                 await dispatcher.DispatchAsync(new UseItemCommand(-1, GameDefinitions.DefaultTdltTemplateId, "TDLT"), cancellationToken);
             }

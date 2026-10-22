@@ -1,7 +1,6 @@
-using DragonBoyAccountManager.Core.Common;
 using DragonBoyAccountManager.Core.Execution;
-using DragonBoyAccountManager.Core.Interop.Mono;
 using DragonBoyAccountManager.Core.Interop.Mono.Schema;
+using DragonBoyAccountManager.Core.Sessions.Controllers;
 using DragonBoyAccountManager.Core.Telemetry.Snapshots;
 
 namespace DragonBoyAccountManager.Core.Automation.Behaviors.Lifecycle;
@@ -18,15 +17,15 @@ public sealed class AutoLoginOptions
 
 public sealed class AutoLoginBehavior : AutomationBehavior<AutoLoginOptions>
 {
-    private readonly IMonoRuntime _mono;
+    private readonly LoginScreenController _loginScreen;
     private int _attempts;
 
     public int Attempts => _attempts;
 
-    public AutoLoginBehavior(AutoLoginOptions options, IMonoRuntime mono)
+    public AutoLoginBehavior(AutoLoginOptions options, LoginScreenController loginScreen)
         : base("Auto Login", options, "AutoLogin")
     {
-        _mono = mono ?? throw new ArgumentNullException(nameof(mono));
+        _loginScreen = loginScreen ?? throw new ArgumentNullException(nameof(loginScreen));
     }
 
     protected override void OnStarted(IProgress<string>? progress)
@@ -47,20 +46,20 @@ public sealed class AutoLoginBehavior : AutomationBehavior<AutoLoginOptions>
         {
             if (Options.IsMasked)
             {
-                ClearSensitiveInputs();
+                _loginScreen.ClearSensitiveInputs(Options.Username);
             }
             progress?.Report($"[Auto Login] Nhân vật đã vào game: {player.Name}");
             Stop();
             return;
         }
 
-        if (IsDownloadingData())
+        if (_loginScreen.IsDownloadingData())
         {
-            TriggerDownloadData();
+            _loginScreen.TriggerDownloadData();
 
-            while (IsDownloadingData() && !cancellationToken.IsCancellationRequested)
+            while (_loginScreen.IsDownloadingData() && !cancellationToken.IsCancellationRequested)
             {
-                int pct = GetDownloadDataPercent();
+                int pct = _loginScreen.GetDownloadDataPercent();
                 string pctText = pct > 0 ? $" ({pct}%)" : string.Empty;
                 progress?.Report($"[Auto Login] Game đang tải dữ liệu{pctText}...");
                 await Task.Delay(1000, cancellationToken);
@@ -73,11 +72,9 @@ public sealed class AutoLoginBehavior : AutomationBehavior<AutoLoginOptions>
             {
                 await Task.Delay(500, cancellationToken);
 
-                bool isLoading = false;
-                try { isLoading = _mono.ReadStatic<bool>(GameSchema.Controller.ClassName, GameSchema.Controller.StaticIsLoadingData); } catch { }
-                if (!isLoading && !IsUpdatingGameData())
+                if (!_loginScreen.IsLoadingControllerData() && !_loginScreen.IsUpdatingGameData())
                 {
-                    string? s = GetCurrentScreenName();
+                    string? s = _loginScreen.GetCurrentScreenName();
                     if (s == GameSchema.ServerListScreen.ClassName || s == GameSchema.LoginScr.ClassName)
                     {
                         await Task.Delay(1000, cancellationToken);
@@ -99,12 +96,8 @@ public sealed class AutoLoginBehavior : AutomationBehavior<AutoLoginOptions>
 
         progress?.Report($"[Auto Login] [Lần {_attempts}/{Options.MaxAttempts}] Kiểm tra trạng thái game...");
 
-        IntPtr currentDialog = GetCurrentDialogPointer();
-        if (currentDialog != IntPtr.Zero)
+        if (_loginScreen.HasActiveDialog(out bool isWait, out string? dlgText))
         {
-            bool isWait = IsWaitDialog(currentDialog);
-            string? dlgText = GetDialogText(currentDialog);
-
             if (isWait)
             {
                 progress?.Report($"[Auto Login] Chờ phản hồi: {dlgText ?? "Vui lòng chờ..."}");
@@ -112,7 +105,7 @@ public sealed class AutoLoginBehavior : AutomationBehavior<AutoLoginOptions>
                 while (DateTime.UtcNow < waitDeadline && !cancellationToken.IsCancellationRequested)
                 {
                     await Task.Delay(300, cancellationToken);
-                    if (GetCurrentDialogPointer() == IntPtr.Zero || !IsWaitDialog(GetCurrentDialogPointer()))
+                    if (!_loginScreen.IsWaitDialogPresent())
                         break;
                 }
             }
@@ -123,10 +116,9 @@ public sealed class AutoLoginBehavior : AutomationBehavior<AutoLoginOptions>
                 return;
             }
 
-            currentDialog = GetCurrentDialogPointer();
-            if (currentDialog != IntPtr.Zero && !IsWaitDialog(currentDialog))
+            if (_loginScreen.IsNonWaitDialogPresent())
             {
-                CloseDialog();
+                _loginScreen.CloseDialog();
                 await Task.Delay(400, cancellationToken);
             }
         }
@@ -137,8 +129,8 @@ public sealed class AutoLoginBehavior : AutomationBehavior<AutoLoginOptions>
             return;
         }
 
-        int targetServerId = ResolveTargetServerId();
-        string? curScreen = GetCurrentScreenName();
+        int targetServerId = _loginScreen.ResolveTargetServerId(Options.ServerId, Options.ServerName);
+        string? curScreen = _loginScreen.GetCurrentScreenName();
 
         if (curScreen == GameSchema.SplashScr.ClassName || string.IsNullOrEmpty(curScreen))
         {
@@ -153,46 +145,38 @@ public sealed class AutoLoginBehavior : AutomationBehavior<AutoLoginOptions>
         }
         else if (curScreen == GameSchema.ServerListScreen.ClassName)
         {
-            PreMaskServerListScreen();
+            _loginScreen.PreMaskServerListScreen(Options.IsMasked);
 
-            bool loadScreen = false;
-            try { loadScreen = _mono.ReadStatic<bool>(GameSchema.ServerListScreen.ClassName, GameSchema.ServerListScreen.StaticLoadScreen); } catch { }
-            bool bigOk = false;
-            try { bigOk = _mono.ReadStatic<bool>(GameSchema.ServerListScreen.ClassName, GameSchema.ServerListScreen.StaticBigOk); } catch { }
-
-            int percent = 0;
-            try { percent = _mono.ReadStatic<int>(GameSchema.ServerListScreen.ClassName, GameSchema.ServerListScreen.StaticPercent); } catch { }
-
-            if (!loadScreen && !bigOk && percent < 100)
+            if (!_loginScreen.IsServerListReady())
             {
                 progress?.Report("[Auto Login] Chờ tải xong tài nguyên game trước khi tiếp tục...");
                 await Task.Delay(1000, cancellationToken);
                 return;
             }
 
-            int curSelectedServer = GetSelectedServerId();
+            int curSelectedServer = _loginScreen.GetSelectedServerId();
             if (curSelectedServer >= 0 && curSelectedServer != targetServerId)
             {
                 progress?.Report($"[Auto Login] Chọn máy chủ #{targetServerId}...");
-                SelectServer(targetServerId);
+                _loginScreen.SelectServer(targetServerId);
                 await Task.Delay(500, cancellationToken);
             }
 
             if (!string.IsNullOrWhiteSpace(Options.Username) && !string.IsNullOrWhiteSpace(Options.Password))
             {
                 progress?.Report("[Auto Login] Mở màn hình đăng nhập...");
-                OpenLoginScreen();
+                _loginScreen.OpenLoginScreen(Options.IsMasked, Options.Username);
 
                 var waitLoginScrDeadline = DateTime.UtcNow.AddSeconds(5);
                 while (DateTime.UtcNow < waitLoginScrDeadline && !cancellationToken.IsCancellationRequested)
                 {
                     await Task.Delay(300, cancellationToken);
-                    if (GetCurrentScreenName() == GameSchema.LoginScr.ClassName)
+                    if (_loginScreen.GetCurrentScreenName() == GameSchema.LoginScr.ClassName)
                         break;
                 }
                 await Task.Delay(400, cancellationToken);
 
-                if (GetCurrentScreenName() == GameSchema.LoginScr.ClassName)
+                if (_loginScreen.GetCurrentScreenName() == GameSchema.LoginScr.ClassName)
                 {
                     await HandleLoginScreenAsync(targetServerId, progress, cancellationToken);
                 }
@@ -200,25 +184,25 @@ public sealed class AutoLoginBehavior : AutomationBehavior<AutoLoginOptions>
             else
             {
                 progress?.Report("[Auto Login] Mở màn hình đăng nhập...");
-                LoginWithSavedCredentials();
+                _loginScreen.LoginWithSavedCredentials();
                 await Task.Delay(600, cancellationToken);
             }
         }
         else if (curScreen == GameSchema.SelectCharScr.ClassName)
         {
             progress?.Report("[Auto Login] Đang ở màn hình chọn nhân vật, tiến hành vào game...");
-            PerformScreenAction(GameSchema.SelectCharScr.ClassName, GameSchema.SelectCharScr.ActionSelect);
+            _loginScreen.PerformScreenAction(GameSchema.SelectCharScr.ClassName, GameSchema.SelectCharScr.ActionSelect);
             await Task.Delay(800, cancellationToken);
         }
         else if (curScreen == GameSchema.ChooseCharScr.ClassName)
         {
             progress?.Report("[Auto Login] Đang ở màn hình chọn nhân vật, tiến hành vào game...");
-            PerformScreenAction(GameSchema.ChooseCharScr.ClassName, GameSchema.ChooseCharScr.ActionSelect);
+            _loginScreen.PerformScreenAction(GameSchema.ChooseCharScr.ClassName, GameSchema.ChooseCharScr.ActionSelect);
             await Task.Delay(800, cancellationToken);
         }
         else
         {
-            SwitchToLoginScreen();
+            _loginScreen.SwitchToLoginScreen(Options.IsMasked, Options.Username);
             await Task.Delay(800, cancellationToken);
         }
     }
@@ -228,11 +212,11 @@ public sealed class AutoLoginBehavior : AutomationBehavior<AutoLoginOptions>
         IProgress<string>? progress,
         CancellationToken cancellationToken)
     {
-        int curSelectedServer = GetSelectedServerId();
+        int curSelectedServer = _loginScreen.GetSelectedServerId();
         if (curSelectedServer >= 0 && curSelectedServer != targetServerId)
         {
             progress?.Report("[Auto Login] Sai máy chủ, quay lại chọn máy chủ...");
-            CancelLogin();
+            _loginScreen.CancelLogin();
             await Task.Delay(500, cancellationToken);
             return;
         }
@@ -241,7 +225,7 @@ public sealed class AutoLoginBehavior : AutomationBehavior<AutoLoginOptions>
         bool credsSet = false;
         for (int i = 0; i < 5 && !cancellationToken.IsCancellationRequested; i++)
         {
-            if (SetLoginCredentials(Options.Username, Options.Password))
+            if (_loginScreen.SetLoginCredentials(Options.Username, Options.Password, Options.IsMasked))
             {
                 credsSet = true;
                 break;
@@ -258,18 +242,18 @@ public sealed class AutoLoginBehavior : AutomationBehavior<AutoLoginOptions>
 
         await Task.Delay(200, cancellationToken);
         progress?.Report("[Auto Login] Gửi thông tin đăng nhập...");
-        SubmitLogin();
+        _loginScreen.SubmitLogin(Options.IsMasked, Options.Username, Options.Password);
 
         var loginWaitTimeout = DateTime.UtcNow.AddSeconds(15);
         while (DateTime.UtcNow < loginWaitTimeout && !cancellationToken.IsCancellationRequested)
         {
             await Task.Delay(300, cancellationToken);
 
-            if (IsUpdatingGameData())
+            if (_loginScreen.IsUpdatingGameData())
             {
                 progress?.Report("[Auto Login] Máy chủ yêu cầu cập nhật dữ liệu (map, skill, item)... Đang tải...");
                 var updateDeadline = DateTime.UtcNow.AddSeconds(90);
-                while (IsUpdatingGameData() && DateTime.UtcNow < updateDeadline && !cancellationToken.IsCancellationRequested)
+                while (_loginScreen.IsUpdatingGameData() && DateTime.UtcNow < updateDeadline && !cancellationToken.IsCancellationRequested)
                 {
                     await Task.Delay(1000, cancellationToken);
                 }
@@ -279,16 +263,14 @@ public sealed class AutoLoginBehavior : AutomationBehavior<AutoLoginOptions>
                 continue;
             }
 
-            bool waitToLogin = false;
-            try { waitToLogin = _mono.ReadStatic<bool>(GameSchema.ServerListScreen.ClassName, GameSchema.ServerListScreen.StaticWaitToLogin); } catch { }
-            if (waitToLogin)
+            if (_loginScreen.IsWaitingToLogin())
             {
                 loginWaitTimeout = DateTime.UtcNow.AddSeconds(15);
                 await Task.Delay(400, cancellationToken);
                 continue;
             }
 
-            string? checkScreen = GetCurrentScreenName();
+            string? checkScreen = _loginScreen.GetCurrentScreenName();
             if (checkScreen == GameSchema.GameScr.ClassName)
             {
                 Stop();
@@ -299,7 +281,7 @@ public sealed class AutoLoginBehavior : AutomationBehavior<AutoLoginOptions>
             {
                 progress?.Report("[Auto Login] Chọn nhân vật vào game...");
                 await Task.Delay(500, cancellationToken);
-                PerformScreenAction(GameSchema.SelectCharScr.ClassName, GameSchema.SelectCharScr.ActionSelect);
+                _loginScreen.PerformScreenAction(GameSchema.SelectCharScr.ClassName, GameSchema.SelectCharScr.ActionSelect);
                 loginWaitTimeout = DateTime.UtcNow.AddSeconds(15);
                 continue;
             }
@@ -308,22 +290,21 @@ public sealed class AutoLoginBehavior : AutomationBehavior<AutoLoginOptions>
             {
                 progress?.Report("[Auto Login] Chọn nhân vật vào game...");
                 await Task.Delay(500, cancellationToken);
-                PerformScreenAction(GameSchema.ChooseCharScr.ClassName, GameSchema.ChooseCharScr.ActionSelect);
+                _loginScreen.PerformScreenAction(GameSchema.ChooseCharScr.ClassName, GameSchema.ChooseCharScr.ActionSelect);
                 loginWaitTimeout = DateTime.UtcNow.AddSeconds(15);
                 continue;
             }
 
-            IntPtr dlg = GetCurrentDialogPointer();
-            if (dlg != IntPtr.Zero && !IsWaitDialog(dlg))
+            if (_loginScreen.IsNonWaitDialogPresent())
                 break;
 
             if (checkScreen == GameSchema.ServerListScreen.ClassName)
             {
-                if (IsDownloadingData())
+                if (_loginScreen.IsDownloadingData())
                 {
                     progress?.Report("[Auto Login] Máy chủ yêu cầu tải dữ liệu...");
                     var dlDeadline = DateTime.UtcNow.AddSeconds(90);
-                    while (IsDownloadingData() && DateTime.UtcNow < dlDeadline && !cancellationToken.IsCancellationRequested)
+                    while (_loginScreen.IsDownloadingData() && DateTime.UtcNow < dlDeadline && !cancellationToken.IsCancellationRequested)
                     {
                         await Task.Delay(1000, cancellationToken);
                     }
@@ -332,512 +313,9 @@ public sealed class AutoLoginBehavior : AutomationBehavior<AutoLoginOptions>
 
                 await Task.Delay(300, cancellationToken);
                 progress?.Report("[Auto Login] Xác thực hoàn tất, đang vào game...");
-                LoginWithSavedCredentials();
+                _loginScreen.LoginWithSavedCredentials();
                 loginWaitTimeout = DateTime.UtcNow.AddSeconds(15);
             }
         }
-    }
-
-    private string? GetCurrentScreenName()
-    {
-        try
-        {
-            IntPtr scr = _mono.ReadStatic<IntPtr>(GameSchema.GameCanvas.ClassName, GameSchema.GameCanvas.StaticCurrentScreen);
-            return scr != IntPtr.Zero ? _mono.GetClassName(scr) : null;
-        }
-        catch { return null; }
-    }
-
-    private IntPtr GetCurrentDialogPointer()
-    {
-        try { return _mono.ReadStatic<IntPtr>(GameSchema.GameCanvas.ClassName, GameSchema.GameCanvas.StaticCurrentDialog); }
-        catch { return IntPtr.Zero; }
-    }
-
-    private bool IsWaitDialog(IntPtr dlg)
-    {
-        if (dlg == IntPtr.Zero) return false;
-        try { return _mono.ReadField<bool>(GameSchema.MsgDlg.ClassName, GameSchema.MsgDlg.FieldIsWait, dlg); }
-        catch { return false; }
-    }
-
-    private string? GetDialogText(IntPtr dlg)
-    {
-        if (dlg == IntPtr.Zero) return null;
-        try { return _mono.ReadStringField(GameSchema.MsgDlg.ClassName, GameSchema.MsgDlg.FieldInfo, dlg); }
-        catch { return null; }
-    }
-
-    private void CloseDialog()
-    {
-        try
-        {
-            IntPtr canvas = _mono.ReadStatic<IntPtr>(GameSchema.GameCanvas.ClassName, GameSchema.GameCanvas.StaticInstance);
-            if (canvas == IntPtr.Zero)
-                canvas = _mono.ReadStatic<IntPtr>(GameSchema.GameCanvas.ClassName, GameSchema.GameCanvas.StaticGameCanvas);
-            if (canvas != IntPtr.Zero)
-            {
-                _mono.CallMethod(GameSchema.GameCanvas.ClassName, GameSchema.GameCanvas.MethodEndDlg, canvas);
-            }
-        }
-        catch { }
-    }
-
-    private bool IsUpdatingGameData()
-    {
-        try
-        {
-            if (_mono.ReadStatic<bool>(GameSchema.LoginScr.ClassName, GameSchema.LoginScr.StaticIsUpdateAll)) return true;
-            if (_mono.ReadStatic<bool>(GameSchema.LoginScr.ClassName, GameSchema.LoginScr.StaticIsUpdateData)) return true;
-            if (_mono.ReadStatic<bool>(GameSchema.LoginScr.ClassName, GameSchema.LoginScr.StaticIsUpdateMap)) return true;
-            if (_mono.ReadStatic<bool>(GameSchema.LoginScr.ClassName, GameSchema.LoginScr.StaticIsUpdateSkill)) return true;
-            if (_mono.ReadStatic<bool>(GameSchema.LoginScr.ClassName, GameSchema.LoginScr.StaticIsUpdateItem)) return true;
-            return false;
-        }
-        catch { return false; }
-    }
-
-    private bool IsDownloadingData()
-    {
-        try
-        {
-            if (_mono.ReadStatic<bool>(GameSchema.Controller.ClassName, GameSchema.Controller.StaticIsLoadingData))
-                return true;
-
-            if (IsUpdatingGameData())
-                return true;
-
-            string? curScr = GetCurrentScreenName();
-            if (curScr == GameSchema.SplashScr.ClassName)
-            {
-                int nData = _mono.ReadStatic<int>(GameSchema.SplashScr.ClassName, GameSchema.SplashScr.StaticNData);
-                if (nData != -1) return true;
-            }
-
-            if (curScr == GameSchema.ServerListScreen.ClassName)
-            {
-                bool isGetData = false;
-                try { isGetData = _mono.ReadStatic<bool>(GameSchema.ServerListScreen.ClassName, GameSchema.ServerListScreen.StaticIsGetData); } catch { }
-                if (isGetData) return true;
-
-                bool loadScreen = false;
-                try { loadScreen = _mono.ReadStatic<bool>(GameSchema.ServerListScreen.ClassName, GameSchema.ServerListScreen.StaticLoadScreen); } catch { }
-                bool bigOk = false;
-                try { bigOk = _mono.ReadStatic<bool>(GameSchema.ServerListScreen.ClassName, GameSchema.ServerListScreen.StaticBigOk); } catch { }
-
-                int percent = 0;
-                try { percent = _mono.ReadStatic<int>(GameSchema.ServerListScreen.ClassName, GameSchema.ServerListScreen.StaticPercent); } catch { }
-
-                if (!loadScreen && !bigOk && percent < 100)
-                    return true;
-            }
-
-            return false;
-        }
-        catch { return false; }
-    }
-
-    private int GetDownloadDataPercent()
-    {
-        try
-        {
-            string? curScr = GetCurrentScreenName();
-            if (curScr == GameSchema.SplashScr.ClassName)
-            {
-                int nData = _mono.ReadStatic<int>(GameSchema.SplashScr.ClassName, GameSchema.SplashScr.StaticNData);
-                int maxData = _mono.ReadStatic<int>(GameSchema.SplashScr.ClassName, GameSchema.SplashScr.StaticMaxData);
-                if (nData != -1 && maxData > 0)
-                {
-                    return Math.Clamp(nData * 100 / maxData, 0, 100);
-                }
-            }
-
-            if (curScr == GameSchema.ServerListScreen.ClassName)
-            {
-                return _mono.ReadStatic<int>(GameSchema.ServerListScreen.ClassName, GameSchema.ServerListScreen.StaticPercent);
-            }
-
-            return 0;
-        }
-        catch { return 0; }
-    }
-
-    private bool TriggerDownloadData()
-    {
-        try
-        {
-            string? curScr = GetCurrentScreenName();
-            if (curScr == GameSchema.ServerListScreen.ClassName)
-            {
-                bool isGetData = false;
-                try { isGetData = _mono.ReadStatic<bool>(GameSchema.ServerListScreen.ClassName, GameSchema.ServerListScreen.StaticIsGetData); } catch { }
-                if (isGetData)
-                {
-                    return false;
-                }
-
-                bool loadScreen = false;
-                try { loadScreen = _mono.ReadStatic<bool>(GameSchema.ServerListScreen.ClassName, GameSchema.ServerListScreen.StaticLoadScreen); } catch { }
-                bool bigOk = false;
-                try { bigOk = _mono.ReadStatic<bool>(GameSchema.ServerListScreen.ClassName, GameSchema.ServerListScreen.StaticBigOk); } catch { }
-
-                int percent = 0;
-                try { percent = _mono.ReadStatic<int>(GameSchema.ServerListScreen.ClassName, GameSchema.ServerListScreen.StaticPercent); } catch { }
-
-                if (!loadScreen && !bigOk && percent < 100)
-                {
-                    PerformScreenAction(GameSchema.ServerListScreen.ClassName, GameSchema.ServerListScreen.ActionDownload);
-                    return true;
-                }
-            }
-            return false;
-        }
-        catch { return false; }
-    }
-
-    private int GetSelectedServerId()
-    {
-        try { return _mono.ReadStatic<int>(GameSchema.ServerListScreen.ClassName, GameSchema.ServerListScreen.StaticIpSelect); }
-        catch { return -1; }
-    }
-
-    private void SelectServer(int serverId)
-    {
-        try
-        {
-            IntPtr serverScreen = _mono.ReadStatic<IntPtr>(GameSchema.GameCanvas.ClassName, GameSchema.GameCanvas.StaticServerScreen);
-            if (serverScreen != IntPtr.Zero)
-            {
-                _mono.WriteStatic(GameSchema.ServerListScreen.ClassName, GameSchema.ServerListScreen.StaticIpSelect, serverId);
-                _mono.CallMethod(GameSchema.ServerListScreen.ClassName, GameSchema.ServerListScreen.MethodSelectServer, serverScreen);
-                return;
-            }
-            _mono.CallMethod(GameSchema.ServerListScreen.ClassName, GameSchema.ServerListScreen.MethodSetIpSelect, IntPtr.Zero, serverId, false);
-            _mono.WriteStatic(GameSchema.ServerListScreen.ClassName, GameSchema.ServerListScreen.StaticIpSelect, serverId);
-        }
-        catch { }
-    }
-
-    private void OpenLoginScreen()
-    {
-        PreMaskLoginFields();
-        try
-        {
-            IntPtr serverScreen = _mono.ReadStatic<IntPtr>(GameSchema.GameCanvas.ClassName, GameSchema.GameCanvas.StaticServerScreen);
-            if (serverScreen != IntPtr.Zero)
-            {
-                _mono.CallMethod(GameSchema.ServerListScreen.ClassName, GameSchema.Screen.MethodPerform, serverScreen, GameSchema.ServerListScreen.ActionOpenLogin, null);
-                return;
-            }
-        }
-        catch { }
-        PerformScreenAction(GameSchema.ServerListScreen.ClassName, GameSchema.ServerListScreen.ActionOpenLogin);
-    }
-
-    private void LoginWithSavedCredentials()
-    {
-        try
-        {
-            IntPtr serverScreen = _mono.ReadStatic<IntPtr>(GameSchema.GameCanvas.ClassName, GameSchema.GameCanvas.StaticServerScreen);
-            if (serverScreen != IntPtr.Zero)
-            {
-                _mono.CallMethod(GameSchema.ServerListScreen.ClassName, GameSchema.Screen.MethodPerform, serverScreen, GameSchema.ServerListScreen.ActionLoginSaved, null);
-                return;
-            }
-        }
-        catch { }
-        PerformScreenAction(GameSchema.ServerListScreen.ClassName, GameSchema.ServerListScreen.ActionLoginSaved);
-    }
-
-    private void CancelLogin() => PerformScreenAction(GameSchema.LoginScr.ClassName, GameSchema.LoginScr.ActionCancel);
-
-    private void SubmitLogin()
-    {
-        try
-        {
-            if (Options.IsMasked)
-            {
-                IntPtr serviceInst = _mono.ReadStatic<IntPtr>(GameSchema.Service.ClassName, GameSchema.Service.StaticInstance);
-                if (serviceInst == IntPtr.Zero)
-                {
-                    serviceInst = _mono.CallMethod(GameSchema.Service.ClassName, GameSchema.Service.MethodGI, IntPtr.Zero);
-                }
-
-                if (serviceInst != IntPtr.Zero)
-                {
-                    bool connected = false;
-                    try { connected = _mono.ReadStatic<bool>(GameSchema.Session.ClassName, GameSchema.Session.StaticConnected); } catch { }
-                    if (!connected)
-                    {
-                        try { _mono.CallMethod(GameSchema.GameCanvas.ClassName, GameSchema.GameCanvas.MethodConnect, IntPtr.Zero); } catch { }
-                    }
-
-                    string version = _mono.ReadStaticString(GameSchema.GameMidlet.ClassName, GameSchema.GameMidlet.StaticVersion) ?? "2.5.0";
-                    _mono.CallMethod(GameSchema.Service.ClassName, "login", serviceInst, Options.Username.Trim(), Options.Password.Trim(), version, (sbyte)0);
-                    try { _mono.CallMethod(GameSchema.GameCanvas.ClassName, GameSchema.GameCanvas.MethodStartWaitDlg, IntPtr.Zero); } catch { }
-                    return;
-                }
-            }
-
-            IntPtr loginScr = GetLoginScreenPointer();
-            if (loginScr != IntPtr.Zero)
-            {
-                _mono.CallMethod(GameSchema.LoginScr.ClassName, GameSchema.LoginScr.MethodDoLogin, loginScr);
-                return;
-            }
-        }
-        catch { }
-
-        PerformScreenAction(GameSchema.LoginScr.ClassName, GameSchema.LoginScr.ActionSubmit);
-    }
-
-    private IntPtr GetLoginScreenPointer()
-    {
-        try
-        {
-            IntPtr cur = _mono.ReadStatic<IntPtr>(GameSchema.GameCanvas.ClassName, GameSchema.GameCanvas.StaticCurrentScreen);
-            if (cur != IntPtr.Zero && _mono.GetClassName(cur) == GameSchema.LoginScr.ClassName)
-                return cur;
-
-            return _mono.ReadStatic<IntPtr>(GameSchema.GameCanvas.ClassName, GameSchema.GameCanvas.StaticLoginScr);
-        }
-        catch { return IntPtr.Zero; }
-    }
-
-    private bool SetLoginCredentials(string username, string password)
-    {
-        username ??= string.Empty;
-        password ??= string.Empty;
-
-        IntPtr loginScr = GetLoginScreenPointer();
-        if (loginScr == IntPtr.Zero) return false;
-
-        IntPtr tfUser = _mono.ReadFieldPtr(GameSchema.LoginScr.ClassName, GameSchema.LoginScr.FieldTfUser, loginScr);
-        IntPtr tfPass = _mono.ReadFieldPtr(GameSchema.LoginScr.ClassName, GameSchema.LoginScr.FieldTfPass, loginScr);
-        if (tfUser == IntPtr.Zero || tfPass == IntPtr.Zero) return false;
-
-        if (Options.IsMasked)
-        {
-            try
-            {
-                _mono.WriteField(GameSchema.TField.ClassName, GameSchema.TField.FieldInputType, tfUser, GameSchema.TField.InputTypePassword);
-                _mono.WriteField(GameSchema.TField.ClassName, GameSchema.TField.FieldInputType, tfPass, GameSchema.TField.InputTypePassword);
-            }
-            catch { }
-        }
-
-        SetTFieldText(tfUser, username);
-        SetTFieldText(tfPass, password);
-
-        if (!Options.IsMasked)
-        {
-            try
-            {
-                _mono.CallMethod(GameSchema.Rms.ClassName, GameSchema.Rms.MethodSaveRMSString, IntPtr.Zero, GameSchema.Rms.KeyAcc, username.Trim());
-                _mono.CallMethod(GameSchema.Rms.ClassName, GameSchema.Rms.MethodSaveRMSString, IntPtr.Zero, GameSchema.Rms.KeyPass, password.Trim());
-            }
-            catch { }
-        }
-
-        string curUser = GetTFieldText(tfUser) ?? string.Empty;
-        string curPass = GetTFieldText(tfPass) ?? string.Empty;
-
-        return string.Equals(curUser.Trim(), username.Trim(), StringComparison.OrdinalIgnoreCase)
-            || (!string.IsNullOrEmpty(curUser) && !string.IsNullOrEmpty(curPass));
-    }
-
-    private void SetTFieldText(IntPtr tfieldPtr, string text)
-    {
-        if (tfieldPtr == IntPtr.Zero) return;
-        text ??= string.Empty;
-
-        try { _mono.CallMethod(GameSchema.TField.ClassName, GameSchema.TField.MethodSetText, tfieldPtr, text); }
-        catch { }
-
-        string cur = GetTFieldText(tfieldPtr) ?? string.Empty;
-        if (string.Equals(cur, text, StringComparison.Ordinal)) return;
-
-        IntPtr monoStr = _mono.CreateMonoString(text);
-        if (monoStr != IntPtr.Zero)
-        {
-            _mono.WriteField(GameSchema.TField.ClassName, GameSchema.TField.FieldText, tfieldPtr, monoStr);
-            _mono.WriteField(GameSchema.TField.ClassName, GameSchema.TField.FieldPaintedText, tfieldPtr, monoStr);
-            _mono.WriteField(GameSchema.TField.ClassName, GameSchema.TField.FieldCaretPos, tfieldPtr, text.Length);
-
-            string stars = new string('*', text.Length);
-            IntPtr starStr = _mono.CreateMonoString(stars);
-            if (starStr != IntPtr.Zero)
-            {
-                _mono.WriteField(GameSchema.TField.ClassName, GameSchema.TField.FieldPasswordText, tfieldPtr, starStr);
-            }
-        }
-    }
-
-    private string? GetTFieldText(IntPtr tfieldPtr)
-    {
-        if (tfieldPtr == IntPtr.Zero) return null;
-        try
-        {
-            IntPtr res = _mono.CallMethod(GameSchema.TField.ClassName, GameSchema.TField.MethodGetText, tfieldPtr);
-            if (res != IntPtr.Zero)
-            {
-                string text = _mono.ReadMonoString(res);
-                if (!string.IsNullOrEmpty(text))
-                    return text;
-            }
-        }
-        catch { }
-
-        try { return _mono.ReadStringField(GameSchema.TField.ClassName, GameSchema.TField.FieldText, tfieldPtr); }
-        catch { return null; }
-    }
-
-    private void PreMaskServerListScreen()
-    {
-        if (!Options.IsMasked) return;
-        try
-        {
-            string curRmsAcc = _mono.ReadStaticString(GameSchema.Rms.ClassName, GameSchema.Rms.StaticRMS_acc);
-            if (curRmsAcc != "DBAM")
-            {
-                _mono.WriteStaticString(GameSchema.Rms.ClassName, GameSchema.Rms.StaticRMS_acc, "DBAM");
-            }
-
-            IntPtr serverScreen = _mono.ReadStatic<IntPtr>(GameSchema.GameCanvas.ClassName, GameSchema.GameCanvas.StaticServerScreen);
-            if (serverScreen != IntPtr.Zero)
-            {
-                IntPtr cmdArr = _mono.ReadFieldPtr(GameSchema.ServerListScreen.ClassName, GameSchema.ServerListScreen.FieldCmd, serverScreen);
-                if (cmdArr != IntPtr.Zero)
-                {
-                    IntPtr[] cmds = _mono.ReadMonoPointerArray(cmdArr);
-                    if (cmds.Length > 0 && cmds[0] != IntPtr.Zero)
-                    {
-                        string caption = _mono.ReadStringField(GameSchema.Command.ClassName, GameSchema.Command.FieldCaption, cmds[0]) ?? string.Empty;
-                        if (caption != "DragonBoy Account Manager")
-                        {
-                            _mono.WriteStringField(GameSchema.Command.ClassName, GameSchema.Command.FieldCaption, cmds[0], "DragonBoy Account Manager");
-                        }
-                    }
-                }
-            }
-        }
-        catch { }
-    }
-
-    private void PreMaskLoginFields()
-    {
-        if (!Options.IsMasked) return;
-        try
-        {
-            IntPtr loginScr = GetLoginScreenPointer();
-            if (loginScr != IntPtr.Zero)
-            {
-                IntPtr tfUser = _mono.ReadFieldPtr(GameSchema.LoginScr.ClassName, GameSchema.LoginScr.FieldTfUser, loginScr);
-                IntPtr tfPass = _mono.ReadFieldPtr(GameSchema.LoginScr.ClassName, GameSchema.LoginScr.FieldTfPass, loginScr);
-                if (tfUser != IntPtr.Zero)
-                {
-                    _mono.WriteField(GameSchema.TField.ClassName, GameSchema.TField.FieldInputType, tfUser, GameSchema.TField.InputTypePassword);
-                    string curText = GetTFieldText(tfUser) ?? string.Empty;
-                    if (!string.IsNullOrEmpty(curText) && !string.Equals(curText, Options.Username, StringComparison.Ordinal) && !curText.Contains('*'))
-                    {
-                        string masked = TextMaskHelper.MaskText(curText);
-                        SetTFieldText(tfUser, masked);
-                    }
-                }
-                if (tfPass != IntPtr.Zero)
-                {
-                    _mono.WriteField(GameSchema.TField.ClassName, GameSchema.TField.FieldInputType, tfPass, GameSchema.TField.InputTypePassword);
-                    SetTFieldText(tfPass, string.Empty);
-                }
-            }
-        }
-        catch { }
-    }
-
-    private void ClearSensitiveInputs()
-    {
-        try
-        {
-            IntPtr loginScr = GetLoginScreenPointer();
-            if (loginScr != IntPtr.Zero)
-            {
-                IntPtr tfUser = _mono.ReadFieldPtr(GameSchema.LoginScr.ClassName, GameSchema.LoginScr.FieldTfUser, loginScr);
-                IntPtr tfPass = _mono.ReadFieldPtr(GameSchema.LoginScr.ClassName, GameSchema.LoginScr.FieldTfPass, loginScr);
-                if (tfUser != IntPtr.Zero)
-                {
-                    string masked = TextMaskHelper.MaskText(Options.Username);
-                    SetTFieldText(tfUser, masked);
-                    _mono.WriteField(GameSchema.TField.ClassName, GameSchema.TField.FieldInputType, tfUser, GameSchema.TField.InputTypePassword);
-                }
-                if (tfPass != IntPtr.Zero) SetTFieldText(tfPass, string.Empty);
-            }
-
-            string curRmsAcc = _mono.ReadStaticString(GameSchema.Rms.ClassName, GameSchema.Rms.StaticRMS_acc);
-            if (curRmsAcc != "DBAM")
-            {
-                _mono.WriteStaticString(GameSchema.Rms.ClassName, GameSchema.Rms.StaticRMS_acc, "DBAM");
-            }
-        }
-        catch { }
-    }
-
-    private void SwitchToLoginScreen()
-    {
-        PreMaskLoginFields();
-        try
-        {
-            IntPtr loginScr = _mono.ReadStatic<IntPtr>(GameSchema.GameCanvas.ClassName, GameSchema.GameCanvas.StaticLoginScr);
-            if (loginScr == IntPtr.Zero)
-            {
-                loginScr = _mono.CreateInstance(GameSchema.LoginScr.ClassName);
-                if (loginScr != IntPtr.Zero)
-                {
-                    _mono.WriteStatic(GameSchema.GameCanvas.ClassName, GameSchema.GameCanvas.StaticLoginScr, loginScr);
-                }
-            }
-            if (loginScr != IntPtr.Zero)
-            {
-                _mono.CallMethod(GameSchema.LoginScr.ClassName, GameSchema.Screen.MethodSwitchToMe, loginScr);
-            }
-        }
-        catch { }
-    }
-
-    private void PerformScreenAction(string screenClassName, int actionId)
-    {
-        try
-        {
-            IntPtr scr = _mono.ReadStatic<IntPtr>(GameSchema.GameCanvas.ClassName, GameSchema.GameCanvas.StaticCurrentScreen);
-            string actualClass = scr != IntPtr.Zero ? (_mono.GetClassName(scr) ?? screenClassName) : screenClassName;
-            _mono.CallMethod(actualClass, GameSchema.Screen.MethodPerform, scr, actionId, null);
-        }
-        catch { }
-    }
-
-    private int ResolveTargetServerId()
-    {
-        if (!string.IsNullOrWhiteSpace(Options.ServerName))
-        {
-            try
-            {
-                IntPtr serverNamesPtr = _mono.ReadStatic<IntPtr>(GameSchema.ServerListScreen.ClassName, GameSchema.ServerListScreen.StaticNameServer);
-                if (serverNamesPtr != IntPtr.Zero)
-                {
-                    string[] names = _mono.ReadMonoStringArray(serverNamesPtr);
-                    if (names != null && names.Length > 0)
-                    {
-                        for (int i = 0; i < names.Length; i++)
-                        {
-                            if (string.Equals(names[i], Options.ServerName, StringComparison.OrdinalIgnoreCase))
-                            {
-                                return i;
-                            }
-                        }
-                    }
-                }
-            }
-            catch { }
-        }
-        return Options.ServerId;
     }
 }

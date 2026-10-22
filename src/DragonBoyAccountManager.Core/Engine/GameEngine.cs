@@ -1,10 +1,12 @@
-using DragonBoyAccountManager.Core.Automation.Behaviors.Combat;
+using System.Diagnostics;
+using DragonBoyAccountManager.Core.Automation.Behaviors;
 using DragonBoyAccountManager.Core.Common;
 using DragonBoyAccountManager.Core.Common.Results;
 using DragonBoyAccountManager.Core.Engine.Abstractions;
+using DragonBoyAccountManager.Core.Engine.Events;
 using DragonBoyAccountManager.Core.Engine.Models;
+using DragonBoyAccountManager.Core.Execution;
 using DragonBoyAccountManager.Core.Execution.Commands;
-using DragonBoyAccountManager.Core.Interop.Mono.Schema;
 using DragonBoyAccountManager.Core.Telemetry.Snapshots;
 
 namespace DragonBoyAccountManager.Core.Engine;
@@ -14,99 +16,43 @@ public sealed class GameEngine : IGameEngine
     public ISessionManager Sessions { get; }
 
     public event Action<SessionEvent>? OnSessionEvent;
-    public event Action<Guid, GameSessionStatus, GameSessionSnapshot?>? OnSessionUpdated;
-    public event Action<Guid, string>? OnSessionMessageUpdated;
-    public event Action<Guid, ActionExecutionReport>? OnActionReported;
-    public event Action<Guid, string, int>? OnChatSent;
-    public event Action<Guid, string>? OnAutoTrainStatusChanged;
-    public event Action<Guid, bool>? OnAutoTrainStateChanged;
 
     public GameEngine(ISessionManager? sessionManager = null)
     {
         Sessions = sessionManager ?? new SessionManager();
-
         Sessions.EventPublished += evt => OnSessionEvent?.Invoke(evt);
-        Sessions.SessionUpdated += (id, status, snap) => OnSessionUpdated?.Invoke(id, status, snap);
-        Sessions.MessageUpdated += (id, msg) => OnSessionMessageUpdated?.Invoke(id, msg);
-        Sessions.ActionReported += (id, rep) => OnActionReported?.Invoke(id, rep);
-        Sessions.ChatSent += (id, msg, cnt) => OnChatSent?.Invoke(id, msg, cnt);
-        Sessions.AutoTrainStatusChanged += (id, st) => OnAutoTrainStatusChanged?.Invoke(id, st);
-        Sessions.AutoTrainStateChanged += (id, run) => OnAutoTrainStateChanged?.Invoke(id, run);
     }
 
     public Task<bool> StartAccountAsync(AccountLaunchOptions options, CancellationToken cancellationToken = default)
-    {
-        return Sessions.StartSessionAsync(options, cancellationToken);
-    }
+        => Sessions.StartSessionAsync(options, cancellationToken);
 
     public Task StopAccountAsync(Guid accountId)
-    {
-        return Sessions.StopSessionAsync(accountId);
-    }
+        => Sessions.StopSessionAsync(accountId);
 
     public Task StopAllAccountsAsync()
-    {
-        return Sessions.StopAllSessionsAsync();
-    }
+        => Sessions.StopAllSessionsAsync();
 
     public void StopAllAccounts()
-    {
-        Sessions.StopAllSessions();
-    }
+        => Sessions.StopAllSessions();
 
     public bool IsRunning(Guid accountId) => Sessions.IsRunning(accountId);
 
     public int? GetProcessId(Guid accountId) => Sessions.GetProcessId(accountId);
 
+    public Process? GetProcess(Guid accountId) => Sessions.GetProcess(accountId);
+
+    public async Task<Result> ExecuteCommandAsync(Guid accountId, IGameCommand command, CancellationToken cancellationToken = default)
+    {
+        var worker = Sessions.GetWorker(accountId);
+        return worker != null
+            ? await worker.ExecuteCommandAsync(command, cancellationToken)
+            : Result.Failure("Tài khoản chưa vào game.");
+    }
+
     public async Task<bool> LoginAsync(Guid accountId)
     {
         var worker = Sessions.GetWorker(accountId);
-        if (worker != null)
-        {
-            return await worker.ExecuteLoginAsync();
-        }
-        return false;
-    }
-
-    public bool ChangeZone(Guid accountId, int zoneId)
-    {
-        var session = Sessions.GetSession(accountId);
-        if (session != null && session.IsRunning)
-        {
-            _ = session.Dispatcher.DispatchAsync(new ChangeZoneCommand(zoneId));
-            return true;
-        }
-        return false;
-    }
-
-    public void RequestZoneList(Guid accountId)
-    {
-        var session = Sessions.GetSession(accountId);
-        if (session != null && session.IsRunning)
-        {
-            GameZoneController.RequestZoneList(session.Mono);
-        }
-    }
-
-    public void CloseZonePanel(Guid accountId)
-    {
-        var session = Sessions.GetSession(accountId);
-        if (session != null && session.IsRunning)
-        {
-            GameZoneController.CloseZonePanel(session.Mono);
-        }
-    }
-
-    public bool MoveToWaypoint(Guid accountId, int targetX, int targetY)
-    {
-        var session = Sessions.GetSession(accountId);
-        if (session != null && session.IsRunning)
-        {
-            _ = session.Dispatcher.DispatchAsync(new MoveCommand(targetX, targetY, false));
-            Sessions.GetWorker(accountId)?.PublishSessionUpdate();
-            return true;
-        }
-        return false;
+        return worker != null && await worker.ExecuteLoginAsync();
     }
 
     public async Task<bool> AutoMoveAsync(Guid accountId, int targetX, int targetY, bool isFastTeleport = false, CancellationToken cancellationToken = default)
@@ -130,81 +76,65 @@ public sealed class GameEngine : IGameEngine
         return false;
     }
 
-    public WorldSnapshot? GetWorldSnapshot(Guid accountId)
+    public async Task<bool> EnterWaypointAsync(Guid accountId, int waypointX, int waypointY, bool isFastTeleport = false, CancellationToken cancellationToken = default)
     {
-        var session = Sessions.GetSession(accountId);
-        return session != null && session.IsRunning ? session.CurrentWorld : null;
-    }
-
-    public PlayerSnapshot? GetPlayerSnapshot(Guid accountId)
-    {
-        var session = Sessions.GetSession(accountId);
-        return session != null && session.IsRunning ? session.CurrentPlayer : null;
-    }
-
-    public bool SendChat(Guid accountId, string text, ChatType type = ChatType.Map)
-    {
-        var session = Sessions.GetSession(accountId);
-        if (session != null && session.IsRunning)
+        var worker = Sessions.GetWorker(accountId);
+        if (worker == null || !worker.Session.IsRunning || !worker.Session.CurrentPlayer.IsInGame)
         {
-            _ = session.Dispatcher.DispatchAsync(new SendChatCommand(text, type == ChatType.Global));
+            return false;
+        }
+
+        int startMapId = worker.Session.CurrentWorld.MapId;
+        await AutoMoveAsync(accountId, waypointX, waypointY, isFastTeleport, cancellationToken);
+
+        if (cancellationToken.IsCancellationRequested) return false;
+
+        int currentMapId = worker.Session.CurrentWorld.MapId;
+        bool isChangingMap = worker.Session.CurrentPlayer.IsChangingMap;
+        if ((startMapId >= 0 && currentMapId >= 0 && currentMapId != startMapId) || isChangingMap)
+        {
             return true;
         }
-        return false;
-    }
 
-    public async Task<bool> SendChatAsync(Guid accountId, string text, ChatType type = ChatType.Map, CancellationToken cancellationToken = default)
-    {
-        var worker = Sessions.GetWorker(accountId);
-        if (worker != null && worker.Session.IsRunning)
+        await Task.Delay(100, cancellationToken);
+        if (cancellationToken.IsCancellationRequested) return false;
+
+        currentMapId = worker.Session.CurrentWorld.MapId;
+        isChangingMap = worker.Session.CurrentPlayer.IsChangingMap;
+        if ((startMapId >= 0 && currentMapId >= 0 && currentMapId != startMapId) || isChangingMap)
         {
-            using var linkedCts = CancellationTokenSource.CreateLinkedTokenSource(worker.Cts.Token, cancellationToken);
-            var result = await worker.Session.Dispatcher.DispatchAsync(new SendChatCommand(text, type == ChatType.Global), linkedCts.Token);
-            return result.IsSuccess;
+            return true;
         }
-        return false;
+
+        var moveRes = await ExecuteCommandAsync(accountId, new MoveCommand(waypointX, waypointY, false), cancellationToken);
+        worker.PublishSessionUpdate();
+        return moveRes.IsSuccess;
     }
 
-    public void StartAutoChat(Guid accountId, AutoChatOptions options)
-    {
-        Sessions.GetWorker(accountId)?.StartAutoChat(options);
-    }
+    public TSnapshot? GetSnapshot<TSnapshot>(Guid accountId) where TSnapshot : class
+        => Sessions.GetSnapshot<TSnapshot>(accountId);
 
-    public void StopAutoChat(Guid accountId)
-    {
-        Sessions.GetWorker(accountId)?.StopAutoChat();
-    }
+    public IReadOnlyList<GameSkillInfo> GetSkills(Guid accountId)
+        => GetSnapshot<PlayerSnapshot>(accountId)?.SkillList ?? [];
 
-    public bool IsAutoChatRunning(Guid accountId)
-    {
-        var worker = Sessions.GetWorker(accountId);
-        return worker != null && worker.IsAutoChatRunning;
-    }
+    public bool StartBehavior<TBehavior, TOptions>(Guid accountId, TOptions options)
+        where TBehavior : class, IBehavior<TOptions>
+        where TOptions : class
+        => Sessions.StartBehavior<TBehavior, TOptions>(accountId, options);
 
-    public void StartAutoTrain(Guid accountId, AutoTrainOptions options)
-    {
-        Sessions.GetWorker(accountId)?.StartAutoTrain(options);
-    }
+    public bool UpdateBehaviorOptions<TBehavior, TOptions>(Guid accountId, TOptions options)
+        where TBehavior : class, IBehavior<TOptions>
+        where TOptions : class
+        => Sessions.UpdateBehaviorOptions<TBehavior, TOptions>(accountId, options);
 
-    public void UpdateAutoTrainOptions(Guid accountId, AutoTrainOptions options)
-    {
-        var worker = Sessions.GetWorker(accountId);
-        if (worker != null && worker.Session.IsRunning)
-        {
-            worker.Session.TrainBehavior.UpdateOptions(options);
-        }
-    }
+    public bool StopBehavior<TBehavior>(Guid accountId) where TBehavior : class, IBehavior
+        => Sessions.StopBehavior<TBehavior>(accountId);
 
-    public void StopAutoTrain(Guid accountId)
-    {
-        Sessions.GetWorker(accountId)?.StopAutoTrain();
-    }
+    public bool IsBehaviorRunning<TBehavior>(Guid accountId) where TBehavior : class, IBehavior
+        => Sessions.IsBehaviorRunning<TBehavior>(accountId);
 
-    public bool IsAutoTrainRunning(Guid accountId)
-    {
-        var worker = Sessions.GetWorker(accountId);
-        return worker != null && worker.IsAutoTrainRunning;
-    }
+    public TBehavior? GetBehavior<TBehavior>(Guid accountId) where TBehavior : class, IBehavior
+        => Sessions.GetBehavior<TBehavior>(accountId);
 
     public bool StartBehavior(Guid accountId, string behaviorId)
         => Sessions.StartBehavior(accountId, behaviorId);
@@ -218,96 +148,11 @@ public sealed class GameEngine : IGameEngine
     public IReadOnlyCollection<IBehavior> GetBehaviors(Guid accountId)
         => Sessions.GetBehaviors(accountId);
 
-    public async Task<Result> UseCapsuleAsync(Guid accountId, CancellationToken cancellationToken = default)
-    {
-        var session = Sessions.GetSession(accountId);
-        if (session != null && session.IsRunning)
-        {
-            var res = await session.Dispatcher.DispatchAsync(new UseItemCommand(-1, GameDefinitions.DefaultCapsuleTemplateId, "Capsule"), cancellationToken);
-            var report = res.IsSuccess
-                ? ActionExecutionReport.Success("Sử dụng Capsule", res.Message)
-                : ActionExecutionReport.Failure("Sử dụng Capsule", res.Message);
-            OnActionReported?.Invoke(accountId, report);
-            return res;
-        }
-        return Result.Failure("Tài khoản chưa vào game.");
-    }
-
-    public async Task<Result> UseTdltAsync(Guid accountId, CancellationToken cancellationToken = default)
-    {
-        var session = Sessions.GetSession(accountId);
-        if (session != null && session.IsRunning)
-        {
-            var res = await session.Dispatcher.DispatchAsync(new UseItemCommand(-1, GameDefinitions.DefaultTdltTemplateId, "TDLT"), cancellationToken);
-            var report = res.IsSuccess
-                ? ActionExecutionReport.Success("Sử dụng TDLT", res.Message)
-                : ActionExecutionReport.Failure("Sử dụng TDLT", res.Message);
-            OnActionReported?.Invoke(accountId, report);
-            return res;
-        }
-        return Result.Failure("Tài khoản chưa vào game.");
-    }
-
-    public async Task<Result> UsePeanAsync(Guid accountId, CancellationToken cancellationToken = default)
-    {
-        var session = Sessions.GetSession(accountId);
-        if (session != null && session.IsRunning)
-        {
-            var res = await session.Dispatcher.DispatchAsync(new UseItemCommand(-1, GameDefinitions.DefaultPeanTemplateId, "Đậu thần"), cancellationToken);
-            var report = res.IsSuccess
-                ? ActionExecutionReport.Success("Sử dụng Đậu thần", res.Message)
-                : ActionExecutionReport.Failure("Sử dụng Đậu thần", res.Message);
-            OnActionReported?.Invoke(accountId, report);
-            return res;
-        }
-        return Result.Failure("Tài khoản chưa vào game.");
-    }
-
-    public async Task<Result> SelectSkillAsync(Guid accountId, int slotIndex, CancellationToken cancellationToken = default)
-    {
-        var session = Sessions.GetSession(accountId);
-        if (session != null && session.IsRunning)
-        {
-            var res = await session.Dispatcher.DispatchAsync(new SelectSkillCommand(slotIndex), cancellationToken);
-            var report = res.IsSuccess
-                ? ActionExecutionReport.Success("Chọn kỹ năng", res.Message)
-                : ActionExecutionReport.Failure("Chọn kỹ năng", res.Message);
-            OnActionReported?.Invoke(accountId, report);
-            return res;
-        }
-        return Result.Failure("Tài khoản chưa vào game.");
-    }
-
-    public async Task<Result> AutoAssignSkillsAsync(Guid accountId, CancellationToken cancellationToken = default)
-    {
-        var worker = Sessions.GetWorker(accountId);
-        if (worker != null)
-        {
-            return await worker.AutoAssignSkillsAsync(cancellationToken);
-        }
-        return Result.Failure("Tài khoản chưa vào game.");
-    }
-
-    public IReadOnlyList<GameSkillInfo> GetSkills(Guid accountId)
-    {
-        var session = Sessions.GetSession(accountId);
-        if (session != null && session.IsRunning)
-        {
-            return session.PlayerScraper.ScrapeSkills();
-        }
-        return [];
-    }
-
     public void SetGameSpeed(Guid accountId, float speed)
-    {
-        Sessions.GetWorker(accountId)?.SetGameSpeed(speed);
-    }
+        => Sessions.GetWorker(accountId)?.SetGameSpeed(speed);
 
     public float GetGameSpeed(Guid accountId)
-    {
-        var worker = Sessions.GetWorker(accountId);
-        return worker?.GameSpeed ?? 1.0f;
-    }
+        => Sessions.GetWorker(accountId)?.GameSpeed ?? 1.0f;
 
     public void SendGameKeyDown(Guid accountId, GameKey key)
     {
@@ -330,11 +175,9 @@ public sealed class GameEngine : IGameEngine
     public Task SendGameKeyPressAsync(Guid accountId, GameKey key, int holdMs = 120)
     {
         var session = Sessions.GetSession(accountId);
-        if (session != null && session.IsRunning)
-        {
-            return GameInputSender.SendKeyPressAsync(session.Mono, key, holdMs);
-        }
-        return Task.CompletedTask;
+        return session != null && session.IsRunning
+            ? GameInputSender.SendKeyPressAsync(session.Mono, key, holdMs)
+            : Task.CompletedTask;
     }
 
     public void SendGameKeyDown(Guid accountId, int keyCode)
@@ -358,22 +201,16 @@ public sealed class GameEngine : IGameEngine
     public Task SendGameKeyPressAsync(Guid accountId, int keyCode, int holdMs = 120)
     {
         var session = Sessions.GetSession(accountId);
-        if (session != null && session.IsRunning)
-        {
-            return GameInputSender.SendKeyPressAsync(session.Mono, keyCode, holdMs);
-        }
-        return Task.CompletedTask;
+        return session != null && session.IsRunning
+            ? GameInputSender.SendKeyPressAsync(session.Mono, keyCode, holdMs)
+            : Task.CompletedTask;
     }
 
     public void SetMasked(Guid accountId, bool isMasked)
-    {
-        Sessions.SetMasked(accountId, isMasked);
-    }
+        => Sessions.SetMasked(accountId, isMasked);
 
     public void SetAllMasked(bool isMasked)
-    {
-        Sessions.SetAllMasked(isMasked);
-    }
+        => Sessions.SetAllMasked(isMasked);
 
     public void Dispose()
     {

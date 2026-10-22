@@ -4,7 +4,7 @@ using System.Collections.ObjectModel;
 using System.Globalization;
 using CommunityToolkit.Mvvm.ComponentModel;
 
-namespace DragonBoyAccountManager.GUI.ViewModels;
+namespace DragonBoyAccountManager.GUI.Presentation.Features.Settings.Items;
 
 public partial class SettingItemViewModel : ObservableObject
 {
@@ -33,6 +33,8 @@ public partial class SettingItemViewModel : ObservableObject
     public int MaxLength { get; set; } = 255;
 
     public Action<SettingItemViewModel>? OnChanged { get; set; }
+    public Action<AppSettings>? LoadFromSettings { get; set; }
+    public Action<AppSettings>? ApplyToSettings { get; set; }
 
     public SettingItemViewModel(string key, string label, SettingViewType viewType, string? description = null)
     {
@@ -163,5 +165,46 @@ public partial class SettingItemViewModel : ObservableObject
             item.OnChanged = vm => onChanged(vm.SelectedOption);
         }
         return item;
+    }
+
+    public SettingItemViewModel BindBool(Func<AppSettings, bool> getter, Action<AppSettings, bool> setter)
+    {
+        LoadFromSettings = s => BoolValue = getter(s);
+        ApplyToSettings = s => setter(s, BoolValue);
+        return this;
+    }
+
+    public SettingItemViewModel BindNumber(Func<AppSettings, int> getter, Action<AppSettings, int> setter)
+    {
+        LoadFromSettings = s => NumberValue = getter(s);
+        ApplyToSettings = s => setter(s, NumberValue);
+        return this;
+    }
+
+    public SettingItemViewModel BindSelect<T>(
+        IReadOnlyList<(string Label, T Value)> choices,
+        Func<AppSettings, T> getter,
+        Action<AppSettings, T> setter)
+    {
+        Options.Clear();
+        foreach (var (label, _) in choices)
+        {
+            Options.Add(label);
+        }
+
+        LoadFromSettings = s =>
+        {
+            var current = getter(s);
+            var matched = choices.FirstOrDefault(c => EqualityComparer<T>.Default.Equals(c.Value, current));
+            SelectedOption = matched.Label ?? (choices.Count > 0 ? choices[0].Label : string.Empty);
+        };
+
+        ApplyToSettings = s =>
+        {
+            var matched = choices.FirstOrDefault(c => c.Label == SelectedOption);
+            setter(s, matched.Label != null ? matched.Value : choices[0].Value);
+        };
+
+        return this;
     }
 }

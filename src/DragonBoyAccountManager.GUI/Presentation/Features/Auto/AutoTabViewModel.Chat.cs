@@ -4,7 +4,7 @@ using System.Linq;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 
-namespace DragonBoyAccountManager.GUI.ViewModels;
+namespace DragonBoyAccountManager.GUI.Presentation.Features.Auto;
 
 public sealed partial class AutoTabViewModel
 {
@@ -52,7 +52,7 @@ public sealed partial class AutoTabViewModel
         if (lines.Length == 0) return;
 
         string msg = lines[0];
-        var targets = AutoChatSyncAll ? GetTargetAccountIds() : (ActiveAccount != null && ActiveAccount.IsRunning ? [ActiveAccount.Id] : []);
+        var targets = GetTargetAccountIds(AutoChatSyncAll);
         var chatType = (ChatType)SelectedChatTypeIndex;
 
         if (targets.Count == 0)
@@ -91,7 +91,7 @@ public sealed partial class AutoTabViewModel
             return;
         }
 
-        var targets = AutoChatSyncAll ? GetTargetAccountIds() : (ActiveAccount != null && ActiveAccount.IsRunning ? [ActiveAccount.Id] : []);
+        var targets = GetTargetAccountIds(AutoChatSyncAll);
         if (targets.Count == 0)
         {
             StatusText = "Chưa chọn tài khoản đang chạy nào!";
@@ -110,16 +110,10 @@ public sealed partial class AutoTabViewModel
             var targetAcc = ResolveAccount(id);
             if (targetAcc != null && targetAcc.Id != ActiveAccount?.Id)
             {
-                var s = targetAcc.AutoSettings;
-                var accLines = (s.ChatText ?? ChatText)
-                    .Split(['\r', '\n'], StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
-                    .Where(l => !string.IsNullOrWhiteSpace(l))
-                    .ToArray();
-                var accInterval = TimeSpan.FromSeconds(Math.Max(1, s.ChatDelaySeconds <= 0 ? 5 : s.ChatDelaySeconds));
-                var accChatType = (ChatType)s.SelectedChatTypeIndex;
+                var accOptions = targetAcc.AutoSettings.ToAutoChatOptions(ChatText);
                 targetAcc.IsAutoChatRunning = true;
                 targetAcc.AutoChatStatusText = "Đang chạy auto chat...";
-                _gameEngine.StartAutoChat(id, accLines, accInterval, accChatType, s.IsRandomChat);
+                _gameEngine.StartAutoChat(id, accOptions);
             }
             else
             {
@@ -135,7 +129,7 @@ public sealed partial class AutoTabViewModel
 
     private void StopAutoChat()
     {
-        var targets = AutoChatSyncAll ? GetTargetAccountIds() : (ActiveAccount != null && ActiveAccount.IsRunning ? [ActiveAccount.Id] : []);
+        var targets = GetTargetAccountIds(AutoChatSyncAll);
         foreach (var id in targets)
         {
             _gameEngine.StopAutoChat(id);
@@ -150,15 +144,16 @@ public sealed partial class AutoTabViewModel
         AutoChatStatusText = $"Đã dừng (Đã gửi tổng cộng: {ChatSentCount} tin)";
     }
 
-    private void HandleChatSent(Guid accountId, string message, int count)
+    private void HandleChatSent(Guid accountId, string message)
     {
-        var dispatcher = App.Current?.Dispatcher;
-        dispatcher?.InvokeAsync(() =>
+        RunOnUi(() =>
         {
+            int count = ChatSentCount + 1;
             var target = ResolveAccount(accountId);
             if (target != null)
             {
-                target.ChatSentCount = count;
+                target.ChatSentCount++;
+                count = target.ChatSentCount;
                 target.AutoChatStatusText = $"Đang chạy... Đã gửi: {count} tin ({DateTime.Now:HH:mm:ss})";
             }
 
@@ -167,6 +162,23 @@ public sealed partial class AutoTabViewModel
                 ChatSentCount = count;
                 LastChatSentTime = DateTime.Now.ToString("HH:mm:ss");
                 AutoChatStatusText = $"Đang chạy... Đã gửi: {count} tin ({LastChatSentTime})";
+            }
+        });
+    }
+
+    private void HandleAutoChatStateChanged(Guid accountId, bool isRunning)
+    {
+        RunOnUi(() =>
+        {
+            var target = ResolveAccount(accountId);
+            if (target != null)
+            {
+                target.IsAutoChatRunning = isRunning;
+            }
+
+            if (ActiveAccount?.Id == accountId)
+            {
+                IsAutoChatRunning = isRunning;
             }
         });
     }

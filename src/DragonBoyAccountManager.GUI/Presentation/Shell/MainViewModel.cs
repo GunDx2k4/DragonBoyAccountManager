@@ -1,17 +1,19 @@
 using System;
+using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Messaging;
 using DragonBoyAccountManager.Core.Common;
 
-namespace DragonBoyAccountManager.GUI.ViewModels;
+namespace DragonBoyAccountManager.GUI.Presentation.Shell;
 
 public sealed partial class MainViewModel : ObservableObject
 {
     private readonly IAccountStorageService _storageService;
     private readonly IDialogService _dialogService;
     private readonly IGameInputService _gameInput;
+    private readonly IReadOnlyDictionary<AppTab, IActivatableTab> _tabs;
 
     public AccountsPanelViewModel AccountsPanel { get; }
     public AccountFormViewModel AccountForm { get; }
@@ -25,6 +27,18 @@ public sealed partial class MainViewModel : ObservableObject
 
     [ObservableProperty]
     private int _selectedTabIndex;
+
+    partial void OnSelectedTabIndexChanged(int oldValue, int newValue)
+    {
+        if (_tabs.TryGetValue((AppTab)oldValue, out var oldTab))
+        {
+            oldTab.OnTabDeactivated();
+        }
+        if (_tabs.TryGetValue((AppTab)newValue, out var newTab))
+        {
+            newTab.OnTabActivated();
+        }
+    }
 
     public MainViewModel(
         AccountsPanelViewModel accountsPanel,
@@ -53,97 +67,19 @@ public sealed partial class MainViewModel : ObservableObject
         _dialogService = dialogService;
         _gameInput = gameInput;
 
-        WeakReferenceMessenger.Default.Register<RequestNavigateToTabMessage>(this, (_, m) => SelectedTabIndex = m.TabIndex);
-
-        PropertyChanged += (_, e) =>
+        _tabs = new Dictionary<AppTab, IActivatableTab>
         {
-            if (e.PropertyName == nameof(SelectedTabIndex))
-            {
-                if (SelectedTabIndex == 0)
-                {
-                    UtilitiesTab.StopPolling();
-                    AutoTab.SaveCurrentAccountSettings();
-                    AutoTab.StopPolling();
-                    AccountForm.StartPolling();
-                    AccountForm.RefreshSkills();
-                    AccountForm.RequestZoneList();
-                }
-                else if (SelectedTabIndex == 1)
-                {
-                    AccountForm.StopPolling();
-                    AutoTab.SaveCurrentAccountSettings();
-                    AutoTab.StopPolling();
-                    UtilitiesTab.StartPolling();
-                    UtilitiesTab.RefreshMapData();
-                    UtilitiesTab.UpdateSyncTargetDisplay();
-                }
-                else if (SelectedTabIndex == 2)
-                {
-                    AccountForm.StopPolling();
-                    UtilitiesTab.StopPolling();
-                    AutoTab.StartPolling();
-                    AutoTab.RefreshData();
-                    AutoTab.UpdateSyncTargetDisplay();
-                }
-                else
-                {
-                    AccountForm.StopPolling();
-                    UtilitiesTab.StopPolling();
-                    AutoTab.SaveCurrentAccountSettings();
-                    AutoTab.StopPolling();
-                }
-            }
+            [AppTab.AccountConfig] = AccountForm,
+            [AppTab.MapUtilities] = UtilitiesTab,
+            [AppTab.Auto] = AutoTab
         };
 
-        if (SelectedTabIndex == 0)
+        WeakReferenceMessenger.Default.Register<RequestNavigateToTabMessage>(this, (_, m) => SelectedTabIndex = (int)m.Tab);
+
+        if (_tabs.TryGetValue((AppTab)SelectedTabIndex, out var initialTab))
         {
-            AccountForm.StartPolling();
+            initialTab.OnTabActivated();
         }
-
-        AccountsPanel.OnStatusMessageUpdated += msg =>
-        {
-            StatusBar.StatusMessage = msg;
-        };
-
-        AccountsPanel.OnRequestNavigateToGuide += () =>
-        {
-            SelectedTabIndex = 4;
-        };
-
-        Guide.OnRequestNavigateToGuide += () =>
-        {
-            SelectedTabIndex = 4;
-        };
-
-        Guide.PropertyChanged += (_, e) =>
-        {
-            if (e.PropertyName == nameof(GuideViewModel.HasAppUpdate) && Guide.HasAppUpdate && Guide.AvailableAppUpdate != null)
-            {
-                StatusBar.StatusMessage = $"[CẬP NHẬT] Đã có bản mới v{Guide.AvailableAppUpdate.Version}! Vào tab Hướng dẫn để xem chi tiết.";
-            }
-        };
-
-        AccountsPanel.PropertyChanged += (_, e) =>
-        {
-            if (e.PropertyName == nameof(AccountsPanelViewModel.IsMasked))
-            {
-                if (AccountForm.IsMasked != AccountsPanel.IsMasked)
-                {
-                    AccountForm.IsMasked = AccountsPanel.IsMasked;
-                }
-            }
-        };
-
-        AccountForm.PropertyChanged += (_, e) =>
-        {
-            if (e.PropertyName == nameof(AccountFormViewModel.IsMasked))
-            {
-                if (AccountsPanel.IsMasked != AccountForm.IsMasked)
-                {
-                    AccountsPanel.IsMasked = AccountForm.IsMasked;
-                }
-            }
-        };
 
         AccountForm.IsMasked = AccountsPanel.IsMasked;
 
@@ -158,12 +94,12 @@ public sealed partial class MainViewModel : ObservableObject
 
                 if (isNew)
                 {
-                    StatusBar.StatusMessage = $"Đã thêm tài khoản mới: {displayUser}";
+                    WeakReferenceMessenger.Default.Send(new StatusMessageChangedMessage($"Đã thêm tài khoản mới: {displayUser}"));
                     _dialogService.ShowInfo("Thành công", $"Đã thêm tài khoản mới '{displayUser}' thành công!");
                 }
                 else
                 {
-                    StatusBar.StatusMessage = $"Đã cập nhật thông tin tài khoản: {displayUser}";
+                    WeakReferenceMessenger.Default.Send(new StatusMessageChangedMessage($"Đã cập nhật thông tin tài khoản: {displayUser}"));
                     _dialogService.ShowInfo("Thành công", $"Đã cập nhật thông tin tài khoản '{displayUser}' thành công!");
                 }
             }
@@ -179,7 +115,7 @@ public sealed partial class MainViewModel : ObservableObject
             {
                 await _storageService.DeleteAsync(id);
                 AccountsPanel.RemoveItem(id);
-                StatusBar.StatusMessage = "Đã xóa tài khoản.";
+                WeakReferenceMessenger.Default.Send(new StatusMessageChangedMessage("Đã xóa tài khoản."));
             }
             catch (Exception ex)
             {
@@ -209,6 +145,6 @@ public sealed partial class MainViewModel : ObservableObject
         {
             AccountsPanel.SelectedAccount = AccountsPanel.Accounts[0];
         }
-        StatusBar.StatusMessage = $"Sẵn sàng ({AccountsPanel.TotalAccountsCount} tài khoản)";
+        WeakReferenceMessenger.Default.Send(new StatusMessageChangedMessage($"Sẵn sàng ({AccountsPanel.TotalAccountsCount} tài khoản)"));
     }
 }

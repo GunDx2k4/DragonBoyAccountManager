@@ -1,7 +1,8 @@
 using DragonBoyAccountManager.Core.Automation.Behaviors;
+using DragonBoyAccountManager.Core.Automation.Behaviors.Navigation;
 using DragonBoyAccountManager.Core.Execution;
-using DragonBoyAccountManager.Core.Interop.Mono;
 using DragonBoyAccountManager.Core.Sessions;
+using DragonBoyAccountManager.Core.Telemetry.Scrapers;
 using DragonBoyAccountManager.Core.Telemetry.Snapshots;
 
 namespace DragonBoyAccountManager.Core.Tests.Automation;
@@ -45,11 +46,23 @@ public class BehaviorContainerTests
         public MapSnapshot CurrentMap => MapSnapshot.Empty;
 
         public ICommandDispatcher Dispatcher => throw new NotImplementedException();
-        public IMonoRuntime Mono => throw new NotImplementedException();
+        public AutoNavigator Navigator => throw new NotImplementedException();
 
+        private readonly Dictionary<Type, ISnapshotScraper> _scrapers = [];
+        private readonly Dictionary<Type, object> _snapshots = [];
         private readonly Dictionary<Type, IBehavior> _behaviors = [];
 
         public IEnumerable<IBehavior> Behaviors => _behaviors.Values;
+
+        public void RegisterScraper<TSnapshot>(ISnapshotScraper<TSnapshot> scraper) where TSnapshot : class
+        {
+            _scrapers[typeof(TSnapshot)] = scraper;
+        }
+
+        public TSnapshot? GetSnapshot<TSnapshot>() where TSnapshot : class
+        {
+            return _snapshots.TryGetValue(typeof(TSnapshot), out var snap) ? snap as TSnapshot : null;
+        }
 
         public void RegisterBehavior<TBehavior>(TBehavior behavior) where TBehavior : class, IBehavior
         {
@@ -74,8 +87,37 @@ public class BehaviorContainerTests
             }
         }
 
-        public void Tick() { }
+        public void Tick()
+        {
+            foreach (var (type, scraper) in _scrapers)
+            {
+                _snapshots[type] = scraper.Scrape();
+            }
+        }
+
         public void Kill() { }
+    }
+
+    private sealed record DummySnapshot(int Value);
+
+    private sealed class DummyScraper(int value) : ISnapshotScraper<DummySnapshot>
+    {
+        public DummySnapshot Scrape() => new(value);
+    }
+
+    [Fact]
+    public void RegisterScraper_And_GetSnapshot_ScrapesAndStoresTypedSnapshot()
+    {
+        var context = new StubSessionContext();
+        context.RegisterScraper(new DummyScraper(42));
+
+        Assert.Null(context.GetSnapshot<DummySnapshot>());
+
+        context.Tick();
+
+        var snapshot = context.GetSnapshot<DummySnapshot>();
+        Assert.NotNull(snapshot);
+        Assert.Equal(42, snapshot.Value);
     }
 
     [Fact]
@@ -116,5 +158,54 @@ public class BehaviorContainerTests
 
         Assert.False(b1.IsRunning);
         Assert.False(b2.IsRunning);
+    }
+
+    private sealed class LoopingTestBehavior() : AutomationBehavior("LoopTest", "LoopTest")
+    {
+        public int TickCount { get; private set; }
+
+        protected override int TickDelayMs => 50;
+
+        protected override Task OnTickAsync(
+            PlayerSnapshot player,
+            WorldSnapshot world,
+            MapSnapshot map,
+            ICommandDispatcher dispatcher,
+            IProgress<string>? progress,
+            CancellationToken cancellationToken)
+        {
+            TickCount++;
+            return Task.CompletedTask;
+        }
+    }
+
+    [Fact]
+    public async Task AutomationBehavior_StopAndImmediateRestart_DoesNotAbortSecondRun()
+    {
+        var behavior = new LoopingTestBehavior();
+        using var dispatcher = new CommandDispatcher();
+
+        var firstRun = behavior.StartAsync(
+            () => PlayerSnapshot.Empty,
+            () => WorldSnapshot.Empty,
+            () => MapSnapshot.Empty,
+            dispatcher);
+
+        await Task.Delay(20, CancellationToken.None);
+        Assert.True(behavior.IsRunning);
+
+        behavior.Stop();
+        var secondRun = behavior.StartAsync(
+            () => PlayerSnapshot.Empty,
+            () => WorldSnapshot.Empty,
+            () => MapSnapshot.Empty,
+            dispatcher);
+
+        await Task.Delay(30, CancellationToken.None);
+        Assert.True(behavior.IsRunning);
+
+        behavior.Stop();
+        await Task.WhenAll(firstRun, secondRun);
+        Assert.False(behavior.IsRunning);
     }
 }

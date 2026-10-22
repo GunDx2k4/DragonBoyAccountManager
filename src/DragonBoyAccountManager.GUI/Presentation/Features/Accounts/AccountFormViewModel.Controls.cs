@@ -1,12 +1,12 @@
-using System;
-using System.Collections.Generic;
 using System.Globalization;
-using System.Linq;
-using System.Threading.Tasks;
-using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
+using DragonBoyAccountManager.Core.Common;
+using DragonBoyAccountManager.Core.Telemetry.Snapshots;
+using DragonBoyAccountManager.GUI.Presentation.DesignSystem.Assists;
+using DragonBoyAccountManager.GUI.Presentation.Features.Auto.Items;
+using DragonBoyAccountManager.GUI.Services.Engine;
 
-namespace DragonBoyAccountManager.GUI.ViewModels;
+namespace DragonBoyAccountManager.GUI.Presentation.Features.Accounts;
 
 public sealed partial class AccountFormViewModel
 {
@@ -20,86 +20,79 @@ public sealed partial class AccountFormViewModel
     }
 
     [RelayCommand]
-    public async Task MoveUpAsync() => await SendKeyPulseAsync(GameKey.Up);
+    public Task MoveUpAsync() => SendKeyPulseAsync(GameKey.Up);
 
     [RelayCommand]
-    public async Task MoveDownAsync() => await SendKeyPulseAsync(GameKey.Down);
+    public Task MoveDownAsync() => SendKeyPulseAsync(GameKey.Down);
 
     [RelayCommand]
-    public async Task MoveLeftAsync() => await SendKeyPulseAsync(GameKey.Left);
+    public Task MoveLeftAsync() => SendKeyPulseAsync(GameKey.Left);
 
     [RelayCommand]
-    public async Task MoveRightAsync() => await SendKeyPulseAsync(GameKey.Right);
+    public Task MoveRightAsync() => SendKeyPulseAsync(GameKey.Right);
 
     [RelayCommand]
-    public async Task ActionOkAsync() => await SendKeyPulseAsync(GameKey.Ok);
+    public Task ActionOkAsync() => _gameInput.ActionOkAsync();
 
     [RelayCommand]
-    public async Task ActionFocusAsync() => await SendKeyPulseAsync(GameKey.Focus);
+    public Task ActionFocusAsync() => _gameInput.ActionFocusAsync();
 
     [RelayCommand]
-    public async Task ActionPickItemAsync() => await SendKeyPulseAsync(GameKey.PickItem);
+    public Task ActionPickItemAsync() => _gameInput.ActionPickItemAsync();
 
     [RelayCommand]
-    public async Task ActionUsePeanAsync() => await SendKeyPulseAsync(GameKey.UsePean);
+    public Task ActionUsePeanAsync() => _gameInput.ActionUsePeanAsync();
 
     [RelayCommand]
-    public async Task ActionShowPanelAsync() => await SendKeyPulseAsync(GameKey.ShowPanel);
+    public Task ActionShowPanelAsync() => _gameInput.ActionShowPanelAsync();
 
     [RelayCommand]
-    public async Task ActionHidePanelAsync() => await SendKeyPulseAsync(GameKey.HidePanel);
+    public Task ActionHidePanelAsync() => _gameInput.ActionHidePanelAsync();
 
     [RelayCommand]
-    public async Task ActionYesAsync() => await SendKeyPulseAsync(GameKey.Yes);
+    public Task ActionYesAsync() => _gameInput.ActionYesAsync();
 
     [RelayCommand]
-    public async Task ActionChatAsync() => await SendKeyPulseAsync(GameKey.Chat);
+    public Task ActionChatAsync() => _gameInput.ActionChatAsync();
 
     [RelayCommand]
-    public async Task ActionBackAsync() => await SendKeyPulseAsync(GameKey.Back);
+    public Task ActionBackAsync() => _gameInput.ActionBackAsync();
 
     [RelayCommand]
-    public async Task UseCapsuleAsync()
+    public Task UseCapsuleAsync() => _gameInput.UseCapsuleAsync();
+
+    [RelayCommand]
+    public Task UseTdltAsync() => _gameInput.UseTdltAsync();
+
+    private static int ParseSlotIndex(object? parameter, out SkillButtonItem? targetItem, IList<SkillButtonItem> skills)
     {
-        var targets = ResolveKeyTargets();
-        foreach (var id in targets)
-        {
-            await _gameEngine.UseCapsuleAsync(id);
-        }
-    }
+        targetItem = null;
+        int slotIndex = 0;
 
-    [RelayCommand]
-    public async Task UseTdltAsync()
-    {
-        var targets = ResolveKeyTargets();
-        foreach (var id in targets)
+        if (parameter is int idx)
         {
-            await _gameEngine.UseTdltAsync(id);
+            slotIndex = idx;
+            if (slotIndex >= 0 && slotIndex < skills.Count) targetItem = skills[slotIndex];
         }
+        else if (parameter is string str && int.TryParse(str, out int parsed))
+        {
+            slotIndex = parsed;
+            if (slotIndex >= 0 && slotIndex < skills.Count) targetItem = skills[slotIndex];
+        }
+        else if (parameter is SkillButtonItem item)
+        {
+            slotIndex = item.SlotIndex;
+            targetItem = item;
+        }
+
+        return slotIndex;
     }
 
     [RelayCommand]
     public async Task SelectSkillAsync(object? parameter)
     {
-        int slotIndex = 0;
-        if (parameter is int idx)
-        {
-            slotIndex = idx;
-        }
-        else if (parameter is string str && int.TryParse(str, out int parsed))
-        {
-            slotIndex = parsed;
-        }
-        else if (parameter is SkillButtonItem item)
-        {
-            slotIndex = item.SlotIndex;
-        }
-
-        var targets = ResolveKeyTargets();
-        foreach (var id in targets)
-        {
-            await _gameEngine.SelectSkillAsync(id, slotIndex);
-        }
+        int slotIndex = ParseSlotIndex(parameter, out _, Skills);
+        await _gameInput.UseSkillAsync(slotIndex);
 
         for (int i = 0; i < Skills.Count; i++)
         {
@@ -110,29 +103,8 @@ public sealed partial class AccountFormViewModel
     [RelayCommand]
     public void UseSkill(object? parameter)
     {
-        int slotIndex = 0;
-        SkillButtonItem? targetItem = null;
-        if (parameter is int idx)
-        {
-            slotIndex = idx;
-            if (slotIndex >= 0 && slotIndex < Skills.Count) targetItem = Skills[slotIndex];
-        }
-        else if (parameter is string str && int.TryParse(str, out int parsed))
-        {
-            slotIndex = parsed;
-            if (slotIndex >= 0 && slotIndex < Skills.Count) targetItem = Skills[slotIndex];
-        }
-        else if (parameter is SkillButtonItem item)
-        {
-            slotIndex = item.SlotIndex;
-            targetItem = item;
-        }
-
-        var targets = ResolveKeyTargets();
-        foreach (var id in targets)
-        {
-            _ = _gameEngine.SelectSkillAsync(id, slotIndex);
-        }
+        int slotIndex = ParseSlotIndex(parameter, out var targetItem, Skills);
+        _gameInput.UseSkill(slotIndex);
 
         if (targetItem != null)
         {
@@ -144,8 +116,7 @@ public sealed partial class AccountFormViewModel
     [RelayCommand]
     public async Task AutoAssignSkillsAsync()
     {
-        var targets = ResolveKeyTargets();
-        foreach (var id in targets)
+        foreach (var id in ResolveKeyTargets())
         {
             await _gameEngine.AutoAssignSkillsAsync(id);
         }
@@ -163,59 +134,14 @@ public sealed partial class AccountFormViewModel
 
     public void RefreshSkills()
     {
-        var accountId = _editingAccount?.Id;
-        if (accountId == null)
-        {
-            accountId = _selectionService?.GetRunningTargetAccountIds().FirstOrDefault() ?? _keyTargetResolver?.Invoke().FirstOrDefault();
-        }
+        var accountId = _editingAccount?.Id ?? _selectionService?.GetRunningTargetAccountIds().FirstOrDefault();
         if (accountId == null) return;
 
-        var skills = _gameEngine.GetSkills(accountId.Value);
-        var skillMap = skills.ToDictionary(s => s.Slot, s => s);
+        var skillMap = _gameEngine.GetSkills(accountId.Value).ToDictionary(s => s.Slot);
         for (int i = 0; i < Skills.Count; i++)
         {
-            if (skillMap.TryGetValue(i, out var sInfo))
-            {
-                string expectedName = !string.IsNullOrWhiteSpace(sInfo.Name)
-                    ? sInfo.Name
-                    : (i == 9 ? "Skill 0" : $"Skill {i + 1}");
-
-                if (Skills[i].Name != expectedName)
-                {
-                    Skills[i].Name = expectedName;
-                }
-                if (Skills[i].IsSelected != sInfo.IsSelected)
-                {
-                    Skills[i].IsSelected = sInfo.IsSelected;
-                }
-                Skills[i].Point = sInfo.Point;
-                Skills[i].CoolDown = sInfo.CoolDown;
-                Skills[i].ManaUse = sInfo.ManaUse;
-                Skills[i].LastTimeUse = sInfo.LastTimeUse;
-                if (sInfo.IconId >= 0 && Skills[i].IconId != sInfo.IconId)
-                {
-                    Skills[i].IconId = sInfo.IconId;
-                    Skills[i].Icon = _gameImageService.GetSmallImage(sInfo.IconId);
-                }
-            }
-            else
-            {
-                string defaultName = i == 9 ? "Skill 0" : $"Skill {i + 1}";
-                if (Skills[i].Name != defaultName)
-                {
-                    Skills[i].Name = defaultName;
-                }
-                if (Skills[i].IsSelected)
-                {
-                    Skills[i].IsSelected = false;
-                }
-                Skills[i].Point = 0;
-                Skills[i].CoolDown = 0;
-                Skills[i].ManaUse = 0;
-                Skills[i].LastTimeUse = 0;
-                Skills[i].IconId = -1;
-                Skills[i].Icon = null;
-            }
+            skillMap.TryGetValue(i, out var info);
+            Skills[i].SyncFrom(info, _gameImageService, syncSelection: true);
         }
         UpdateCooldowns();
     }
@@ -223,23 +149,19 @@ public sealed partial class AccountFormViewModel
     [RelayCommand]
     public void NextZone()
     {
-        int next = (CurrentZoneId ?? 0) + 1;
-        ExecuteChangeZone(next);
+        ExecuteChangeZone((CurrentZoneId ?? 0) + 1);
     }
 
     [RelayCommand]
     public void PreviousZone()
     {
-        int prev = (CurrentZoneId ?? 0) - 1;
-        if (prev < 0) prev = 0;
-        ExecuteChangeZone(prev);
+        ExecuteChangeZone(Math.Max(0, (CurrentZoneId ?? 0) - 1));
     }
 
     public void ExecuteChangeZone(int targetZone)
     {
         if (targetZone < 0) return;
-        var targets = ResolveKeyTargets();
-        foreach (var id in targets)
+        foreach (var id in ResolveKeyTargets())
         {
             _gameEngine.ChangeZone(id, targetZone);
         }
@@ -247,11 +169,7 @@ public sealed partial class AccountFormViewModel
 
     public void RequestZoneList()
     {
-        var accountId = _editingAccount?.Id;
-        if (accountId == null)
-        {
-            accountId = _selectionService?.GetRunningTargetAccountIds().FirstOrDefault() ?? _keyTargetResolver?.Invoke().FirstOrDefault();
-        }
+        var accountId = _editingAccount?.Id ?? _selectionService?.GetRunningTargetAccountIds().FirstOrDefault();
         if (accountId == null) return;
 
         _gameEngine.RequestZoneList(accountId.Value);
@@ -263,128 +181,30 @@ public sealed partial class AccountFormViewModel
 
         _ = Task.Run(async () =>
         {
-            await Task.Delay(350);
+            await Task.Delay(350, CancellationToken.None);
             var freshSnapshot = _gameEngine.GetWorldSnapshot(accountId.Value);
             if (freshSnapshot != null && freshSnapshot.Zones.Count > 0)
             {
-                var dispatcher = App.Current?.Dispatcher;
-                if (dispatcher != null)
-                {
-                    await dispatcher.InvokeAsync(() => UpdateZones(freshSnapshot.Zones, freshSnapshot.ZoneId));
-                }
+                RunOnUi(() => UpdateZones(freshSnapshot.Zones, freshSnapshot.ZoneId));
             }
         });
     }
 
     public void UpdateZones(IReadOnlyList<WorldZoneInfo> newZones, int currentZoneId)
     {
-        _isRefreshingZones = true;
-        try
-        {
-            bool needRebuild = AvailableZones.Count != newZones.Count;
-            if (!needRebuild)
-            {
-                for (int i = 0; i < newZones.Count; i++)
-                {
-                    if (AvailableZones[i].ZoneId != newZones[i].ZoneId)
-                    {
-                        needRebuild = true;
-                        break;
-                    }
-                }
-            }
-
-            if (needRebuild)
-            {
-                AvailableZones.Clear();
-                foreach (var z in newZones)
-                {
-                    AvailableZones.Add(z);
-                }
-            }
-            else
-            {
-                for (int i = 0; i < newZones.Count; i++)
-                {
-                    if (AvailableZones[i] != newZones[i])
-                    {
-                        AvailableZones[i] = newZones[i];
-                    }
-                }
-            }
-
-            CurrentZoneId = currentZoneId;
-            if (SelectedZone?.ZoneId != currentZoneId)
-            {
-                _selectedZone = AvailableZones.FirstOrDefault(z => z.ZoneId == currentZoneId);
-                OnPropertyChanged(nameof(SelectedZone));
-            }
-        }
-        finally
-        {
-            _isRefreshingZones = false;
-        }
+        CurrentZoneId = currentZoneId;
+        AvailableZones.SyncZones(newZones, currentZoneId, ref _selectedZone, ref _isRefreshingZones, () => OnPropertyChanged(nameof(SelectedZone)));
     }
 
     [RelayCommand]
-    private void OpenCheatsheet()
-    {
-        _dialogService.ShowHotkeyCheatsheet(null);
-    }
+    private void OpenCheatsheet() => _dialogService.ShowHotkeyCheatsheet(null);
 
-    public void StartHoldingKey(GameKey key)
-    {
-        var targets = ResolveKeyTargets();
-        foreach (var id in targets)
-        {
-            _gameEngine.SendGameKeyDown(id, key);
-        }
-    }
-
-    public void StopHoldingKey(GameKey key)
-    {
-        var targets = ResolveKeyTargets();
-        foreach (var id in targets)
-        {
-            _gameEngine.SendGameKeyUp(id, key);
-        }
-    }
-
-    public async Task SendKeyPulseAsync(GameKey key, int holdMs = 120)
-    {
-        var targets = ResolveKeyTargets().ToList();
-        if (targets.Count == 0) return;
-
-        var tasks = targets.Select(id => _gameEngine.SendGameKeyPressAsync(id, key, holdMs));
-        await Task.WhenAll(tasks);
-    }
-
-    public void StartHoldingRawKey(int keyCode)
-    {
-        var targets = ResolveKeyTargets();
-        foreach (var id in targets)
-        {
-            _gameEngine.SendGameKeyDown(id, keyCode);
-        }
-    }
-
-    public void StopHoldingRawKey(int keyCode)
-    {
-        var targets = ResolveKeyTargets();
-        foreach (var id in targets)
-        {
-            _gameEngine.SendGameKeyUp(id, keyCode);
-        }
-    }
-
-    public async Task SendRawKeyPulseAsync(int keyCode, int holdMs = 120)
-    {
-        var targets = ResolveKeyTargets().ToList();
-        if (targets.Count == 0 || keyCode == 0) return;
-
-        var tasks = targets.Select(id => _gameEngine.SendGameKeyPressAsync(id, keyCode, holdMs));
-        await Task.WhenAll(tasks);
-    }
+    public void StartHoldingKey(GameKey key) => _gameInput.StartHoldingKey(key);
+    public void StopHoldingKey(GameKey key) => _gameInput.StopHoldingKey(key);
+    public Task SendKeyPulseAsync(GameKey key, int holdMs = 120) => _gameInput.SendKeyPulseAsync(key, holdMs);
+    public void StartHoldingRawKey(int keyCode) => _gameInput.StartHoldingRawKey(keyCode);
+    public void StopHoldingRawKey(int keyCode) => _gameInput.StopHoldingRawKey(keyCode);
+    public Task SendRawKeyPulseAsync(int keyCode, int holdMs = 120) => _gameInput.SendRawKeyPulseAsync(keyCode, holdMs);
 
     private IEnumerable<Guid> ResolveKeyTargets()
     {
@@ -394,22 +214,7 @@ public sealed partial class AccountFormViewModel
             if (running.Count > 0) return running;
         }
 
-        if (_keyTargetResolver != null)
-        {
-            return _keyTargetResolver();
-        }
-
-        if (_targetResolver != null)
-        {
-            return _targetResolver();
-        }
-
-        if (_editingAccount != null)
-        {
-            return [_editingAccount.Id];
-        }
-
-        return [];
+        return _editingAccount != null ? [_editingAccount.Id] : [];
     }
 
     private IEnumerable<Guid> ResolveSpeedTargets()
@@ -420,21 +225,6 @@ public sealed partial class AccountFormViewModel
             if (running.Count > 0) return running;
         }
 
-        if (_speedTargetResolver != null)
-        {
-            return _speedTargetResolver();
-        }
-
-        if (_targetResolver != null)
-        {
-            return _targetResolver();
-        }
-
-        if (_editingAccount != null)
-        {
-            return [_editingAccount.Id];
-        }
-
-        return [];
+        return _editingAccount != null ? [_editingAccount.Id] : [];
     }
 }

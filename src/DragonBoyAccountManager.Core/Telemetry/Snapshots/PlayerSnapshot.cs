@@ -15,15 +15,13 @@ public sealed record PlayerSnapshot(
     long Mp = 0,
     long MaxMp = 0,
     int StatusMe = 0,
-    bool IsTdltActive = false
-)
+    bool IsTdltActive = false,
+    IReadOnlyList<GameSkillInfo>? Skills = null,
+    IReadOnlyList<InventoryItem>? BagItems = null
+) : IPositioned
 {
-    public static PlayerSnapshot Empty => new(0, string.Empty, 0, 0, 0, 0, 0, 0, false, false, false, 0, 0, 0, false);
+    public IReadOnlyList<GameSkillInfo> SkillList => Skills ?? [];
+    public IReadOnlyList<InventoryItem> BagItemList => BagItems ?? [];
 
-    public double DistanceTo(int targetX, int targetY)
-    {
-        int dx = X - targetX;
-        int dy = Y - targetY;
-        return Math.Sqrt(dx * dx + dy * dy);
-    }
+    public static PlayerSnapshot Empty => new(0, string.Empty, 0, 0, 0, 0, 0, 0, false, false, false, 0, 0, 0, false, [], []);
 }

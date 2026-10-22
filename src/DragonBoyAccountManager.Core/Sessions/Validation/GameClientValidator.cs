@@ -51,7 +51,9 @@ public class GameClientValidator : IGameClientValidator, IDisposable
 
     public string? ResolveAssemblyPath(string? gamePath) => ResolveGamePaths(gamePath)?.AssemblyPath;
 
-    public ResolvedGamePaths? ResolveGamePaths(string? gamePath)
+    public ResolvedGamePaths? ResolveGamePaths(string? gamePath) => ResolveGamePathsStatic(gamePath);
+
+    public static ResolvedGamePaths? ResolveGamePathsStatic(string? gamePath)
     {
         if (string.IsNullOrWhiteSpace(gamePath)) return null;
 

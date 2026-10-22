@@ -11,4 +11,5 @@ public record LaunchOptions
     public bool EnableLogging { get; init; } = true;
     public string LogPrefix { get; init; } = "DragonBoy";
     public bool IsMasked { get; init; }
+    public Action<GameSession>? ConfigureSession { get; init; }
 }

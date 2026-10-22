@@ -5,37 +5,17 @@ using System.Windows.Threading;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using CommunityToolkit.Mvvm.Messaging;
+using DragonBoyAccountManager.Core.Automation.Behaviors;
+using DragonBoyAccountManager.Core.Engine.Events;
 
-namespace DragonBoyAccountManager.GUI.ViewModels;
+namespace DragonBoyAccountManager.GUI.Presentation.Features.Auto;
 
-public sealed partial class AutoTabViewModel : ObservableObject
+public sealed partial class AutoTabViewModel : AccountAwareTabViewModel
 {
-    private readonly IGameEngineService _gameEngine;
     private readonly IGameImageService _gameImageService;
     private readonly IAccountStorageService _storageService;
-    private readonly IActiveSelectionService? _selectionService;
     private readonly DispatcherTimer _cooldownTimer;
-    private Func<List<Guid>>? _targetResolver;
-    private Func<Guid, AccountItemViewModel?>? _accountResolver;
     private bool _isSwitchingAccount;
-
-    [ObservableProperty]
-    private AccountItemViewModel? _activeAccount;
-
-    [ObservableProperty]
-    private bool _hasActiveAccount;
-
-    [ObservableProperty]
-    private bool _isAccountRunning;
-
-    [ObservableProperty]
-    private string _activeAccountInfo = "Chưa chọn tài khoản";
-
-    [ObservableProperty]
-    private string _syncTargetDisplay = "1 tài khoản";
-
-    [ObservableProperty]
-    private string _statusText = string.Empty;
 
     [ObservableProperty]
     private bool _isAutoTrainRunning;
@@ -105,12 +85,12 @@ public sealed partial class AutoTabViewModel : ObservableObject
         IGameEngineService gameEngine,
         IGameImageService gameImageService,
         IAccountStorageService storageService,
-        IActiveSelectionService? selectionService = null)
+        IActiveSelectionService? selectionService = null,
+        IDispatcherService? dispatcher = null)
+        : base(gameEngine, selectionService, dispatcher)
     {
-        _gameEngine = gameEngine;
         _gameImageService = gameImageService;
         _storageService = storageService;
-        _selectionService = selectionService;
 
         FilteredMobTypes = CollectionViewSource.GetDefaultView(AvailableMobTypes);
         FilteredMobTypes.Filter = FilterMobItem;
@@ -128,48 +108,57 @@ public sealed partial class AutoTabViewModel : ObservableObject
         };
         _cooldownTimer.Tick += (_, _) => UpdateCooldowns();
 
-        _gameEngine.OnChatSent += HandleChatSent;
-        _gameEngine.OnAutoTrainStatusChanged += HandleAutoTrainStatusChanged;
-        _gameEngine.OnAutoTrainStateChanged += HandleAutoTrainStateChanged;
+        _gameEngine.OnSessionEvent += HandleSessionEvent;
+    }
 
-        WeakReferenceMessenger.Default.Register<SessionSnapshotUpdatedMessage>(this, (_, m) =>
-        {
-            if (ActiveAccount?.Id == m.AccountId)
-            {
-                var dispatcher = App.Current?.Dispatcher;
-                if (dispatcher != null)
-                {
-                    _ = dispatcher.InvokeAsync(() =>
-                    {
-                        if (m.Status == GameSessionStatus.Active && m.Snapshot != null)
-                        {
-                            IsAccountRunning = true;
-                            if (m.Snapshot.World.Mobs.Count > 0)
-                            {
-                                UpdateAvailableMobTypes(m.Snapshot.World.Mobs);
-                            }
-                        }
-                        else if (m.Status == GameSessionStatus.Offline)
-                        {
-                            IsAccountRunning = false;
-                            AvailableMobTypes.Clear();
-                            FilteredMobTypes.Refresh();
-                        }
-                    });
-                }
-            }
-        });
+    public override void OnTabActivated()
+    {
+        StartPolling();
+        RefreshData();
+        UpdateSyncTargetDisplay();
+    }
 
-        WeakReferenceMessenger.Default.Register<AccountSelectedMessage>(this, (_, m) =>
-        {
-            SetActiveAccount(m.Account);
-            UpdateSyncTargetDisplay();
-        });
+    public override void OnTabDeactivated()
+    {
+        SaveCurrentAccountSettings();
+        StopPolling();
+    }
 
-        WeakReferenceMessenger.Default.Register<TargetAccountsChangedMessage>(this, (_, _) =>
+    protected override void OnActiveSnapshotUpdated(GameSessionSnapshot snapshot)
+    {
+        if (snapshot.World.Mobs.Count > 0)
         {
-            UpdateSyncTargetDisplay();
-        });
+            UpdateAvailableMobTypes(snapshot.World.Mobs);
+        }
+    }
+
+    protected override void OnActiveAccountOffline()
+    {
+        AvailableMobTypes.Clear();
+        FilteredMobTypes.Refresh();
+        IsAutoTrainRunning = false;
+        IsAutoChatRunning = false;
+        AutoTrainStatusText = "Chưa kích hoạt";
+        AutoChatStatusText = "Chưa kích hoạt";
+    }
+
+    private void HandleSessionEvent(SessionEvent evt)
+    {
+        switch (evt)
+        {
+            case BehaviorProgressEvent progress when progress.BehaviorId == AutoTrainBehavior.BehaviorId:
+                HandleAutoTrainStatusChanged(progress.AccountId, progress.Message);
+                break;
+            case BehaviorProgressEvent progress when progress.BehaviorId == AutoChatBehavior.BehaviorId:
+                HandleChatSent(progress.AccountId, progress.Message);
+                break;
+            case BehaviorStateChangedEvent state when state.BehaviorId == AutoTrainBehavior.BehaviorId:
+                HandleAutoTrainStateChanged(state.AccountId, state.IsRunning);
+                break;
+            case BehaviorStateChangedEvent state when state.BehaviorId == AutoChatBehavior.BehaviorId:
+                HandleAutoChatStateChanged(state.AccountId, state.IsRunning);
+                break;
+        }
     }
 
     public void StartPolling()
@@ -188,16 +177,6 @@ public sealed partial class AutoTabViewModel : ObservableObject
         }
     }
 
-    public void SetTargetResolver(Func<List<Guid>> resolver)
-    {
-        _targetResolver = resolver;
-    }
-
-    public void SetAccountResolver(Func<Guid, AccountItemViewModel?> resolver)
-    {
-        _accountResolver = resolver;
-    }
-
     public void SaveCurrentAccountSettings()
     {
         if (_isSwitchingAccount || ActiveAccount == null) return;
@@ -208,7 +187,7 @@ public sealed partial class AutoTabViewModel : ObservableObject
         s.AutoPickItems = AutoPickItems;
         s.AutoUsePean = AutoUsePean;
         s.UseTdlt = UseTdlt;
-        s.MobTargetModeIndex = MobTargetModeIndex;
+        s.TargetMode = (MobTargetMode)MobTargetModeIndex;
 
         s.SelectedSkillSlots = AutoTrainSkills
             .Where(x => x.IsSelected)
@@ -229,7 +208,7 @@ public sealed partial class AutoTabViewModel : ObservableObject
 
         s.ChatText = ChatText;
         s.ChatDelaySeconds = ChatDelaySeconds;
-        s.SelectedChatTypeIndex = SelectedChatTypeIndex;
+        s.ChatScope = (ChatType)SelectedChatTypeIndex;
         s.IsRandomChat = IsRandomChat;
 
         _ = _storageService.AddOrUpdateAsync(ActiveAccount.Model);
@@ -246,11 +225,11 @@ public sealed partial class AutoTabViewModel : ObservableObject
             AutoPickItems = s.AutoPickItems;
             AutoUsePean = s.AutoUsePean;
             UseTdlt = s.UseTdlt;
-            MobTargetModeIndex = s.MobTargetModeIndex;
+            MobTargetModeIndex = (int)s.TargetMode;
 
             ChatText = s.ChatText ?? "Chào mọi người!";
             ChatDelaySeconds = s.ChatDelaySeconds <= 0 ? 5 : s.ChatDelaySeconds;
-            SelectedChatTypeIndex = s.SelectedChatTypeIndex;
+            SelectedChatTypeIndex = (int)s.ChatScope;
             IsRandomChat = s.IsRandomChat;
 
             var selectedSlots = s.SelectedSkillSlots != null && s.SelectedSkillSlots.Count > 0
@@ -281,7 +260,7 @@ public sealed partial class AutoTabViewModel : ObservableObject
         }
     }
 
-    public void SetActiveAccount(AccountItemViewModel? account)
+    public override void SetActiveAccount(AccountItemViewModel? account)
     {
         if (ActiveAccount == account) return;
 
@@ -306,9 +285,7 @@ public sealed partial class AutoTabViewModel : ObservableObject
         }
         else
         {
-            string server = !string.IsNullOrWhiteSpace(account.Server) ? $" ({account.Server})" : "";
-            string charName = !string.IsNullOrWhiteSpace(account.DisplayCharacterName) ? $" [{account.DisplayCharacterName}]" : "";
-            ActiveAccountInfo = $"{account.DisplayUsername}{server}{charName}";
+            ActiveAccountInfo = FormatAccountDisplayInfo(account);
 
             LoadAccountSettings(account);
             RefreshAutoTrainSkills();
@@ -570,20 +547,7 @@ public sealed partial class AutoTabViewModel : ObservableObject
         {
             if (skill.Slot >= 0 && skill.Slot < AutoTrainSkills.Count)
             {
-                var item = AutoTrainSkills[skill.Slot];
-                if (!string.IsNullOrWhiteSpace(skill.Name))
-                {
-                    item.Name = skill.Name;
-                }
-                item.Point = skill.Point;
-                item.CoolDown = skill.CoolDown;
-                item.ManaUse = skill.ManaUse;
-                item.LastTimeUse = skill.LastTimeUse;
-                if (skill.IconId >= 0 && item.IconId != skill.IconId)
-                {
-                    item.IconId = skill.IconId;
-                    item.Icon = _gameImageService.GetSmallImage(skill.IconId);
-                }
+                AutoTrainSkills[skill.Slot].SyncFrom(skill, _gameImageService, syncSelection: false);
             }
         }
         UpdateCooldowns();
@@ -605,37 +569,5 @@ public sealed partial class AutoTabViewModel : ObservableObject
         await _gameEngine.SelectSkillAsync(ActiveAccount.Id, item.SlotIndex);
         item.LastTimeUse = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
         item.UpdateCooldown(item.LastTimeUse);
-    }
-
-    public void UpdateSyncTargetDisplay()
-    {
-        var targets = GetTargetAccountIds();
-        int count = targets.Count;
-        SyncTargetDisplay = count > 1 ? $"Đồng bộ: {count} tài khoản" : (count == 1 ? "1 tài khoản" : "Chưa chọn tài khoản");
-    }
-
-    public AccountItemViewModel? ResolveAccount(Guid id) =>
-        _selectionService?.FindAccount(id) ?? _accountResolver?.Invoke(id) ?? (ActiveAccount?.Id == id ? ActiveAccount : null);
-
-    private List<Guid> GetTargetAccountIds()
-    {
-        if (_selectionService != null)
-        {
-            var running = _selectionService.GetRunningTargetAccountIds();
-            if (running.Count > 0) return running.ToList();
-        }
-
-        if (_targetResolver != null)
-        {
-            var list = _targetResolver();
-            if (list.Count > 0) return list;
-        }
-
-        if (ActiveAccount != null && ActiveAccount.IsRunning)
-        {
-            return [ActiveAccount.Id];
-        }
-
-        return [];
     }
 }

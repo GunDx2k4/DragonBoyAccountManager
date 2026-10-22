@@ -1,5 +1,28 @@
 namespace DragonBoyAccountManager.Core.Telemetry.Snapshots;
 
+public interface IPositioned
+{
+    int X { get; }
+    int Y { get; }
+}
+
+public interface IWorldEntity : IPositioned
+{
+    int Id { get; }
+    string Name { get; }
+    string EntityType { get; }
+}
+
+public static class PositionedExtensions
+{
+    public static double DistanceTo(this IPositioned source, int targetX, int targetY)
+    {
+        int dx = source.X - targetX;
+        int dy = source.Y - targetY;
+        return Math.Sqrt(dx * dx + dy * dy);
+    }
+}
+
 public sealed record WorldMobInfo(
     int Id,
     int TemplateId,
@@ -13,14 +36,9 @@ public sealed record WorldMobInfo(
     bool IsBoss,
     bool IsSuperMob = false,
     bool IsFlying = false
-)
+) : IWorldEntity
 {
-    public double DistanceTo(int targetX, int targetY)
-    {
-        int dx = X - targetX;
-        int dy = Y - targetY;
-        return Math.Sqrt(dx * dx + dy * dy);
-    }
+    public string EntityType => "mob";
 }
 
 public sealed record WorldBossInfo(
@@ -30,14 +48,9 @@ public sealed record WorldBossInfo(
     long MaxHp,
     int X,
     int Y
-)
+) : IWorldEntity
 {
-    public double DistanceTo(int targetX, int targetY)
-    {
-        int dx = X - targetX;
-        int dy = Y - targetY;
-        return Math.Sqrt(dx * dx + dy * dy);
-    }
+    public string EntityType => "boss";
 }
 
 public sealed record WorldPlayerInfo(
@@ -47,14 +60,9 @@ public sealed record WorldPlayerInfo(
     long MaxHp,
     int X,
     int Y
-)
+) : IWorldEntity
 {
-    public double DistanceTo(int targetX, int targetY)
-    {
-        int dx = X - targetX;
-        int dy = Y - targetY;
-        return Math.Sqrt(dx * dx + dy * dy);
-    }
+    public string EntityType => "player";
 }
 
 public sealed record WorldWaypointInfo(
@@ -65,22 +73,17 @@ public sealed record WorldWaypointInfo(
     short MinY,
     short MaxX,
     short MaxY
-)
-{
-    public double DistanceTo(int targetX, int targetY)
-    {
-        int dx = X - targetX;
-        int dy = Y - targetY;
-        return Math.Sqrt(dx * dx + dy * dy);
-    }
-}
+) : IPositioned;
 
 public sealed record WorldNpcInfo(
     int Id,
     string Name,
     int X,
     int Y
-);
+) : IWorldEntity
+{
+    public string EntityType => "npc";
+}
 
 public sealed record WorldZoneInfo(
     int ZoneId,

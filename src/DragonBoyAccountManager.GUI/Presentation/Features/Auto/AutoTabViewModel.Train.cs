@@ -5,11 +5,10 @@ using System.Threading.Tasks;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 
-namespace DragonBoyAccountManager.GUI.ViewModels;
+namespace DragonBoyAccountManager.GUI.Presentation.Features.Auto;
 
 public sealed partial class AutoTabViewModel
 {
-
     [RelayCommand]
     public void ToggleAutoTrain()
     {
@@ -225,6 +224,7 @@ public sealed partial class AutoTabViewModel
 
         return new AutoTrainOptions
         {
+            TargetMode = (MobTargetMode)MobTargetModeIndex,
             SelectedSkillSlots = selectedSlots,
             TargetMobTemplateIds = selectedMobTemplates,
             TargetMobIds = selectedMobIds,
@@ -238,30 +238,11 @@ public sealed partial class AutoTabViewModel
         };
     }
 
-    private static AutoTrainOptions BuildOptionsForAccount(AccountItemViewModel account)
-    {
-        var s = account.AutoSettings;
-        var selectedSlots = s.SelectedSkillSlots != null && s.SelectedSkillSlots.Count > 0 ? s.SelectedSkillSlots : [0];
-        return new AutoTrainOptions
-        {
-            SelectedSkillSlots = selectedSlots,
-            TargetMobTemplateIds = s.TargetMobTemplateIds ?? [],
-            TargetMobIds = s.TargetMobIds ?? [],
-            IgnoreBosses = s.IgnoreBosses,
-            AvoidSuperMobs = s.AvoidSuperMobs,
-            AutoPickItems = s.AutoPickItems,
-            AutoUsePean = s.AutoUsePean,
-            UseTdlt = s.UseTdlt,
-            MinHpPercent = s.MinHpPercent,
-            MinMpPercent = s.MinMpPercent
-        };
-    }
-
     private void StartAutoTrain()
     {
         SaveCurrentAccountSettings();
 
-        var targets = AutoTrainSyncAll ? GetTargetAccountIds() : (ActiveAccount != null && ActiveAccount.IsRunning ? [ActiveAccount.Id] : []);
+        var targets = GetTargetAccountIds(AutoTrainSyncAll);
         if (targets.Count == 0)
         {
             StatusText = "Chưa chọn tài khoản đang chạy nào!";
@@ -276,7 +257,7 @@ public sealed partial class AutoTabViewModel
         {
             var targetAcc = ResolveAccount(id);
             var options = targetAcc != null && targetAcc.Id != ActiveAccount?.Id
-                ? BuildOptionsForAccount(targetAcc)
+                ? targetAcc.AutoSettings.ToAutoTrainOptions()
                 : BuildCurrentUIOptions();
 
             if (targetAcc != null)
@@ -291,7 +272,7 @@ public sealed partial class AutoTabViewModel
 
     private void StopAutoTrain()
     {
-        var targets = AutoTrainSyncAll ? GetTargetAccountIds() : (ActiveAccount != null && ActiveAccount.IsRunning ? [ActiveAccount.Id] : []);
+        var targets = GetTargetAccountIds(AutoTrainSyncAll);
         foreach (var id in targets)
         {
             _gameEngine.StopAutoTrain(id);
@@ -308,8 +289,7 @@ public sealed partial class AutoTabViewModel
 
     private void HandleAutoTrainStatusChanged(Guid accountId, string message)
     {
-        var dispatcher = App.Current?.Dispatcher;
-        dispatcher?.InvokeAsync(() =>
+        RunOnUi(() =>
         {
             var target = ResolveAccount(accountId);
             if (target != null)
@@ -326,8 +306,7 @@ public sealed partial class AutoTabViewModel
 
     private void HandleAutoTrainStateChanged(Guid accountId, bool isRunning)
     {
-        var dispatcher = App.Current?.Dispatcher;
-        dispatcher?.InvokeAsync(() =>
+        RunOnUi(() =>
         {
             var target = ResolveAccount(accountId);
             if (target != null)

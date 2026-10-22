@@ -24,6 +24,7 @@ public interface IMonoRuntime : IDisposable
 
     string ReadMonoString(IntPtr monoStringPtr);
     string[] ReadMonoStringArray(IntPtr monoArrayPtr);
+    int[] ReadMonoIntArray(IntPtr monoArrayPtr, int maxLength = 1_000_000);
     IntPtr[] ReadMonoPointerArray(IntPtr monoArrayPtr);
     void WriteMonoPointerArrayElement(IntPtr monoArrayPtr, int index, IntPtr value);
 

@@ -31,11 +31,17 @@ public static class CollectionHelper
                             int ptrSize = mono.Memory.PointerSize;
                             int arrayLen = mono.Memory.ReadInt(itemsArrayPtr + ptrSize * 3);
                             int actualCount = Math.Min(count, Math.Max(0, arrayLen));
+                            if (actualCount <= 0) return result;
+
                             int elemOffset = ptrSize * 4;
+                            byte[] raw = mono.Memory.ReadBytes(itemsArrayPtr + elemOffset, actualCount * ptrSize);
+                            if (raw.Length < actualCount * ptrSize) return result;
 
                             for (int i = 0; i < actualCount; i++)
                             {
-                                IntPtr elem = mono.Memory.ReadIntPtr(itemsArrayPtr + elemOffset + i * ptrSize);
+                                IntPtr elem = mono.Memory.Is64Bit
+                                    ? (IntPtr)BitConverter.ToInt64(raw, i * 8)
+                                    : (IntPtr)BitConverter.ToInt32(raw, i * 4);
                                 if (elem != IntPtr.Zero)
                                 {
                                     result.Add(elem);

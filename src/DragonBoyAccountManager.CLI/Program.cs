@@ -4,10 +4,10 @@ using DragonBoyAccountManager.Core.Automation.Behaviors.Combat;
 using DragonBoyAccountManager.Core.Common;
 using DragonBoyAccountManager.Core.Common.Results;
 using DragonBoyAccountManager.Core.Engine;
+using DragonBoyAccountManager.Core.Engine.Abstractions;
 using DragonBoyAccountManager.Core.Engine.Events;
 using DragonBoyAccountManager.Core.Engine.Models;
 using DragonBoyAccountManager.Core.Sessions;
-using DragonBoyAccountManager.Core.Storage;
 using Spectre.Console;
 
 Console.OutputEncoding = Encoding.UTF8;
@@ -54,10 +54,6 @@ engine.OnSessionEvent += evt =>
         case BehaviorStateChangedEvent e:
             var state = e.IsRunning ? "[green]BẬT[/]" : "[red]TẮT[/]";
             AnsiConsole.MarkupLine($"[grey][[{DateTime.Now:HH:mm:ss}]][/] [yellow][[Hành vi]][/] [cyan]{Markup.Escape(e.BehaviorId)}[/]: {state}");
-            break;
-
-        case ChatSentEvent e:
-            AnsiConsole.MarkupLine($"[grey][[{DateTime.Now:HH:mm:ss}]][/] [dim][[Chat]][/] {Markup.Escape(e.Message)}");
             break;
 
         case SessionProcessExitedEvent e:

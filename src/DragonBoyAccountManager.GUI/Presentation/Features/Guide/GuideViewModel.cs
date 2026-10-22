@@ -1,11 +1,17 @@
-﻿using System.Diagnostics;
+using System.Diagnostics;
 using System.IO;
-
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
+using CommunityToolkit.Mvvm.Messaging;
+using DragonBoyAccountManager.Core.Sessions.Validation;
+using DragonBoyAccountManager.GUI.Domain.Messaging;
+using DragonBoyAccountManager.GUI.Domain.Updates;
+using DragonBoyAccountManager.GUI.Services.Dialogs;
+using DragonBoyAccountManager.GUI.Services.Engine;
+using DragonBoyAccountManager.GUI.Services.Settings;
+using DragonBoyAccountManager.GUI.Services.Updater;
 
-
-namespace DragonBoyAccountManager.GUI.ViewModels;
+namespace DragonBoyAccountManager.GUI.Presentation.Features.Guide;
 
 public sealed partial class GuideViewModel : ObservableObject
 {
@@ -67,10 +73,6 @@ public sealed partial class GuideViewModel : ObservableObject
 
     public bool CanApplyUpdate => HasAppUpdate && !IsUpdatingApp;
 
-    public event Action? OnRequestNavigateToGuide;
-    public event Action<string>? OnGamePathConfigured;
-
-
     public GuideViewModel(
         ISettingsService settingsService,
         IDialogService dialogService,
@@ -81,9 +83,7 @@ public sealed partial class GuideViewModel : ObservableObject
         _dialogService = dialogService;
         _envService = envService;
         _updaterService = updaterService;
-
-        var version = System.Reflection.Assembly.GetExecutingAssembly().GetName().Version;
-        _appVersion = version != null ? $"{version.Major}.{version.Minor}.{version.Build}" : "1.0.0";
+        _appVersion = _updaterService.CurrentVersion;
 
         _releaseNotes = LoadReleaseNotes();
         SyncWithEnvironment();
@@ -134,33 +134,46 @@ public sealed partial class GuideViewModel : ObservableObject
         return "Hiện chưa có thông tin nhật ký phiên bản.";
     }
 
-    public async Task CheckAppUpdateOnStartupAsync()
+    private async Task<bool> PromptAndApplyUpdateAsync(AppUpdateInfo update, bool navigateToGuideOnConfirm)
+    {
+        AvailableAppUpdate = update;
+        HasAppUpdate = true;
+        WeakReferenceMessenger.Default.Send(
+            new StatusMessageChangedMessage($"[CẬP NHẬT] Đã có bản mới v{update.Version}! Vào tab Hướng dẫn để xem chi tiết."));
+
+        string size = update.SizeBytes.HasValue ? $" ({update.SizeBytes.Value / 1024.0 / 1024.0:F1} MB)" : "";
+        string notes = !string.IsNullOrWhiteSpace(update.ReleaseNotes) ? $"\n\nNội dung cập nhật:\n{update.ReleaseNotes}" : "";
+
+        string title = update.IsShaUpdateOnly ? "CẬP NHẬT TOOL DBAM (BẢN VÁ)" : "ĐÃ CÓ PHIÊN BẢN MỚI!";
+        string desc = update.IsShaUpdateOnly
+            ? $"Phát hiện bản vá mới cho phiên bản: v{update.Version}{size}\nPhiên bản hiện tại: v{AppVersion}{notes}\n\nBạn có muốn cập nhật ngay bây giờ không?"
+            : $"Phát hiện phiên bản mới: v{update.Version}{size}\nPhiên bản hiện tại: v{AppVersion}{notes}\n\nBạn có muốn cập nhật ngay bây giờ không?";
+
+        bool confirm = _dialogService.ShowConfirmation(title, desc, yesText: "Cập nhật ngay", noText: "Để sau");
+        if (confirm)
+        {
+            if (navigateToGuideOnConfirm)
+            {
+                WeakReferenceMessenger.Default.Send(new RequestNavigateToTabMessage(AppTab.Guide));
+            }
+            await ApplyAppUpdateAsync();
+            return true;
+        }
+
+        return false;
+    }
+
+    public async Task CheckAppUpdateOnStartupAsync(CancellationToken cancellationToken = default)
     {
         try
         {
-            await Task.Delay(1200);
+            await Task.Delay(1200, cancellationToken);
 
             var currentVer = System.Reflection.Assembly.GetExecutingAssembly().GetName().Version;
             var update = await _updaterService.CheckForUpdatesAsync("GunDx2k4/DragonBoyAccountManager", currentVer);
             if (update != null)
             {
-                AvailableAppUpdate = update;
-                HasAppUpdate = true;
-
-                string size = update.SizeBytes.HasValue ? $" ({update.SizeBytes.Value / 1024.0 / 1024.0:F1} MB)" : "";
-                string notes = !string.IsNullOrWhiteSpace(update.ReleaseNotes) ? $"\n\nNội dung cập nhật:\n{update.ReleaseNotes}" : "";
-
-                string title = update.IsShaUpdateOnly ? "CẬP NHẬT TOOL DBAM (BẢN VÁ)" : "ĐÃ CÓ PHIÊN BẢN MỚI!";
-                string desc = update.IsShaUpdateOnly
-                    ? $"Phát hiện bản vá mới cho phiên bản: v{update.Version}{size}\nPhiên bản hiện tại: v{AppVersion}{notes}\n\nBạn có muốn cập nhật ngay bây giờ không?"
-                    : $"Phát hiện phiên bản mới: v{update.Version}{size}\nPhiên bản hiện tại: v{AppVersion}{notes}\n\nBạn có muốn cập nhật ngay bây giờ không?";
-
-                bool confirm = _dialogService.ShowConfirmation(title, desc, yesText: "Cập nhật ngay", noText: "Để sau");
-                if (confirm)
-                {
-                    OnRequestNavigateToGuide?.Invoke();
-                    await ApplyAppUpdateAsync();
-                }
+                await PromptAndApplyUpdateAsync(update, navigateToGuideOnConfirm: true);
             }
         }
         catch (Exception ex)
@@ -169,15 +182,7 @@ public sealed partial class GuideViewModel : ObservableObject
         }
     }
 
-    public async Task CheckAppUpdateSilentlyAsync()
-    {
-        await CheckAppUpdateOnStartupAsync();
-    }
-
-    public async Task LoadSha256ChecksumsAsync()
-    {
-        await _envService.LoadChecksumsAndVerifyAsync();
-    }
+    public Task LoadSha256ChecksumsAsync() => _envService.LoadChecksumsAndVerifyAsync();
 
     private void SyncWithEnvironment()
     {
@@ -227,13 +232,13 @@ public sealed partial class GuideViewModel : ObservableObject
     }
 
     [RelayCommand]
-    private async Task CheckForUpdatesAsync()
+    private async Task CheckForUpdatesAsync(CancellationToken cancellationToken = default)
     {
         IsCheckingUpdate = true;
         UpdateStatusMessage = "Đang kiểm tra phiên bản...";
         try
         {
-            await Task.Delay(200);
+            await Task.Delay(200, cancellationToken);
             await LoadSha256ChecksumsAsync();
 
             AppUpdateInfo? update = null;
@@ -249,22 +254,8 @@ public sealed partial class GuideViewModel : ObservableObject
 
             if (update != null)
             {
-                AvailableAppUpdate = update;
-                HasAppUpdate = true;
-
-                string size = update.SizeBytes.HasValue ? $" ({update.SizeBytes.Value / 1024.0 / 1024.0:F1} MB)" : "";
-                string notes = !string.IsNullOrWhiteSpace(update.ReleaseNotes) ? $"\n\nNội dung cập nhật:\n{update.ReleaseNotes}" : "";
-
-                string title = update.IsShaUpdateOnly ? "Cập nhật Tool DBAM (Bản vá)" : "Cập nhật Tool DBAM";
-                string desc = update.IsShaUpdateOnly
-                    ? $"Phát hiện bản vá mới cho phiên bản: v{update.Version}{size}\nPhiên bản hiện tại: v{AppVersion}{notes}\n\nBạn có muốn cập nhật ngay bây giờ không?"
-                    : $"Phát hiện phiên bản mới: v{update.Version}{size}\nPhiên bản hiện tại: v{AppVersion}{notes}\n\nBạn có muốn cập nhật ngay bây giờ không?";
-
-                bool confirm = _dialogService.ShowConfirmation(title, desc, yesText: "Cập nhật ngay", noText: "Để sau");
-
-                if (confirm)
+                if (await PromptAndApplyUpdateAsync(update, navigateToGuideOnConfirm: false))
                 {
-                    await ApplyAppUpdateAsync();
                     return;
                 }
             }
@@ -292,12 +283,9 @@ public sealed partial class GuideViewModel : ObservableObject
                     : $"\n\nTool DBAM đang ở phiên bản mới nhất (v{AppVersion}).";
                 _dialogService.ShowInfo("Kiểm tra phiên bản", $"Trạng thái Game Client: {AssemblyStatus}\n{UpdateStatusMessage}{toolInfo}");
             }
-            else
+            else if (!HasAppUpdate)
             {
-                if (!HasAppUpdate)
-                {
-                    _dialogService.ShowInfo("Kiểm tra phiên bản", $"Tool DBAM đang ở phiên bản mới nhất (v{AppVersion}).\n(Chưa chọn file game .exe)");
-                }
+                _dialogService.ShowInfo("Kiểm tra phiên bản", $"Tool DBAM đang ở phiên bản mới nhất (v{AppVersion}).\n(Chưa chọn file game .exe)");
             }
         }
         catch (Exception ex)
@@ -338,29 +326,7 @@ public sealed partial class GuideViewModel : ObservableObject
     }
 
     [RelayCommand]
-    private void BrowseGamePath()
-    {
-        var initialDir = !string.IsNullOrEmpty(_envService.GamePath)
-            ? Path.GetDirectoryName(_envService.GamePath)
-            : null;
-
-        var selectedFile = _dialogService.ShowOpenFileDialog(
-            "Chọn tệp thực thi game Dragon Boy",
-            "Game Executable (*.exe)|*.exe|Tất cả tệp (*.*)|*.*",
-            initialDir);
-
-        if (!string.IsNullOrEmpty(selectedFile))
-        {
-            if (!string.Equals(Path.GetExtension(selectedFile), ".exe", StringComparison.OrdinalIgnoreCase))
-            {
-                _dialogService.ShowWarning("File không hợp lệ", "Đường dẫn game bắt buộc phải là file thực thi (.exe)!");
-                return;
-            }
-
-            _envService.GamePath = selectedFile;
-            OnGamePathConfigured?.Invoke(selectedFile);
-        }
-    }
+    private void BrowseGamePath() => _envService.BrowseAndSelectGamePath(_dialogService);
 
     [RelayCommand]
     private void OpenGameFolder()

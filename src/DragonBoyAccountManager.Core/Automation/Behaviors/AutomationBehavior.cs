@@ -17,6 +17,8 @@ public abstract class AutomationBehavior : IBehavior
     public bool IsRunning => Volatile.Read(ref _isRunning) == 1;
     public bool IsPaused => Volatile.Read(ref _isPaused) == 1;
 
+    protected ISessionContext? Context { get; private set; }
+
     public EmergencyPipeline Interrupters { get; } = new();
 
     protected AutomationBehavior(string name, string? id = null)
@@ -25,18 +27,26 @@ public abstract class AutomationBehavior : IBehavior
         Id = id ?? name.Replace(" ", string.Empty);
     }
 
-    public Task StartAsync(
+    public async Task StartAsync(
         ISessionContext context,
         IProgress<string>? progress = null,
         CancellationToken cancellationToken = default)
     {
-        return StartAsync(
-            () => context.CurrentPlayer,
-            () => context.CurrentWorld,
-            () => context.CurrentMap,
-            context.Dispatcher,
-            progress,
-            cancellationToken);
+        Context = context;
+        try
+        {
+            await StartAsync(
+                () => context.CurrentPlayer,
+                () => context.CurrentWorld,
+                () => context.CurrentMap,
+                context.Dispatcher,
+                progress,
+                cancellationToken);
+        }
+        finally
+        {
+            Context = null;
+        }
     }
 
     public async Task StartAsync(
@@ -47,22 +57,40 @@ public abstract class AutomationBehavior : IBehavior
         IProgress<string>? progress = null,
         CancellationToken cancellationToken = default)
     {
+        var existingTask = _runTask;
+        var existingCts = _internalCts;
+        if (existingTask is { IsCompleted: false } && existingCts is { IsCancellationRequested: true })
+        {
+            try { await existingTask; } catch { }
+        }
+
         if (Interlocked.CompareExchange(ref _isRunning, 1, 0) != 0)
             return;
 
-        _internalCts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
-        var token = _internalCts.Token;
+        var cts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
+        _internalCts = cts;
 
+        var runTask = ExecuteLifecycleAsync(playerProvider, worldProvider, mapProvider, dispatcher, progress, cts);
+        _runTask = runTask;
+        await runTask;
+    }
+
+    private async Task ExecuteLifecycleAsync(
+        Func<PlayerSnapshot> playerProvider,
+        Func<WorldSnapshot> worldProvider,
+        Func<MapSnapshot> mapProvider,
+        ICommandDispatcher dispatcher,
+        IProgress<string>? progress,
+        CancellationTokenSource cts)
+    {
         try
         {
-            _runTask = RunLoopAsync(playerProvider, worldProvider, mapProvider, dispatcher, progress, token);
-            await _runTask;
+            await RunLoopAsync(playerProvider, worldProvider, mapProvider, dispatcher, progress, cts.Token);
         }
         finally
         {
-            _internalCts?.Dispose();
-            _internalCts = null;
-            _runTask = null;
+            Interlocked.CompareExchange(ref _internalCts, null, cts);
+            cts.Dispose();
             Interlocked.Exchange(ref _isRunning, 0);
         }
     }
@@ -100,14 +128,14 @@ public abstract class AutomationBehavior : IBehavior
                 var world = worldProvider();
                 var map = mapProvider();
 
-                var interruptResult = await Interrupters.CheckAndExecuteAsync(player, world, dispatcher, cancellationToken);
+                var interruptResult = await Interrupters.CheckAndExecuteAsync(Context, player, world, dispatcher, cancellationToken);
                 if (interruptResult != null)
                 {
                     progress?.Report($"[{Name}] Ngắt khẩn cấp: {interruptResult.Message}");
                     continue;
                 }
 
-                await OnTickAsync(player, world, map, dispatcher, progress, cancellationToken);
+                await OnTickAsync(Context, player, world, map, dispatcher, progress, cancellationToken);
 
                 if (TickDelayMs > 0 && !cancellationToken.IsCancellationRequested)
                 {
@@ -129,6 +157,16 @@ public abstract class AutomationBehavior : IBehavior
     }
 
     protected virtual int TickDelayMs => 100;
+
+    protected virtual Task OnTickAsync(
+        ISessionContext? context,
+        PlayerSnapshot player,
+        WorldSnapshot world,
+        MapSnapshot map,
+        ICommandDispatcher dispatcher,
+        IProgress<string>? progress,
+        CancellationToken cancellationToken)
+        => OnTickAsync(player, world, map, dispatcher, progress, cancellationToken);
 
     protected abstract Task OnTickAsync(
         PlayerSnapshot player,

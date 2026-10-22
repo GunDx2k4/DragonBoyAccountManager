@@ -48,9 +48,3 @@ public sealed record ActionReportedEvent(
     Guid AccountId,
     ActionExecutionReport Report
 ) : SessionEvent(AccountId);
-
-public sealed record ChatSentEvent(
-    Guid AccountId,
-    string Message,
-    int Channel
-) : SessionEvent(AccountId);

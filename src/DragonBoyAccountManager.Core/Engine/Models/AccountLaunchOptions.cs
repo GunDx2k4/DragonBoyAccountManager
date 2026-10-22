@@ -1,4 +1,4 @@
-using DragonBoyAccountManager.Core.Automation.Behaviors.Combat;
+using DragonBoyAccountManager.Core.Sessions;
 
 namespace DragonBoyAccountManager.Core.Engine.Models;
 
@@ -16,6 +16,5 @@ public record AccountLaunchOptions
     public bool AutoLogin { get; init; } = true;
     public bool AutoAssignSkills { get; init; }
     public bool IsMasked { get; init; }
-    public AutoTrainOptions? TrainOptions { get; init; }
-    public AutoChatOptions? ChatOptions { get; init; }
+    public Action<GameSession>? ConfigureSession { get; init; }
 }

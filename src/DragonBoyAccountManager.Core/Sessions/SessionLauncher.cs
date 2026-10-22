@@ -20,8 +20,7 @@ public class SessionLauncher
         if (!Path.GetExtension(gamePath).Equals(".exe", StringComparison.OrdinalIgnoreCase))
             throw new ArgumentException("Not an executable (.exe).");
 
-        using var validator = new GameClientValidator();
-        var paths = validator.ResolveGamePaths(gamePath);
+        var paths = GameClientValidator.ResolveGamePathsStatic(gamePath);
 
         if (paths == null)
         {
@@ -37,14 +36,10 @@ public class SessionLauncher
         Validate(options.GamePath);
 
         string workingDir = options.WorkingDirectory ?? Path.GetDirectoryName(options.GamePath)!;
-        var argsList = new List<string>();
-
-        if (options.ScreenWidth > 0 && options.ScreenHeight > 0)
+        var argsList = new List<string>
         {
-            argsList.Add($"-screen-width {options.ScreenWidth}");
-            argsList.Add($"-screen-height {options.ScreenHeight}");
-            argsList.Add("-screen-fullscreen 0");
-        }
+            "-screen-fullscreen 0"
+        };
 
         if (!string.IsNullOrWhiteSpace(options.AdditionalArguments))
         {
@@ -81,7 +76,7 @@ public class SessionLauncher
             var monoRuntime = await MonoRuntime.AttachAsync(process, cancellationToken)
                               ?? throw new InvalidOperationException("Failed to attach Mono runtime.");
 
-            var session = new GameSession(process, monoRuntime, options.SessionId ?? Guid.NewGuid());
+            var session = new GameSession(process, monoRuntime, options.SessionId ?? Guid.NewGuid(), options.ConfigureSession);
 
             await monoRuntime.WaitForAssemblyAsync("Assembly-CSharp", 15000, cancellationToken);
             await Task.Delay(500, cancellationToken);

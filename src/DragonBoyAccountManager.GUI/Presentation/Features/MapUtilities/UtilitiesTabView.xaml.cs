@@ -1,8 +1,7 @@
 using System;
 using System.Windows.Controls;
-using DragonBoyAccountManager.GUI.ViewModels;
 
-namespace DragonBoyAccountManager.GUI.Views;
+namespace DragonBoyAccountManager.GUI.Presentation.Features.MapUtilities;
 
 public partial class UtilitiesTabView : UserControl
 {

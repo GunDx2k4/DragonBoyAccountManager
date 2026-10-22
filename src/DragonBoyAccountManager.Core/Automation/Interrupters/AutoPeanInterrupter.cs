@@ -39,10 +39,13 @@ public class AutoPeanInterrupter : IInterrupter
 
         if (needHp || needMp)
         {
+            if (player.BagItems != null && !player.BagItemList.Any(i => i.IsPean && i.Quantity > 0))
+                return null;
+
+            _lastPeanTime = DateTime.UtcNow;
             var res = await dispatcher.DispatchAsync(new UseItemCommand(-1, GameDefinitions.DefaultPeanTemplateId, "Đậu thần"), cancellationToken);
             if (res.IsSuccess)
             {
-                _lastPeanTime = DateTime.UtcNow;
                 return Result.Success("Đã tự động sử dụng đậu thần hồi phục.");
             }
         }

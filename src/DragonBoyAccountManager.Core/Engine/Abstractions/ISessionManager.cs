@@ -1,18 +1,18 @@
 using System.Diagnostics;
 using DragonBoyAccountManager.Core.Automation.Behaviors;
-using DragonBoyAccountManager.Core.Common;
-using DragonBoyAccountManager.Core.Common.Results;
+using DragonBoyAccountManager.Core.Engine.Events;
 using DragonBoyAccountManager.Core.Engine.Models;
 using DragonBoyAccountManager.Core.Sessions;
-using DragonBoyAccountManager.Core.Telemetry.Snapshots;
 
 namespace DragonBoyAccountManager.Core.Engine.Abstractions;
 
 public interface ISessionManager
 {
+    Action<GameSession>? SessionInitializer { get; set; }
     IReadOnlyCollection<Guid> ActiveSessionIds { get; }
     bool IsRunning(Guid accountId);
     int? GetProcessId(Guid accountId);
+    Process? GetProcess(Guid accountId);
     GameSession? GetSession(Guid accountId);
     SessionWorker? GetWorker(Guid accountId);
 
@@ -20,6 +20,18 @@ public interface ISessionManager
     Task StopSessionAsync(Guid accountId);
     Task StopAllSessionsAsync();
     void StopAllSessions();
+
+    TSnapshot? GetSnapshot<TSnapshot>(Guid accountId) where TSnapshot : class;
+
+    bool StartBehavior<TBehavior, TOptions>(Guid accountId, TOptions options)
+        where TBehavior : class, IBehavior<TOptions>
+        where TOptions : class;
+    bool UpdateBehaviorOptions<TBehavior, TOptions>(Guid accountId, TOptions options)
+        where TBehavior : class, IBehavior<TOptions>
+        where TOptions : class;
+    bool StopBehavior<TBehavior>(Guid accountId) where TBehavior : class, IBehavior;
+    bool IsBehaviorRunning<TBehavior>(Guid accountId) where TBehavior : class, IBehavior;
+    TBehavior? GetBehavior<TBehavior>(Guid accountId) where TBehavior : class, IBehavior;
 
     bool StartBehavior(Guid accountId, string behaviorId);
     bool StopBehavior(Guid accountId, string behaviorId);
@@ -30,13 +42,4 @@ public interface ISessionManager
     void SetAllMasked(bool isMasked);
 
     event Action<SessionEvent>? EventPublished;
-
-    event Action<Guid, GameSessionStatus, GameSessionSnapshot?>? SessionUpdated;
-    event Action<Guid, string>? MessageUpdated;
-    event Action<Guid, ActionExecutionReport>? ActionReported;
-    event Action<Guid, string, int>? ChatSent;
-    event Action<Guid, string>? AutoTrainStatusChanged;
-    event Action<Guid, bool>? AutoTrainStateChanged;
-    event Action<Guid, Process>? SessionStarted;
-    event Action<Guid>? SessionExited;
 }

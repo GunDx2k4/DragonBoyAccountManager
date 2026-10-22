@@ -1,6 +1,6 @@
 namespace DragonBoyAccountManager.Core.Accounts;
 
-public class ServerOption
+public sealed class ServerOption
 {
     public int Id { get; set; }
     public string ServerName { get; set; } = string.Empty;
@@ -10,7 +10,7 @@ public class ServerOption
     public sbyte TypeSv { get; set; }
     public sbyte IsNew { get; set; }
 
-    public static List<ServerOption> DefaultServers =>
+    public static IReadOnlyList<ServerOption> DefaultServers { get; } =
     [
         new() { Id = 0, ServerName = "Vũ trụ 1", Host = "dragon1.teamobi.com", Port = 14445, Language = 0, TypeSv = 0, IsNew = 0 },
         new() { Id = 1, ServerName = "Vũ trụ 2", Host = "dragon2.teamobi.com", Port = 14445, Language = 0, TypeSv = 0, IsNew = 0 },
@@ -28,8 +28,11 @@ public class ServerOption
         new() { Id = 19, ServerName = "Vũ trụ 14", Host = "dragon14.teamobi.com", Port = 18001, Language = 0, TypeSv = 0, IsNew = 0 },
         new() { Id = 20, ServerName = "Vũ trụ 15", Host = "dragon15.teamobi.com", Port = 14445, Language = 0, TypeSv = 0, IsNew = 1 },
         new() { Id = 18, ServerName = "VIP 2", Host = "dragon11.teamobi.com", Port = 18001, Language = 0, TypeSv = 0, IsNew = 0 },
-        new() { Id = 12, ServerName = "Võ đài liên vũ trụ", Host = "dragonwar.teamobi.com", Port = 14445, Language = 0, TypeSv = 0, IsNew = 0 },
+        new() { Id = 15, ServerName = "Super 1", Host = "dragon11.teamobi.com", Port = 14446, Language = 0, TypeSv = 1, IsNew = 0 },
+        new() { Id = 16, ServerName = "Super 2", Host = "dragonsuper.teamobi.com", Port = 17001, Language = 0, TypeSv = 1, IsNew = 0 },
+        new() { Id = 21, ServerName = "Super 3", Host = "dragonsuper3.teamobi.com", Port = 17001, Language = 0, TypeSv = 1, IsNew = 1 },
+        new() { Id = 14, ServerName = "Naga", Host = "dragon.indonaga.com", Port = 14446, Language = 2, TypeSv = 0, IsNew = 0 },
+        new() { Id = 12, ServerName = "Võ đài liên vũ trụ", Host = "dragonwar.teamobi.com", Port = 20000, Language = 0, TypeSv = 0, IsNew = 0 },
         new() { Id = 13, ServerName = "Universe 1", Host = "dragon.indonaga.com", Port = 14445, Language = 1, TypeSv = 0, IsNew = 0 },
-        new() { Id = 16, ServerName = "Indo", Host = "dragon.indonaga.com", Port = 14445, Language = 2, TypeSv = 0, IsNew = 0 },
     ];
 }

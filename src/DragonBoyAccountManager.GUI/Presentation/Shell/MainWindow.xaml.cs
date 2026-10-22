@@ -3,9 +3,8 @@ using System.Runtime.InteropServices;
 using System.Windows;
 using System.Windows.Input;
 using System.Windows.Interop;
-using DragonBoyAccountManager.GUI.ViewModels;
 
-namespace DragonBoyAccountManager.GUI.Views;
+namespace DragonBoyAccountManager.GUI.Presentation.Shell;
 
 public partial class MainWindow : Window
 {

@@ -13,8 +13,10 @@ public sealed class AutoChatOptions
 }
 
 public sealed class AutoChatBehavior(AutoChatOptions options)
-    : AutomationBehavior<AutoChatOptions>("Auto Chat", options, "AutoChat")
+    : AutomationBehavior<AutoChatOptions>("Auto Chat", options, BehaviorId)
 {
+    public const string BehaviorId = "AutoChat";
+
     private DateTime _lastChatTime = DateTime.MinValue;
     private int _messageIndex;
     private readonly Random _random = new();

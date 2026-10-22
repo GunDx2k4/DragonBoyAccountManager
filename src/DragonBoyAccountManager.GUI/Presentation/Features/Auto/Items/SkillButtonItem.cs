@@ -1,11 +1,15 @@
-using CommunityToolkit.Mvvm.ComponentModel;
 using System.Windows.Media;
+using CommunityToolkit.Mvvm.ComponentModel;
+using DragonBoyAccountManager.Core.Telemetry.Snapshots;
+using DragonBoyAccountManager.GUI.Services.Engine;
 
-namespace DragonBoyAccountManager.GUI.ViewModels;
+namespace DragonBoyAccountManager.GUI.Presentation.Features.Auto.Items;
 
 public sealed partial class SkillButtonItem : ObservableObject
 {
     public int SlotIndex { get; }
+
+    public string DefaultName => SlotIndex == 9 ? "Skill 0" : $"Skill {SlotIndex + 1}";
 
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(ToolTipText))]
@@ -70,6 +74,43 @@ public sealed partial class SkillButtonItem : ObservableObject
         _iconId = iconId;
         _icon = icon;
         _lastTimeUse = lastTimeUse;
+    }
+
+    public void SyncFrom(GameSkillInfo? info, IGameImageService imageService, bool syncSelection)
+    {
+        if (info != null)
+        {
+            string expectedName = !string.IsNullOrWhiteSpace(info.Name) ? info.Name : DefaultName;
+            if (Name != expectedName) Name = expectedName;
+            if (syncSelection && IsSelected != info.IsSelected) IsSelected = info.IsSelected;
+
+            Point = info.Point;
+            CoolDown = info.CoolDown;
+            ManaUse = info.ManaUse;
+            LastTimeUse = info.LastTimeUse;
+
+            if (info.IconId >= 0 && IconId != info.IconId)
+            {
+                IconId = info.IconId;
+                Icon = imageService.GetSmallImage(info.IconId);
+            }
+        }
+        else if (syncSelection)
+        {
+            Reset(true);
+        }
+    }
+
+    public void Reset(bool resetSelection = true)
+    {
+        if (Name != DefaultName) Name = DefaultName;
+        if (resetSelection && IsSelected) IsSelected = false;
+        Point = 0;
+        CoolDown = 0;
+        ManaUse = 0;
+        LastTimeUse = 0;
+        IconId = -1;
+        Icon = null;
     }
 
     public void UpdateCooldown(long now)

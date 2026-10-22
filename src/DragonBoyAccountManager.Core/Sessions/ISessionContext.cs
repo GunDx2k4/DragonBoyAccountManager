@@ -1,6 +1,7 @@
 using DragonBoyAccountManager.Core.Automation.Behaviors;
+using DragonBoyAccountManager.Core.Automation.Behaviors.Navigation;
 using DragonBoyAccountManager.Core.Execution;
-using DragonBoyAccountManager.Core.Interop.Mono;
+using DragonBoyAccountManager.Core.Telemetry.Scrapers;
 using DragonBoyAccountManager.Core.Telemetry.Snapshots;
 
 namespace DragonBoyAccountManager.Core.Sessions;
@@ -16,8 +17,11 @@ public interface ISessionContext
     WorldSnapshot CurrentWorld { get; }
     MapSnapshot CurrentMap { get; }
 
+    void RegisterScraper<TSnapshot>(ISnapshotScraper<TSnapshot> scraper) where TSnapshot : class;
+    TSnapshot? GetSnapshot<TSnapshot>() where TSnapshot : class;
+
     ICommandDispatcher Dispatcher { get; }
-    IMonoRuntime Mono { get; }
+    AutoNavigator Navigator { get; }
 
     IEnumerable<IBehavior> Behaviors { get; }
     TBehavior? GetBehavior<TBehavior>() where TBehavior : class, IBehavior;

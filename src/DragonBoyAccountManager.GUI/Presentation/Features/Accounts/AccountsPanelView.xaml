@@ -1,5 +1,5 @@
 <UserControl
-    x:Class="DragonBoyAccountManager.GUI.Views.AccountsPanelView"
+    x:Class="DragonBoyAccountManager.GUI.Presentation.Features.Accounts.AccountsPanelView"
     x:Name="RootView"
     xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
@@ -7,8 +7,8 @@
     xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
     xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
     xmlns:ui="clr-namespace:DragonBoyAccountManager.GUI.Presentation.DesignSystem.Controls"
-    xmlns:viewmodels="clr-namespace:DragonBoyAccountManager.GUI.ViewModels"
-    xmlns:views="clr-namespace:DragonBoyAccountManager.GUI.Views"
+    xmlns:viewmodels="clr-namespace:DragonBoyAccountManager.GUI.Presentation.Features.Accounts"
+    xmlns:views="clr-namespace:DragonBoyAccountManager.GUI.Presentation.Features.Accounts.Components"
     d:DataContext="{d:DesignInstance Type=viewmodels:AccountsPanelViewModel}"
     d:DesignHeight="550"
     d:DesignWidth="680"

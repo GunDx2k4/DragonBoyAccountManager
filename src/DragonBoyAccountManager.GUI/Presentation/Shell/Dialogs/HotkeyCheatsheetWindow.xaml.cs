@@ -1,7 +1,7 @@
 using System.Windows;
 using System.Windows.Input;
 
-namespace DragonBoyAccountManager.GUI.Views;
+namespace DragonBoyAccountManager.GUI.Presentation.Shell.Dialogs;
 
 public partial class HotkeyCheatsheetWindow : Window
 {

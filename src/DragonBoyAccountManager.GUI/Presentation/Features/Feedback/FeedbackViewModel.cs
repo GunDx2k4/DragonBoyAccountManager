@@ -1,11 +1,10 @@
-using System.Reflection;
 using System.Windows.Threading;
 
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 
 
-namespace DragonBoyAccountManager.GUI.ViewModels;
+namespace DragonBoyAccountManager.GUI.Presentation.Features.Feedback;
 
 public sealed partial class FeedbackViewModel : ObservableObject
 {
@@ -83,9 +82,7 @@ public sealed partial class FeedbackViewModel : ObservableObject
         _dialogService = dialogService;
 
         _selectedTypeOption = FeedbackTypes[0];
-
-        var version = Assembly.GetExecutingAssembly().GetName().Version;
-        _appVersion = version != null ? $"{version.Major}.{version.Minor}.{version.Build}" : "1.0.0";
+        _appVersion = AppUpdaterService.CurrentVersionString;
 
         _cooldownTimer = new DispatcherTimer
         {

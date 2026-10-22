@@ -63,6 +63,16 @@ public sealed record ChangeZoneCommand(
     public string Name => $"Đổi sang khu {ZoneId}";
 }
 
+public sealed record OpenZonePanelCommand : IGameCommand
+{
+    public string Name => "Mở bảng chọn khu vực";
+}
+
+public sealed record CloseZonePanelCommand : IGameCommand
+{
+    public string Name => "Đóng bảng chọn khu vực";
+}
+
 public sealed record AssignSkillsCommand : IGameCommand
 {
     public string Name => "Tự động gán kỹ năng vào phím tắt";
@@ -77,4 +87,13 @@ public sealed record LoginCommand(
     public string Name => $"Đăng nhập {Username}";
 }
 
-
+public sealed record FocusEntityCommand(
+    string EntityType,
+    int EntityId,
+    string EntityName = ""
+) : IGameCommand
+{
+    public string Name => string.IsNullOrWhiteSpace(EntityName)
+        ? $"Chọn {EntityType} #{EntityId}"
+        : $"Chọn {EntityName}";
+}

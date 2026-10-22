@@ -5,11 +5,13 @@ using DragonBoyAccountManager.Core.Telemetry.Snapshots;
 
 namespace DragonBoyAccountManager.Core.Telemetry.Scrapers;
 
-public class WorldScraper(IMonoRuntime mono)
+public class WorldScraper(IMonoRuntime mono) : ISnapshotScraper<WorldSnapshot>
 {
     private readonly IMonoRuntime _mono = mono;
     private readonly ConcurrentDictionary<int, (string Name, bool IsFlying)> _mobTemplateCache = new();
     private readonly ConcurrentDictionary<int, string> _npcTemplateCache = new();
+
+    public WorldSnapshot Scrape() => ScrapeWorld();
 
     public int GetMapId() => _mono.ReadStatic<int>(GameSchema.TileMap.ClassName, GameSchema.TileMap.StaticMapId);
     public int GetZoneId() => _mono.ReadStatic<int>(GameSchema.TileMap.ClassName, GameSchema.TileMap.StaticZoneId);
@@ -224,29 +226,14 @@ public class WorldScraper(IMonoRuntime mono)
         IntPtr zonesPtr = _mono.ReadFieldPtr(GameSchema.GameScr.ClassName, GameSchema.GameScr.FieldZones, gameScr);
         if (zonesPtr == IntPtr.Zero) return result;
 
-        int[]? nums = ReadMonoIntArray(zonesPtr);
-        if (nums == null || nums.Length == 0) return result;
+        int[] nums = _mono.ReadMonoIntArray(zonesPtr, 100);
+        if (nums.Length == 0) return result;
 
         for (int i = 0; i < nums.Length; i++)
         {
             result.Add(new WorldZoneInfo(i, nums[i], 15));
         }
 
-        return result;
-    }
-
-    private int[]? ReadMonoIntArray(IntPtr monoArrayPtr)
-    {
-        if (monoArrayPtr == IntPtr.Zero) return null;
-        int length = _mono.Memory.ReadInt(monoArrayPtr + (_mono.Memory.PointerSize * 3));
-        if (length <= 0 || length > 100) return null;
-
-        int[] result = new int[length];
-        int dataOffset = _mono.Memory.PointerSize * 4;
-        for (int i = 0; i < length; i++)
-        {
-            result[i] = _mono.Memory.ReadInt(monoArrayPtr + dataOffset + i * 4);
-        }
         return result;
     }
 
