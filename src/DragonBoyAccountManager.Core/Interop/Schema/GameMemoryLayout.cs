@@ -204,6 +204,16 @@ public sealed record ControllerLayout(
     int IsStopReadMessage,
     int IsLoadingData);
 
+public sealed record AutoTrainMenuLayout(
+    int IsChecked,
+    int IsCheckedSkill,
+    int IsCheckAutoPean,
+    int PeanHpPercent,
+    int PeanMpPercent,
+    int IsCheckAllMob,
+    int IsCheckPick,
+    int IsNhat);
+
 public sealed record ServiceLayout(
     int Instance);
 
@@ -238,6 +248,7 @@ public sealed class GameMemoryLayout
     public MainLayout Main { get; }
     public SplashScrLayout SplashScr { get; }
     public SessionLayout Session { get; }
+    public AutoTrainMenuLayout AutoTrainMenu { get; }
 
     public long CharRva { get; }
     public long TileMapRva { get; }
@@ -247,6 +258,7 @@ public sealed class GameMemoryLayout
     public long MainRva { get; }
     public long RmsRva { get; }
     public long ServiceRva { get; }
+    public long AutoTrainMenuRva { get; }
 
     public GameMemoryLayout(GameVersionSchema schema)
     {
@@ -487,6 +499,17 @@ public sealed class GameMemoryLayout
             Connected: ResolveStatic(schema, GameSchema.Session.ClassName, GameSchema.Session.StaticConnected)
         );
 
+        AutoTrainMenu = new AutoTrainMenuLayout(
+            IsChecked: ResolveStatic(schema, GameSchema.AutoTrainMenu.ClassName, GameSchema.AutoTrainMenu.StaticIsChecked),
+            IsCheckedSkill: ResolveStatic(schema, GameSchema.AutoTrainMenu.ClassName, GameSchema.AutoTrainMenu.StaticIsCheckedSkill),
+            IsCheckAutoPean: ResolveStatic(schema, GameSchema.AutoTrainMenu.ClassName, GameSchema.AutoTrainMenu.StaticIsCheckAutoPean),
+            PeanHpPercent: ResolveStatic(schema, GameSchema.AutoTrainMenu.ClassName, GameSchema.AutoTrainMenu.StaticPeanHpPercent),
+            PeanMpPercent: ResolveStatic(schema, GameSchema.AutoTrainMenu.ClassName, GameSchema.AutoTrainMenu.StaticPeanMpPercent),
+            IsCheckAllMob: ResolveStatic(schema, GameSchema.AutoTrainMenu.ClassName, GameSchema.AutoTrainMenu.StaticIsCheckAllMob),
+            IsCheckPick: ResolveStatic(schema, GameSchema.AutoTrainMenu.ClassName, GameSchema.AutoTrainMenu.StaticIsCheckPick),
+            IsNhat: ResolveStatic(schema, GameSchema.AutoTrainMenu.ClassName, GameSchema.AutoTrainMenu.StaticIsNhat)
+        );
+
         CharRva = schema.GetTypeInfoRva("Char");
         TileMapRva = schema.GetTypeInfoRva("TileMap");
         GameScrRva = schema.GetTypeInfoRva("GameScr");
@@ -495,6 +518,7 @@ public sealed class GameMemoryLayout
         MainRva = schema.GetTypeInfoRva("Main");
         RmsRva = schema.GetTypeInfoRva("Rms");
         ServiceRva = schema.GetTypeInfoRva("Service");
+        AutoTrainMenuRva = schema.GetTypeInfoRva("AutoTrainMenu");
     }
 
     private static int ResolveInstance(GameVersionSchema schema, string className, string fieldName, int fallback = -1)

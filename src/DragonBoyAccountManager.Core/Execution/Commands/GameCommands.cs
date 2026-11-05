@@ -10,6 +10,14 @@ public sealed record AttackMobCommand(
     public string Name => $"Tấn công {MobName} #{MobId}";
 }
 
+public sealed record SetInGameAutoTrainCommand(
+    bool Enable,
+    string Reason = "DBAM"
+) : IGameCommand
+{
+    public string Name => Enable ? "Bật tự đánh trong game" : "Tắt tự đánh trong game";
+}
+
 public sealed record MoveCommand(
     int TargetX,
     int TargetY,

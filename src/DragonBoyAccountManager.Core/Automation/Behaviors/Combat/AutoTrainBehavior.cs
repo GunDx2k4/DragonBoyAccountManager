@@ -32,9 +32,8 @@ public sealed class AutoTrainBehavior : AutomationBehavior<AutoTrainOptions>
 
     private readonly AutoReviveInterrupter _reviveInterrupter = new();
     private readonly AutoPeanInterrupter _peanInterrupter;
-    private DateTime _lastAttackTime = DateTime.MinValue;
     private DateTime _lastTdltCheckTime = DateTime.MinValue;
-    private int _skillRotationIndex;
+    private DateTime _lastAutoSyncTime = DateTime.MinValue;
 
     public AutoTrainBehavior(AutoTrainOptions options)
         : base("Auto Train", options, BehaviorId)
@@ -58,6 +57,10 @@ public sealed class AutoTrainBehavior : AutomationBehavior<AutoTrainOptions>
 
     protected override void OnStopped(IProgress<string>? progress)
     {
+        if (Context != null)
+        {
+            _ = Context.Dispatcher.DispatchAsync(new SetInGameAutoTrainCommand(false, "DBAM_Stop"), CancellationToken.None);
+        }
         progress?.Report("[Auto Train] Đã dừng tự động luyện tập.");
     }
 
@@ -67,7 +70,6 @@ public sealed class AutoTrainBehavior : AutomationBehavior<AutoTrainOptions>
         CancellationToken cancellationToken)
     {
         var player = context.CurrentPlayer;
-        var world = context.CurrentWorld;
         var dispatcher = context.Dispatcher;
 
         if (!player.IsInGame || player.IsChangingMap)
@@ -85,75 +87,16 @@ public sealed class AutoTrainBehavior : AutomationBehavior<AutoTrainOptions>
             }
         }
 
-        if (Options.AutoPickItems && world.GroundItems.Count > 0)
+        if (!player.IsAutoPlay && DateTime.UtcNow - _lastAutoSyncTime > TimeSpan.FromSeconds(2))
         {
-            var myItem = world.GroundItems
-                .Where(i => i.PlayerId == player.Id || i.PlayerId == -1)
-                .OrderBy(i => i.DistanceTo(player.X, player.Y))
-                .FirstOrDefault();
-
-            if (myItem != null && myItem.DistanceTo(player.X, player.Y) < 150)
+            _lastAutoSyncTime = DateTime.UtcNow;
+            var result = await dispatcher.DispatchAsync(new SetInGameAutoTrainCommand(true, "DBAM_AutoTrain"), cancellationToken);
+            if (result.IsSuccess)
             {
-                if (myItem.DistanceTo(player.X, player.Y) > 30)
-                {
-                    await dispatcher.DispatchAsync(new MoveCommand(myItem.X, myItem.Y, Options.UseTdlt), cancellationToken);
-                    await Task.Delay(150, cancellationToken);
-                }
-                await dispatcher.DispatchAsync(new PickItemCommand(myItem.ItemMapId, myItem.Name), cancellationToken);
-                return;
+                progress?.Report("[Auto Train] Đã kích hoạt tự động đánh của game client.");
             }
         }
 
-        var candidateMobs = world.Mobs.Where(m => m.IsAlive);
-        if (Options.IgnoreBosses)
-            candidateMobs = candidateMobs.Where(m => !m.IsBoss);
-        if (Options.AvoidSuperMobs)
-            candidateMobs = candidateMobs.Where(m => !m.IsSuperMob);
-        if (Options.TargetMobTemplateIds.Count > 0)
-            candidateMobs = candidateMobs.Where(m => Options.TargetMobTemplateIds.Contains(m.TemplateId));
-        if (Options.TargetMobIds.Count > 0)
-            candidateMobs = candidateMobs.Where(m => Options.TargetMobIds.Contains(m.Id));
-
-        var targetMob = candidateMobs
-            .OrderBy(m => m.DistanceTo(player.X, player.Y))
-            .FirstOrDefault();
-
-        if (targetMob == null)
-        {
-            await Task.Delay(200, cancellationToken);
-            return;
-        }
-
-        double distance = targetMob.DistanceTo(player.X, player.Y);
-        if (distance > 60)
-        {
-            int targetX = targetMob.X > player.X ? targetMob.X - 30 : targetMob.X + 30;
-            int targetY = targetMob.IsFlying ? targetMob.Y : player.Y;
-            await dispatcher.DispatchAsync(new MoveCommand(targetX, targetY, Options.UseTdlt), cancellationToken);
-            await Task.Delay(100, cancellationToken);
-            return;
-        }
-
-        if (DateTime.UtcNow - _lastAttackTime < TimeSpan.FromMilliseconds(400))
-        {
-            return;
-        }
-
-        int skillSlot = 0;
-        if (Options.SelectedSkillSlots.Count > 0)
-        {
-            skillSlot = Options.SelectedSkillSlots[_skillRotationIndex % Options.SelectedSkillSlots.Count];
-            _skillRotationIndex++;
-        }
-
-        _lastAttackTime = DateTime.UtcNow;
-        var attackResult = await dispatcher.DispatchAsync(
-            new AttackMobCommand(targetMob.Id, targetMob.Name, targetMob.X, skillSlot),
-            cancellationToken);
-
-        if (attackResult.IsSuccess)
-        {
-            progress?.Report($"[Auto Train] Đang đánh {targetMob.Name} #{targetMob.Id} [HP: {targetMob.Hp}/{targetMob.MaxHp}]");
-        }
+        await Task.Delay(500, cancellationToken);
     }
 }

@@ -40,6 +40,15 @@ public static partial class NativeMethods
         MemoryFreeType dwFreeType);
 
     [LibraryImport(Kernel32, SetLastError = true)]
+    [return: MarshalAs(UnmanagedType.Bool)]
+    public static partial bool VirtualProtectEx(
+        IntPtr hProcess,
+        IntPtr lpAddress,
+        nuint dwSize,
+        MemoryProtection flNewProtect,
+        out MemoryProtection lpflOldProtect);
+
+    [LibraryImport(Kernel32, SetLastError = true)]
     public static partial IntPtr CreateRemoteThread(
         IntPtr hProcess,
         IntPtr lpThreadAttributes,

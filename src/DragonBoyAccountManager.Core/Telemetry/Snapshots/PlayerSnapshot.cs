@@ -16,6 +16,7 @@ public sealed record PlayerSnapshot(
     long MaxMp = 0,
     int StatusMe = 0,
     bool IsTdltActive = false,
+    bool IsAutoPlay = false,
     IReadOnlyList<GameSkillInfo>? Skills = null,
     IReadOnlyList<InventoryItem>? BagItems = null
 ) : IPositioned
@@ -23,5 +24,5 @@ public sealed record PlayerSnapshot(
     public IReadOnlyList<GameSkillInfo> SkillList => Skills ?? [];
     public IReadOnlyList<InventoryItem> BagItemList => BagItems ?? [];
 
-    public static PlayerSnapshot Empty => new(0, string.Empty, 0, 0, 0, 0, 0, 0, false, false, false, 0, 0, 0, false, [], []);
+    public static PlayerSnapshot Empty => new(0, string.Empty, 0, 0, 0, 0, 0, 0, false, false, false, 0, 0, 0, false, false, [], []);
 }

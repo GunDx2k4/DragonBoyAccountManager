@@ -33,6 +33,7 @@ public class Il2CppRuntime : IGameRuntime
     public IntPtr RootDomain => _invoker.RootDomain;
     public IMemoryAccessor Memory => _memory;
     public IntPtr ProcessHandle => _processHandle;
+    public IntPtr ModuleBase => _gameAssemblyModule;
     public bool Is64Bit => _memory.Is64Bit;
     public GameVersionSchema Schema => _schema;
     public GameMemoryLayout Layout { get; }

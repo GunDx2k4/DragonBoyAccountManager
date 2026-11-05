@@ -33,7 +33,8 @@
       "TField": 35392008,
       "Command": 35393496,
       "Controller": 35402880,
-      "TileMap": 35407136
+      "TileMap": 35407136,
+      "AutoTrainMenu": 35357152
     },
     "StaticFields": {
       "Main.main": 0,
@@ -898,7 +899,15 @@
       "GameMidlet.isBackWindowsPhone": 73,
       "Tilemap.tilemapTileChanged": 0,
       "Tilemap.tilemapPositionsChanged": 8,
-      "Tilemap.loopEndedForTileAnimation": 16
+      "Tilemap.loopEndedForTileAnimation": 16,
+      "AutoTrainMenu.isNhat": 0,
+      "AutoTrainMenu.isChecked": 24,
+      "AutoTrainMenu.isCheckAutoPean": 49,
+      "AutoTrainMenu.peanHpPercent": 52,
+      "AutoTrainMenu.peanMpPercent": 56,
+      "AutoTrainMenu.isCheckAllMob": 88,
+      "AutoTrainMenu.isCheckedSkill": 112,
+      "AutoTrainMenu.isCheckPick": 136
     },
     "InstanceFields": {
       "Main.level": 32,
@@ -1947,7 +1956,9 @@
       "GameScr.doSelectSkill": 4458304,
       "GameScr.saveKeySkillToRMS": 4597552,
       "Char.myCharz": 4299408,
-      "MovePoint..ctor": 3701216
+      "MovePoint..ctor": 3701216,
+      "AutoTrainMenu.setAutoAttack": 4143440,
+      "AutoTrainMenu.updateAutoTrain": 4153584
     }
   }
 }

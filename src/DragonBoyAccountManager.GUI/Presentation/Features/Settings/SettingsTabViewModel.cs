@@ -12,11 +12,13 @@ public sealed partial class SettingsTabViewModel : ObservableObject
     private static readonly (string Label, (int Width, int Height) Value)[] WindowSizeChoices =
     [
         ("Giữ nguyên kích thước", (0, 0)),
-        ("1024 x 600 (Chuẩn PC)", (1024, 600)),
+        ("1280 x 720 (HD / Zoom x2)", (1280, 720)),
+        ("1024 x 600 (Chuẩn PC / Zoom x2)", (1024, 600)),
+        ("960 x 540 (qHD / Zoom x2)", (960, 540)),
+        ("800 x 600 (Chuẩn 4:3 / Zoom x2)", (800, 600)),
         ("720 x 320 (Chuẩn nhỏ / Zoom x1)", (720, 320)),
-        ("800 x 600", (800, 600)),
-        ("640 x 480", (640, 480)),
-        ("512 x 384 (Nhỏ gọn)", (512, 384))
+        ("640 x 480 (Zoom x1)", (640, 480)),
+        ("512 x 384 (Nhỏ gọn / Zoom x1)", (512, 384))
     ];
 
     private static readonly (string Label, WindowArrangeMode Value)[] ArrangeModeChoices =

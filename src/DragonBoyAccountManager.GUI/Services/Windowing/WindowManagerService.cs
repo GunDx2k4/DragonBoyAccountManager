@@ -56,6 +56,7 @@ public sealed class WindowManagerService : IWindowManagerService
     {
         IntPtr cachedHwnd = IntPtr.Zero;
         string? lastAppliedTitle = null;
+        bool sizeApplied = false;
 
         for (int i = 0; i < maxAttempts && !cancellationToken.IsCancellationRequested; i++)
         {
@@ -80,18 +81,11 @@ public sealed class WindowManagerService : IWindowManagerService
                         }
                     }
 
-                    if (width > 0 && height > 0)
+                    if (!sizeApplied && width > 0 && height > 0)
                     {
-                        if (User32.IsIconic(cachedHwnd))
+                        if (ResizeWindow(proc, width, height))
                         {
-                            User32.ShowWindow(cachedHwnd, User32.SW_RESTORE);
-                        }
-
-                        var (curW, curH) = GetWindowSize(cachedHwnd);
-                        if (curW != width || curH != height)
-                        {
-                            uint flags = User32.SWP_NOZORDER | User32.SWP_NOMOVE | User32.SWP_SHOWWINDOW | User32.SWP_NOACTIVATE;
-                            User32.SetWindowPos(cachedHwnd, IntPtr.Zero, 0, 0, width, height, flags);
+                            sizeApplied = true;
                         }
                     }
                 }
@@ -115,8 +109,23 @@ public sealed class WindowManagerService : IWindowManagerService
             User32.ShowWindow(hWnd, User32.SW_RESTORE);
         }
 
+        int targetW = width;
+        int targetH = height;
+
+        if (User32.GetWindowRect(hWnd, out var winRect) && User32.GetClientRect(hWnd, out var clientRect))
+        {
+            if (clientRect.Width == width && clientRect.Height == height)
+            {
+                return true;
+            }
+
+            targetW += winRect.Width - clientRect.Width;
+            targetH += winRect.Height - clientRect.Height;
+        }
+
         uint flags = User32.SWP_NOZORDER | User32.SWP_NOMOVE | User32.SWP_SHOWWINDOW | User32.SWP_NOACTIVATE;
-        return User32.SetWindowPos(hWnd, IntPtr.Zero, 0, 0, width, height, flags);
+        User32.SetWindowPos(hWnd, IntPtr.Zero, 0, 0, targetW, targetH, flags);
+        return false;
     }
 
     public bool PositionWindow(Process proc, int x, int y, int width = 0, int height = 0)

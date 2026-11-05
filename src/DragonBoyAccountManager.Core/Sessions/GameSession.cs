@@ -132,6 +132,7 @@ public sealed class GameSession : ISessionContext, IDisposable
 
         Dispatcher.RegisterHandler<AttackMobCommand>(combatHandler);
         Dispatcher.RegisterHandler<SelectSkillCommand>(combatHandler);
+        Dispatcher.RegisterHandler<SetInGameAutoTrainCommand>(combatHandler);
         Dispatcher.RegisterHandler<MoveCommand>(movementHandler);
         Dispatcher.RegisterHandler<NavigateCommand>(movementHandler);
         Dispatcher.RegisterHandler<EnterWaypointCommand>(movementHandler);

@@ -47,9 +47,11 @@ public class PlayerScraper(IGameRuntime runtime, Func<string?>? originalNameReso
         bool isAlive = hp > 0 && status != 14 && status != 5;
         bool isChangingMap = IsChangingMap(charPtr);
         bool isTdltActive = false;
+        bool isAutoPlay = false;
         try
         {
             isTdltActive = _runtime.ReadStatic<bool>(GameSchema.GameScr.ClassName, _runtime.Layout.GameScr.CanAutoPlay);
+            isAutoPlay = _runtime.ReadStatic<bool>(GameSchema.GameScr.ClassName, _runtime.Layout.GameScr.IsAutoPlay);
         }
         catch { }
 
@@ -58,7 +60,7 @@ public class PlayerScraper(IGameRuntime runtime, Func<string?>? originalNameReso
 
         return new PlayerSnapshot(
             id, name, hp, maxHp, power, gender, x, y,
-            isAlive, isInGame, isChangingMap, mp, maxMp, status, isTdltActive, skills, bagItems);
+            isAlive, isInGame, isChangingMap, mp, maxMp, status, isTdltActive, isAutoPlay, skills, bagItems);
     }
 
     public bool IsChangingMap(IntPtr charPtr = default)

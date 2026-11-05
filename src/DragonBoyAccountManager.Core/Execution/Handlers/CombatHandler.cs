@@ -8,11 +8,64 @@ namespace DragonBoyAccountManager.Core.Execution.Handlers;
 
 public class CombatHandler(IGameRuntime runtime) :
     IGameCommandHandler<AttackMobCommand>,
-    IGameCommandHandler<SelectSkillCommand>
+    IGameCommandHandler<SelectSkillCommand>,
+    IGameCommandHandler<SetInGameAutoTrainCommand>
 {
     private readonly IGameRuntime _runtime = runtime;
     private IntPtr _cachedVMob;
     private IntPtr _cachedEmptyVChar;
+
+    public Task<Result> HandleAsync(SetInGameAutoTrainCommand command, CancellationToken cancellationToken)
+    {
+        IntPtr charPtr = _runtime.GetMyCharPtr();
+        if (charPtr == IntPtr.Zero)
+            return Task.FromResult(Result.Failure("Nhân vật chưa vào game."));
+
+        _runtime.WriteStatic(GameSchema.GameScr.ClassName, _runtime.Layout.GameScr.IsAutoPlay, command.Enable);
+
+        IntPtr autoTrainStatic = _runtime.GetStaticFieldsPtr(GameSchema.AutoTrainMenu.ClassName);
+        if (autoTrainStatic != IntPtr.Zero)
+        {
+            if (_runtime.Layout.AutoTrainMenu.IsCheckAllMob >= 0)
+            {
+                _runtime.WriteField(autoTrainStatic, _runtime.Layout.AutoTrainMenu.IsCheckAllMob, true);
+            }
+
+            int isCheckedOffset = _runtime.Layout.AutoTrainMenu.IsChecked;
+            if (isCheckedOffset >= 0)
+            {
+                IntPtr isCheckedArray = _runtime.ReadFieldPtr(autoTrainStatic, isCheckedOffset);
+                if (isCheckedArray != IntPtr.Zero)
+                {
+                    int len = _runtime.ReadField<int>(isCheckedArray, 0x18);
+                    if (len > 0)
+                    {
+                        _runtime.Memory.Write<byte>(isCheckedArray + 0x20, (byte)(command.Enable ? 1 : 0));
+                    }
+                }
+            }
+
+            if (command.Enable)
+            {
+                int isCheckedSkillOffset = _runtime.Layout.AutoTrainMenu.IsCheckedSkill;
+                if (isCheckedSkillOffset >= 0)
+                {
+                    IntPtr isCheckedSkillArray = _runtime.ReadFieldPtr(autoTrainStatic, isCheckedSkillOffset);
+                    if (isCheckedSkillArray != IntPtr.Zero)
+                    {
+                        int len = _runtime.ReadField<int>(isCheckedSkillArray, 0x18);
+                        int count = Math.Clamp(len, 0, 10);
+                        for (int i = 0; i < count; i++)
+                        {
+                            _runtime.Memory.Write<byte>(isCheckedSkillArray + 0x20 + i, 1);
+                        }
+                    }
+                }
+            }
+        }
+
+        return Task.FromResult(Result.Success(command.Enable ? "Đã bật tự đánh trong game" : "Đã tắt tự đánh trong game"));
+    }
 
     public Task<Result> HandleAsync(SelectSkillCommand command, CancellationToken cancellationToken)
     {
@@ -94,13 +147,6 @@ public class CombatHandler(IGameRuntime runtime) :
         IntPtr service = _runtime.GetServicePtr();
         if (service == IntPtr.Zero)
             return Result.Failure("Không tìm thấy Service.");
-
-        _runtime.WriteStatic(GameSchema.GameScr.ClassName, _runtime.Layout.GameScr.IsAutoPlay, false);
-        IntPtr gs = _runtime.ReadStatic<IntPtr>(GameSchema.GameScr.ClassName, _runtime.Layout.GameScr.Instance);
-        if (gs != IntPtr.Zero)
-        {
-            _runtime.WriteField(gs, _runtime.Layout.GameScr.Auto, 0);
-        }
 
         IntPtr vMob = EnsureValidMyVector(ref _cachedVMob, clearElements: true);
         IntPtr vChar = EnsureValidMyVector(ref _cachedEmptyVChar, clearElements: false);

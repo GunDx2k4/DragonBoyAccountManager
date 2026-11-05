@@ -8,6 +8,7 @@ public interface IGameRuntime : IDisposable
     GameMemoryLayout Layout { get; }
     IMemoryAccessor Memory { get; }
     IntPtr ProcessHandle { get; }
+    IntPtr ModuleBase { get; }
     bool Is64Bit { get; }
 
     T ReadStatic<T>(string className, int offset) where T : unmanaged;

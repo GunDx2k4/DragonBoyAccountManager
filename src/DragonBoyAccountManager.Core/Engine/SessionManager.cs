@@ -101,6 +101,11 @@ public sealed class SessionManager : ISessionManager, IDisposable, IAsyncDisposa
             try
             {
                 GameRmsStorage.SetServerSelection(options.ServerId);
+                if (options.ScreenWidth > 0 && options.ScreenHeight > 0)
+                {
+                    int screenLevel = (options.ScreenWidth * options.ScreenHeight < 480000) ? 1 : 0;
+                    GameRmsStorage.SetScreenLevel(screenLevel);
+                }
                 session = await _launcher.LaunchAsync(launchOptions, cancellationToken);
             }
             finally

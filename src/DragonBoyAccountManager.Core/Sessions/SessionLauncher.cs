@@ -41,6 +41,12 @@ public class SessionLauncher
             "-screen-fullscreen 0"
         };
 
+        if (options.ScreenWidth > 0 && options.ScreenHeight > 0)
+        {
+            argsList.Add($"-screen-width {options.ScreenWidth}");
+            argsList.Add($"-screen-height {options.ScreenHeight}");
+        }
+
         if (!string.IsNullOrWhiteSpace(options.AdditionalArguments))
         {
             argsList.Add(options.AdditionalArguments.Trim());
@@ -77,6 +83,11 @@ public class SessionLauncher
             gameRuntime = await GameRuntimeFactory.AttachAsync(process, cancellationToken: cancellationToken)
                           ?? throw new InvalidOperationException("Failed to attach game runtime.");
 
+            if (options.ScreenWidth > 0 && options.ScreenHeight > 0)
+            {
+                ApplyCustomResolutionPatch(gameRuntime, options.ScreenWidth, options.ScreenHeight);
+            }
+
             return new GameSession(process, gameRuntime, options.SessionId ?? Guid.NewGuid(), options.ConfigureSession);
         }
         catch
@@ -88,6 +99,57 @@ public class SessionLauncher
                 catch (Exception ex) when (ex is InvalidOperationException or System.ComponentModel.Win32Exception) { }
             }
             throw;
+        }
+    }
+
+    private static void ApplyCustomResolutionPatch(IGameRuntime runtime, int width, int height)
+    {
+        if (runtime.ModuleBase == IntPtr.Zero || width <= 0 || height <= 0) return;
+
+        try
+        {
+            IntPtr baseAddr = runtime.ModuleBase;
+            IntPtr branch0 = IntPtr.Add(baseAddr, GameSchema.Main.RvaResolutionBranchDefault);
+            IntPtr branch1 = IntPtr.Add(baseAddr, GameSchema.Main.RvaResolutionBranchSmall);
+
+            byte b0_edx = runtime.Memory.ReadByte(branch0);
+            byte b0_ecx = runtime.Memory.ReadByte(IntPtr.Add(branch0, 5));
+            if (b0_edx == 0xBA && b0_ecx == 0xB9)
+            {
+                if (NativeMethods.VirtualProtectEx(runtime.ProcessHandle, branch0, 10, MemoryProtection.ExecuteReadWrite, out var oldProtect0))
+                {
+                    try
+                    {
+                        runtime.Memory.Write(IntPtr.Add(branch0, 1), height);
+                        runtime.Memory.Write(IntPtr.Add(branch0, 6), width);
+                    }
+                    finally
+                    {
+                        NativeMethods.VirtualProtectEx(runtime.ProcessHandle, branch0, 10, oldProtect0, out _);
+                    }
+                }
+            }
+
+            byte b1_edx = runtime.Memory.ReadByte(branch1);
+            byte b1_ecx = runtime.Memory.ReadByte(IntPtr.Add(branch1, 5));
+            if (b1_edx == 0xBA && b1_ecx == 0xB9)
+            {
+                if (NativeMethods.VirtualProtectEx(runtime.ProcessHandle, branch1, 10, MemoryProtection.ExecuteReadWrite, out var oldProtect1))
+                {
+                    try
+                    {
+                        runtime.Memory.Write(IntPtr.Add(branch1, 1), height);
+                        runtime.Memory.Write(IntPtr.Add(branch1, 6), width);
+                    }
+                    finally
+                    {
+                        NativeMethods.VirtualProtectEx(runtime.ProcessHandle, branch1, 10, oldProtect1, out _);
+                    }
+                }
+            }
+        }
+        catch
+        {
         }
     }
 }

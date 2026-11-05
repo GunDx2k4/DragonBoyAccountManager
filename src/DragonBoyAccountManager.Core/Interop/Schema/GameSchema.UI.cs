@@ -163,4 +163,24 @@ public static partial class GameSchema
         public const string MethodHideNow = "hideNow";
         public const int TypeZone = 3;
     }
+
+    public static class AutoTrainMenu
+    {
+        public const string ClassName = "AutoTrainMenu";
+        public const string StaticInstance = "instance";
+        public const string StaticIsNhat = "isNhat";
+        public const string StaticIsChecked = "isChecked";
+        public const string StaticIsCheckAllMob = "isCheckAllMob";
+        public const string StaticIsCheckedMobName = "isCheckedMobName";
+        public const string StaticIsCheckedSkill = "isCheckedSkill";
+        public const string StaticIsCheckAutoPean = "isCheckAutoPean";
+        public const string StaticPeanHpPercent = "peanHpPercent";
+        public const string StaticPeanMpPercent = "peanMpPercent";
+        public const string StaticIsCheckPick = "isCheckPick";
+
+        public const string MethodGI = "gI";
+        public const string MethodSetAutoAttack = "setAutoAttack";
+        public const string MethodUpdateAutoTrain = "updateAutoTrain";
+        public const string MethodScanSkills = "scanSkills";
+    }
 }

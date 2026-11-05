@@ -7,6 +7,8 @@ public static partial class GameSchema
         public const string ClassName = "Main";
         public const string StaticIsQuitApp = "isQuitApp";
         public const string StaticStarted = "started";
+        public const int RvaResolutionBranchDefault = 0x273b3f;
+        public const int RvaResolutionBranchSmall = 0x273b59;
     }
 
     public static class GameMidlet

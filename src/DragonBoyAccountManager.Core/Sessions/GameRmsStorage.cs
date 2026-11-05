@@ -21,4 +21,22 @@ public static class GameRmsStorage
         {
         }
     }
+
+    public static void SetScreenLevel(int level)
+    {
+        try
+        {
+            string appData = Environment.GetFolderPath(Environment.SpecialFolder.UserProfile);
+            string levelPath = Path.Combine(appData, "AppData", "LocalLow", "Team", "Dragonboy252", "levelScreenKN");
+            string? dir = Path.GetDirectoryName(levelPath);
+            if (!string.IsNullOrEmpty(dir) && !Directory.Exists(dir))
+            {
+                Directory.CreateDirectory(dir);
+            }
+            File.WriteAllBytes(levelPath, [(byte)level]);
+        }
+        catch
+        {
+        }
+    }
 }
