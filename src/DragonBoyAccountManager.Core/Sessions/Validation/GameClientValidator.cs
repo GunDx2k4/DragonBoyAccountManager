@@ -4,6 +4,7 @@ using System.Security.Cryptography;
 using System.Text.Json;
 using System.Text.RegularExpressions;
 using DragonBoyAccountManager.Core.Common;
+using DragonBoyAccountManager.Core.Interop.Schema;
 
 namespace DragonBoyAccountManager.Core.Sessions.Validation;
 
@@ -30,6 +31,36 @@ public class GameClientValidator : IGameClientValidator, IDisposable
 
         _sha256Url = !string.IsNullOrWhiteSpace(sha256Url) ? sha256Url : Constants.Client.DefaultSha256Url;
         _versionChecksums[Constants.Client.DefaultVersion] = Constants.Client.DefaultSha256;
+        _versionChecksums[Constants.Client.LegacyVersion] = Constants.Client.LegacySha256;
+
+        LoadOffsetsChecksums();
+    }
+
+    private void LoadOffsetsChecksums()
+    {
+        try
+        {
+            var assembly = typeof(GameClientValidator).Assembly;
+            using var stream = assembly.GetManifestResourceStream("DragonBoyAccountManager.Core.Resources.Offsets.json");
+            if (stream != null)
+            {
+                var schemas = JsonSerializer.Deserialize<Dictionary<string, GameVersionSchema>>(stream);
+                if (schemas != null)
+                {
+                    foreach (var (key, schema) in schemas)
+                    {
+                        if (!string.IsNullOrWhiteSpace(schema.ExeSha256))
+                        {
+                            string ver = !string.IsNullOrWhiteSpace(schema.Version) ? schema.Version : key;
+                            _versionChecksums[ver] = schema.ExeSha256.Trim();
+                        }
+                    }
+                }
+            }
+        }
+        catch
+        {
+        }
     }
 
     public bool CheckIsValidGameExe(string? path)
@@ -45,11 +76,11 @@ public class GameClientValidator : IGameClientValidator, IDisposable
         gamePath = gamePath.Trim().Trim('"', '\'');
 
         return File.Exists(gamePath) && gamePath.EndsWith(".exe", StringComparison.OrdinalIgnoreCase)
-            ? gamePath
+            ? Path.GetFullPath(gamePath)
             : null;
     }
 
-    public string? ResolveAssemblyPath(string? gamePath) => ResolveGamePaths(gamePath)?.AssemblyPath;
+    public string? ResolveAssemblyPath(string? gamePath) => ResolveExePath(gamePath);
 
     public ResolvedGamePaths? ResolveGamePaths(string? gamePath) => ResolveGamePathsStatic(gamePath);
 
@@ -58,38 +89,12 @@ public class GameClientValidator : IGameClientValidator, IDisposable
         if (string.IsNullOrWhiteSpace(gamePath)) return null;
 
         gamePath = gamePath.Trim().Trim('"', '\'');
-        if (!File.Exists(gamePath)) return null;
+        if (!File.Exists(gamePath) || !gamePath.EndsWith(".exe", StringComparison.OrdinalIgnoreCase))
+            return null;
 
-        var dir = Path.GetDirectoryName(gamePath);
-        if (string.IsNullOrEmpty(dir)) return null;
-
-        var exeName = Path.GetFileNameWithoutExtension(gamePath);
-
-        var defaultData = Path.Combine(dir, $"{exeName}_Data");
-        var defaultManaged = Path.Combine(defaultData, Constants.Client.ManagedFolder);
-        var defaultAssembly = Path.Combine(defaultManaged, Constants.Client.AssemblyName);
-        if (File.Exists(defaultAssembly))
-            return new ResolvedGamePaths(defaultData, defaultManaged, defaultAssembly);
-
-        try
-        {
-            var dataDirs = Directory.GetDirectories(dir, "*_Data");
-            foreach (var d in dataDirs)
-            {
-                var candidateManaged = Path.Combine(d, Constants.Client.ManagedFolder);
-                var candidate = Path.Combine(candidateManaged, Constants.Client.AssemblyName);
-                if (File.Exists(candidate))
-                    return new ResolvedGamePaths(d, candidateManaged, candidate);
-            }
-        }
-        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException) { }
-
-        var fallbackManaged = Path.Combine(dir, Constants.Client.ManagedFolder);
-        var fallbackAssembly = Path.Combine(fallbackManaged, Constants.Client.AssemblyName);
-        if (File.Exists(fallbackAssembly))
-            return new ResolvedGamePaths(dir, fallbackManaged, fallbackAssembly);
-
-        return null;
+        string exePath = Path.GetFullPath(gamePath);
+        string dir = Path.GetDirectoryName(exePath) ?? string.Empty;
+        return new ResolvedGamePaths(dir, dir, exePath);
     }
 
     public string ComputeFileSha256(string filePath)
@@ -167,6 +172,7 @@ public class GameClientValidator : IGameClientValidator, IDisposable
 
         var resolvedExe = ResolveExePath(gamePath);
         metadata.ExePath = resolvedExe;
+        metadata.AssemblyPath = resolvedExe;
 
         if (string.IsNullOrEmpty(resolvedExe) || !File.Exists(resolvedExe))
         {
@@ -175,28 +181,16 @@ public class GameClientValidator : IGameClientValidator, IDisposable
             return metadata;
         }
 
-        var resolvedAssembly = ResolveAssemblyPath(gamePath);
-        metadata.AssemblyPath = resolvedAssembly;
-
-        if (!string.IsNullOrEmpty(resolvedAssembly))
-        {
-            metadata.ManagedDirectory = Path.GetDirectoryName(resolvedAssembly);
-        }
-
-        if (string.IsNullOrEmpty(resolvedAssembly) || !File.Exists(resolvedAssembly))
-        {
-            metadata.Status = ClientStatus.AssemblyNotFound;
-            metadata.IsCorrectVersion = false;
-            return metadata;
-        }
+        string dir = Path.GetDirectoryName(resolvedExe) ?? string.Empty;
+        metadata.ManagedDirectory = dir;
 
         try
         {
-            var fileInfo = new FileInfo(resolvedAssembly);
+            var fileInfo = new FileInfo(resolvedExe);
             metadata.FileSizeBytes = fileInfo.Length;
             metadata.LastModifiedTime = fileInfo.LastWriteTime;
 
-            var actualHash = ComputeFileSha256(resolvedAssembly);
+            var actualHash = ComputeFileSha256(resolvedExe);
             metadata.ActualSha256 = actualHash;
 
             string? matchedVersionBySha = null;
@@ -225,7 +219,7 @@ public class GameClientValidator : IGameClientValidator, IDisposable
                 metadata.IsShaMatch = false;
                 metadata.IsModified = true;
 
-                string? detectedVer = TryDetectVersionFromGame(resolvedExe, resolvedAssembly);
+                string? detectedVer = TryDetectVersionFromExe(resolvedExe);
                 metadata.DetectedVersion = detectedVer;
 
                 if (!string.IsNullOrEmpty(detectedVer))
@@ -236,15 +230,7 @@ public class GameClientValidator : IGameClientValidator, IDisposable
 
                     bool isTarget = string.Equals(detectedVer, latestOfficialVersion, StringComparison.OrdinalIgnoreCase);
                     metadata.IsCorrectVersion = isTarget;
-
-                    if (isTarget)
-                    {
-                        metadata.Status = ClientStatus.ModifiedOrMod;
-                    }
-                    else
-                    {
-                        metadata.Status = ClientStatus.OutdatedVersion;
-                    }
+                    metadata.Status = isTarget ? ClientStatus.ModifiedOrMod : ClientStatus.OutdatedVersion;
                 }
                 else
                 {
@@ -289,17 +275,10 @@ public class GameClientValidator : IGameClientValidator, IDisposable
         return latest;
     }
 
-    private static string? TryDetectVersionFromGame(string exePath, string assemblyPath)
+    private static string? TryDetectVersionFromExe(string exePath)
     {
         try
         {
-            if (File.Exists(assemblyPath))
-            {
-                var fvi = FileVersionInfo.GetVersionInfo(assemblyPath);
-                var ver = ExtractVersionString(fvi.FileVersion) ?? ExtractVersionString(fvi.ProductVersion);
-                if (!string.IsNullOrEmpty(ver)) return ver;
-            }
-
             if (File.Exists(exePath))
             {
                 var fvi = FileVersionInfo.GetVersionInfo(exePath);

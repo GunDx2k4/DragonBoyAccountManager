@@ -1,7 +1,6 @@
 using DragonBoyAccountManager.Core.Common.Results;
-using DragonBoyAccountManager.Core.Execution;
 using DragonBoyAccountManager.Core.Execution.Commands;
-using DragonBoyAccountManager.Core.Telemetry.Snapshots;
+using DragonBoyAccountManager.Core.Sessions;
 
 namespace DragonBoyAccountManager.Core.Automation.Interrupters;
 
@@ -23,11 +22,10 @@ public class AutoPeanInterrupter : IInterrupter
     }
 
     public async Task<Result?> CheckAndExecuteAsync(
-        PlayerSnapshot player,
-        WorldSnapshot world,
-        ICommandDispatcher dispatcher,
-        CancellationToken cancellationToken)
+        ISessionContext context,
+        CancellationToken cancellationToken = default)
     {
+        var player = context.CurrentPlayer;
         if (!Enabled || !player.IsInGame || !player.IsAlive)
             return null;
 
@@ -43,7 +41,7 @@ public class AutoPeanInterrupter : IInterrupter
                 return null;
 
             _lastPeanTime = DateTime.UtcNow;
-            var res = await dispatcher.DispatchAsync(new UseItemCommand(-1, GameDefinitions.DefaultPeanTemplateId, "Đậu thần"), cancellationToken);
+            var res = await context.Dispatcher.DispatchAsync(new UseItemCommand(-1, GameDefinitions.DefaultPeanTemplateId, "Đậu thần"), cancellationToken);
             if (res.IsSuccess)
             {
                 return Result.Success("Đã tự động sử dụng đậu thần hồi phục.");

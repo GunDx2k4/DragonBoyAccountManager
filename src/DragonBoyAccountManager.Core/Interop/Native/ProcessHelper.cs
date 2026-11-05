@@ -57,47 +57,10 @@ public static class ProcessHelper
         return IntPtr.Zero;
     }
 
-    public static unsafe IntPtr FindAnyMonoModule(IntPtr handle, bool is64Bit)
-    {
-        int ptrSize = is64Bit ? Constants.PointerSize64 : Constants.PointerSize32;
-
-        if (!NativeMethods.EnumProcessModulesEx(handle, null, 0, out uint bytesNeeded, ModuleFilter.All))
-            return IntPtr.Zero;
-
-        int moduleCount = (int)(bytesNeeded / (uint)ptrSize);
-        var moduleHandles = new IntPtr[moduleCount];
-
-        fixed (IntPtr* pModules = moduleHandles)
-        {
-            if (!NativeMethods.EnumProcessModulesEx(handle, pModules, bytesNeeded, out bytesNeeded, ModuleFilter.All))
-                return IntPtr.Zero;
-        }
-
-        Span<char> pathBuffer = stackalloc char[Constants.MaxPathLength];
-
-        for (int i = 0; i < moduleCount; i++)
-        {
-            fixed (char* pBuffer = pathBuffer)
-            {
-                uint length = NativeMethods.GetModuleFileNameEx(handle, moduleHandles[i], pBuffer, (uint)pathBuffer.Length);
-                if (length > 0)
-                {
-                    string fullPath = pathBuffer[..(int)length].ToString();
-                    string fileName = Path.GetFileName(fullPath);
-                    if (fileName.Contains("mono", StringComparison.OrdinalIgnoreCase))
-                    {
-                        return moduleHandles[i];
-                    }
-                }
-            }
-        }
-        return IntPtr.Zero;
-    }
-
-    public static async Task<IntPtr> WaitForMonoModuleAsync(
+    public static async Task<IntPtr> WaitForGameAssemblyModuleAsync(
         IntPtr handle,
         bool is64Bit,
-        int timeoutMs = Constants.DefaultTimeoutMs,
+        int timeoutMs = Constants.ModuleLoadTimeoutMs,
         CancellationToken cancellationToken = default)
     {
         var stopwatch = Stopwatch.StartNew();
@@ -107,20 +70,32 @@ public static class ProcessHelper
             if (!IsProcessAlive(handle))
                 return IntPtr.Zero;
 
-            foreach (string moduleName in Constants.MonoModuleNames)
+            foreach (string moduleName in Constants.GameAssemblyModuleNames)
             {
                 IntPtr baseAddress = GetModuleBaseAddress(handle, is64Bit, moduleName);
                 if (baseAddress != IntPtr.Zero)
                     return baseAddress;
             }
 
-            IntPtr anyMono = FindAnyMonoModule(handle, is64Bit);
-            if (anyMono != IntPtr.Zero)
-                return anyMono;
-
             await Task.Delay(Constants.DefaultPollingIntervalMs, cancellationToken);
         }
 
         return IntPtr.Zero;
+    }
+
+    public static IntPtr FindMainWindowHandle(int processId)
+    {
+        IntPtr foundHwnd = IntPtr.Zero;
+        NativeMethods.EnumWindows((hWnd, _) =>
+        {
+            NativeMethods.GetWindowThreadProcessId(hWnd, out int pid);
+            if (pid == processId && NativeMethods.IsWindow(hWnd))
+            {
+                foundHwnd = hWnd;
+                return false;
+            }
+            return true;
+        }, IntPtr.Zero);
+        return foundHwnd;
     }
 }

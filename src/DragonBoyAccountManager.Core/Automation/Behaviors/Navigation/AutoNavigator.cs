@@ -1,6 +1,7 @@
 using DragonBoyAccountManager.Core.Common.Results;
 using DragonBoyAccountManager.Core.Execution;
 using DragonBoyAccountManager.Core.Execution.Commands;
+using DragonBoyAccountManager.Core.Sessions;
 using DragonBoyAccountManager.Core.Telemetry.Snapshots;
 
 namespace DragonBoyAccountManager.Core.Automation.Behaviors.Navigation;
@@ -8,6 +9,36 @@ namespace DragonBoyAccountManager.Core.Automation.Behaviors.Navigation;
 public class AutoNavigator(ICommandDispatcher dispatcher)
 {
     private readonly ICommandDispatcher _dispatcher = dispatcher;
+
+    public async Task<Result> EnterWaypointAsync(
+        ISessionContext session,
+        int waypointX,
+        int waypointY,
+        bool isFastTeleport = false,
+        IProgress<string>? progress = null,
+        CancellationToken cancellationToken = default)
+    {
+        if (session == null || !session.IsRunning || !session.CurrentPlayer.IsInGame)
+            return Result.Failure("Nhân vật chưa vào game.");
+
+        int startMapId = session.CurrentWorld.MapId;
+        await NavigateAsync(session.CurrentPlayer, session.CurrentMap, waypointX, waypointY, isFastTeleport, progress, cancellationToken);
+
+        if (cancellationToken.IsCancellationRequested)
+            return Result.Failure("Quá trình chuyển map bị hủy.");
+
+        session.Tick();
+        if ((startMapId >= 0 && session.CurrentWorld.MapId >= 0 && session.CurrentWorld.MapId != startMapId) || session.CurrentPlayer.IsChangingMap)
+            return Result.Success("Đã qua waypoint.");
+
+        await Task.Delay(100, cancellationToken);
+
+        session.Tick();
+        if ((startMapId >= 0 && session.CurrentWorld.MapId >= 0 && session.CurrentWorld.MapId != startMapId) || session.CurrentPlayer.IsChangingMap)
+            return Result.Success("Đã qua waypoint.");
+
+        return await _dispatcher.DispatchAsync(new MoveCommand(waypointX, waypointY, false), cancellationToken);
+    }
 
     public async Task<Result> NavigateAsync(
         PlayerSnapshot player,

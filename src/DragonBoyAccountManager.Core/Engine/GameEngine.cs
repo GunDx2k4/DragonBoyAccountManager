@@ -11,7 +11,7 @@ using DragonBoyAccountManager.Core.Telemetry.Snapshots;
 
 namespace DragonBoyAccountManager.Core.Engine;
 
-public sealed class GameEngine : IGameEngine
+public sealed class GameEngine : IGameEngine, IAsyncDisposable
 {
     public ISessionManager Sessions { get; }
 
@@ -57,58 +57,18 @@ public sealed class GameEngine : IGameEngine
 
     public async Task<bool> AutoMoveAsync(Guid accountId, int targetX, int targetY, bool isFastTeleport = false, CancellationToken cancellationToken = default)
     {
+        var result = await ExecuteCommandAsync(accountId, new NavigateCommand(targetX, targetY, isFastTeleport), cancellationToken);
         var worker = Sessions.GetWorker(accountId);
-        if (worker != null && worker.Session.IsRunning && worker.Session.CurrentPlayer.IsInGame)
-        {
-            using var linkedCts = CancellationTokenSource.CreateLinkedTokenSource(worker.Cts.Token, cancellationToken);
-            var result = await worker.Session.Navigator.NavigateAsync(
-                worker.Session.CurrentPlayer,
-                worker.Session.CurrentMap,
-                targetX,
-                targetY,
-                isFastTeleport,
-                null,
-                linkedCts.Token);
-
-            worker.PublishSessionUpdate();
-            return result.IsSuccess;
-        }
-        return false;
+        worker?.PublishSessionUpdate();
+        return result.IsSuccess;
     }
 
     public async Task<bool> EnterWaypointAsync(Guid accountId, int waypointX, int waypointY, bool isFastTeleport = false, CancellationToken cancellationToken = default)
     {
+        var result = await ExecuteCommandAsync(accountId, new EnterWaypointCommand(waypointX, waypointY, isFastTeleport), cancellationToken);
         var worker = Sessions.GetWorker(accountId);
-        if (worker == null || !worker.Session.IsRunning || !worker.Session.CurrentPlayer.IsInGame)
-        {
-            return false;
-        }
-
-        int startMapId = worker.Session.CurrentWorld.MapId;
-        await AutoMoveAsync(accountId, waypointX, waypointY, isFastTeleport, cancellationToken);
-
-        if (cancellationToken.IsCancellationRequested) return false;
-
-        int currentMapId = worker.Session.CurrentWorld.MapId;
-        bool isChangingMap = worker.Session.CurrentPlayer.IsChangingMap;
-        if ((startMapId >= 0 && currentMapId >= 0 && currentMapId != startMapId) || isChangingMap)
-        {
-            return true;
-        }
-
-        await Task.Delay(100, cancellationToken);
-        if (cancellationToken.IsCancellationRequested) return false;
-
-        currentMapId = worker.Session.CurrentWorld.MapId;
-        isChangingMap = worker.Session.CurrentPlayer.IsChangingMap;
-        if ((startMapId >= 0 && currentMapId >= 0 && currentMapId != startMapId) || isChangingMap)
-        {
-            return true;
-        }
-
-        var moveRes = await ExecuteCommandAsync(accountId, new MoveCommand(waypointX, waypointY, false), cancellationToken);
-        worker.PublishSessionUpdate();
-        return moveRes.IsSuccess;
+        worker?.PublishSessionUpdate();
+        return result.IsSuccess;
     }
 
     public TSnapshot? GetSnapshot<TSnapshot>(Guid accountId) where TSnapshot : class
@@ -120,33 +80,33 @@ public sealed class GameEngine : IGameEngine
     public bool StartBehavior<TBehavior, TOptions>(Guid accountId, TOptions options)
         where TBehavior : class, IBehavior<TOptions>
         where TOptions : class
-        => Sessions.StartBehavior<TBehavior, TOptions>(accountId, options);
+        => Sessions.GetWorker(accountId)?.StartBehavior<TBehavior, TOptions>(options) ?? false;
 
     public bool UpdateBehaviorOptions<TBehavior, TOptions>(Guid accountId, TOptions options)
         where TBehavior : class, IBehavior<TOptions>
         where TOptions : class
-        => Sessions.UpdateBehaviorOptions<TBehavior, TOptions>(accountId, options);
+        => Sessions.GetWorker(accountId)?.UpdateBehaviorOptions<TBehavior, TOptions>(options) ?? false;
 
     public bool StopBehavior<TBehavior>(Guid accountId) where TBehavior : class, IBehavior
-        => Sessions.StopBehavior<TBehavior>(accountId);
+        => Sessions.GetWorker(accountId)?.StopBehavior<TBehavior>() ?? false;
 
     public bool IsBehaviorRunning<TBehavior>(Guid accountId) where TBehavior : class, IBehavior
-        => Sessions.IsBehaviorRunning<TBehavior>(accountId);
+        => Sessions.GetWorker(accountId)?.IsBehaviorRunning<TBehavior>() ?? false;
 
     public TBehavior? GetBehavior<TBehavior>(Guid accountId) where TBehavior : class, IBehavior
-        => Sessions.GetBehavior<TBehavior>(accountId);
+        => Sessions.GetWorker(accountId)?.Session.GetBehavior<TBehavior>();
 
     public bool StartBehavior(Guid accountId, string behaviorId)
-        => Sessions.StartBehavior(accountId, behaviorId);
+        => Sessions.GetWorker(accountId)?.StartBehavior(behaviorId) ?? false;
 
     public bool StopBehavior(Guid accountId, string behaviorId)
-        => Sessions.StopBehavior(accountId, behaviorId);
+        => Sessions.GetWorker(accountId)?.StopBehavior(behaviorId) ?? false;
 
     public bool IsBehaviorRunning(Guid accountId, string behaviorId)
-        => Sessions.IsBehaviorRunning(accountId, behaviorId);
+        => Sessions.GetWorker(accountId)?.IsBehaviorRunning(behaviorId) ?? false;
 
     public IReadOnlyCollection<IBehavior> GetBehaviors(Guid accountId)
-        => Sessions.GetBehaviors(accountId);
+        => Sessions.GetWorker(accountId)?.GetBehaviors() ?? [];
 
     public void SetGameSpeed(Guid accountId, float speed)
         => Sessions.GetWorker(accountId)?.SetGameSpeed(speed);
@@ -159,7 +119,7 @@ public sealed class GameEngine : IGameEngine
         var session = Sessions.GetSession(accountId);
         if (session != null && session.IsRunning)
         {
-            GameInputSender.SendKeyDown(session.Mono, key);
+            GameInputSender.SendKeyDown(session.Runtime, key);
         }
     }
 
@@ -168,7 +128,7 @@ public sealed class GameEngine : IGameEngine
         var session = Sessions.GetSession(accountId);
         if (session != null && session.IsRunning)
         {
-            GameInputSender.SendKeyUp(session.Mono, key);
+            GameInputSender.SendKeyUp(session.Runtime, key);
         }
     }
 
@@ -176,7 +136,7 @@ public sealed class GameEngine : IGameEngine
     {
         var session = Sessions.GetSession(accountId);
         return session != null && session.IsRunning
-            ? GameInputSender.SendKeyPressAsync(session.Mono, key, holdMs)
+            ? GameInputSender.SendKeyPressAsync(session.Runtime, key, holdMs)
             : Task.CompletedTask;
     }
 
@@ -185,7 +145,7 @@ public sealed class GameEngine : IGameEngine
         var session = Sessions.GetSession(accountId);
         if (session != null && session.IsRunning)
         {
-            GameInputSender.SendKeyDown(session.Mono, keyCode);
+            GameInputSender.SendKeyDown(session.Runtime, keyCode);
         }
     }
 
@@ -194,7 +154,7 @@ public sealed class GameEngine : IGameEngine
         var session = Sessions.GetSession(accountId);
         if (session != null && session.IsRunning)
         {
-            GameInputSender.SendKeyUp(session.Mono, keyCode);
+            GameInputSender.SendKeyUp(session.Runtime, keyCode);
         }
     }
 
@@ -202,20 +162,39 @@ public sealed class GameEngine : IGameEngine
     {
         var session = Sessions.GetSession(accountId);
         return session != null && session.IsRunning
-            ? GameInputSender.SendKeyPressAsync(session.Mono, keyCode, holdMs)
+            ? GameInputSender.SendKeyPressAsync(session.Runtime, keyCode, holdMs)
             : Task.CompletedTask;
     }
 
     public void SetMasked(Guid accountId, bool isMasked)
-        => Sessions.SetMasked(accountId, isMasked);
+        => Sessions.GetWorker(accountId)?.SetMasked(isMasked);
 
     public void SetAllMasked(bool isMasked)
-        => Sessions.SetAllMasked(isMasked);
+    {
+        foreach (var id in Sessions.ActiveSessionIds)
+        {
+            Sessions.GetWorker(id)?.SetMasked(isMasked);
+        }
+    }
 
     public void Dispose()
     {
         StopAllAccounts();
         if (Sessions is IDisposable disposable)
+        {
+            disposable.Dispose();
+        }
+        GC.SuppressFinalize(this);
+    }
+
+    public async ValueTask DisposeAsync()
+    {
+        await StopAllAccountsAsync();
+        if (Sessions is IAsyncDisposable asyncDisposable)
+        {
+            await asyncDisposable.DisposeAsync();
+        }
+        else if (Sessions is IDisposable disposable)
         {
             disposable.Dispose();
         }

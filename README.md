@@ -12,7 +12,7 @@
 
 **DragonBoy Account Manager (DBAM)** là ứng dụng mã nguồn mở hỗ trợ quản trị đa tài khoản, điều phối cửa sổ và cung cấp các tiện ích thời gian thực cho tựa game **DragonBoy (Chú Bé Rồng Online)** trên nền tảng Windows.
 
-Dự án tuân thủ nghiêm ngặt nguyên tắc **"Zero Client Patching"** (không can thiệp hoặc chỉnh sửa tệp gốc `Assembly-CSharp.dll` của game). Toàn bộ thao tác đọc trạng thái và điều khiển đều được thực hiện từ tiến trình ngoài (out-of-process) thông qua Win32 API và Mono Runtime C-API.
+Dự án tuân thủ nghiêm ngặt nguyên tắc **"Zero Client Patching"** (không can thiệp hoặc chỉnh sửa tệp thực thi hay dữ liệu game trên đĩa). Toàn bộ thao tác đọc trạng thái và điều khiển đều được thực hiện từ tiến trình ngoài (out-of-process) thông qua Win32 Memory I/O và IL2CPP Runtime x64.
 
 ---
 
@@ -34,11 +34,9 @@ Dự án tuân thủ nghiêm ngặt nguyên tắc **"Zero Client Patching"** (kh
 DBAM/
 ├── docs/                               # Tài liệu kiến trúc giải pháp & cẩm nang mở rộng
 ├── src/
-│   ├── DragonBoyAccountManager.Core/   # Thư viện lõi UI-agnostic: Mono runtime, Win32 P/Invoke, Telemetry, CQRS, Automation, Game Engine
+│   ├── DragonBoyAccountManager.Core/   # Thư viện lõi UI-agnostic: IL2CPP runtime x64, Win32 P/Invoke, Telemetry, CQRS, Automation, Game Engine
 │   ├── DragonBoyAccountManager.GUI/    # Giao diện đồ họa WPF (.NET 10, 3-Tier MVVM, Retro Pixel Design, Auto-Update)
 │   └── DragonBoyAccountManager.CLI/    # Giao diện dòng lệnh Console (Spectre.Console)
-├── tests/
-│   └── DragonBoyAccountManager.Core.Tests/ # Bộ kiểm thử đơn vị (xUnit)
 ├── DBAM.slnx                           # Solution định dạng hiện đại (.slnx)
 └── README.md                           # Tài liệu tổng quan dự án
 ```

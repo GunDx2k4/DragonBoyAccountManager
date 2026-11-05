@@ -7,13 +7,23 @@ using DragonBoyAccountManager.Core.Engine;
 using DragonBoyAccountManager.Core.Engine.Abstractions;
 using DragonBoyAccountManager.Core.Engine.Events;
 using DragonBoyAccountManager.Core.Engine.Models;
+using DragonBoyAccountManager.Core.Interop.Abstractions;
+using DragonBoyAccountManager.Core.Interop.Schema;
 using DragonBoyAccountManager.Core.Sessions;
+using DragonBoyAccountManager.Core.Sessions.Validation;
 using Spectre.Console;
 
 Console.OutputEncoding = Encoding.UTF8;
 
 AnsiConsole.Write(new Rule("[bold cyan]DragonBoy Account Manager - CLI Host[/]").Centered());
 AnsiConsole.WriteLine();
+
+if (args.Length > 0 && (args[0] == "--inspect" || args[0] == "--test"))
+{
+    string targetPath = args.Length > 1 ? args[1] : @"d:\DragonBoy\252\Dragonboy252.exe";
+    await RunInspectAsync(targetPath);
+    return;
+}
 
 IAccountStorageService storage = new AccountStorageService();
 var accounts = await storage.LoadAllAsync();
@@ -120,7 +130,7 @@ else
 string gamePath = string.Empty;
 while (string.IsNullOrWhiteSpace(gamePath) || !File.Exists(gamePath))
 {
-    gamePath = AnsiConsole.Ask<string>("Nhập đường dẫn game client ([cyan]DragonBoy250.exe[/]):");
+    gamePath = AnsiConsole.Ask<string>("Nhập đường dẫn game client ([cyan]Dragonboy252.exe[/]):");
     try
     {
         SessionLauncher.Validate(gamePath);
@@ -198,13 +208,7 @@ while (engine.IsRunning(accId))
             break;
 
         case "Bật tự động luyện tập":
-            engine.StartAutoTrain(accId, new AutoTrainOptions
-            {
-                UseTdlt = selectedAccount.AutoSettings.UseTdlt,
-                AutoPickItems = selectedAccount.AutoSettings.AutoPickItems,
-                AutoUsePean = selectedAccount.AutoSettings.AutoUsePean,
-                AvoidSuperMobs = selectedAccount.AutoSettings.AvoidSuperMobs
-            });
+            engine.StartAutoTrain(accId, selectedAccount.AutoSettings.Train);
             break;
 
         case "Dừng tự động luyện tập":
@@ -277,10 +281,117 @@ static Account PromptNewAccount()
         AutoLogin = true,
         AutoSettings = new AccountAutoSettings
         {
-            UseTdlt = true,
-            AutoPickItems = true,
-            AutoUsePean = true,
-            AvoidSuperMobs = true
+            Train = new AutoTrainOptions
+            {
+                UseTdlt = true,
+                AutoPickItems = true,
+                AutoUsePean = true,
+                AvoidSuperMobs = true
+            }
         }
     };
+}
+
+static async Task RunInspectAsync(string targetPath)
+{
+    AnsiConsole.MarkupLine($"[cyan][[INFO]][/] Đang kiểm tra tệp: [white]{Markup.Escape(targetPath)}[/]");
+
+    using var validator = new GameClientValidator();
+    var meta = validator.InspectClientMetadata(targetPath);
+
+    var metaTable = new Table().Border(TableBorder.Rounded);
+    metaTable.AddColumn("Thông số");
+    metaTable.AddColumn("Giá trị");
+    metaTable.AddRow("Trạng thái", meta.Status.ToString());
+    metaTable.AddRow("Phiên bản nhận diện", meta.DetectedVersion ?? "Không rõ");
+    metaTable.AddRow("Mã băm SHA-256", meta.ActualSha256 ?? "Không rõ");
+    metaTable.AddRow("Khớp phiên bản chuẩn", meta.IsCorrectVersion ? "[green]Có[/]" : "[red]Không[/]");
+    AnsiConsole.Write(metaTable);
+    AnsiConsole.WriteLine();
+
+    AnsiConsole.MarkupLine("[cyan][[INFO]][/] Đang khởi chạy game client...");
+    var launcher = new SessionLauncher();
+    var launchOptions = new LaunchOptions
+    {
+        GamePath = targetPath,
+        ScreenWidth = 1024,
+        ScreenHeight = 600,
+        LogPrefix = "CLI_Inspect"
+    };
+
+    GameSession session;
+    try
+    {
+        session = await launcher.LaunchAsync(launchOptions);
+    }
+    catch (Exception ex)
+    {
+        AnsiConsole.MarkupLine($"[red][[ERROR]][/] Khởi chạy thất bại: {Markup.Escape(ex.Message)}");
+        return;
+    }
+
+    try
+    {
+        AnsiConsole.MarkupLine($"[green][[OK]][/] Đã gắn kết Runtime thành công vào PID: [cyan]{session.ProcessId}[/]");
+        var runtime = session.Runtime;
+
+        for (int i = 0; i < 15; i++)
+        {
+            await Task.Delay(1000);
+            string? curName = session.LoginScreen.GetCurrentScreenName();
+            bool isDown = session.LoginScreen.IsDownloadingData();
+            bool isSvrReady = session.LoginScreen.IsServerListReady();
+            AnsiConsole.MarkupLine($"[grey][[{i + 1}s]][/] Screen: [cyan]{curName ?? "null"}[/] | IsDownloading: {isDown} | IsServerReady: {isSvrReady}");
+            if (curName == GameSchema.ServerListScreen.ClassName || curName == GameSchema.LoginScr.ClassName)
+                break;
+        }
+
+        string versionStr = runtime.ReadStaticString(GameSchema.GameMidlet.ClassName, runtime.Layout.GameMidlet.Version);
+        int intVersion = runtime.ReadStatic<int>(GameSchema.GameMidlet.ClassName, runtime.Layout.GameMidlet.IntVersion);
+        string ip = runtime.ReadStaticString(GameSchema.GameMidlet.ClassName, runtime.Layout.GameMidlet.Ip);
+        int port = runtime.ReadStatic<int>(GameSchema.GameMidlet.ClassName, runtime.Layout.GameMidlet.Port);
+        int mapId = runtime.ReadStatic<int>(GameSchema.TileMap.ClassName, runtime.Layout.TileMap.MapId);
+        IntPtr myChar = runtime.GetMyCharPtr();
+
+        IntPtr currentScreen = runtime.ReadStatic<IntPtr>(GameSchema.GameCanvas.ClassName, runtime.Layout.GameCanvas.CurrentScreen);
+        string? currentScreenName = session.LoginScreen.GetCurrentScreenName();
+        bool isDownloading = session.LoginScreen.IsDownloadingData();
+        bool isServerReady = session.LoginScreen.IsServerListReady();
+        int selectedServerId = session.LoginScreen.GetSelectedServerId();
+        bool isWaitDlg = session.LoginScreen.IsWaitDialogPresent();
+        bool isNonWaitDlg = session.LoginScreen.IsNonWaitDialogPresent();
+        session.LoginScreen.HasActiveDialog(out _, out string? dlgText);
+        IntPtr serverScreen = runtime.ReadStatic<IntPtr>(GameSchema.GameCanvas.ClassName, runtime.Layout.GameCanvas.ServerScreen);
+        IntPtr loginScr = runtime.ReadStatic<IntPtr>(GameSchema.GameCanvas.ClassName, runtime.Layout.GameCanvas.LoginScr);
+        IntPtr service = runtime.GetServicePtr();
+
+        var memTable = new Table().Border(TableBorder.Rounded);
+        memTable.AddColumn("Trường dữ liệu bộ nhớ");
+        memTable.AddColumn("Giá trị đọc được");
+        memTable.AddRow("Runtime Type", runtime.GetType().Name);
+        memTable.AddRow("Kiến trúc 64-bit", runtime.Is64Bit ? "[green]True (x64)[/]" : "[yellow]False (x86)[/]");
+        memTable.AddRow("GameMidlet StaticFieldsPtr", $"0x{runtime.GetStaticFieldsPtr(GameSchema.GameMidlet.ClassName):X}");
+        memTable.AddRow("GameCanvas StaticFieldsPtr", $"0x{runtime.GetStaticFieldsPtr(GameSchema.GameCanvas.ClassName):X}");
+        memTable.AddRow("GameMidlet.VERSION", !string.IsNullOrEmpty(versionStr) ? $"[green]{Markup.Escape(versionStr)}[/]" : "[grey]<chưa nạp>[/]");
+        memTable.AddRow("GameMidlet.intVERSION", intVersion.ToString());
+        memTable.AddRow("GameMidlet.IP", Markup.Escape(ip));
+        memTable.AddRow("GameMidlet.PORT", port.ToString());
+        memTable.AddRow("TileMap.mapID", mapId.ToString());
+        memTable.AddRow("Char.myChar Con trỏ", $"0x{myChar:X}");
+        memTable.AddRow("GameCanvas.currentScreen", $"0x{currentScreen:X} ({currentScreenName ?? "null"})");
+        memTable.AddRow("GameCanvas.serverScreen", $"0x{serverScreen:X}");
+        memTable.AddRow("GameCanvas.loginScr", $"0x{loginScr:X}");
+        memTable.AddRow("Service.instance", $"0x{service:X}");
+        memTable.AddRow("IsDownloadingData", isDownloading.ToString());
+        memTable.AddRow("IsServerListReady", isServerReady.ToString());
+        memTable.AddRow("SelectedServerId", selectedServerId.ToString());
+        memTable.AddRow("Dialog", $"Wait={isWaitDlg}, NonWait={isNonWaitDlg}, Text={dlgText ?? "null"}");
+        AnsiConsole.Write(memTable);
+        AnsiConsole.WriteLine();
+        AnsiConsole.MarkupLine("[green][[OK]][/] Kiểm tra đọc dữ liệu bộ nhớ IL2CPP hoàn tất thành công!");
+    }
+    finally
+    {
+        session.Dispose();
+    }
 }

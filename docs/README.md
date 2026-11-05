@@ -17,14 +17,13 @@ Tài liệu này mô tả toàn diện kiến trúc giải pháp của **DragonB
 
 ## 2. Tổng Quan Hệ Sinh Thái Giải Pháp (`DBAM.slnx`)
 
-Giải pháp [`DBAM.slnx`](file:///d:/DragonBoy/DBAM/DBAM.slnx) chạy trên nền tảng **.NET 10 / C# 13** (Windows x64) để điều khiển và tự động hóa hàng loạt tiến trình game client Unity 5.x 32-bit (`DragonBoy250.exe`) thông qua cơ chế **Out-of-Process Memory I/O & Mono C-API Reflection**:
+Giải pháp [`DBAM.slnx`](file:///d:/DragonBoy/DBAM/DBAM.slnx) chạy trên nền tảng **.NET 10 / C# 13** (Windows x64) để điều khiển và tự động hóa hàng loạt tiến trình game client Unity 6 64-bit (`Dragonboy252.exe`) thông qua cơ chế **Out-of-Process Memory I/O & IL2CPP Runtime x64 Reflection**:
 
 ```mermaid
 flowchart TD
     subgraph Hosts["Các Ứng Dụng Host (.NET 10 x64)"]
         GUI["DragonBoyAccountManager.GUI (WPF MVVM)"]
         CLI["DragonBoyAccountManager.CLI (Headless Console)"]
-        Tests["DragonBoyAccountManager.Core.Tests (xUnit)"]
     end
 
     subgraph Core["DragonBoyAccountManager.Core (UI-Agnostic Engine)"]
@@ -32,16 +31,15 @@ flowchart TD
         Automation["Automation Layer (IBehavior<TOptions> / AutoNavigator / EmergencyPipeline)"]
         Execution["Execution Layer (CommandDispatcher / IGameCommand / Handlers)"]
         Telemetry["Telemetry Layer (ISnapshotScraper<TSnapshot> / GameSessionSnapshot)"]
-        Interop["Interop Layer (IMonoRuntime / MonoRemoteInvoker / RemoteScratchpad / GameSchema)"]
+        Interop["Interop Layer (IGameRuntime / RemoteInvoker / RemoteScratchpad / GameSchema)"]
     end
 
-    subgraph Target["Tiến Trình Đích (Win32 x86)"]
-        Unity["DragonBoy250.exe (mono.dll / Assembly-CSharp.dll)"]
+    subgraph Target["Tiến Trình Đích (Win32 x64)"]
+        Unity["Dragonboy252.exe (GameAssembly.dll / UnityPlayer.dll)"]
     end
 
     GUI --> Engine
     CLI --> Engine
-    Tests --> Core
 
     Engine --> Automation
     Engine --> Execution
@@ -62,13 +60,13 @@ flowchart TD
 2. **Quy Tắc Đồng Bộ 1:1 Thư Mục Và Namespace (1:1 Folder-to-Namespace Alignment):**
    - Mọi tệp `.cs` và `.xaml` trong toàn bộ giải pháp đều có `namespace` khớp chính xác 100% với đường dẫn thư mục vật lý của tệp đó.
 3. **Cô Lập Bộ Nhớ Liên Tiến Trình Qua Single Scratchpad Mutex:**
-   - Mỗi phiên [`GameSession`](file:///d:/DragonBoy/DBAM/src/DragonBoyAccountManager.Core/Sessions/GameSession.cs) chỉ cấp phát **một vùng nhớ thực thi duy nhất** ([`RemoteScratchpad`](file:///d:/DragonBoy/DBAM/src/DragonBoyAccountManager.Core/Interop/Memory/RemoteScratchpad.cs)) trong tiến trình đích. Mọi lời gọi hàm Mono qua [`MonoRemoteInvoker.Call`](file:///d:/DragonBoy/DBAM/src/DragonBoyAccountManager.Core/Interop/Mono/MonoRemoteInvoker.cs#L26-L76) đều đi qua khóa `WithLock` và tự động đính kèm `mono_thread_attach` / `mono_thread_detach`.
+   - Mỗi phiên [`GameSession`](file:///d:/DragonBoy/DBAM/src/DragonBoyAccountManager.Core/Sessions/GameSession.cs) chỉ cấp phát **một vùng nhớ thực thi duy nhất** ([`RemoteScratchpad`](file:///d:/DragonBoy/DBAM/src/DragonBoyAccountManager.Core/Interop/Memory/RemoteScratchpad.cs)) trong tiến trình đích. Mọi lời gọi hàm IL2CPP qua [`RemoteInvoker`](file:///d:/DragonBoy/DBAM/src/DragonBoyAccountManager.Core/Interop/Execution/RemoteInvoker.cs) đều đi qua khóa `WithLock` và tự động đính kèm `il2cpp_thread_attach` / `il2cpp_thread_detach`.
 4. **Không Bao Giờ Thực Hiện Syscall Trên Luồng Giao Diện (Zero UI-Thread Syscalls):**
    - Luồng WPF `Dispatcher` trên GUI **tuyệt đối không** gọi trực tiếp `ReadProcessMemory`, `WriteProcessMemory` hay `CreateRemoteThread`. Toàn bộ dữ liệu trạng thái nhân vật, kỹ năng (`SkillList`), quái vật, khu vực và bản đồ đều được thu thập ở luồng nền [`SessionWorker`](file:///d:/DragonBoy/DBAM/src/DragonBoyAccountManager.Core/Engine/SessionWorker.cs) vào các bản ghi Snapshot bất biến ([`GameSessionSnapshot`](file:///d:/DragonBoy/DBAM/src/DragonBoyAccountManager.Core/Telemetry/Snapshots/GameSessionSnapshot.cs)).
-5. **Cô Lập Tầng Tự Động Hóa Khỏi `IMonoRuntime` (Strict Layer Isolation):**
-   - Giao diện [`ISessionContext`](file:///d:/DragonBoy/DBAM/src/DragonBoyAccountManager.Core/Sessions/ISessionContext.cs) cung cấp cho các [`IBehavior`](file:///d:/DragonBoy/DBAM/src/DragonBoyAccountManager.Core/Automation/Behaviors/IBehavior.cs) **không phơi bày `IMonoRuntime`**. Mọi hành vi tự động hóa bắt buộc phải đọc dữ liệu từ `GetSnapshot<TSnapshot>()` và gửi lệnh qua [`ICommandDispatcher`](file:///d:/DragonBoy/DBAM/src/DragonBoyAccountManager.Core/Execution/ICommandDispatcher.cs).
+5. **Cô Lập Tầng Tự Động Hóa Khỏi `IGameRuntime` (Strict Layer Isolation):**
+   - Giao diện [`ISessionContext`](file:///d:/DragonBoy/DBAM/src/DragonBoyAccountManager.Core/Sessions/ISessionContext.cs) cung cấp cho các [`IBehavior`](file:///d:/DragonBoy/DBAM/src/DragonBoyAccountManager.Core/Automation/Behaviors/IBehavior.cs) **không phơi bày `IGameRuntime`**. Mọi hành vi tự động hóa bắt buộc phải đọc dữ liệu từ `GetSnapshot<TSnapshot>()` và gửi lệnh qua [`ICommandDispatcher`](file:///d:/DragonBoy/DBAM/src/DragonBoyAccountManager.Core/Execution/ICommandDispatcher.cs).
 6. **Tuần Tự Hóa Khởi Động Tiến Trình & File RMS (`_launchGate`):**
-   - [`SessionManager.StartSessionAsync`](file:///d:/DragonBoy/DBAM/src/DragonBoyAccountManager.Core/Engine/SessionManager.cs#L88-L98) sử dụng `SemaphoreSlim _launchGate` để bảo vệ đoạn tới hạn từ lúc ghi file cấu hình máy chủ dùng chung (`svselect`) qua [`GameRmsStorage`](file:///d:/DragonBoy/DBAM/src/DragonBoyAccountManager.Core/Sessions/GameRmsStorage.cs) cho tới khi tiến trình game nạp xong `Assembly-CSharp`, ngăn chặn hoàn toàn lỗi nhận nhầm máy chủ khi mở nhiều tài khoản cùng lúc.
+   - [`SessionManager.StartSessionAsync`](file:///d:/DragonBoy/DBAM/src/DragonBoyAccountManager.Core/Engine/SessionManager.cs#L88-L98) sử dụng `SemaphoreSlim _launchGate` để bảo vệ đoạn tới hạn từ lúc ghi file cấu hình máy chủ dùng chung (`svselect`) qua [`GameRmsStorage`](file:///d:/DragonBoy/DBAM/src/DragonBoyAccountManager.Core/Sessions/GameRmsStorage.cs) cho tới khi tiến trình game nạp xong `GameAssembly.dll`, ngăn chặn hoàn toàn lỗi nhận nhầm máy chủ khi mở nhiều tài khoản cùng lúc.
 7. **Mở Rộng Động Theo Nguyên Tắc Open/Closed (OCP):**
    - Các thành phần cốt lõi của cả Core và GUI đều hoạt động dựa trên cơ chế đăng ký tổng quát (`RegisterScraper<TSnapshot>`, `RegisterHandler<TCommand>`, `RegisterBehavior<TBehavior>`, `IActivatableTab`, `AccountAwareTabViewModel`, `SettingItemViewModel.Bind...`), cho phép thêm tính năng mới mà không cần sửa đổi mã nguồn điều phối hiện có.
 

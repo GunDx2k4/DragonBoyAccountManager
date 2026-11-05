@@ -1,17 +1,50 @@
 using DragonBoyAccountManager.Core.Common;
-using DragonBoyAccountManager.Core.Interop.Mono;
-using DragonBoyAccountManager.Core.Interop.Mono.Schema;
+using DragonBoyAccountManager.Core.Interop.Abstractions;
+using DragonBoyAccountManager.Core.Interop.Schema;
 
 namespace DragonBoyAccountManager.Core.Sessions.Controllers;
 
-public sealed class SessionMaskingController(IMonoRuntime mono)
+public sealed class SessionMaskingController(IGameRuntime runtime)
 {
-    private readonly IMonoRuntime _mono = mono ?? throw new ArgumentNullException(nameof(mono));
+    private readonly IGameRuntime _runtime = runtime ?? throw new ArgumentNullException(nameof(runtime));
 
+    public bool IsMasked { get; private set; }
+    public string Username { get; private set; } = string.Empty;
     public string? OriginalCharacterName { get; private set; }
     public string? OriginalServerListCaption { get; private set; }
 
     public bool HasOriginalServerListCaption => !string.IsNullOrEmpty(OriginalServerListCaption);
+
+    public void Configure(bool isMasked, string username, bool isInGame)
+    {
+        IsMasked = isMasked;
+        Username = username ?? string.Empty;
+        OnTick(isInGame);
+    }
+
+    public void SetMasked(bool isMasked, bool isInGame)
+    {
+        IsMasked = isMasked;
+        ApplyEarlyMaskingGuard(IsMasked, isInGame, Username);
+        SyncInGameCharacterNameMasking(IsMasked, isInGame, Username);
+    }
+
+    public void OnTick(bool isInGame)
+    {
+        if (IsMasked || HasOriginalServerListCaption)
+        {
+            ApplyEarlyMaskingGuard(IsMasked, isInGame, Username);
+        }
+
+        if (isInGame)
+        {
+            SyncInGameCharacterNameMasking(IsMasked, true, Username);
+        }
+        else
+        {
+            ResetCharacterName();
+        }
+    }
 
     public void ResetCharacterName()
     {
@@ -22,105 +55,112 @@ public sealed class SessionMaskingController(IMonoRuntime mono)
     {
         try
         {
+            var rmsLayout = _runtime.Layout.Rms;
+            var gameCanvasLayout = _runtime.Layout.GameCanvas;
+            var serverListLayout = _runtime.Layout.ServerListScreen;
+            var commandLayout = _runtime.Layout.Command;
+            var loginScrLayout = _runtime.Layout.LoginScr;
+            var tfieldLayout = _runtime.Layout.TField;
+
             if (isMasked)
             {
-                string curRmsAcc = _mono.ReadStaticString(GameSchema.Rms.ClassName, GameSchema.Rms.StaticRMS_acc);
+                string curRmsAcc = _runtime.ReadStaticString(GameSchema.Rms.ClassName, rmsLayout.RMS_acc);
                 if (curRmsAcc != "DBAM")
                 {
-                    _mono.WriteStaticString(GameSchema.Rms.ClassName, GameSchema.Rms.StaticRMS_acc, "DBAM");
+                    _runtime.WriteStaticString(GameSchema.Rms.ClassName, rmsLayout.RMS_acc, "DBAM");
                 }
 
-                IntPtr serverScreen = _mono.ReadStatic<IntPtr>(GameSchema.GameCanvas.ClassName, GameSchema.GameCanvas.StaticServerScreen);
+                IntPtr serverScreen = _runtime.ReadStatic<IntPtr>(GameSchema.GameCanvas.ClassName, gameCanvasLayout.ServerScreen);
                 if (serverScreen != IntPtr.Zero)
                 {
-                    IntPtr cmdArr = _mono.ReadFieldPtr(GameSchema.ServerListScreen.ClassName, GameSchema.ServerListScreen.FieldCmd, serverScreen);
+                    IntPtr cmdArr = _runtime.ReadFieldPtr(serverScreen, serverListLayout.Cmd);
                     if (cmdArr != IntPtr.Zero)
                     {
-                        IntPtr[] cmds = _mono.ReadMonoPointerArray(cmdArr);
+                        IntPtr[] cmds = _runtime.ReadPointerArray(cmdArr);
                         if (cmds.Length > 0 && cmds[0] != IntPtr.Zero)
                         {
-                            string caption = _mono.ReadStringField(GameSchema.Command.ClassName, GameSchema.Command.FieldCaption, cmds[0]) ?? string.Empty;
+                            string caption = _runtime.ReadStringField(cmds[0], commandLayout.Caption) ?? string.Empty;
                             if (caption != "DragonBoy Account Manager")
                             {
                                 OriginalServerListCaption ??= caption;
-                                _mono.WriteStringField(GameSchema.Command.ClassName, GameSchema.Command.FieldCaption, cmds[0], "DragonBoy Account Manager");
+                                _runtime.WriteStringField(cmds[0], commandLayout.Caption, "DragonBoy Account Manager");
                             }
                         }
                     }
                 }
 
-                IntPtr loginScr = _mono.ReadStatic<IntPtr>(GameSchema.GameCanvas.ClassName, GameSchema.GameCanvas.StaticLoginScr);
+                IntPtr loginScr = _runtime.ReadStatic<IntPtr>(GameSchema.GameCanvas.ClassName, gameCanvasLayout.LoginScr);
                 if (loginScr != IntPtr.Zero)
                 {
-                    IntPtr tfUser = _mono.ReadFieldPtr(GameSchema.LoginScr.ClassName, GameSchema.LoginScr.FieldTfUser, loginScr);
-                    IntPtr tfPass = _mono.ReadFieldPtr(GameSchema.LoginScr.ClassName, GameSchema.LoginScr.FieldTfPass, loginScr);
+                    IntPtr tfUser = _runtime.ReadFieldPtr(loginScr, loginScrLayout.TfUser);
+                    IntPtr tfPass = _runtime.ReadFieldPtr(loginScr, loginScrLayout.TfPass);
 
                     if (tfUser != IntPtr.Zero)
                     {
-                        int inputType = _mono.ReadField<int>(GameSchema.TField.ClassName, GameSchema.TField.FieldInputType, tfUser);
+                        int inputType = _runtime.ReadField<int>(tfUser, tfieldLayout.InputType);
                         if (inputType != GameSchema.TField.InputTypePassword)
                         {
-                            _mono.WriteField(GameSchema.TField.ClassName, GameSchema.TField.FieldInputType, tfUser, GameSchema.TField.InputTypePassword);
+                            _runtime.WriteField(tfUser, tfieldLayout.InputType, GameSchema.TField.InputTypePassword);
                         }
 
                         if (!isInGame)
                         {
-                            string curText = _mono.ReadStringField(GameSchema.TField.ClassName, GameSchema.TField.FieldText, tfUser) ?? string.Empty;
+                            string curText = _runtime.ReadStringField(tfUser, tfieldLayout.Text) ?? string.Empty;
                             if (!string.IsNullOrEmpty(curText) && !string.Equals(curText, username, StringComparison.Ordinal) && !curText.Contains('*'))
                             {
                                 string masked = TextMaskHelper.MaskText(curText);
-                                _mono.WriteStringField(GameSchema.TField.ClassName, GameSchema.TField.FieldText, tfUser, masked);
-                                _mono.WriteStringField(GameSchema.TField.ClassName, GameSchema.TField.FieldPaintedText, tfUser, masked);
+                                _runtime.WriteStringField(tfUser, tfieldLayout.Text, masked);
+                                _runtime.WriteStringField(tfUser, tfieldLayout.PaintedText, masked);
                             }
                         }
                     }
 
                     if (tfPass != IntPtr.Zero)
                     {
-                        int passInputType = _mono.ReadField<int>(GameSchema.TField.ClassName, GameSchema.TField.FieldInputType, tfPass);
+                        int passInputType = _runtime.ReadField<int>(tfPass, tfieldLayout.InputType);
                         if (passInputType != GameSchema.TField.InputTypePassword)
                         {
-                            _mono.WriteField(GameSchema.TField.ClassName, GameSchema.TField.FieldInputType, tfPass, GameSchema.TField.InputTypePassword);
+                            _runtime.WriteField(tfPass, tfieldLayout.InputType, GameSchema.TField.InputTypePassword);
                         }
                     }
                 }
             }
             else
             {
-                string curRmsAcc = _mono.ReadStaticString(GameSchema.Rms.ClassName, GameSchema.Rms.StaticRMS_acc);
+                string curRmsAcc = _runtime.ReadStaticString(GameSchema.Rms.ClassName, rmsLayout.RMS_acc);
                 if (curRmsAcc != "acc")
                 {
-                    _mono.WriteStaticString(GameSchema.Rms.ClassName, GameSchema.Rms.StaticRMS_acc, "acc");
+                    _runtime.WriteStaticString(GameSchema.Rms.ClassName, rmsLayout.RMS_acc, "acc");
                 }
 
                 if (!string.IsNullOrEmpty(OriginalServerListCaption))
                 {
-                    IntPtr serverScreen = _mono.ReadStatic<IntPtr>(GameSchema.GameCanvas.ClassName, GameSchema.GameCanvas.StaticServerScreen);
+                    IntPtr serverScreen = _runtime.ReadStatic<IntPtr>(GameSchema.GameCanvas.ClassName, gameCanvasLayout.ServerScreen);
                     if (serverScreen != IntPtr.Zero)
                     {
-                        IntPtr cmdArr = _mono.ReadFieldPtr(GameSchema.ServerListScreen.ClassName, GameSchema.ServerListScreen.FieldCmd, serverScreen);
+                        IntPtr cmdArr = _runtime.ReadFieldPtr(serverScreen, serverListLayout.Cmd);
                         if (cmdArr != IntPtr.Zero)
                         {
-                            IntPtr[] cmds = _mono.ReadMonoPointerArray(cmdArr);
+                            IntPtr[] cmds = _runtime.ReadPointerArray(cmdArr);
                             if (cmds.Length > 0 && cmds[0] != IntPtr.Zero)
                             {
-                                _mono.WriteStringField(GameSchema.Command.ClassName, GameSchema.Command.FieldCaption, cmds[0], OriginalServerListCaption);
+                                _runtime.WriteStringField(cmds[0], commandLayout.Caption, OriginalServerListCaption);
                             }
                         }
                     }
                     OriginalServerListCaption = null;
                 }
 
-                IntPtr loginScr = _mono.ReadStatic<IntPtr>(GameSchema.GameCanvas.ClassName, GameSchema.GameCanvas.StaticLoginScr);
+                IntPtr loginScr = _runtime.ReadStatic<IntPtr>(GameSchema.GameCanvas.ClassName, gameCanvasLayout.LoginScr);
                 if (loginScr != IntPtr.Zero)
                 {
-                    IntPtr tfUser = _mono.ReadFieldPtr(GameSchema.LoginScr.ClassName, GameSchema.LoginScr.FieldTfUser, loginScr);
+                    IntPtr tfUser = _runtime.ReadFieldPtr(loginScr, loginScrLayout.TfUser);
                     if (tfUser != IntPtr.Zero)
                     {
-                        int inputType = _mono.ReadField<int>(GameSchema.TField.ClassName, GameSchema.TField.FieldInputType, tfUser);
+                        int inputType = _runtime.ReadField<int>(tfUser, tfieldLayout.InputType);
                         if (inputType == GameSchema.TField.InputTypePassword)
                         {
-                            _mono.WriteField(GameSchema.TField.ClassName, GameSchema.TField.FieldInputType, tfUser, 0);
+                            _runtime.WriteField(tfUser, tfieldLayout.InputType, 0);
                         }
                     }
                 }
@@ -137,10 +177,15 @@ public sealed class SessionMaskingController(IMonoRuntime mono)
 
         try
         {
-            IntPtr myCharPtr = _mono.ReadStatic<IntPtr>(GameSchema.Char.ClassName, GameSchema.Char.StaticMyChar);
+            var charLayout = _runtime.Layout.Char;
+            var gameCanvasLayout = _runtime.Layout.GameCanvas;
+            var loginScrLayout = _runtime.Layout.LoginScr;
+            var tfieldLayout = _runtime.Layout.TField;
+
+            IntPtr myCharPtr = _runtime.ReadStatic<IntPtr>(GameSchema.Char.ClassName, charLayout.MyChar);
             if (myCharPtr != IntPtr.Zero)
             {
-                string currentCName = _mono.ReadStringField(GameSchema.Char.ClassName, GameSchema.Char.FieldName, myCharPtr) ?? string.Empty;
+                string currentCName = _runtime.ReadStringField(myCharPtr, charLayout.Name) ?? string.Empty;
 
                 if (isMasked)
                 {
@@ -148,42 +193,42 @@ public sealed class SessionMaskingController(IMonoRuntime mono)
                     {
                         OriginalCharacterName ??= currentCName;
                         string masked = TextMaskHelper.MaskText(currentCName);
-                        _mono.WriteStringField(GameSchema.Char.ClassName, GameSchema.Char.FieldName, myCharPtr, masked);
+                        _runtime.WriteStringField(myCharPtr, charLayout.Name, masked);
                     }
                 }
                 else
                 {
                     if (!string.IsNullOrWhiteSpace(OriginalCharacterName) && currentCName != OriginalCharacterName)
                     {
-                        _mono.WriteStringField(GameSchema.Char.ClassName, GameSchema.Char.FieldName, myCharPtr, OriginalCharacterName);
+                        _runtime.WriteStringField(myCharPtr, charLayout.Name, OriginalCharacterName);
                         OriginalCharacterName = null;
                     }
                 }
             }
 
-            IntPtr loginScr = _mono.ReadStatic<IntPtr>(GameSchema.GameCanvas.ClassName, GameSchema.GameCanvas.StaticLoginScr);
+            IntPtr loginScr = _runtime.ReadStatic<IntPtr>(GameSchema.GameCanvas.ClassName, gameCanvasLayout.LoginScr);
             if (loginScr != IntPtr.Zero)
             {
-                IntPtr tfUser = _mono.ReadFieldPtr(GameSchema.LoginScr.ClassName, GameSchema.LoginScr.FieldTfUser, loginScr);
+                IntPtr tfUser = _runtime.ReadFieldPtr(loginScr, loginScrLayout.TfUser);
                 if (tfUser != IntPtr.Zero)
                 {
-                    string currentTfUser = _mono.ReadStringField(GameSchema.TField.ClassName, GameSchema.TField.FieldText, tfUser) ?? string.Empty;
+                    string currentTfUser = _runtime.ReadStringField(tfUser, tfieldLayout.Text) ?? string.Empty;
                     if (isMasked)
                     {
                         string maskedUser = TextMaskHelper.MaskText(username);
                         if (!string.IsNullOrEmpty(maskedUser) && currentTfUser != maskedUser)
                         {
-                            _mono.WriteStringField(GameSchema.TField.ClassName, GameSchema.TField.FieldText, tfUser, maskedUser);
-                            _mono.WriteStringField(GameSchema.TField.ClassName, GameSchema.TField.FieldPaintedText, tfUser, maskedUser);
-                            _mono.WriteField(GameSchema.TField.ClassName, GameSchema.TField.FieldInputType, tfUser, GameSchema.TField.InputTypePassword);
+                            _runtime.WriteStringField(tfUser, tfieldLayout.Text, maskedUser);
+                            _runtime.WriteStringField(tfUser, tfieldLayout.PaintedText, maskedUser);
+                            _runtime.WriteField(tfUser, tfieldLayout.InputType, GameSchema.TField.InputTypePassword);
                         }
                     }
                     else
                     {
                         if (!string.IsNullOrEmpty(username) && currentTfUser != username)
                         {
-                            _mono.WriteStringField(GameSchema.TField.ClassName, GameSchema.TField.FieldText, tfUser, username);
-                            _mono.WriteStringField(GameSchema.TField.ClassName, GameSchema.TField.FieldPaintedText, tfUser, username);
+                            _runtime.WriteStringField(tfUser, tfieldLayout.Text, username);
+                            _runtime.WriteStringField(tfUser, tfieldLayout.PaintedText, username);
                         }
                     }
                 }

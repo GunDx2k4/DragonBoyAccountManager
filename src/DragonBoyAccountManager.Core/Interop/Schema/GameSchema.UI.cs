@@ -1,4 +1,4 @@
-namespace DragonBoyAccountManager.Core.Interop.Mono.Schema;
+namespace DragonBoyAccountManager.Core.Interop.Schema;
 
 public static partial class GameSchema
 {
@@ -16,6 +16,7 @@ public static partial class GameSchema
         public const string StaticMenu = "menu";
         public const string StaticPanel = "panel";
         public const string StaticIsLoading = "isLoading";
+        public const string StaticGameTick = "gameTick";
 
         public const string MethodConnect = "connect";
         public const string MethodEndDlg = "endDlg";
@@ -60,6 +61,7 @@ public static partial class GameSchema
         public const string MethodSetIpSelect = "SetIpSelect";
         public const string MethodSelectServer = "selectServer";
         public const string MethodConnectIP = "ConnectIP";
+        public const string MethodLoginNew = "Login_New";
 
         public const int ActionSelectServer = 6;
         public const int ActionOpenLogin = 7;
@@ -98,6 +100,7 @@ public static partial class GameSchema
         public const string FieldCaretPos = "caretPos";
         public const string MethodSetText = "setText";
         public const string MethodGetText = "getText";
+
         public const int InputTypePassword = 2;
     }
 

@@ -62,65 +62,12 @@ public class Assembler
         _asm.AddRange([0x48, 0x89, 0x44, 0x24, offset]);
     }
 
-    public void Push(IntPtr arg)
-    {
-        int val = unchecked((int)(long)arg);
-        if (val >= -128 && val <= 127)
-        {
-            _asm.Add(0x6A);
-            _asm.Add((byte)(sbyte)val);
-        }
-        else
-        {
-            _asm.Add(0x68);
-            _asm.AddRange(BitConverter.GetBytes(val));
-        }
-    }
-
-    public void MovEax(IntPtr arg)
-    {
-        _asm.Add(0xB8);
-        _asm.AddRange(BitConverter.GetBytes(unchecked((int)(long)arg)));
-    }
-
-    public void MovEcx(IntPtr arg)
-    {
-        _asm.Add(0xB9);
-        _asm.AddRange(BitConverter.GetBytes(unchecked((int)(long)arg)));
-    }
-
-    public void MovEdx(IntPtr arg)
-    {
-        _asm.Add(0xBA);
-        _asm.AddRange(BitConverter.GetBytes(unchecked((int)(long)arg)));
-    }
-
-    public void CallEax()
-    {
-        _asm.AddRange([0xFF, 0xD0]);
-    }
-
-    public void AddEsp(byte arg)
-    {
-        _asm.AddRange([0x83, 0xC4, arg]);
-    }
-
-    public void MovEaxTo(IntPtr dest)
-    {
-        _asm.Add(0xA3);
-        _asm.AddRange(BitConverter.GetBytes(unchecked((int)(long)dest)));
-    }
-
-    public void PushEbx() => _asm.Add(0x53);
-    public void PopEbx() => _asm.Add(0x5B);
-    public void MovEbxEax() => _asm.AddRange([0x89, 0xC3]);
-    public void TestEbxEbx() => _asm.AddRange([0x85, 0xDB]);
-    public void Jz(byte offset) => _asm.AddRange([0x74, offset]);
-
     public void PushR12() => _asm.AddRange([0x41, 0x54]);
     public void PopR12() => _asm.AddRange([0x41, 0x5C]);
     public void MovR12Rax() => _asm.AddRange([0x49, 0x89, 0xC4]);
     public void MovRcxR12() => _asm.AddRange([0x4C, 0x89, 0xE1]);
+    public void MovdXmm0Rcx() => _asm.AddRange([0x66, 0x0F, 0x6E, 0xC1]);
+    public void MovdXmm1Rdx() => _asm.AddRange([0x66, 0x0F, 0x6E, 0xCA]);
 
     public void Return()
     {

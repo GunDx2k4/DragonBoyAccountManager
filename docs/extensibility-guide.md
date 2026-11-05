@@ -8,8 +8,8 @@ Nhờ kiến trúc được tổng quát hóa theo nguyên tắc **Open/Closed P
 
 Khi cần đọc thêm dữ liệu từ tiến trình game (ví dụ: thông tin Bang hội, Đệ tử, Hành trang mở rộng):
 
-1. **Khai báo định danh Mono (nếu có trường mới):**
-   - Bổ sung tên lớp/trường vào tệp `GameSchema` tương ứng trong [`Interop/Mono/Schema/`](file:///d:/DragonBoy/DBAM/src/DragonBoyAccountManager.Core/Interop/Mono/Schema) (ví dụ: [`GameSchema.Entities.cs`](file:///d:/DragonBoy/DBAM/src/DragonBoyAccountManager.Core/Interop/Mono/Schema/GameSchema.Entities.cs)).
+1. **Khai báo định danh IL2CPP / Schema (nếu có trường mới):**
+   - Bổ sung tên lớp/trường vào tệp `GameSchema` tương ứng trong [`Interop/Schema/`](file:///d:/DragonBoy/DBAM/src/DragonBoyAccountManager.Core/Interop/Schema) (ví dụ: [`GameSchema.Entities.cs`](file:///d:/DragonBoy/DBAM/src/DragonBoyAccountManager.Core/Interop/Schema/GameSchema.Entities.cs)) và cập nhật RVA trong `Offsets.json`.
 2. **Tạo kiểu bản ghi bất biến (`record`):**
    - Tạo `public sealed record ClanSnapshot(...)` trong thư mục [`Telemetry/Snapshots/`](file:///d:/DragonBoy/DBAM/src/DragonBoyAccountManager.Core/Telemetry/Snapshots).
 3. **Hiện thực hóa `ISnapshotScraper<TSnapshot>`:**
@@ -17,7 +17,7 @@ Khi cần đọc thêm dữ liệu từ tiến trình game (ví dụ: thông tin
 4. **Đăng ký vào phiên làm việc:**
    - Đăng ký mặc định trong hàm tạo [`GameSession`](file:///d:/DragonBoy/DBAM/src/DragonBoyAccountManager.Core/Sessions/GameSession.cs#L98-L145), đăng ký toàn cục qua [`ISessionManager.SessionInitializer`](file:///d:/DragonBoy/DBAM/src/DragonBoyAccountManager.Core/Engine/Abstractions/ISessionManager.cs#L11), hoặc đăng ký theo từng phiên qua [`AccountLaunchOptions.ConfigureSession`](file:///d:/DragonBoy/DBAM/src/DragonBoyAccountManager.Core/Engine/Models/AccountLaunchOptions.cs#L18):
      ```csharp
-     session.RegisterScraper(new ClanScraper(session.Mono));
+     session.RegisterScraper(new ClanScraper(session.Runtime));
      ```
 5. **Truy xuất dữ liệu:**
    - Trong `IBehavior`: gọi `context.GetSnapshot<ClanSnapshot>()`.
@@ -34,7 +34,7 @@ Khi cần thêm một thao tác điều khiển trong game (ví dụ: nâng cấ
    - Thêm `public sealed record UpgradeItemCommand(int ItemIndex) : IGameCommand { public string Name => "Nâng cấp vật phẩm"; }` vào [`GameCommands.cs`](file:///d:/DragonBoy/DBAM/src/DragonBoyAccountManager.Core/Execution/Commands/GameCommands.cs) (hoặc tạo tệp riêng trong [`Execution/Commands/`](file:///d:/DragonBoy/DBAM/src/DragonBoyAccountManager.Core/Execution/Commands)).
 2. **Định nghĩa Handler:**
    - Tạo lớp xử lý cài đặt [`IGameCommandHandler<UpgradeItemCommand>`](file:///d:/DragonBoy/DBAM/src/DragonBoyAccountManager.Core/Execution/ICommandDispatcher.cs#L8-L11) trong [`Execution/Handlers/`](file:///d:/DragonBoy/DBAM/src/DragonBoyAccountManager.Core/Execution/Handlers).
-   - Triển khai `ExecuteAsync(UpgradeItemCommand command, CancellationToken cancellationToken = default)`.
+   - Triển khai `HandleAsync(UpgradeItemCommand command, CancellationToken cancellationToken = default)`.
 3. **Đăng ký Handler:**
    - Đăng ký vào [`ICommandDispatcher`](file:///d:/DragonBoy/DBAM/src/DragonBoyAccountManager.Core/Execution/ICommandDispatcher.cs#L9) trong [`GameSession`](file:///d:/DragonBoy/DBAM/src/DragonBoyAccountManager.Core/Sessions/GameSession.cs#L126-L138), qua `ISessionManager.SessionInitializer`, hoặc qua `AccountLaunchOptions.ConfigureSession`:
      ```csharp

@@ -1,12 +1,12 @@
-using DragonBoyAccountManager.Core.Interop.Mono;
-using DragonBoyAccountManager.Core.Interop.Mono.Schema;
+using DragonBoyAccountManager.Core.Interop.Abstractions;
+using DragonBoyAccountManager.Core.Interop.Schema;
 using DragonBoyAccountManager.Core.Telemetry.Snapshots;
 
 namespace DragonBoyAccountManager.Core.Telemetry.Scrapers;
 
-public class MapScraper(IMonoRuntime mono) : ISnapshotScraper<MapSnapshot>
+public class MapScraper(IGameRuntime runtime) : ISnapshotScraper<MapSnapshot>
 {
-    private readonly IMonoRuntime _mono = mono;
+    private readonly IGameRuntime _runtime = runtime;
     private int _cachedMapId = -1;
     private MapSnapshot? _cachedSnapshot;
 
@@ -14,8 +14,9 @@ public class MapScraper(IMonoRuntime mono) : ISnapshotScraper<MapSnapshot>
 
     public MapSnapshot ScrapeMap(bool forceRefresh = false)
     {
-        int mapId = _mono.ReadStatic<int>(GameSchema.TileMap.ClassName, GameSchema.TileMap.StaticMapId);
-        int zoneId = _mono.ReadStatic<int>(GameSchema.TileMap.ClassName, GameSchema.TileMap.StaticZoneId);
+        var tileMapLayout = _runtime.Layout.TileMap;
+        int mapId = _runtime.ReadStatic<int>(GameSchema.TileMap.ClassName, tileMapLayout.MapId);
+        int zoneId = _runtime.ReadStatic<int>(GameSchema.TileMap.ClassName, tileMapLayout.ZoneId);
 
         if (!forceRefresh && _cachedMapId == mapId && _cachedSnapshot != null && _cachedSnapshot.IsValid)
         {
@@ -26,23 +27,23 @@ public class MapScraper(IMonoRuntime mono) : ISnapshotScraper<MapSnapshot>
             return _cachedSnapshot;
         }
 
-        int tmw = _mono.ReadStatic<int>(GameSchema.TileMap.ClassName, GameSchema.TileMap.StaticTmw);
-        int tmh = _mono.ReadStatic<int>(GameSchema.TileMap.ClassName, GameSchema.TileMap.StaticTmh);
-        string mapName = _mono.ReadStaticString(GameSchema.TileMap.ClassName, GameSchema.TileMap.StaticMapName);
+        int tmw = _runtime.ReadStatic<int>(GameSchema.TileMap.ClassName, tileMapLayout.Tmw);
+        int tmh = _runtime.ReadStatic<int>(GameSchema.TileMap.ClassName, tileMapLayout.Tmh);
+        string mapName = _runtime.ReadStaticString(GameSchema.TileMap.ClassName, tileMapLayout.MapName);
 
         if (tmw <= 0 || tmh <= 0)
             return MapSnapshot.Empty;
 
-        IntPtr typesPtr = _mono.ReadStatic<IntPtr>(GameSchema.TileMap.ClassName, GameSchema.TileMap.StaticTypes);
+        IntPtr typesPtr = _runtime.ReadStatic<IntPtr>(GameSchema.TileMap.ClassName, tileMapLayout.Types);
         if (typesPtr == IntPtr.Zero)
         {
-            typesPtr = _mono.ReadStatic<IntPtr>(GameSchema.TileMap.ClassName, GameSchema.TileMap.StaticMaps);
+            typesPtr = _runtime.ReadStatic<IntPtr>(GameSchema.TileMap.ClassName, tileMapLayout.Maps);
         }
 
         if (typesPtr == IntPtr.Zero)
             return MapSnapshot.Empty;
 
-        int[] types = _mono.ReadMonoIntArray(typesPtr, tmw * tmh);
+        int[] types = _runtime.ReadIntArray(typesPtr, tmw * tmh);
         if (types.Length == 0)
             return MapSnapshot.Empty;
 

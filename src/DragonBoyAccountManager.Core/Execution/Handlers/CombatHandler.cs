@@ -1,48 +1,57 @@
 using DragonBoyAccountManager.Core.Common.Results;
 using DragonBoyAccountManager.Core.Execution.Commands;
-using DragonBoyAccountManager.Core.Interop.Mono;
-using DragonBoyAccountManager.Core.Interop.Mono.Schema;
+using DragonBoyAccountManager.Core.Interop.Abstractions;
+using DragonBoyAccountManager.Core.Interop.Schema;
+using DragonBoyAccountManager.Core.Telemetry.Scrapers;
 
 namespace DragonBoyAccountManager.Core.Execution.Handlers;
 
-public class CombatHandler(IMonoRuntime mono) :
+public class CombatHandler(IGameRuntime runtime) :
     IGameCommandHandler<AttackMobCommand>,
     IGameCommandHandler<SelectSkillCommand>
 {
-    private readonly IMonoRuntime _mono = mono;
+    private readonly IGameRuntime _runtime = runtime;
+    private IntPtr _cachedVMob;
+    private IntPtr _cachedEmptyVChar;
 
     public Task<Result> HandleAsync(SelectSkillCommand command, CancellationToken cancellationToken)
     {
-        IntPtr charPtr = _mono.GetMyCharPtr();
+        IntPtr charPtr = _runtime.GetMyCharPtr();
         if (charPtr == IntPtr.Zero)
             return Task.FromResult(Result.Failure("Nhân vật chưa vào game."));
 
-        IntPtr keySkillArray = _mono.ReadStatic<IntPtr>(GameSchema.GameScr.ClassName, GameSchema.GameScr.StaticKeySkill);
+        IntPtr keySkillArray = _runtime.ReadStatic<IntPtr>(GameSchema.GameScr.ClassName, _runtime.Layout.GameScr.KeySkill);
         if (keySkillArray == IntPtr.Zero)
             return Task.FromResult(Result.Failure("Không tìm thấy mảng kỹ năng."));
 
-        IntPtr[] skillPtrs = _mono.ReadMonoPointerArray(keySkillArray);
+        IntPtr[] skillPtrs = _runtime.ReadPointerArray(keySkillArray);
         if (command.SlotIndex < 0 || command.SlotIndex >= skillPtrs.Length || skillPtrs[command.SlotIndex] == IntPtr.Zero)
             return Task.FromResult(Result.Failure($"Ô phím {command.SlotIndex + 1} không có kỹ năng."));
 
         IntPtr skillPtr = skillPtrs[command.SlotIndex];
 
-        _mono.WriteField(GameSchema.Char.ClassName, GameSchema.Char.FieldMySkill, charPtr, skillPtr);
-
-        IntPtr gameScr = _mono.GetGameScrPtr();
-        if (gameScr != IntPtr.Zero)
+        IntPtr currentMySkill = _runtime.ReadFieldPtr(charPtr, _runtime.Layout.Char.MySkill);
+        if (currentMySkill == skillPtr)
         {
-            _mono.WriteField(GameSchema.GameScr.ClassName, GameSchema.GameScr.FieldLastSkill, gameScr, skillPtr);
+            return Task.FromResult(Result.Success($"Đã chọn kỹ năng ô {command.SlotIndex + 1}"));
         }
 
-        IntPtr templatePtr = _mono.ReadFieldPtr(GameSchema.Skill.ClassName, GameSchema.Skill.FieldTemplate, skillPtr);
+        _runtime.WriteField(charPtr, _runtime.Layout.Char.MySkill, skillPtr);
+
+        IntPtr gameScr = _runtime.GetGameScrPtr();
+        if (gameScr != IntPtr.Zero)
+        {
+            _runtime.WriteField(gameScr, _runtime.Layout.GameScr.LastSkill, skillPtr);
+        }
+
+        IntPtr templatePtr = _runtime.ReadFieldPtr(skillPtr, _runtime.Layout.Skill.Template);
         if (templatePtr != IntPtr.Zero)
         {
-            sbyte templateId = _mono.ReadField<sbyte>(GameSchema.SkillTemplate.ClassName, GameSchema.SkillTemplate.FieldId, templatePtr);
-            IntPtr service = _mono.GetServicePtr();
+            sbyte templateId = _runtime.ReadField<sbyte>(templatePtr, _runtime.Layout.SkillTemplate.Id);
+            IntPtr service = _runtime.GetServicePtr();
             if (service != IntPtr.Zero)
             {
-                _mono.CallMethod(GameSchema.Service.ClassName, GameSchema.Service.MethodSelectSkill, service, (int)templateId);
+                _runtime.CallMethod(GameSchema.Service.ClassName, GameSchema.Service.MethodSelectSkill, service, (int)templateId);
             }
         }
 
@@ -52,13 +61,13 @@ public class CombatHandler(IMonoRuntime mono) :
     public async Task<Result> HandleAsync(AttackMobCommand command, CancellationToken cancellationToken)
     {
         IntPtr mobPtr = IntPtr.Zero;
-        IntPtr vMobPtr = _mono.ReadStatic<IntPtr>(GameSchema.GameScr.ClassName, GameSchema.GameScr.StaticVMob);
+        IntPtr vMobPtr = _runtime.ReadStatic<IntPtr>(GameSchema.GameScr.ClassName, _runtime.Layout.GameScr.VMob);
         if (vMobPtr != IntPtr.Zero)
         {
-            var pointers = CollectionHelper.ReadMyVector(_mono, vMobPtr);
+            var pointers = CollectionHelper.ReadMyVector(_runtime, vMobPtr);
             foreach (var ptr in pointers)
             {
-                if (ptr != IntPtr.Zero && _mono.ReadField<int>(GameSchema.Mob.ClassName, GameSchema.Mob.FieldMobId, ptr) == command.MobId)
+                if (ptr != IntPtr.Zero && _runtime.ReadField<int>(ptr, _runtime.Layout.Mob.MobId) == command.MobId)
                 {
                     mobPtr = ptr;
                     break;
@@ -69,47 +78,64 @@ public class CombatHandler(IMonoRuntime mono) :
         if (mobPtr == IntPtr.Zero)
             return Result.Failure($"Không tìm thấy quái #{command.MobId} hoặc con trỏ không hợp lệ.");
 
-        IntPtr charPtr = _mono.GetMyCharPtr();
+        IntPtr charPtr = _runtime.GetMyCharPtr();
         if (charPtr == IntPtr.Zero)
             return Result.Failure("Nhân vật chưa vào game.");
 
-        int playerX = _mono.ReadField<int>(GameSchema.Char.ClassName, GameSchema.Char.FieldX, charPtr);
+        int playerX = _runtime.ReadField<int>(charPtr, _runtime.Layout.Char.X);
         int cdir = command.TargetX >= playerX ? 1 : -1;
-        _mono.WriteField(GameSchema.Char.ClassName, GameSchema.Char.FieldCdir, charPtr, cdir);
+        _runtime.WriteField(charPtr, _runtime.Layout.Char.Cdir, cdir);
 
         if (command.SkillSlot >= 0)
         {
             await HandleAsync(new SelectSkillCommand(command.SkillSlot), cancellationToken);
         }
 
-        IntPtr service = _mono.GetServicePtr();
+        IntPtr service = _runtime.GetServicePtr();
         if (service == IntPtr.Zero)
             return Result.Failure("Không tìm thấy Service.");
 
-        _mono.WriteStatic(GameSchema.GameScr.ClassName, GameSchema.GameScr.StaticIsAutoPlay, false);
-        IntPtr gs = _mono.ReadStatic<IntPtr>(GameSchema.GameScr.ClassName, GameSchema.GameScr.StaticInstance);
+        _runtime.WriteStatic(GameSchema.GameScr.ClassName, _runtime.Layout.GameScr.IsAutoPlay, false);
+        IntPtr gs = _runtime.ReadStatic<IntPtr>(GameSchema.GameScr.ClassName, _runtime.Layout.GameScr.Instance);
         if (gs != IntPtr.Zero)
         {
-            _mono.WriteField(GameSchema.GameScr.ClassName, GameSchema.GameScr.FieldAuto, gs, 0);
+            _runtime.WriteField(gs, _runtime.Layout.GameScr.Auto, 0);
         }
 
-        IntPtr vMob = _mono.CreateInstance(GameSchema.MyVector.ClassName);
-        IntPtr vChar = _mono.CreateInstance(GameSchema.MyVector.ClassName);
+        IntPtr vMob = EnsureValidMyVector(ref _cachedVMob, clearElements: true);
+        IntPtr vChar = EnsureValidMyVector(ref _cachedEmptyVChar, clearElements: false);
 
         if (vMob == IntPtr.Zero || vChar == IntPtr.Zero)
             return Result.Failure("Không thể tạo vector tấn công.");
 
-        _mono.CallMethod(GameSchema.MyVector.ClassName, GameSchema.MyVector.MethodAddElement, vMob, mobPtr);
+        _runtime.CallMethod(GameSchema.MyVector.ClassName, GameSchema.MyVector.MethodAddElement, vMob, mobPtr);
 
-        _mono.CallMethod(GameSchema.Service.ClassName, GameSchema.Service.MethodSendPlayerAttack, service, vMob, vChar, 1);
+        _runtime.CallMethod(GameSchema.Service.ClassName, GameSchema.Service.MethodSendPlayerAttack, service, vMob, vChar, 1);
 
         long nowMs = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
-        IntPtr mySkillPtr = _mono.ReadFieldPtr(GameSchema.Char.ClassName, GameSchema.Char.FieldMySkill, charPtr);
+        IntPtr mySkillPtr = _runtime.ReadFieldPtr(charPtr, _runtime.Layout.Char.MySkill);
         if (mySkillPtr != IntPtr.Zero)
         {
-            _mono.WriteField(GameSchema.Skill.ClassName, GameSchema.Skill.FieldLastTimeUseThisSkill, mySkillPtr, nowMs);
+            _runtime.WriteField(mySkillPtr, _runtime.Layout.Skill.LastTimeUseThisSkill, nowMs);
         }
 
         return Result.Success($"Đã đánh {command.MobName} #{command.MobId}");
+    }
+
+    private IntPtr EnsureValidMyVector(ref IntPtr vectorPtr, bool clearElements)
+    {
+        if (vectorPtr != IntPtr.Zero &&
+            _runtime.GetClassName(vectorPtr) == GameSchema.MyVector.ClassName &&
+            _runtime.ReadFieldPtr(vectorPtr, _runtime.Layout.MyVector.A) != IntPtr.Zero)
+        {
+            if (clearElements)
+            {
+                _runtime.CallMethod(GameSchema.MyVector.ClassName, GameSchema.MyVector.MethodRemoveAllElements, vectorPtr);
+            }
+            return vectorPtr;
+        }
+
+        vectorPtr = _runtime.CreateInstance(GameSchema.MyVector.ClassName);
+        return vectorPtr;
     }
 }

@@ -24,16 +24,22 @@ src/DragonBoyAccountManager.Core/
 │   ├── GameKeyMapper.cs
 │   ├── GameSessionStatus.cs
 │   └── TextMaskHelper.cs
-├── Interop/                            # Giao tiếp Win32 Native & Mono C-API
-│   ├── Native/                         # P/Invoke kernel32/user32 & JobObject
-│   ├── Memory/                         # ProcessMemory, RemoteScratchpad, x86/x64 Assembler
-│   └── Mono/                           # IMonoRuntime, MonoRemoteInvoker, MonoGameExtensions
-│       └── Schema/                     # Định nghĩa ánh xạ lớp/trường/phương thức game
-│           ├── GameDefinitions.cs
-│           ├── GameSchema.System.cs
-│           ├── GameSchema.Entities.cs
-│           ├── GameSchema.World.cs
-│           └── GameSchema.UI.cs
+├── Interop/                            # Giao tiếp Win32 Native & IL2CPP Runtime x64
+│   ├── Abstractions/                   # IGameRuntime, GameRuntimeExtensions
+│   ├── Native/                         # P/Invoke kernel32/user32/psapi & WindowsJobObject
+│   ├── Memory/                         # ProcessMemory, RemoteScratchpad, x64 Assembler
+│   ├── Execution/                      # RemoteInvoker x64 C-API invocation
+│   ├── Il2Cpp/                         # Il2CppRuntime
+│   ├── Schema/                         # Định nghĩa ánh xạ lớp/trường/phương thức & RVA
+│   │   ├── GameDefinitions.cs
+│   │   ├── GameMemoryLayout.cs
+│   │   ├── GameSchema.cs
+│   │   ├── GameSchema.System.cs
+│   │   ├── GameSchema.Entities.cs
+│   │   ├── GameSchema.World.cs
+│   │   ├── GameSchema.UI.cs
+│   │   └── VersionOffsetProvider.cs
+│   └── GameRuntimeFactory.cs           # Factory khởi tạo và gắn kết runtime
 ├── Telemetry/                          # Thu thập dữ liệu một chiều (Read-Only Snapshots)
 │   ├── Snapshots/
 │   │   ├── GameSessionSnapshot.cs      # Túi chứa Snapshot đa hình cho toàn phiên
@@ -58,7 +64,10 @@ src/DragonBoyAccountManager.Core/
 │   ├── Handlers/
 │   │   ├── CombatHandler.cs
 │   │   ├── MovementHandler.cs
-│   │   ├── InteractionHandler.cs
+│   │   ├── InventoryHandler.cs
+│   │   ├── ChatHandler.cs
+│   │   ├── WorldInteractionHandler.cs
+│   │   ├── ZoneHandler.cs
 │   │   └── SkillAssignmentHandler.cs
 │   └── Middlewares/
 │       ├── CommandLoggingMiddleware.cs
@@ -81,13 +90,13 @@ src/DragonBoyAccountManager.Core/
 │       ├── AutoPeanInterrupter.cs
 │       └── AutoReviveInterrupter.cs
 ├── Sessions/                           # Quản lý vòng đời một phiên tiến trình game
-│   ├── ISessionContext.cs              # Giao diện ngữ cảnh phiên (cô lập IMonoRuntime)
+│   ├── ISessionContext.cs              # Giao diện ngữ cảnh phiên (cô lập IGameRuntime)
 │   ├── GameSession.cs                  # Container chứa Scrapers, Dispatcher, Behaviors
 │   ├── SessionLauncher.cs
 │   ├── LaunchOptions.cs
 │   ├── GameRmsStorage.cs
-│   ├── Controllers/                    # Bộ điều khiển cấp phiên (LoginScreenController, SessionMaskingController)
-│   └── Validation/                     # Kiểm tra tính hợp lệ của client PE/Mono
+│   ├── Controllers/                    # Bộ điều khiển cấp phiên (LoginScreenController, SessionMaskingController, GameSpeedController)
+│   └── Validation/                     # Kiểm tra tính hợp lệ của client PE/IL2CPP
 └── Engine/                             # Điều phối đa phiên & phát sự kiện hợp nhất
     ├── Abstractions/
     │   ├── IGameEngine.cs
@@ -97,22 +106,22 @@ src/DragonBoyAccountManager.Core/
     │   └── SessionEvents.cs            # Hệ thống sự kiện đa hình SessionEvent
     ├── Models/
     │   └── AccountLaunchOptions.cs
-    ├── GameEngine.cs
-    ├── SessionManager.cs
-    └── SessionWorker.cs
+    ├── GameEngine.cs                   # Hiện thực IGameEngine & IAsyncDisposable
+    ├── SessionManager.cs               # Hiện thực ISessionManager & IAsyncDisposable
+    └── SessionWorker.cs                # Quản lý luồng vòng đời phiên, IAsyncDisposable
 ```
 
 ---
 
 ## 2. Năm Trụ Cột Tổng Quát Hóa Của Core
 
-### 2.1. Phân Tách `GameSchema` Theo Miền & `MonoGameExtensions`
-- Toàn bộ tên lớp, trường và phương thức của `Assembly-CSharp.dll` được quản lý tập trung tại `Interop/Mono/Schema/` và chia thành 4 tệp `partial class GameSchema`:
-  - [`GameSchema.System.cs`](file:///d:/DragonBoy/DBAM/src/DragonBoyAccountManager.Core/Interop/Mono/Schema/GameSchema.System.cs): `Main`, `GameCanvas`, `Service`, `Controller`, `Session_ME`, `Rms`, `mSystem`.
-  - [`GameSchema.Entities.cs`](file:///d:/DragonBoy/DBAM/src/DragonBoyAccountManager.Core/Interop/Mono/Schema/GameSchema.Entities.cs): `Char`, `Mob`, `MobTemplate`, `Npc`, `NpcTemplate`, `Item`, `ItemMap`, `ItemOption`, `Skill`, `SkillTemplate`.
-  - [`GameSchema.World.cs`](file:///d:/DragonBoy/DBAM/src/DragonBoyAccountManager.Core/Interop/Mono/Schema/GameSchema.World.cs): `TileMap`, `Waypoint`, `PopUp`, `MovePoint`, `InfoDlg`.
-  - [`GameSchema.UI.cs`](file:///d:/DragonBoy/DBAM/src/DragonBoyAccountManager.Core/Interop/Mono/Schema/GameSchema.UI.cs): `GameScr`, `LoginScr`, `ServerListScreen`, `SplashScr`, `SelectCharScr`, `ChooseCharScr`, `Panel`, `Command`, `TField`, `MyVector`, `MyHashTable`.
-- [`MonoGameExtensions.cs`](file:///d:/DragonBoy/DBAM/src/DragonBoyAccountManager.Core/Interop/Mono/MonoGameExtensions.cs) đóng gói các phương thức truy xuất con trỏ Singleton cốt lõi (`GetMyCharPtr()`, `GetServicePtr()`, `GetGameScrPtr()`, `GetGameCanvasPtr()`) dùng chung cho mọi Handler và Scraper.
+### 2.1. Phân Tách `GameSchema` Theo Miền & `GameRuntimeExtensions`
+- Toàn bộ tên lớp, trường, phương thức và RVA offsets của `GameAssembly.dll` được quản lý tập trung tại `Interop/Schema/` (và `Offsets.json`) chia thành 4 tệp `partial class GameSchema`:
+  - [`GameSchema.System.cs`](file:///d:/DragonBoy/DBAM/src/DragonBoyAccountManager.Core/Interop/Schema/GameSchema.System.cs): `Main`, `GameCanvas`, `Service`, `Controller`, `Session_ME`, `Rms`, `mSystem`.
+  - [`GameSchema.Entities.cs`](file:///d:/DragonBoy/DBAM/src/DragonBoyAccountManager.Core/Interop/Schema/GameSchema.Entities.cs): `Char`, `Mob`, `MobTemplate`, `Npc`, `NpcTemplate`, `Item`, `ItemMap`, `ItemOption`, `Skill`, `SkillTemplate`.
+  - [`GameSchema.World.cs`](file:///d:/DragonBoy/DBAM/src/DragonBoyAccountManager.Core/Interop/Schema/GameSchema.World.cs): `TileMap`, `Waypoint`, `PopUp`, `MovePoint`, `InfoDlg`.
+  - [`GameSchema.UI.cs`](file:///d:/DragonBoy/DBAM/src/DragonBoyAccountManager.Core/Interop/Schema/GameSchema.UI.cs): `GameScr`, `LoginScr`, `ServerListScreen`, `SplashScr`, `SelectCharScr`, `ChooseCharScr`, `Panel`, `Command`, `TField`, `MyVector`, `MyHashTable`.
+- [`GameRuntimeExtensions.cs`](file:///d:/DragonBoy/DBAM/src/DragonBoyAccountManager.Core/Interop/Abstractions/GameRuntimeExtensions.cs) đóng gói các phương thức truy xuất con trỏ Singleton cốt lõi (`GetMyCharPtr()`, `GetServicePtr()`, `GetGameScrPtr()`, `GetGameCanvasPtr()`) dùng chung cho mọi Handler và Scraper.
 
 ### 2.2. Đường Ống Telemetry Đa Hình (`ISnapshotScraper<out TSnapshot>`)
 - Giao diện [`ISnapshotScraper<out TSnapshot>`](file:///d:/DragonBoy/DBAM/src/DragonBoyAccountManager.Core/Telemetry/Scrapers/ISnapshotScraper.cs) sử dụng Default Interface Implementation cho `SnapshotType` và `Scrape()`, giúp các lớp thực thi ([`PlayerScraper`](file:///d:/DragonBoy/DBAM/src/DragonBoyAccountManager.Core/Telemetry/Scrapers/PlayerScraper.cs), [`WorldScraper`](file:///d:/DragonBoy/DBAM/src/DragonBoyAccountManager.Core/Telemetry/Scrapers/WorldScraper.cs), [`MapScraper`](file:///d:/DragonBoy/DBAM/src/DragonBoyAccountManager.Core/Telemetry/Scrapers/MapScraper.cs)) chỉ cần viết duy nhất phương thức `TSnapshot Scrape()`.
@@ -174,3 +183,7 @@ classDiagram
     SessionEvent <|-- SessionProcessStartedEvent
     SessionEvent <|-- SessionProcessExitedEvent
 ```
+
+### 2.6. Đồng Bộ Luồng & Hủy Bỏ An Toàn (Threading & Lifecycle Invariants)
+- **C# 13 `System.Threading.Lock`:** Toàn bộ đồng bộ luồng ngắn hạn nội bộ ([`EmergencyPipeline`](file:///d:/DragonBoy/DBAM/src/DragonBoyAccountManager.Core/Automation/Interrupters/EmergencyPipeline.cs), [`SessionManager`](file:///d:/DragonBoy/DBAM/src/DragonBoyAccountManager.Core/Engine/SessionManager.cs), [`CommandDispatcher`](file:///d:/DragonBoy/DBAM/src/DragonBoyAccountManager.Core/Execution/CommandDispatcher.cs), [`RemoteScratchpad`](file:///d:/DragonBoy/DBAM/src/DragonBoyAccountManager.Core/Interop/Memory/RemoteScratchpad.cs), [`Il2CppRuntime`](file:///d:/DragonBoy/DBAM/src/DragonBoyAccountManager.Core/Interop/Il2Cpp/Il2CppRuntime.cs)) sử dụng `Lock` thay thế `object` khóa truyền thống, giảm thiểu chi phí runtime và ngăn chặn deadlock.
+- **Dọn dẹp bất đồng bộ (`IAsyncDisposable`):** [`GameEngine`](file:///d:/DragonBoy/DBAM/src/DragonBoyAccountManager.Core/Engine/GameEngine.cs), [`SessionManager`](file:///d:/DragonBoy/DBAM/src/DragonBoyAccountManager.Core/Engine/SessionManager.cs) và [`SessionWorker`](file:///d:/DragonBoy/DBAM/src/DragonBoyAccountManager.Core/Engine/SessionWorker.cs) đồng bộ hiện thực `IAsyncDisposable`. Khi dừng ứng dụng hoặc ngắt phiên, quy trình teardown được thực thi phi phong bế qua `DisposeAsync()`, triệt tiêu hoàn toàn `.Wait()` hay `Thread.Sleep()`.

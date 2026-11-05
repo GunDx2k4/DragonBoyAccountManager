@@ -1,7 +1,7 @@
-using DragonBoyAccountManager.Core.Automation.Behaviors.Navigation;
-using DragonBoyAccountManager.Core.Execution;
+using DragonBoyAccountManager.Core.Automation.Interrupters;
+using DragonBoyAccountManager.Core.Common;
 using DragonBoyAccountManager.Core.Execution.Commands;
-using DragonBoyAccountManager.Core.Telemetry.Snapshots;
+using DragonBoyAccountManager.Core.Sessions;
 
 namespace DragonBoyAccountManager.Core.Automation.Behaviors.Combat;
 
@@ -11,7 +11,7 @@ public enum MobTargetMode
     ByMobId = 1
 }
 
-public sealed class AutoTrainOptions
+public sealed record AutoTrainOptions
 {
     public MobTargetMode TargetMode { get; init; } = MobTargetMode.ByTemplate;
     public IReadOnlyList<int> SelectedSkillSlots { get; init; } = [0];
@@ -62,13 +62,14 @@ public sealed class AutoTrainBehavior : AutomationBehavior<AutoTrainOptions>
     }
 
     protected override async Task OnTickAsync(
-        PlayerSnapshot player,
-        WorldSnapshot world,
-        MapSnapshot map,
-        ICommandDispatcher dispatcher,
+        ISessionContext context,
         IProgress<string>? progress,
         CancellationToken cancellationToken)
     {
+        var player = context.CurrentPlayer;
+        var world = context.CurrentWorld;
+        var dispatcher = context.Dispatcher;
+
         if (!player.IsInGame || player.IsChangingMap)
         {
             await Task.Delay(300, cancellationToken);

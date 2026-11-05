@@ -1,6 +1,5 @@
 using System.Collections.Concurrent;
 using System.Diagnostics;
-using DragonBoyAccountManager.Core.Automation.Behaviors;
 using DragonBoyAccountManager.Core.Common;
 using DragonBoyAccountManager.Core.Engine.Abstractions;
 using DragonBoyAccountManager.Core.Engine.Events;
@@ -9,11 +8,11 @@ using DragonBoyAccountManager.Core.Sessions;
 
 namespace DragonBoyAccountManager.Core.Engine;
 
-public sealed class SessionManager : ISessionManager, IDisposable
+public sealed class SessionManager : ISessionManager, IDisposable, IAsyncDisposable
 {
     private readonly ConcurrentDictionary<Guid, SessionWorker> _workers = new();
     private readonly HashSet<Guid> _userStoppedAccounts = [];
-    private readonly object _userStoppedLock = new();
+    private readonly Lock _userStoppedLock = new();
     private readonly SemaphoreSlim _launchGate = new(1, 1);
     private readonly SessionLauncher _launcher = new();
 
@@ -141,11 +140,6 @@ public sealed class SessionManager : ISessionManager, IDisposable
 
             worker.StartLoop();
 
-            if (options.GameSpeed != 1.0f)
-            {
-                worker.SetGameSpeed(options.GameSpeed);
-            }
-
             await Task.Delay(500, cancellationToken);
 
             if (options.AutoLogin && !string.IsNullOrWhiteSpace(options.Username) && !string.IsNullOrWhiteSpace(options.Password))
@@ -221,74 +215,16 @@ public sealed class SessionManager : ISessionManager, IDisposable
         }
     }
 
-    public bool StartBehavior<TBehavior, TOptions>(Guid accountId, TOptions options)
-        where TBehavior : class, IBehavior<TOptions>
-        where TOptions : class
-    {
-        return _workers.TryGetValue(accountId, out var worker) && worker.StartBehavior<TBehavior, TOptions>(options);
-    }
-
-    public bool UpdateBehaviorOptions<TBehavior, TOptions>(Guid accountId, TOptions options)
-        where TBehavior : class, IBehavior<TOptions>
-        where TOptions : class
-    {
-        return _workers.TryGetValue(accountId, out var worker) && worker.UpdateBehaviorOptions<TBehavior, TOptions>(options);
-    }
-
-    public bool StopBehavior<TBehavior>(Guid accountId) where TBehavior : class, IBehavior
-    {
-        return _workers.TryGetValue(accountId, out var worker) && worker.StopBehavior<TBehavior>();
-    }
-
-    public bool IsBehaviorRunning<TBehavior>(Guid accountId) where TBehavior : class, IBehavior
-    {
-        return _workers.TryGetValue(accountId, out var worker) && worker.IsBehaviorRunning<TBehavior>();
-    }
-
-    public TBehavior? GetBehavior<TBehavior>(Guid accountId) where TBehavior : class, IBehavior
-    {
-        return _workers.TryGetValue(accountId, out var worker) ? worker.Session.GetBehavior<TBehavior>() : null;
-    }
-
-    public bool StartBehavior(Guid accountId, string behaviorId)
-    {
-        return _workers.TryGetValue(accountId, out var worker) && worker.StartBehavior(behaviorId);
-    }
-
-    public bool StopBehavior(Guid accountId, string behaviorId)
-    {
-        return _workers.TryGetValue(accountId, out var worker) && worker.StopBehavior(behaviorId);
-    }
-
-    public bool IsBehaviorRunning(Guid accountId, string behaviorId)
-    {
-        return _workers.TryGetValue(accountId, out var worker) && worker.IsBehaviorRunning(behaviorId);
-    }
-
-    public IReadOnlyCollection<IBehavior> GetBehaviors(Guid accountId)
-    {
-        return _workers.TryGetValue(accountId, out var worker) ? worker.GetBehaviors() : [];
-    }
-
-    public void SetMasked(Guid accountId, bool isMasked)
-    {
-        if (_workers.TryGetValue(accountId, out var worker))
-        {
-            worker.SetMasked(isMasked);
-        }
-    }
-
-    public void SetAllMasked(bool isMasked)
-    {
-        foreach (var worker in _workers.Values)
-        {
-            worker.SetMasked(isMasked);
-        }
-    }
-
     public void Dispose()
     {
         StopAllSessions();
+        _launchGate.Dispose();
+        GC.SuppressFinalize(this);
+    }
+
+    public async ValueTask DisposeAsync()
+    {
+        await StopAllSessionsAsync();
         _launchGate.Dispose();
         GC.SuppressFinalize(this);
     }

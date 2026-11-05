@@ -7,7 +7,7 @@ public sealed class RemoteScratchpad : IDisposable
     private readonly IntPtr _processHandle;
     private readonly IntPtr _baseAddress;
     private readonly int _totalSize;
-    private readonly object _lock = new();
+    private readonly Lock _lock = new();
 
     public const int DefaultScratchpadSize = 64 * 1024;
 

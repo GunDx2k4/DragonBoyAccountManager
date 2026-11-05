@@ -1,4 +1,4 @@
-namespace DragonBoyAccountManager.Core.Interop.Mono.Schema;
+namespace DragonBoyAccountManager.Core.Interop.Schema;
 
 public static partial class GameSchema
 {
@@ -84,6 +84,7 @@ public static partial class GameSchema
         public const string ClassName = "MyVector";
         public const string FieldA = "a";
         public const string MethodAddElement = "addElement";
+        public const string MethodRemoveAllElements = "removeAllElements";
         public const string MethodSize = "size";
         public const string MethodElementAt = "elementAt";
     }
@@ -95,5 +96,17 @@ public static partial class GameSchema
         public const string FieldSizeAlt = "size";
         public const string FieldItems = "_items";
         public const string FieldItemsAlt = "items";
+    }
+
+    public static class Application
+    {
+        public const string ClassName = "Application";
+        public const string MethodSetRunInBackground = "set_runInBackground";
+    }
+
+    public static class Time
+    {
+        public const string ClassName = "Time";
+        public const string MethodSetTimeScale = "set_timeScale";
     }
 }

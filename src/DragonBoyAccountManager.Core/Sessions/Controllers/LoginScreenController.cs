@@ -1,19 +1,19 @@
 using DragonBoyAccountManager.Core.Common;
-using DragonBoyAccountManager.Core.Interop.Mono;
-using DragonBoyAccountManager.Core.Interop.Mono.Schema;
+using DragonBoyAccountManager.Core.Interop.Abstractions;
+using DragonBoyAccountManager.Core.Interop.Schema;
 
 namespace DragonBoyAccountManager.Core.Sessions.Controllers;
 
-public sealed class LoginScreenController(IMonoRuntime mono)
+public sealed class LoginScreenController(IGameRuntime runtime)
 {
-    private readonly IMonoRuntime _mono = mono ?? throw new ArgumentNullException(nameof(mono));
+    private readonly IGameRuntime _runtime = runtime ?? throw new ArgumentNullException(nameof(runtime));
 
     public string? GetCurrentScreenName()
     {
         try
         {
-            IntPtr scr = _mono.ReadStatic<IntPtr>(GameSchema.GameCanvas.ClassName, GameSchema.GameCanvas.StaticCurrentScreen);
-            return scr != IntPtr.Zero ? _mono.GetClassName(scr) : null;
+            IntPtr scr = _runtime.ReadStatic<IntPtr>(GameSchema.GameCanvas.ClassName, _runtime.Layout.GameCanvas.CurrentScreen);
+            return scr != IntPtr.Zero ? _runtime.GetClassName(scr) : null;
         }
         catch { return null; }
     }
@@ -24,11 +24,11 @@ public sealed class LoginScreenController(IMonoRuntime mono)
         dialogText = null;
         try
         {
-            IntPtr dlg = _mono.ReadStatic<IntPtr>(GameSchema.GameCanvas.ClassName, GameSchema.GameCanvas.StaticCurrentDialog);
+            IntPtr dlg = _runtime.ReadStatic<IntPtr>(GameSchema.GameCanvas.ClassName, _runtime.Layout.GameCanvas.CurrentDialog);
             if (dlg == IntPtr.Zero) return false;
 
-            try { isWaitDialog = _mono.ReadField<bool>(GameSchema.MsgDlg.ClassName, GameSchema.MsgDlg.FieldIsWait, dlg); } catch { }
-            try { dialogText = _mono.ReadStringField(GameSchema.MsgDlg.ClassName, GameSchema.MsgDlg.FieldInfo, dlg); } catch { }
+            try { isWaitDialog = _runtime.ReadField<bool>(dlg, _runtime.Layout.MsgDlg.IsWait); } catch { }
+            try { dialogText = _runtime.ReadStringField(dlg, _runtime.Layout.MsgDlg.Info); } catch { }
             return true;
         }
         catch
@@ -51,12 +51,12 @@ public sealed class LoginScreenController(IMonoRuntime mono)
     {
         try
         {
-            IntPtr canvas = _mono.ReadStatic<IntPtr>(GameSchema.GameCanvas.ClassName, GameSchema.GameCanvas.StaticInstance);
+            IntPtr canvas = _runtime.ReadStatic<IntPtr>(GameSchema.GameCanvas.ClassName, _runtime.Layout.GameCanvas.Instance);
             if (canvas == IntPtr.Zero)
-                canvas = _mono.ReadStatic<IntPtr>(GameSchema.GameCanvas.ClassName, GameSchema.GameCanvas.StaticGameCanvas);
+                canvas = _runtime.ReadStatic<IntPtr>(GameSchema.GameCanvas.ClassName, _runtime.Layout.GameCanvas.GameCanvas);
             if (canvas != IntPtr.Zero)
             {
-                _mono.CallMethod(GameSchema.GameCanvas.ClassName, GameSchema.GameCanvas.MethodEndDlg, canvas);
+                _runtime.CallMethod(GameSchema.GameCanvas.ClassName, GameSchema.GameCanvas.MethodEndDlg, canvas);
             }
         }
         catch { }
@@ -64,24 +64,24 @@ public sealed class LoginScreenController(IMonoRuntime mono)
 
     public bool IsLoadingControllerData()
     {
-        try { return _mono.ReadStatic<bool>(GameSchema.Controller.ClassName, GameSchema.Controller.StaticIsLoadingData); }
+        try { return _runtime.ReadStatic<bool>(GameSchema.Controller.ClassName, _runtime.Layout.Controller.IsLoadingData); }
         catch { return false; }
     }
 
     public bool IsWaitingToLogin()
     {
-        try { return _mono.ReadStatic<bool>(GameSchema.ServerListScreen.ClassName, GameSchema.ServerListScreen.StaticWaitToLogin); }
+        try { return _runtime.ReadStatic<bool>(GameSchema.ServerListScreen.ClassName, _runtime.Layout.ServerListScreen.WaitToLogin); }
         catch { return false; }
     }
 
     public bool IsServerListReady()
     {
         bool loadScreen = false;
-        try { loadScreen = _mono.ReadStatic<bool>(GameSchema.ServerListScreen.ClassName, GameSchema.ServerListScreen.StaticLoadScreen); } catch { }
+        try { loadScreen = _runtime.ReadStatic<bool>(GameSchema.ServerListScreen.ClassName, _runtime.Layout.ServerListScreen.LoadScreen); } catch { }
         bool bigOk = false;
-        try { bigOk = _mono.ReadStatic<bool>(GameSchema.ServerListScreen.ClassName, GameSchema.ServerListScreen.StaticBigOk); } catch { }
+        try { bigOk = _runtime.ReadStatic<bool>(GameSchema.ServerListScreen.ClassName, _runtime.Layout.ServerListScreen.BigOk); } catch { }
         int percent = 0;
-        try { percent = _mono.ReadStatic<int>(GameSchema.ServerListScreen.ClassName, GameSchema.ServerListScreen.StaticPercent); } catch { }
+        try { percent = _runtime.ReadStatic<int>(GameSchema.ServerListScreen.ClassName, _runtime.Layout.ServerListScreen.Percent); } catch { }
 
         return loadScreen || bigOk || percent >= 100;
     }
@@ -90,11 +90,12 @@ public sealed class LoginScreenController(IMonoRuntime mono)
     {
         try
         {
-            if (_mono.ReadStatic<bool>(GameSchema.LoginScr.ClassName, GameSchema.LoginScr.StaticIsUpdateAll)) return true;
-            if (_mono.ReadStatic<bool>(GameSchema.LoginScr.ClassName, GameSchema.LoginScr.StaticIsUpdateData)) return true;
-            if (_mono.ReadStatic<bool>(GameSchema.LoginScr.ClassName, GameSchema.LoginScr.StaticIsUpdateMap)) return true;
-            if (_mono.ReadStatic<bool>(GameSchema.LoginScr.ClassName, GameSchema.LoginScr.StaticIsUpdateSkill)) return true;
-            if (_mono.ReadStatic<bool>(GameSchema.LoginScr.ClassName, GameSchema.LoginScr.StaticIsUpdateItem)) return true;
+            var loginScrLayout = _runtime.Layout.LoginScr;
+            if (_runtime.ReadStatic<bool>(GameSchema.LoginScr.ClassName, loginScrLayout.IsUpdateAll)) return true;
+            if (_runtime.ReadStatic<bool>(GameSchema.LoginScr.ClassName, loginScrLayout.IsUpdateData)) return true;
+            if (_runtime.ReadStatic<bool>(GameSchema.LoginScr.ClassName, loginScrLayout.IsUpdateMap)) return true;
+            if (_runtime.ReadStatic<bool>(GameSchema.LoginScr.ClassName, loginScrLayout.IsUpdateSkill)) return true;
+            if (_runtime.ReadStatic<bool>(GameSchema.LoginScr.ClassName, loginScrLayout.IsUpdateItem)) return true;
             return false;
         }
         catch { return false; }
@@ -104,7 +105,7 @@ public sealed class LoginScreenController(IMonoRuntime mono)
     {
         try
         {
-            if (_mono.ReadStatic<bool>(GameSchema.Controller.ClassName, GameSchema.Controller.StaticIsLoadingData))
+            if (_runtime.ReadStatic<bool>(GameSchema.Controller.ClassName, _runtime.Layout.Controller.IsLoadingData))
                 return true;
 
             if (IsUpdatingGameData())
@@ -113,14 +114,14 @@ public sealed class LoginScreenController(IMonoRuntime mono)
             string? curScr = GetCurrentScreenName();
             if (curScr == GameSchema.SplashScr.ClassName)
             {
-                int nData = _mono.ReadStatic<int>(GameSchema.SplashScr.ClassName, GameSchema.SplashScr.StaticNData);
+                int nData = _runtime.ReadStatic<int>(GameSchema.SplashScr.ClassName, _runtime.Layout.SplashScr.NData);
                 if (nData != -1) return true;
             }
 
             if (curScr == GameSchema.ServerListScreen.ClassName)
             {
                 bool isGetData = false;
-                try { isGetData = _mono.ReadStatic<bool>(GameSchema.ServerListScreen.ClassName, GameSchema.ServerListScreen.StaticIsGetData); } catch { }
+                try { isGetData = _runtime.ReadStatic<bool>(GameSchema.ServerListScreen.ClassName, _runtime.Layout.ServerListScreen.IsGetData); } catch { }
                 if (isGetData) return true;
 
                 if (!IsServerListReady())
@@ -139,8 +140,8 @@ public sealed class LoginScreenController(IMonoRuntime mono)
             string? curScr = GetCurrentScreenName();
             if (curScr == GameSchema.SplashScr.ClassName)
             {
-                int nData = _mono.ReadStatic<int>(GameSchema.SplashScr.ClassName, GameSchema.SplashScr.StaticNData);
-                int maxData = _mono.ReadStatic<int>(GameSchema.SplashScr.ClassName, GameSchema.SplashScr.StaticMaxData);
+                int nData = _runtime.ReadStatic<int>(GameSchema.SplashScr.ClassName, _runtime.Layout.SplashScr.NData);
+                int maxData = _runtime.ReadStatic<int>(GameSchema.SplashScr.ClassName, _runtime.Layout.SplashScr.MaxData);
                 if (nData != -1 && maxData > 0)
                 {
                     return Math.Clamp(nData * 100 / maxData, 0, 100);
@@ -149,7 +150,7 @@ public sealed class LoginScreenController(IMonoRuntime mono)
 
             if (curScr == GameSchema.ServerListScreen.ClassName)
             {
-                return _mono.ReadStatic<int>(GameSchema.ServerListScreen.ClassName, GameSchema.ServerListScreen.StaticPercent);
+                return _runtime.ReadStatic<int>(GameSchema.ServerListScreen.ClassName, _runtime.Layout.ServerListScreen.Percent);
             }
 
             return 0;
@@ -165,7 +166,7 @@ public sealed class LoginScreenController(IMonoRuntime mono)
             if (curScr == GameSchema.ServerListScreen.ClassName)
             {
                 bool isGetData = false;
-                try { isGetData = _mono.ReadStatic<bool>(GameSchema.ServerListScreen.ClassName, GameSchema.ServerListScreen.StaticIsGetData); } catch { }
+                try { isGetData = _runtime.ReadStatic<bool>(GameSchema.ServerListScreen.ClassName, _runtime.Layout.ServerListScreen.IsGetData); } catch { }
                 if (isGetData)
                 {
                     return false;
@@ -184,7 +185,7 @@ public sealed class LoginScreenController(IMonoRuntime mono)
 
     public int GetSelectedServerId()
     {
-        try { return _mono.ReadStatic<int>(GameSchema.ServerListScreen.ClassName, GameSchema.ServerListScreen.StaticIpSelect); }
+        try { return _runtime.ReadStatic<int>(GameSchema.ServerListScreen.ClassName, _runtime.Layout.ServerListScreen.IpSelect); }
         catch { return -1; }
     }
 
@@ -192,15 +193,15 @@ public sealed class LoginScreenController(IMonoRuntime mono)
     {
         try
         {
-            IntPtr serverScreen = _mono.ReadStatic<IntPtr>(GameSchema.GameCanvas.ClassName, GameSchema.GameCanvas.StaticServerScreen);
+            IntPtr serverScreen = _runtime.ReadStatic<IntPtr>(GameSchema.GameCanvas.ClassName, _runtime.Layout.GameCanvas.ServerScreen);
             if (serverScreen != IntPtr.Zero)
             {
-                _mono.WriteStatic(GameSchema.ServerListScreen.ClassName, GameSchema.ServerListScreen.StaticIpSelect, serverId);
-                _mono.CallMethod(GameSchema.ServerListScreen.ClassName, GameSchema.ServerListScreen.MethodSelectServer, serverScreen);
+                _runtime.WriteStatic(GameSchema.ServerListScreen.ClassName, _runtime.Layout.ServerListScreen.IpSelect, serverId);
+                _runtime.CallMethod(GameSchema.ServerListScreen.ClassName, GameSchema.ServerListScreen.MethodSelectServer, serverScreen);
                 return;
             }
-            _mono.CallMethod(GameSchema.ServerListScreen.ClassName, GameSchema.ServerListScreen.MethodSetIpSelect, IntPtr.Zero, serverId, false);
-            _mono.WriteStatic(GameSchema.ServerListScreen.ClassName, GameSchema.ServerListScreen.StaticIpSelect, serverId);
+            _runtime.CallMethod(GameSchema.ServerListScreen.ClassName, GameSchema.ServerListScreen.MethodSetIpSelect, IntPtr.Zero, serverId, false);
+            _runtime.WriteStatic(GameSchema.ServerListScreen.ClassName, _runtime.Layout.ServerListScreen.IpSelect, serverId);
         }
         catch { }
     }
@@ -210,10 +211,10 @@ public sealed class LoginScreenController(IMonoRuntime mono)
         PreMaskLoginFields(isMasked, username);
         try
         {
-            IntPtr serverScreen = _mono.ReadStatic<IntPtr>(GameSchema.GameCanvas.ClassName, GameSchema.GameCanvas.StaticServerScreen);
+            IntPtr serverScreen = _runtime.ReadStatic<IntPtr>(GameSchema.GameCanvas.ClassName, _runtime.Layout.GameCanvas.ServerScreen);
             if (serverScreen != IntPtr.Zero)
             {
-                _mono.CallMethod(GameSchema.ServerListScreen.ClassName, GameSchema.Screen.MethodPerform, serverScreen, GameSchema.ServerListScreen.ActionOpenLogin, null);
+                _runtime.CallMethod(GameSchema.ServerListScreen.ClassName, GameSchema.Screen.MethodPerform, serverScreen, GameSchema.ServerListScreen.ActionOpenLogin, null);
                 return;
             }
         }
@@ -225,10 +226,10 @@ public sealed class LoginScreenController(IMonoRuntime mono)
     {
         try
         {
-            IntPtr serverScreen = _mono.ReadStatic<IntPtr>(GameSchema.GameCanvas.ClassName, GameSchema.GameCanvas.StaticServerScreen);
+            IntPtr serverScreen = _runtime.ReadStatic<IntPtr>(GameSchema.GameCanvas.ClassName, _runtime.Layout.GameCanvas.ServerScreen);
             if (serverScreen != IntPtr.Zero)
             {
-                _mono.CallMethod(GameSchema.ServerListScreen.ClassName, GameSchema.Screen.MethodPerform, serverScreen, GameSchema.ServerListScreen.ActionLoginSaved, null);
+                _runtime.CallMethod(GameSchema.ServerListScreen.ClassName, GameSchema.Screen.MethodPerform, serverScreen, GameSchema.ServerListScreen.ActionLoginSaved, null);
                 return;
             }
         }
@@ -242,35 +243,41 @@ public sealed class LoginScreenController(IMonoRuntime mono)
     {
         try
         {
+            IntPtr loginScr = GetLoginScreenPointer();
+            if (loginScr != IntPtr.Zero)
+            {
+                _runtime.CallMethod(GameSchema.LoginScr.ClassName, GameSchema.LoginScr.MethodDoLogin, loginScr);
+                return;
+            }
+
             if (isMasked)
             {
-                IntPtr serviceInst = _mono.ReadStatic<IntPtr>(GameSchema.Service.ClassName, GameSchema.Service.StaticInstance);
+                IntPtr serviceInst = _runtime.ReadStatic<IntPtr>(GameSchema.Service.ClassName, _runtime.Layout.Service.Instance);
                 if (serviceInst == IntPtr.Zero)
                 {
-                    serviceInst = _mono.CallMethod(GameSchema.Service.ClassName, GameSchema.Service.MethodGI, IntPtr.Zero);
+                    serviceInst = _runtime.CallMethod(GameSchema.Service.ClassName, GameSchema.Service.MethodGI, IntPtr.Zero);
                 }
 
                 if (serviceInst != IntPtr.Zero)
                 {
                     bool connected = false;
-                    try { connected = _mono.ReadStatic<bool>(GameSchema.Session.ClassName, GameSchema.Session.StaticConnected); } catch { }
+                    try { connected = _runtime.ReadStatic<bool>(GameSchema.Session.ClassName, _runtime.Layout.Session.Connected); } catch { }
                     if (!connected)
                     {
-                        try { _mono.CallMethod(GameSchema.GameCanvas.ClassName, GameSchema.GameCanvas.MethodConnect, IntPtr.Zero); } catch { }
+                        try { _runtime.CallMethod(GameSchema.GameCanvas.ClassName, GameSchema.GameCanvas.MethodConnect, IntPtr.Zero); } catch { }
                     }
 
-                    string version = _mono.ReadStaticString(GameSchema.GameMidlet.ClassName, GameSchema.GameMidlet.StaticVersion) ?? "2.5.0";
-                    _mono.CallMethod(GameSchema.Service.ClassName, GameSchema.Service.MethodLogin, serviceInst, username.Trim(), password.Trim(), version, (sbyte)0);
-                    try { _mono.CallMethod(GameSchema.GameCanvas.ClassName, GameSchema.GameCanvas.MethodStartWaitDlg, IntPtr.Zero); } catch { }
+                    string? version = _runtime.ReadStaticString(GameSchema.GameMidlet.ClassName, _runtime.Layout.GameMidlet.Version);
+                    if (string.IsNullOrWhiteSpace(version))
+                    {
+                        version = Constants.Client.DefaultVersion;
+                    }
+
+                    _runtime.CallMethod(GameSchema.Service.ClassName, GameSchema.Service.MethodSetClientType, serviceInst);
+                    _runtime.CallMethod(GameSchema.Service.ClassName, GameSchema.Service.MethodLogin, serviceInst, username.Trim(), password.Trim(), version, (sbyte)0);
+                    try { _runtime.CallMethod(GameSchema.GameCanvas.ClassName, GameSchema.GameCanvas.MethodStartWaitDlg, IntPtr.Zero); } catch { }
                     return;
                 }
-            }
-
-            IntPtr loginScr = GetLoginScreenPointer();
-            if (loginScr != IntPtr.Zero)
-            {
-                _mono.CallMethod(GameSchema.LoginScr.ClassName, GameSchema.LoginScr.MethodDoLogin, loginScr);
-                return;
             }
         }
         catch { }
@@ -286,16 +293,18 @@ public sealed class LoginScreenController(IMonoRuntime mono)
         IntPtr loginScr = GetLoginScreenPointer();
         if (loginScr == IntPtr.Zero) return false;
 
-        IntPtr tfUser = _mono.ReadFieldPtr(GameSchema.LoginScr.ClassName, GameSchema.LoginScr.FieldTfUser, loginScr);
-        IntPtr tfPass = _mono.ReadFieldPtr(GameSchema.LoginScr.ClassName, GameSchema.LoginScr.FieldTfPass, loginScr);
+        var loginScrLayout = _runtime.Layout.LoginScr;
+        IntPtr tfUser = _runtime.ReadFieldPtr(loginScr, loginScrLayout.TfUser);
+        IntPtr tfPass = _runtime.ReadFieldPtr(loginScr, loginScrLayout.TfPass);
         if (tfUser == IntPtr.Zero || tfPass == IntPtr.Zero) return false;
 
+        var tfieldLayout = _runtime.Layout.TField;
         if (isMasked)
         {
             try
             {
-                _mono.WriteField(GameSchema.TField.ClassName, GameSchema.TField.FieldInputType, tfUser, GameSchema.TField.InputTypePassword);
-                _mono.WriteField(GameSchema.TField.ClassName, GameSchema.TField.FieldInputType, tfPass, GameSchema.TField.InputTypePassword);
+                _runtime.WriteField(tfUser, tfieldLayout.InputType, GameSchema.TField.InputTypePassword);
+                _runtime.WriteField(tfPass, tfieldLayout.InputType, GameSchema.TField.InputTypePassword);
             }
             catch { }
         }
@@ -303,15 +312,12 @@ public sealed class LoginScreenController(IMonoRuntime mono)
         SetTFieldText(tfUser, username);
         SetTFieldText(tfPass, password);
 
-        if (!isMasked)
+        try
         {
-            try
-            {
-                _mono.CallMethod(GameSchema.Rms.ClassName, GameSchema.Rms.MethodSaveRMSString, IntPtr.Zero, GameSchema.Rms.KeyAcc, username.Trim());
-                _mono.CallMethod(GameSchema.Rms.ClassName, GameSchema.Rms.MethodSaveRMSString, IntPtr.Zero, GameSchema.Rms.KeyPass, password.Trim());
-            }
-            catch { }
+            _runtime.CallMethod(GameSchema.Rms.ClassName, GameSchema.Rms.MethodSaveRMSString, IntPtr.Zero, GameSchema.Rms.KeyAcc, username.Trim());
+            _runtime.CallMethod(GameSchema.Rms.ClassName, GameSchema.Rms.MethodSaveRMSString, IntPtr.Zero, GameSchema.Rms.KeyPass, password.Trim());
         }
+        catch { }
 
         string curUser = GetTFieldText(tfUser) ?? string.Empty;
         string curPass = GetTFieldText(tfPass) ?? string.Empty;
@@ -325,25 +331,31 @@ public sealed class LoginScreenController(IMonoRuntime mono)
         if (!isMasked) return;
         try
         {
-            string curRmsAcc = _mono.ReadStaticString(GameSchema.Rms.ClassName, GameSchema.Rms.StaticRMS_acc);
+            string curRmsAcc = _runtime.ReadStaticString(GameSchema.Rms.ClassName, _runtime.Layout.Rms.RMS_acc);
             if (curRmsAcc != "DBAM")
             {
-                _mono.WriteStaticString(GameSchema.Rms.ClassName, GameSchema.Rms.StaticRMS_acc, "DBAM");
+                _runtime.WriteStaticString(GameSchema.Rms.ClassName, _runtime.Layout.Rms.RMS_acc, "DBAM");
             }
 
-            IntPtr serverScreen = _mono.ReadStatic<IntPtr>(GameSchema.GameCanvas.ClassName, GameSchema.GameCanvas.StaticServerScreen);
+            try
+            {
+                _runtime.CallMethod(GameSchema.Rms.ClassName, GameSchema.Rms.MethodSaveRMSString, IntPtr.Zero, GameSchema.Rms.KeyPass, string.Empty);
+            }
+            catch { }
+
+            IntPtr serverScreen = _runtime.ReadStatic<IntPtr>(GameSchema.GameCanvas.ClassName, _runtime.Layout.GameCanvas.ServerScreen);
             if (serverScreen != IntPtr.Zero)
             {
-                IntPtr cmdArr = _mono.ReadFieldPtr(GameSchema.ServerListScreen.ClassName, GameSchema.ServerListScreen.FieldCmd, serverScreen);
+                IntPtr cmdArr = _runtime.ReadFieldPtr(serverScreen, _runtime.Layout.ServerListScreen.Cmd);
                 if (cmdArr != IntPtr.Zero)
                 {
-                    IntPtr[] cmds = _mono.ReadMonoPointerArray(cmdArr);
+                    IntPtr[] cmds = _runtime.ReadPointerArray(cmdArr);
                     if (cmds.Length > 0 && cmds[0] != IntPtr.Zero)
                     {
-                        string caption = _mono.ReadStringField(GameSchema.Command.ClassName, GameSchema.Command.FieldCaption, cmds[0]) ?? string.Empty;
+                        string caption = _runtime.ReadStringField(cmds[0], _runtime.Layout.Command.Caption) ?? string.Empty;
                         if (caption != "DragonBoy Account Manager")
                         {
-                            _mono.WriteStringField(GameSchema.Command.ClassName, GameSchema.Command.FieldCaption, cmds[0], "DragonBoy Account Manager");
+                            _runtime.WriteStringField(cmds[0], _runtime.Layout.Command.Caption, "DragonBoy Account Manager");
                         }
                     }
                 }
@@ -360,11 +372,13 @@ public sealed class LoginScreenController(IMonoRuntime mono)
             IntPtr loginScr = GetLoginScreenPointer();
             if (loginScr != IntPtr.Zero)
             {
-                IntPtr tfUser = _mono.ReadFieldPtr(GameSchema.LoginScr.ClassName, GameSchema.LoginScr.FieldTfUser, loginScr);
-                IntPtr tfPass = _mono.ReadFieldPtr(GameSchema.LoginScr.ClassName, GameSchema.LoginScr.FieldTfPass, loginScr);
+                var loginScrLayout = _runtime.Layout.LoginScr;
+                var tfieldLayout = _runtime.Layout.TField;
+                IntPtr tfUser = _runtime.ReadFieldPtr(loginScr, loginScrLayout.TfUser);
+                IntPtr tfPass = _runtime.ReadFieldPtr(loginScr, loginScrLayout.TfPass);
                 if (tfUser != IntPtr.Zero)
                 {
-                    _mono.WriteField(GameSchema.TField.ClassName, GameSchema.TField.FieldInputType, tfUser, GameSchema.TField.InputTypePassword);
+                    _runtime.WriteField(tfUser, tfieldLayout.InputType, GameSchema.TField.InputTypePassword);
                     string curText = GetTFieldText(tfUser) ?? string.Empty;
                     if (!string.IsNullOrEmpty(curText) && !string.Equals(curText, username, StringComparison.Ordinal) && !curText.Contains('*'))
                     {
@@ -374,7 +388,7 @@ public sealed class LoginScreenController(IMonoRuntime mono)
                 }
                 if (tfPass != IntPtr.Zero)
                 {
-                    _mono.WriteField(GameSchema.TField.ClassName, GameSchema.TField.FieldInputType, tfPass, GameSchema.TField.InputTypePassword);
+                    _runtime.WriteField(tfPass, tfieldLayout.InputType, GameSchema.TField.InputTypePassword);
                     SetTFieldText(tfPass, string.Empty);
                 }
             }
@@ -389,22 +403,30 @@ public sealed class LoginScreenController(IMonoRuntime mono)
             IntPtr loginScr = GetLoginScreenPointer();
             if (loginScr != IntPtr.Zero)
             {
-                IntPtr tfUser = _mono.ReadFieldPtr(GameSchema.LoginScr.ClassName, GameSchema.LoginScr.FieldTfUser, loginScr);
-                IntPtr tfPass = _mono.ReadFieldPtr(GameSchema.LoginScr.ClassName, GameSchema.LoginScr.FieldTfPass, loginScr);
+                var loginScrLayout = _runtime.Layout.LoginScr;
+                var tfieldLayout = _runtime.Layout.TField;
+                IntPtr tfUser = _runtime.ReadFieldPtr(loginScr, loginScrLayout.TfUser);
+                IntPtr tfPass = _runtime.ReadFieldPtr(loginScr, loginScrLayout.TfPass);
                 if (tfUser != IntPtr.Zero)
                 {
                     string masked = TextMaskHelper.MaskText(username);
                     SetTFieldText(tfUser, masked);
-                    _mono.WriteField(GameSchema.TField.ClassName, GameSchema.TField.FieldInputType, tfUser, GameSchema.TField.InputTypePassword);
+                    _runtime.WriteField(tfUser, tfieldLayout.InputType, GameSchema.TField.InputTypePassword);
                 }
                 if (tfPass != IntPtr.Zero) SetTFieldText(tfPass, string.Empty);
             }
 
-            string curRmsAcc = _mono.ReadStaticString(GameSchema.Rms.ClassName, GameSchema.Rms.StaticRMS_acc);
+            string curRmsAcc = _runtime.ReadStaticString(GameSchema.Rms.ClassName, _runtime.Layout.Rms.RMS_acc);
             if (curRmsAcc != "DBAM")
             {
-                _mono.WriteStaticString(GameSchema.Rms.ClassName, GameSchema.Rms.StaticRMS_acc, "DBAM");
+                _runtime.WriteStaticString(GameSchema.Rms.ClassName, _runtime.Layout.Rms.RMS_acc, "DBAM");
             }
+
+            try
+            {
+                _runtime.CallMethod(GameSchema.Rms.ClassName, GameSchema.Rms.MethodSaveRMSString, IntPtr.Zero, GameSchema.Rms.KeyPass, string.Empty);
+            }
+            catch { }
         }
         catch { }
     }
@@ -414,18 +436,18 @@ public sealed class LoginScreenController(IMonoRuntime mono)
         PreMaskLoginFields(isMasked, username);
         try
         {
-            IntPtr loginScr = _mono.ReadStatic<IntPtr>(GameSchema.GameCanvas.ClassName, GameSchema.GameCanvas.StaticLoginScr);
+            IntPtr loginScr = _runtime.ReadStatic<IntPtr>(GameSchema.GameCanvas.ClassName, _runtime.Layout.GameCanvas.LoginScr);
             if (loginScr == IntPtr.Zero)
             {
-                loginScr = _mono.CreateInstance(GameSchema.LoginScr.ClassName);
+                loginScr = _runtime.CreateInstance(GameSchema.LoginScr.ClassName);
                 if (loginScr != IntPtr.Zero)
                 {
-                    _mono.WriteStatic(GameSchema.GameCanvas.ClassName, GameSchema.GameCanvas.StaticLoginScr, loginScr);
+                    _runtime.WriteStatic(GameSchema.GameCanvas.ClassName, _runtime.Layout.GameCanvas.LoginScr, loginScr);
                 }
             }
             if (loginScr != IntPtr.Zero)
             {
-                _mono.CallMethod(GameSchema.LoginScr.ClassName, GameSchema.Screen.MethodSwitchToMe, loginScr);
+                _runtime.CallMethod(GameSchema.LoginScr.ClassName, GameSchema.Screen.MethodSwitchToMe, loginScr);
             }
         }
         catch { }
@@ -435,9 +457,9 @@ public sealed class LoginScreenController(IMonoRuntime mono)
     {
         try
         {
-            IntPtr scr = _mono.ReadStatic<IntPtr>(GameSchema.GameCanvas.ClassName, GameSchema.GameCanvas.StaticCurrentScreen);
-            string actualClass = scr != IntPtr.Zero ? (_mono.GetClassName(scr) ?? screenClassName) : screenClassName;
-            _mono.CallMethod(actualClass, GameSchema.Screen.MethodPerform, scr, actionId, null);
+            IntPtr scr = _runtime.ReadStatic<IntPtr>(GameSchema.GameCanvas.ClassName, _runtime.Layout.GameCanvas.CurrentScreen);
+            string actualClass = scr != IntPtr.Zero ? (_runtime.GetClassName(scr) ?? screenClassName) : screenClassName;
+            _runtime.CallMethod(actualClass, GameSchema.Screen.MethodPerform, scr, actionId, null);
         }
         catch { }
     }
@@ -448,10 +470,10 @@ public sealed class LoginScreenController(IMonoRuntime mono)
         {
             try
             {
-                IntPtr serverNamesPtr = _mono.ReadStatic<IntPtr>(GameSchema.ServerListScreen.ClassName, GameSchema.ServerListScreen.StaticNameServer);
+                IntPtr serverNamesPtr = _runtime.ReadStatic<IntPtr>(GameSchema.ServerListScreen.ClassName, _runtime.Layout.ServerListScreen.NameServer);
                 if (serverNamesPtr != IntPtr.Zero)
                 {
-                    string[] names = _mono.ReadMonoStringArray(serverNamesPtr);
+                    string[] names = _runtime.ReadStringArray(serverNamesPtr);
                     if (names != null && names.Length > 0)
                     {
                         for (int i = 0; i < names.Length; i++)
@@ -473,11 +495,11 @@ public sealed class LoginScreenController(IMonoRuntime mono)
     {
         try
         {
-            IntPtr cur = _mono.ReadStatic<IntPtr>(GameSchema.GameCanvas.ClassName, GameSchema.GameCanvas.StaticCurrentScreen);
-            if (cur != IntPtr.Zero && _mono.GetClassName(cur) == GameSchema.LoginScr.ClassName)
+            IntPtr cur = _runtime.ReadStatic<IntPtr>(GameSchema.GameCanvas.ClassName, _runtime.Layout.GameCanvas.CurrentScreen);
+            if (cur != IntPtr.Zero && _runtime.GetClassName(cur) == GameSchema.LoginScr.ClassName)
                 return cur;
 
-            return _mono.ReadStatic<IntPtr>(GameSchema.GameCanvas.ClassName, GameSchema.GameCanvas.StaticLoginScr);
+            return _runtime.ReadStatic<IntPtr>(GameSchema.GameCanvas.ClassName, _runtime.Layout.GameCanvas.LoginScr);
         }
         catch { return IntPtr.Zero; }
     }
@@ -487,24 +509,25 @@ public sealed class LoginScreenController(IMonoRuntime mono)
         if (tfieldPtr == IntPtr.Zero) return;
         text ??= string.Empty;
 
-        try { _mono.CallMethod(GameSchema.TField.ClassName, GameSchema.TField.MethodSetText, tfieldPtr, text); }
+        try { _runtime.CallMethod(GameSchema.TField.ClassName, GameSchema.TField.MethodSetText, tfieldPtr, text); }
         catch { }
 
         string cur = GetTFieldText(tfieldPtr) ?? string.Empty;
         if (string.Equals(cur, text, StringComparison.Ordinal)) return;
 
-        IntPtr monoStr = _mono.CreateMonoString(text);
-        if (monoStr != IntPtr.Zero)
+        IntPtr strPtr = _runtime.CreateString(text);
+        if (strPtr != IntPtr.Zero)
         {
-            _mono.WriteField(GameSchema.TField.ClassName, GameSchema.TField.FieldText, tfieldPtr, monoStr);
-            _mono.WriteField(GameSchema.TField.ClassName, GameSchema.TField.FieldPaintedText, tfieldPtr, monoStr);
-            _mono.WriteField(GameSchema.TField.ClassName, GameSchema.TField.FieldCaretPos, tfieldPtr, text.Length);
+            var tfieldLayout = _runtime.Layout.TField;
+            _runtime.WriteField(tfieldPtr, tfieldLayout.Text, strPtr);
+            _runtime.WriteField(tfieldPtr, tfieldLayout.PaintedText, strPtr);
+            _runtime.WriteField(tfieldPtr, tfieldLayout.CaretPos, text.Length);
 
             string stars = new('*', text.Length);
-            IntPtr starStr = _mono.CreateMonoString(stars);
+            IntPtr starStr = _runtime.CreateString(stars);
             if (starStr != IntPtr.Zero)
             {
-                _mono.WriteField(GameSchema.TField.ClassName, GameSchema.TField.FieldPasswordText, tfieldPtr, starStr);
+                _runtime.WriteField(tfieldPtr, tfieldLayout.PasswordText, starStr);
             }
         }
     }
@@ -514,17 +537,17 @@ public sealed class LoginScreenController(IMonoRuntime mono)
         if (tfieldPtr == IntPtr.Zero) return null;
         try
         {
-            IntPtr res = _mono.CallMethod(GameSchema.TField.ClassName, GameSchema.TField.MethodGetText, tfieldPtr);
+            IntPtr res = _runtime.CallMethod(GameSchema.TField.ClassName, GameSchema.TField.MethodGetText, tfieldPtr);
             if (res != IntPtr.Zero)
             {
-                string text = _mono.ReadMonoString(res);
+                string text = _runtime.ReadString(res);
                 if (!string.IsNullOrEmpty(text))
                     return text;
             }
         }
         catch { }
 
-        try { return _mono.ReadStringField(GameSchema.TField.ClassName, GameSchema.TField.FieldText, tfieldPtr); }
+        try { return _runtime.ReadStringField(tfieldPtr, _runtime.Layout.TField.Text); }
         catch { return null; }
     }
 }

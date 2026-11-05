@@ -8,4 +8,8 @@
     <PackageReference Include="System.Security.Cryptography.ProtectedData" />
   </ItemGroup>
 
+  <ItemGroup>
+    <EmbeddedResource Include="Resources\Offsets.json" />
+  </ItemGroup>
+
 </Project>

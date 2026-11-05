@@ -19,7 +19,7 @@ public sealed class GameImageService : IGameImageService
 
     public GameImageService()
     {
-        _rmsDir = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), "AppData", "LocalLow", "Team", "DragonBoy250");
+        _rmsDir = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), "AppData", "LocalLow", "Team", "Dragonboy252");
         LoadAtlas();
     }
 

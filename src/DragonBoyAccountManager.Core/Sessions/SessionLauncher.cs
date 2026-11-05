@@ -1,7 +1,8 @@
 using System.Diagnostics;
 using DragonBoyAccountManager.Core.Common;
-using DragonBoyAccountManager.Core.Interop.Mono;
-using DragonBoyAccountManager.Core.Interop.Mono.Schema;
+using DragonBoyAccountManager.Core.Interop;
+using DragonBoyAccountManager.Core.Interop.Abstractions;
+using DragonBoyAccountManager.Core.Interop.Schema;
 using DragonBoyAccountManager.Core.Interop.Native;
 using DragonBoyAccountManager.Core.Sessions.Validation;
 
@@ -24,8 +25,7 @@ public class SessionLauncher
 
         if (paths == null)
         {
-            string exeName = Path.GetFileNameWithoutExtension(gamePath);
-            throw new ArgumentException($"Missing Unity data folder or \"{Constants.Client.AssemblyName}\" under \"{exeName}_Data\".");
+            throw new ArgumentException($"Tệp thực thi không hợp lệ: \"{gamePath}\".");
         }
 
         return paths;
@@ -71,31 +71,17 @@ public class SessionLauncher
 
         WindowsJobManager.AddProcess(process);
 
+        IGameRuntime? gameRuntime = null;
         try
         {
-            var monoRuntime = await MonoRuntime.AttachAsync(process, cancellationToken)
-                              ?? throw new InvalidOperationException("Failed to attach Mono runtime.");
+            gameRuntime = await GameRuntimeFactory.AttachAsync(process, cancellationToken: cancellationToken)
+                          ?? throw new InvalidOperationException("Failed to attach game runtime.");
 
-            var session = new GameSession(process, monoRuntime, options.SessionId ?? Guid.NewGuid(), options.ConfigureSession);
-
-            await monoRuntime.WaitForAssemblyAsync("Assembly-CSharp", 15000, cancellationToken);
-            await Task.Delay(500, cancellationToken);
-
-            try
-            {
-                monoRuntime.CallUnityMethod("UnityEngine", "Application", "set_runInBackground", IntPtr.Zero, true);
-                monoRuntime.WriteStatic(GameSchema.Main.ClassName, GameSchema.Main.StaticIsQuitApp, false);
-                if (options.IsMasked)
-                {
-                    monoRuntime.WriteStaticString(GameSchema.Rms.ClassName, GameSchema.Rms.StaticRMS_acc, "DBAM");
-                }
-            }
-            catch { }
-
-            return session;
+            return new GameSession(process, gameRuntime, options.SessionId ?? Guid.NewGuid(), options.ConfigureSession);
         }
         catch
         {
+            gameRuntime?.Dispose();
             if (!process.HasExited)
             {
                 try { process.Kill(); }

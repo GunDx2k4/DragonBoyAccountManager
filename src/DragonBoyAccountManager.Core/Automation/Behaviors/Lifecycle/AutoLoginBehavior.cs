@@ -1,7 +1,6 @@
-using DragonBoyAccountManager.Core.Execution;
-using DragonBoyAccountManager.Core.Interop.Mono.Schema;
+using DragonBoyAccountManager.Core.Interop.Schema;
+using DragonBoyAccountManager.Core.Sessions;
 using DragonBoyAccountManager.Core.Sessions.Controllers;
-using DragonBoyAccountManager.Core.Telemetry.Snapshots;
 
 namespace DragonBoyAccountManager.Core.Automation.Behaviors.Lifecycle;
 
@@ -19,8 +18,11 @@ public sealed class AutoLoginBehavior : AutomationBehavior<AutoLoginOptions>
 {
     private readonly LoginScreenController _loginScreen;
     private int _attempts;
+    private int _splashWaitTicks;
+    private const int MaxSplashWaitTicks = 60;
 
     public int Attempts => _attempts;
+    public override int Priority => 100;
 
     public AutoLoginBehavior(AutoLoginOptions options, LoginScreenController loginScreen)
         : base("Auto Login", options, "AutoLogin")
@@ -31,17 +33,16 @@ public sealed class AutoLoginBehavior : AutomationBehavior<AutoLoginOptions>
     protected override void OnStarted(IProgress<string>? progress)
     {
         _attempts = 0;
+        _splashWaitTicks = 0;
         progress?.Report("[Auto Login] Bắt đầu quá trình đăng nhập...");
     }
 
     protected override async Task OnTickAsync(
-        PlayerSnapshot player,
-        WorldSnapshot world,
-        MapSnapshot map,
-        ICommandDispatcher dispatcher,
+        ISessionContext context,
         IProgress<string>? progress,
         CancellationToken cancellationToken)
     {
+        var player = context.CurrentPlayer;
         if (player.IsInGame)
         {
             if (Options.IsMasked)
@@ -50,6 +51,22 @@ public sealed class AutoLoginBehavior : AutomationBehavior<AutoLoginOptions>
             }
             progress?.Report($"[Auto Login] Nhân vật đã vào game: {player.Name}");
             Stop();
+            return;
+        }
+
+        string? curScreen = _loginScreen.GetCurrentScreenName();
+
+        if (curScreen == GameSchema.SplashScr.ClassName || string.IsNullOrEmpty(curScreen))
+        {
+            _splashWaitTicks++;
+            if (_splashWaitTicks > MaxSplashWaitTicks)
+            {
+                progress?.Report("[Auto Login] Quá thời gian chờ tải dữ liệu khởi động game.");
+                Stop();
+                return;
+            }
+            progress?.Report($"[Auto Login] Đang chờ game tải dữ liệu khởi động ({_splashWaitTicks}s)...");
+            await Task.Delay(1000, cancellationToken);
             return;
         }
 
@@ -130,14 +147,6 @@ public sealed class AutoLoginBehavior : AutomationBehavior<AutoLoginOptions>
         }
 
         int targetServerId = _loginScreen.ResolveTargetServerId(Options.ServerId, Options.ServerName);
-        string? curScreen = _loginScreen.GetCurrentScreenName();
-
-        if (curScreen == GameSchema.SplashScr.ClassName || string.IsNullOrEmpty(curScreen))
-        {
-            progress?.Report("[Auto Login] Đang chờ game tải dữ liệu khởi động...");
-            await Task.Delay(1000, cancellationToken);
-            return;
-        }
 
         if (curScreen == GameSchema.LoginScr.ClassName)
         {
@@ -175,6 +184,12 @@ public sealed class AutoLoginBehavior : AutomationBehavior<AutoLoginOptions>
                         break;
                 }
                 await Task.Delay(400, cancellationToken);
+
+                if (_loginScreen.GetCurrentScreenName() != GameSchema.LoginScr.ClassName)
+                {
+                    _loginScreen.SwitchToLoginScreen(Options.IsMasked, Options.Username);
+                    await Task.Delay(500, cancellationToken);
+                }
 
                 if (_loginScreen.GetCurrentScreenName() == GameSchema.LoginScr.ClassName)
                 {

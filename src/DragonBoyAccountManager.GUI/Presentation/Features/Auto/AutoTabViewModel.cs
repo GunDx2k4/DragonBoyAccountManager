@@ -182,34 +182,8 @@ public sealed partial class AutoTabViewModel : AccountAwareTabViewModel
         if (_isSwitchingAccount || ActiveAccount == null) return;
 
         var s = ActiveAccount.AutoSettings;
-        s.IgnoreBosses = IgnoreBosses;
-        s.AvoidSuperMobs = AvoidSuperMobs;
-        s.AutoPickItems = AutoPickItems;
-        s.AutoUsePean = AutoUsePean;
-        s.UseTdlt = UseTdlt;
-        s.TargetMode = (MobTargetMode)MobTargetModeIndex;
-
-        s.SelectedSkillSlots = AutoTrainSkills
-            .Where(x => x.IsSelected)
-            .Select(x => x.SlotIndex)
-            .ToList();
-
-        s.TargetMobTemplateIds = AvailableMobTypes
-            .Where(m => m.IsSelected && !m.MobId.HasValue && m.TemplateId >= 0)
-            .Select(m => m.TemplateId)
-            .Distinct()
-            .ToList();
-
-        s.TargetMobIds = AvailableMobTypes
-            .Where(m => m.IsSelected && m.MobId.HasValue)
-            .Select(m => m.MobId!.Value)
-            .Distinct()
-            .ToList();
-
-        s.ChatText = ChatText;
-        s.ChatDelaySeconds = ChatDelaySeconds;
-        s.ChatScope = (ChatType)SelectedChatTypeIndex;
-        s.IsRandomChat = IsRandomChat;
+        s.Train = BuildCurrentTrainOptions();
+        s.Chat = BuildCurrentChatOptions();
 
         _ = _storageService.AddOrUpdateAsync(ActiveAccount.Model);
     }
@@ -219,21 +193,25 @@ public sealed partial class AutoTabViewModel : AccountAwareTabViewModel
         _isSwitchingAccount = true;
         try
         {
-            var s = account.AutoSettings;
-            IgnoreBosses = s.IgnoreBosses;
-            AvoidSuperMobs = s.AvoidSuperMobs;
-            AutoPickItems = s.AutoPickItems;
-            AutoUsePean = s.AutoUsePean;
-            UseTdlt = s.UseTdlt;
-            MobTargetModeIndex = (int)s.TargetMode;
+            var train = account.AutoSettings.Train;
+            IgnoreBosses = train.IgnoreBosses;
+            AvoidSuperMobs = train.AvoidSuperMobs;
+            AutoPickItems = train.AutoPickItems;
+            AutoUsePean = train.AutoUsePean;
+            UseTdlt = train.UseTdlt;
+            MobTargetModeIndex = (int)train.TargetMode;
 
-            ChatText = s.ChatText ?? "Chào mọi người!";
-            ChatDelaySeconds = s.ChatDelaySeconds <= 0 ? 5 : s.ChatDelaySeconds;
-            SelectedChatTypeIndex = (int)s.ChatScope;
-            IsRandomChat = s.IsRandomChat;
+            var chat = account.AutoSettings.Chat;
+            ChatText = chat.Messages is { Count: > 0 }
+                ? string.Join(Environment.NewLine, chat.Messages)
+                : "Chào mọi người!";
+            int delaySec = (int)Math.Round(chat.Delay.TotalSeconds);
+            ChatDelaySeconds = delaySec <= 0 ? 5 : delaySec;
+            SelectedChatTypeIndex = (int)(chat.IsGlobal ? ChatType.Global : ChatType.Map);
+            IsRandomChat = chat.IsRandom;
 
-            var selectedSlots = s.SelectedSkillSlots != null && s.SelectedSkillSlots.Count > 0
-                ? s.SelectedSkillSlots.ToHashSet()
+            var selectedSlots = train.SelectedSkillSlots is { Count: > 0 }
+                ? train.SelectedSkillSlots.ToHashSet()
                 : [0];
 
             foreach (var item in AutoTrainSkills)
@@ -368,7 +346,7 @@ public sealed partial class AutoTabViewModel : AccountAwareTabViewModel
 
         if (IsAutoTrainRunning)
         {
-            var options = BuildCurrentUIOptions();
+            var options = BuildCurrentTrainOptions();
             _gameEngine.UpdateAutoTrainOptions(ActiveAccount.Id, options);
         }
     }
@@ -381,14 +359,10 @@ public sealed partial class AutoTabViewModel : AccountAwareTabViewModel
 
         if (IsAutoChatRunning)
         {
-            var lines = ChatText
-                .Split(['\r', '\n'], StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
-                .Where(l => !string.IsNullOrWhiteSpace(l))
-                .ToArray();
-            var interval = TimeSpan.FromSeconds(Math.Max(1, ChatDelaySeconds));
-            var chatType = (ChatType)SelectedChatTypeIndex;
+            var options = BuildCurrentChatOptions();
+            var chatType = options.IsGlobal ? ChatType.Global : ChatType.Map;
 
-            _gameEngine.UpdateAutoChatConfig(ActiveAccount.Id, lines, interval, chatType, IsRandomChat);
+            _gameEngine.UpdateAutoChatConfig(ActiveAccount.Id, options.Messages, options.Delay, chatType, options.IsRandom);
         }
     }
 
@@ -419,8 +393,8 @@ public sealed partial class AutoTabViewModel : AccountAwareTabViewModel
 
     private void UpdateAvailableMobTypes(IReadOnlyList<WorldMobInfo> mobs)
     {
-        var savedTemplateIds = ActiveAccount?.AutoSettings.TargetMobTemplateIds ?? [];
-        var savedMobIds = ActiveAccount?.AutoSettings.TargetMobIds ?? [];
+        var savedTemplateIds = ActiveAccount?.AutoSettings.Train.TargetMobTemplateIds ?? [];
+        var savedMobIds = ActiveAccount?.AutoSettings.Train.TargetMobIds ?? [];
 
         if (MobTargetModeIndex == 0)
         {

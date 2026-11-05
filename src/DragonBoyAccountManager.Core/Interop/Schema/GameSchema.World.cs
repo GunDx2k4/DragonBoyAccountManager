@@ -1,4 +1,4 @@
-namespace DragonBoyAccountManager.Core.Interop.Mono.Schema;
+namespace DragonBoyAccountManager.Core.Interop.Schema;
 
 public static partial class GameSchema
 {

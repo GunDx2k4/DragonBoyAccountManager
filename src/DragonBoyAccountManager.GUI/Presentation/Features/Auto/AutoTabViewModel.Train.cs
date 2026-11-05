@@ -191,7 +191,7 @@ public sealed partial class AutoTabViewModel
         OnAutoTrainOptionChanged();
     }
 
-    private AutoTrainOptions BuildCurrentUIOptions()
+    private AutoTrainOptions BuildCurrentTrainOptions()
     {
         var selectedSlots = AutoTrainSkills.Where(s => s.IsSelected).Select(s => s.SlotIndex).ToList();
         if (selectedSlots.Count == 0)
@@ -219,8 +219,8 @@ public sealed partial class AutoTabViewModel
                 .ToList();
         }
 
-        int minHp = ActiveAccount?.AutoSettings.MinHpPercent ?? 20;
-        int minMp = ActiveAccount?.AutoSettings.MinMpPercent ?? 20;
+        int minHp = ActiveAccount?.AutoSettings.Train.MinHpPercent ?? 20;
+        int minMp = ActiveAccount?.AutoSettings.Train.MinMpPercent ?? 20;
 
         return new AutoTrainOptions
         {
@@ -257,8 +257,8 @@ public sealed partial class AutoTabViewModel
         {
             var targetAcc = ResolveAccount(id);
             var options = targetAcc != null && targetAcc.Id != ActiveAccount?.Id
-                ? targetAcc.AutoSettings.ToAutoTrainOptions()
-                : BuildCurrentUIOptions();
+                ? targetAcc.AutoSettings.Train
+                : BuildCurrentTrainOptions();
 
             if (targetAcc != null)
             {

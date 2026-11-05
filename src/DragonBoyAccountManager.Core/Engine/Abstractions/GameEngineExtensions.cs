@@ -2,7 +2,7 @@ using DragonBoyAccountManager.Core.Automation.Behaviors.Combat;
 using DragonBoyAccountManager.Core.Common;
 using DragonBoyAccountManager.Core.Common.Results;
 using DragonBoyAccountManager.Core.Execution.Commands;
-using DragonBoyAccountManager.Core.Interop.Mono.Schema;
+using DragonBoyAccountManager.Core.Interop.Schema;
 using DragonBoyAccountManager.Core.Telemetry.Snapshots;
 
 namespace DragonBoyAccountManager.Core.Engine.Abstractions;

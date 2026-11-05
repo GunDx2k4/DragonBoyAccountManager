@@ -1,17 +1,20 @@
-using DragonBoyAccountManager.Core.Interop.Mono;
-using DragonBoyAccountManager.Core.Interop.Mono.Schema;
+using System.Collections.Concurrent;
+using DragonBoyAccountManager.Core.Interop.Abstractions;
+using DragonBoyAccountManager.Core.Interop.Schema;
 using DragonBoyAccountManager.Core.Telemetry.Snapshots;
 
 namespace DragonBoyAccountManager.Core.Telemetry.Scrapers;
 
-public class PlayerScraper(IMonoRuntime mono, Func<string?>? originalNameResolver = null) : ISnapshotScraper<PlayerSnapshot>
+public class PlayerScraper(IGameRuntime runtime, Func<string?>? originalNameResolver = null) : ISnapshotScraper<PlayerSnapshot>
 {
-    private readonly IMonoRuntime _mono = mono;
+    private readonly IGameRuntime _runtime = runtime;
     private readonly Func<string?>? _originalNameResolver = originalNameResolver;
+    private readonly ConcurrentDictionary<short, (sbyte Type, string Name)> _itemTemplateCache = new();
+    private readonly ConcurrentDictionary<short, (string Name, int IconId)> _skillTemplateCache = new();
 
     public PlayerSnapshot Scrape() => ScrapePlayer();
 
-    public IntPtr GetMyCharPtr() => _mono.GetMyCharPtr();
+    public IntPtr GetMyCharPtr() => _runtime.GetMyCharPtr();
 
     public PlayerSnapshot ScrapePlayer()
     {
@@ -19,8 +22,9 @@ public class PlayerScraper(IMonoRuntime mono, Func<string?>? originalNameResolve
         if (charPtr == IntPtr.Zero)
             return PlayerSnapshot.Empty;
 
-        int id = _mono.ReadField<int>(GameSchema.Char.ClassName, GameSchema.Char.FieldCharId, charPtr);
-        string name = _mono.ReadStringField(GameSchema.Char.ClassName, GameSchema.Char.FieldName, charPtr);
+        var charLayout = _runtime.Layout.Char;
+        int id = _runtime.ReadField<int>(charPtr, charLayout.CharId);
+        string name = _runtime.ReadStringField(charPtr, charLayout.Name);
         if (!string.IsNullOrWhiteSpace(name) && name.Contains('*'))
         {
             string? originalName = _originalNameResolver?.Invoke();
@@ -29,15 +33,15 @@ public class PlayerScraper(IMonoRuntime mono, Func<string?>? originalNameResolve
                 name = originalName;
             }
         }
-        long hp = _mono.ReadField<long>(GameSchema.Char.ClassName, GameSchema.Char.FieldHp, charPtr);
-        long maxHp = _mono.ReadField<long>(GameSchema.Char.ClassName, GameSchema.Char.FieldHpFull, charPtr);
-        long mp = _mono.ReadField<long>(GameSchema.Char.ClassName, GameSchema.Char.FieldMp, charPtr);
-        long maxMp = _mono.ReadField<long>(GameSchema.Char.ClassName, GameSchema.Char.FieldMpFull, charPtr);
-        long power = _mono.ReadField<long>(GameSchema.Char.ClassName, GameSchema.Char.FieldPower, charPtr);
-        int gender = _mono.ReadField<int>(GameSchema.Char.ClassName, GameSchema.Char.FieldGender, charPtr);
-        int x = _mono.ReadField<int>(GameSchema.Char.ClassName, GameSchema.Char.FieldX, charPtr);
-        int y = _mono.ReadField<int>(GameSchema.Char.ClassName, GameSchema.Char.FieldY, charPtr);
-        int status = _mono.ReadField<int>(GameSchema.Char.ClassName, GameSchema.Char.FieldStatusMe, charPtr);
+        long hp = _runtime.ReadField<long>(charPtr, charLayout.Hp);
+        long maxHp = _runtime.ReadField<long>(charPtr, charLayout.HpFull);
+        long mp = _runtime.ReadField<long>(charPtr, charLayout.Mp);
+        long maxMp = _runtime.ReadField<long>(charPtr, charLayout.MpFull);
+        long power = _runtime.ReadField<long>(charPtr, charLayout.Power);
+        int gender = _runtime.ReadField<int>(charPtr, charLayout.Gender);
+        int x = _runtime.ReadField<int>(charPtr, charLayout.X);
+        int y = _runtime.ReadField<int>(charPtr, charLayout.Y);
+        int status = _runtime.ReadField<int>(charPtr, charLayout.StatusMe);
 
         bool isInGame = !string.IsNullOrWhiteSpace(name);
         bool isAlive = hp > 0 && status != 14 && status != 5;
@@ -45,7 +49,7 @@ public class PlayerScraper(IMonoRuntime mono, Func<string?>? originalNameResolve
         bool isTdltActive = false;
         try
         {
-            isTdltActive = _mono.ReadStatic<bool>(GameSchema.GameScr.ClassName, GameSchema.GameScr.StaticCanAutoPlay);
+            isTdltActive = _runtime.ReadStatic<bool>(GameSchema.GameScr.ClassName, _runtime.Layout.GameScr.CanAutoPlay);
         }
         catch { }
 
@@ -59,14 +63,14 @@ public class PlayerScraper(IMonoRuntime mono, Func<string?>? originalNameResolve
 
     public bool IsChangingMap(IntPtr charPtr = default)
     {
-        if (_mono.ReadStatic<bool>(GameSchema.Char.ClassName, GameSchema.Char.StaticIsChangingMap)) return true;
-        if (_mono.ReadStatic<bool>(GameSchema.Char.ClassName, GameSchema.Char.StaticIsLoadingMap)) return true;
-        if (_mono.ReadStatic<bool>(GameSchema.GameCanvas.ClassName, GameSchema.GameCanvas.StaticIsLoading)) return true;
-        if (_mono.ReadStatic<bool>(GameSchema.Controller.ClassName, GameSchema.Controller.StaticIsStopReadMessage)) return true;
+        if (_runtime.ReadStatic<bool>(GameSchema.Char.ClassName, _runtime.Layout.Char.IsChangingMap)) return true;
+        if (_runtime.ReadStatic<bool>(GameSchema.Char.ClassName, _runtime.Layout.Char.IsLoadingMap)) return true;
+        if (_runtime.ReadStatic<bool>(GameSchema.GameCanvas.ClassName, _runtime.Layout.GameCanvas.IsLoading)) return true;
+        if (_runtime.ReadStatic<bool>(GameSchema.Controller.ClassName, _runtime.Layout.Controller.IsStopReadMessage)) return true;
 
         if (charPtr != IntPtr.Zero)
         {
-            if (_mono.ReadField<bool>(GameSchema.Char.ClassName, GameSchema.Char.FieldIsTeleport, charPtr)) return true;
+            if (_runtime.ReadField<bool>(charPtr, _runtime.Layout.Char.IsTeleport)) return true;
         }
         return false;
     }
@@ -80,22 +84,39 @@ public class PlayerScraper(IMonoRuntime mono, Func<string?>? originalNameResolve
         }
         if (charPtr == IntPtr.Zero) return result;
 
-        IntPtr arrBagPtr = _mono.ReadFieldPtr(GameSchema.Char.ClassName, GameSchema.Char.FieldArrItemBag, charPtr);
+        IntPtr arrBagPtr = _runtime.ReadFieldPtr(charPtr, _runtime.Layout.Char.ArrItemBag);
         if (arrBagPtr == IntPtr.Zero) return result;
 
-        IntPtr[] itemPtrs = _mono.ReadMonoPointerArray(arrBagPtr);
+        var itemLayout = _runtime.Layout.Item;
+        var itemTemplateLayout = _runtime.Layout.ItemTemplate;
+
+        IntPtr[] itemPtrs = _runtime.ReadPointerArray(arrBagPtr);
         for (int i = 0; i < itemPtrs.Length; i++)
         {
             IntPtr itemPtr = itemPtrs[i];
             if (itemPtr == IntPtr.Zero) continue;
 
-            int quantity = _mono.ReadField<int>(GameSchema.Item.ClassName, GameSchema.Item.FieldQuantity, itemPtr);
-            IntPtr templatePtr = _mono.ReadFieldPtr(GameSchema.Item.ClassName, GameSchema.Item.FieldTemplate, itemPtr);
+            int quantity = _runtime.ReadField<int>(itemPtr, itemLayout.Quantity);
+            IntPtr templatePtr = _runtime.ReadFieldPtr(itemPtr, itemLayout.Template);
             if (templatePtr == IntPtr.Zero) continue;
 
-            short templateId = _mono.ReadField<short>(GameSchema.ItemTemplate.ClassName, GameSchema.ItemTemplate.FieldId, templatePtr);
-            sbyte type = _mono.ReadField<sbyte>(GameSchema.ItemTemplate.ClassName, GameSchema.ItemTemplate.FieldType, templatePtr);
-            string name = _mono.ReadStringField(GameSchema.ItemTemplate.ClassName, GameSchema.ItemTemplate.FieldName, templatePtr);
+            short templateId = _runtime.ReadField<short>(templatePtr, itemTemplateLayout.Id);
+            sbyte type;
+            string name;
+            if (_itemTemplateCache.TryGetValue(templateId, out var cachedTemplate))
+            {
+                type = cachedTemplate.Type;
+                name = cachedTemplate.Name;
+            }
+            else
+            {
+                type = _runtime.ReadField<sbyte>(templatePtr, itemTemplateLayout.Type);
+                name = _runtime.ReadStringField(templatePtr, itemTemplateLayout.Name);
+                if (!string.IsNullOrWhiteSpace(name))
+                {
+                    _itemTemplateCache[templateId] = (type, name);
+                }
+            }
 
             bool isPean = GameDefinitions.IsPean(templateId, type);
             bool isCapsule = GameDefinitions.IsCapsule(templateId);
@@ -111,36 +132,50 @@ public class PlayerScraper(IMonoRuntime mono, Func<string?>? originalNameResolve
     public IReadOnlyList<GameSkillInfo> ScrapeSkills(IntPtr charPtr = default)
     {
         var result = new List<GameSkillInfo>();
-        IntPtr keySkillArray = _mono.ReadStatic<IntPtr>(GameSchema.GameScr.ClassName, GameSchema.GameScr.StaticKeySkill);
+        IntPtr keySkillArray = _runtime.ReadStatic<IntPtr>(GameSchema.GameScr.ClassName, _runtime.Layout.GameScr.KeySkill);
         if (keySkillArray == IntPtr.Zero) return result;
 
         if (charPtr == IntPtr.Zero)
         {
             charPtr = GetMyCharPtr();
         }
-        IntPtr mySkillPtr = charPtr != IntPtr.Zero ? _mono.ReadFieldPtr(GameSchema.Char.ClassName, GameSchema.Char.FieldMySkill, charPtr) : IntPtr.Zero;
+        IntPtr mySkillPtr = charPtr != IntPtr.Zero ? _runtime.ReadFieldPtr(charPtr, _runtime.Layout.Char.MySkill) : IntPtr.Zero;
 
-        IntPtr[] skillPtrs = _mono.ReadMonoPointerArray(keySkillArray);
+        var skillLayout = _runtime.Layout.Skill;
+        var skillTemplateLayout = _runtime.Layout.SkillTemplate;
+
+        IntPtr[] skillPtrs = _runtime.ReadPointerArray(keySkillArray);
         for (int i = 0; i < skillPtrs.Length && i < 10; i++)
         {
             IntPtr skillPtr = skillPtrs[i];
             if (skillPtr == IntPtr.Zero) continue;
 
-            short skillId = _mono.ReadField<short>(GameSchema.Skill.ClassName, GameSchema.Skill.FieldSkillId, skillPtr);
-            int point = _mono.ReadField<int>(GameSchema.Skill.ClassName, GameSchema.Skill.FieldPoint, skillPtr);
-            int coolDown = (int)_mono.ReadField<long>(GameSchema.Skill.ClassName, GameSchema.Skill.FieldCoolDown, skillPtr);
-            long lastTime = _mono.ReadField<long>(GameSchema.Skill.ClassName, GameSchema.Skill.FieldLastTimeUseThisSkill, skillPtr);
-            int mana = _mono.ReadField<int>(GameSchema.Skill.ClassName, GameSchema.Skill.FieldManaUse, skillPtr);
+            short skillId = _runtime.ReadField<short>(skillPtr, skillLayout.SkillId);
+            int point = _runtime.ReadField<int>(skillPtr, skillLayout.Point);
+            int coolDown = (int)_runtime.ReadField<long>(skillPtr, skillLayout.CoolDown);
+            long lastTime = _runtime.ReadField<long>(skillPtr, skillLayout.LastTimeUseThisSkill);
+            int mana = _runtime.ReadField<int>(skillPtr, skillLayout.ManaUse);
 
             string name = $"Skill {skillId}";
             int iconId = -1;
-            IntPtr templatePtr = _mono.ReadFieldPtr(GameSchema.Skill.ClassName, GameSchema.Skill.FieldTemplate, skillPtr);
-            if (templatePtr != IntPtr.Zero)
+            if (_skillTemplateCache.TryGetValue(skillId, out var cachedSkill))
             {
-                string tmplName = _mono.ReadStringField(GameSchema.SkillTemplate.ClassName, GameSchema.SkillTemplate.FieldName, templatePtr);
-                if (!string.IsNullOrWhiteSpace(tmplName))
-                    name = tmplName;
-                iconId = _mono.ReadField<short>(GameSchema.SkillTemplate.ClassName, GameSchema.SkillTemplate.FieldIconId, templatePtr);
+                name = cachedSkill.Name;
+                iconId = cachedSkill.IconId;
+            }
+            else
+            {
+                IntPtr templatePtr = _runtime.ReadFieldPtr(skillPtr, skillLayout.Template);
+                if (templatePtr != IntPtr.Zero)
+                {
+                    string tmplName = _runtime.ReadStringField(templatePtr, skillTemplateLayout.Name);
+                    iconId = _runtime.ReadField<short>(templatePtr, skillTemplateLayout.IconId);
+                    if (!string.IsNullOrWhiteSpace(tmplName))
+                    {
+                        name = tmplName;
+                        _skillTemplateCache[skillId] = (tmplName, iconId);
+                    }
+                }
             }
 
             bool isSelected = mySkillPtr != IntPtr.Zero && mySkillPtr == skillPtr;

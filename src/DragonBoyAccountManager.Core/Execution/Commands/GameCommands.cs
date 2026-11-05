@@ -19,6 +19,24 @@ public sealed record MoveCommand(
     public string Name => $"Di chuyển tới ({TargetX}, {TargetY})";
 }
 
+public sealed record NavigateCommand(
+    int TargetX,
+    int TargetY,
+    bool IsFastTeleport = false
+) : IGameCommand
+{
+    public string Name => $"Tự tìm đường tới ({TargetX}, {TargetY})";
+}
+
+public sealed record EnterWaypointCommand(
+    int WaypointX,
+    int WaypointY,
+    bool IsFastTeleport = false
+) : IGameCommand
+{
+    public string Name => $"Đi qua waypoint ({WaypointX}, {WaypointY})";
+}
+
 public sealed record UseItemCommand(
     sbyte BagIndex,
     short TemplateId = -1,

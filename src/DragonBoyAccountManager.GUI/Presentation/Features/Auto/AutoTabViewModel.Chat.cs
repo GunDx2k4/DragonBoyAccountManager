@@ -70,6 +70,23 @@ public sealed partial class AutoTabViewModel
         StatusText = count > 0 ? $"Đã gửi 1 tin chat tới {count} tài khoản lúc {DateTime.Now:HH:mm:ss}" : "Không thể gửi tin nhắn chat!";
     }
 
+    private AutoChatOptions BuildCurrentChatOptions(string? fallbackChatText = null)
+    {
+        var rawText = !string.IsNullOrWhiteSpace(ChatText) ? ChatText : (fallbackChatText ?? string.Empty);
+        var lines = rawText
+            .Split(['\r', '\n'], StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
+            .Where(l => !string.IsNullOrWhiteSpace(l))
+            .ToArray();
+
+        return new AutoChatOptions
+        {
+            Messages = lines,
+            Delay = TimeSpan.FromSeconds(Math.Max(1, ChatDelaySeconds <= 0 ? 5 : ChatDelaySeconds)),
+            IsGlobal = (ChatType)SelectedChatTypeIndex == ChatType.Global,
+            IsRandom = IsRandomChat
+        };
+    }
+
     private void StartAutoChat()
     {
         SaveCurrentAccountSettings();
@@ -80,12 +97,8 @@ public sealed partial class AutoTabViewModel
             return;
         }
 
-        var lines = ChatText
-            .Split(['\r', '\n'], StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
-            .Where(l => !string.IsNullOrWhiteSpace(l))
-            .ToArray();
-
-        if (lines.Length == 0)
+        var currentOptions = BuildCurrentChatOptions();
+        if (currentOptions.Messages.Count == 0)
         {
             StatusText = "Vui lòng nhập nội dung chat trước!";
             return;
@@ -98,9 +111,6 @@ public sealed partial class AutoTabViewModel
             return;
         }
 
-        var chatType = (ChatType)SelectedChatTypeIndex;
-        var interval = TimeSpan.FromSeconds(Math.Max(1, ChatDelaySeconds));
-
         ChatSentCount = 0;
         IsAutoChatRunning = true;
         AutoChatStatusText = targets.Count > 1 ? $"Đang chạy auto chat ({targets.Count} tài khoản)..." : "Đang chạy auto chat...";
@@ -110,7 +120,10 @@ public sealed partial class AutoTabViewModel
             var targetAcc = ResolveAccount(id);
             if (targetAcc != null && targetAcc.Id != ActiveAccount?.Id)
             {
-                var accOptions = targetAcc.AutoSettings.ToAutoChatOptions(ChatText);
+                var savedChat = targetAcc.AutoSettings.Chat;
+                var accOptions = savedChat.Messages is { Count: > 0 }
+                    ? savedChat
+                    : savedChat with { Messages = currentOptions.Messages };
                 targetAcc.IsAutoChatRunning = true;
                 targetAcc.AutoChatStatusText = "Đang chạy auto chat...";
                 _gameEngine.StartAutoChat(id, accOptions);
@@ -122,7 +135,7 @@ public sealed partial class AutoTabViewModel
                     targetAcc.IsAutoChatRunning = true;
                     targetAcc.AutoChatStatusText = "Đang chạy auto chat...";
                 }
-                _gameEngine.StartAutoChat(id, lines, interval, chatType, IsRandomChat);
+                _gameEngine.StartAutoChat(id, currentOptions);
             }
         }
     }

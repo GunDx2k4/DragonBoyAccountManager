@@ -6,8 +6,8 @@ using DragonBoyAccountManager.Core.Automation.Behaviors.Navigation;
 using DragonBoyAccountManager.Core.Execution;
 using DragonBoyAccountManager.Core.Execution.Commands;
 using DragonBoyAccountManager.Core.Execution.Handlers;
-using DragonBoyAccountManager.Core.Interop.Mono;
-using DragonBoyAccountManager.Core.Interop.Mono.Schema;
+using DragonBoyAccountManager.Core.Interop.Abstractions;
+using DragonBoyAccountManager.Core.Interop.Schema;
 using DragonBoyAccountManager.Core.Sessions.Controllers;
 using DragonBoyAccountManager.Core.Telemetry.Scrapers;
 using DragonBoyAccountManager.Core.Telemetry.Snapshots;
@@ -18,13 +18,14 @@ public sealed class GameSession : ISessionContext, IDisposable
 {
     public Guid SessionId { get; }
     public Process Process { get; }
-    public IMonoRuntime Mono { get; }
+    public IGameRuntime Runtime { get; }
 
     public PlayerScraper PlayerScraper { get; }
     public WorldScraper WorldScraper { get; }
     public MapScraper MapScraper { get; }
     public SessionMaskingController MaskingController { get; }
     public LoginScreenController LoginScreen { get; }
+    public GameSpeedController SpeedController { get; }
 
     public CommandDispatcher Dispatcher { get; }
     ICommandDispatcher ISessionContext.Dispatcher => Dispatcher;
@@ -78,7 +79,7 @@ public sealed class GameSession : ISessionContext, IDisposable
 
         try
         {
-            if (Mono.ReadStatic<bool>(GameSchema.Main.ClassName, GameSchema.Main.StaticIsQuitApp))
+            if (Runtime.ReadStatic<bool>(GameSchema.Main.ClassName, Runtime.Layout.Main.IsQuitApp))
                 return true;
         }
         catch
@@ -96,18 +97,19 @@ public sealed class GameSession : ISessionContext, IDisposable
         remove => Process.Exited -= value;
     }
 
-    public GameSession(Process process, IMonoRuntime mono, Guid sessionId = default, Action<GameSession>? configure = null)
+    public GameSession(Process process, IGameRuntime runtime, Guid sessionId = default, Action<GameSession>? configure = null)
     {
         SessionId = sessionId == default ? Guid.NewGuid() : sessionId;
         Process = process;
         Process.EnableRaisingEvents = true;
-        Mono = mono;
+        Runtime = runtime;
 
-        MaskingController = new SessionMaskingController(mono);
-        LoginScreen = new LoginScreenController(mono);
-        PlayerScraper = new PlayerScraper(mono, () => MaskingController.OriginalCharacterName);
-        WorldScraper = new WorldScraper(mono);
-        MapScraper = new MapScraper(mono);
+        MaskingController = new SessionMaskingController(runtime);
+        LoginScreen = new LoginScreenController(runtime);
+        SpeedController = new GameSpeedController(runtime);
+        PlayerScraper = new PlayerScraper(runtime, () => MaskingController.OriginalCharacterName);
+        WorldScraper = new WorldScraper(runtime);
+        MapScraper = new MapScraper(runtime);
 
         RegisterScraper(PlayerScraper);
         RegisterScraper(WorldScraper);
@@ -118,27 +120,31 @@ public sealed class GameSession : ISessionContext, IDisposable
         _snapshots[typeof(MapSnapshot)] = MapSnapshot.Empty;
 
         Dispatcher = new CommandDispatcher();
+        Navigator = new AutoNavigator(Dispatcher);
 
-        var combatHandler = new CombatHandler(mono);
-        var movementHandler = new MovementHandler(mono);
-        var interactionHandler = new InteractionHandler(mono);
-        var skillAssignmentHandler = new SkillAssignmentHandler(mono);
+        var combatHandler = new CombatHandler(runtime);
+        var movementHandler = new MovementHandler(runtime, Navigator, this);
+        var inventoryHandler = new InventoryHandler(runtime);
+        var zoneHandler = new ZoneHandler(runtime);
+        var chatHandler = new ChatHandler(runtime);
+        var worldInteractionHandler = new WorldInteractionHandler(runtime);
+        var skillAssignmentHandler = new SkillAssignmentHandler(runtime);
 
         Dispatcher.RegisterHandler<AttackMobCommand>(combatHandler);
         Dispatcher.RegisterHandler<SelectSkillCommand>(combatHandler);
         Dispatcher.RegisterHandler<MoveCommand>(movementHandler);
-        Dispatcher.RegisterHandler<UseItemCommand>(interactionHandler);
-        Dispatcher.RegisterHandler<PickItemCommand>(interactionHandler);
-        Dispatcher.RegisterHandler<SendChatCommand>(interactionHandler);
-        Dispatcher.RegisterHandler<WakeUpCommand>(interactionHandler);
-        Dispatcher.RegisterHandler<ChangeZoneCommand>(interactionHandler);
-        Dispatcher.RegisterHandler<OpenZonePanelCommand>(interactionHandler);
-        Dispatcher.RegisterHandler<CloseZonePanelCommand>(interactionHandler);
-        Dispatcher.RegisterHandler<LoginCommand>(interactionHandler);
-        Dispatcher.RegisterHandler<FocusEntityCommand>(interactionHandler);
+        Dispatcher.RegisterHandler<NavigateCommand>(movementHandler);
+        Dispatcher.RegisterHandler<EnterWaypointCommand>(movementHandler);
+        Dispatcher.RegisterHandler<UseItemCommand>(inventoryHandler);
+        Dispatcher.RegisterHandler<PickItemCommand>(inventoryHandler);
+        Dispatcher.RegisterHandler<SendChatCommand>(chatHandler);
+        Dispatcher.RegisterHandler<WakeUpCommand>(worldInteractionHandler);
+        Dispatcher.RegisterHandler<ChangeZoneCommand>(zoneHandler);
+        Dispatcher.RegisterHandler<OpenZonePanelCommand>(zoneHandler);
+        Dispatcher.RegisterHandler<CloseZonePanelCommand>(zoneHandler);
+        Dispatcher.RegisterHandler<LoginCommand>(worldInteractionHandler);
+        Dispatcher.RegisterHandler<FocusEntityCommand>(worldInteractionHandler);
         Dispatcher.RegisterHandler<AssignSkillsCommand>(skillAssignmentHandler);
-
-        Navigator = new AutoNavigator(Dispatcher);
 
         RegisterBehavior(new AutoTrainBehavior(new AutoTrainOptions()));
         RegisterBehavior(new AutoChatBehavior(new AutoChatOptions()));
@@ -154,6 +160,10 @@ public sealed class GameSession : ISessionContext, IDisposable
         {
             _snapshots[snapshotType] = scraper.Scrape();
         }
+
+        bool isInGame = CurrentPlayer.IsInGame;
+        SpeedController.OnTick(isInGame);
+        MaskingController.OnTick(isInGame);
 
         Ticked?.Invoke(this);
     }
@@ -186,7 +196,7 @@ public sealed class GameSession : ISessionContext, IDisposable
     {
         StopAllBehaviors();
         Dispatcher.Dispose();
-        Mono.Dispose();
+        Runtime.Dispose();
         GC.SuppressFinalize(this);
     }
 }

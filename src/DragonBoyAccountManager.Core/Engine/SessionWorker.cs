@@ -8,11 +8,10 @@ using DragonBoyAccountManager.Core.Engine.Models;
 using DragonBoyAccountManager.Core.Execution;
 using DragonBoyAccountManager.Core.Execution.Commands;
 using DragonBoyAccountManager.Core.Sessions;
-using DragonBoyAccountManager.Core.Telemetry.Snapshots;
 
 namespace DragonBoyAccountManager.Core.Engine;
 
-public sealed class SessionWorker : IDisposable
+public sealed class SessionWorker : IDisposable, IAsyncDisposable
 {
     public GameSession Session { get; }
     public AccountLaunchOptions Options { get; private set; }
@@ -20,12 +19,14 @@ public sealed class SessionWorker : IDisposable
     public Task? LoopTask { get; private set; }
 
     public bool HasAssignedSkills { get; set; }
-    public float GameSpeed { get; private set; } = 1.0f;
-    public bool IsMasked { get; private set; }
+    public float GameSpeed => Session.SpeedController.TargetSpeed;
+    public bool IsMasked => Session.MaskingController.IsMasked;
 
     private int _isLoggingIn;
+    private volatile bool _wasInGame;
+    private long _behaviorRunSequence;
     public bool IsLoggingIn => Volatile.Read(ref _isLoggingIn) == 1;
-    private readonly ConcurrentDictionary<string, byte> _activeBehaviors = new(StringComparer.OrdinalIgnoreCase);
+    private readonly ConcurrentDictionary<string, long> _activeBehaviors = new(StringComparer.OrdinalIgnoreCase);
 
     public event Action<SessionEvent>? EventPublished;
 
@@ -38,13 +39,23 @@ public sealed class SessionWorker : IDisposable
     {
         Session = session;
         Options = options;
-        GameSpeed = options.GameSpeed;
-        IsMasked = options.IsMasked;
+        bool isInGame = Session.CurrentPlayer.IsInGame;
+        Session.SpeedController.SetSpeed(options.GameSpeed, isInGame);
+        Session.MaskingController.Configure(options.IsMasked, options.Username, isInGame);
     }
 
     public void StartLoop()
     {
         LoopTask = Task.Run(RunLoopAsync);
+    }
+
+    private void TryAutoAssignSkills(CancellationToken token = default)
+    {
+        if (!HasAssignedSkills && Options.AutoAssignSkills)
+        {
+            HasAssignedSkills = true;
+            _ = Task.Run(() => ExecuteCommandAsync(new AssignSkillsCommand(), token), token);
+        }
     }
 
     private async Task RunLoopAsync()
@@ -62,32 +73,29 @@ public sealed class SessionWorker : IDisposable
 
                 Session.Tick();
 
-                if (IsMasked || Session.MaskingController.HasOriginalServerListCaption)
-                {
-                    Session.MaskingController.ApplyEarlyMaskingGuard(IsMasked, Session.CurrentPlayer.IsInGame, Options.Username);
-                }
-
                 if (Session.CurrentPlayer.IsInGame)
                 {
-                    Session.MaskingController.SyncInGameCharacterNameMasking(IsMasked, true, Options.Username);
-
-                    if (!HasAssignedSkills && Options.AutoAssignSkills)
-                    {
-                        HasAssignedSkills = true;
-                        _ = Task.Run(() => ExecuteCommandAsync(new AssignSkillsCommand(), token), token);
-                    }
-
+                    TryAutoAssignSkills(token);
                     PublishSessionUpdate();
                 }
                 else
                 {
                     HasAssignedSkills = false;
-                    Session.MaskingController.ResetCharacterName();
-                    if (Options.AutoLogin && !IsLoggingIn && Session.IsRunning && !Session.IsQuitRequested && !Cts.IsCancellationRequested)
+                    if (_wasInGame && Options.AutoLogin && !IsLoggingIn && Session.IsRunning && !Session.IsQuitRequested && !Cts.IsCancellationRequested)
                     {
                         _ = Task.Run(async () =>
                         {
-                            try { await ExecuteLoginAsync(); } catch { }
+                            _wasInGame = false;
+                            try
+                            {
+                                bool loggedIn = await ExecuteLoginAsync();
+                                if (!loggedIn && Session.IsRunning && !Session.IsQuitRequested && !Cts.IsCancellationRequested)
+                                {
+                                    await Task.Delay(3000, token);
+                                    _wasInGame = true;
+                                }
+                            }
+                            catch { }
                         }, token);
                     }
                 }
@@ -95,7 +103,7 @@ public sealed class SessionWorker : IDisposable
                 int delayMs = Session.CurrentPlayer.IsInGame ? 500 : 200;
                 await Task.Delay(delayMs, token);
             }
-            catch (OperationCanceledException)
+            catch (Exception ex) when (ex is OperationCanceledException or ObjectDisposedException)
             {
                 break;
             }
@@ -114,6 +122,7 @@ public sealed class SessionWorker : IDisposable
         {
             if (Session.CurrentPlayer.IsInGame)
             {
+                _wasInGame = true;
                 var snapshot = Session.CreateSessionSnapshot();
                 Publish(new SessionStateChangedEvent(Options.AccountId, GameSessionStatus.Active, snapshot));
             }
@@ -133,6 +142,8 @@ public sealed class SessionWorker : IDisposable
             Interlocked.Exchange(ref _isLoggingIn, 0);
             return false;
         }
+
+        ResumeHighestPriorityExclusiveBehavior();
 
         Publish(new SessionStateChangedEvent(Options.AccountId, GameSessionStatus.LoggingIn, null));
         Publish(new SessionMessageEvent(Options.AccountId, "Bắt đầu đăng nhập..."));
@@ -160,12 +171,9 @@ public sealed class SessionWorker : IDisposable
             Session.Tick();
             if (Session.CurrentPlayer.IsInGame)
             {
+                _wasInGame = true;
                 Publish(new SessionMessageEvent(Options.AccountId, "Đăng nhập thành công!"));
-                if (!HasAssignedSkills && Options.AutoAssignSkills)
-                {
-                    HasAssignedSkills = true;
-                    _ = Task.Run(() => ExecuteCommandAsync(new AssignSkillsCommand()));
-                }
+                TryAutoAssignSkills(Cts.Token);
 
                 var snapshot = Session.CreateSessionSnapshot();
                 Publish(new SessionStateChangedEvent(Options.AccountId, GameSessionStatus.Active, snapshot));
@@ -195,6 +203,7 @@ public sealed class SessionWorker : IDisposable
         finally
         {
             Interlocked.Exchange(ref _isLoggingIn, 0);
+            ResumeHighestPriorityExclusiveBehavior();
         }
     }
 
@@ -223,11 +232,6 @@ public sealed class SessionWorker : IDisposable
         if (behavior == null) return false;
 
         behavior.UpdateOptions(options);
-        if (behavior.IsRunning)
-        {
-            return true;
-        }
-
         return LaunchBehaviorInternal(behavior);
     }
 
@@ -254,7 +258,13 @@ public sealed class SessionWorker : IDisposable
 
     private bool LaunchBehaviorInternal(IBehavior behavior)
     {
-        if (behavior.IsRunning) return true;
+        if (_activeBehaviors.ContainsKey(behavior.Id) && behavior.IsRunning)
+        {
+            ArbitrateExclusiveBehaviors(behavior);
+            return true;
+        }
+
+        ArbitrateExclusiveBehaviors(behavior);
 
         var progress = new Progress<string>(msg =>
         {
@@ -262,13 +272,77 @@ public sealed class SessionWorker : IDisposable
             Publish(new ActionReportedEvent(Options.AccountId, ActionExecutionReport.Running(behavior.Name, msg)));
         });
 
-        _activeBehaviors[behavior.Id] = 1;
+        long runId = Interlocked.Increment(ref _behaviorRunSequence);
+        _activeBehaviors[behavior.Id] = runId;
         Publish(new BehaviorStateChangedEvent(Options.AccountId, behavior.Id, true));
-        _ = RunBehaviorLifecycleAsync(behavior, progress);
+        _ = RunBehaviorLifecycleAsync(behavior, progress, runId);
         return true;
     }
 
-    private async Task RunBehaviorLifecycleAsync(IBehavior behavior, IProgress<string> progress)
+    private void ArbitrateExclusiveBehaviors(IBehavior incoming)
+    {
+        if (incoming.ExecutionMode != BehaviorExecutionMode.Exclusive)
+            return;
+
+        bool hasHigherPriority = false;
+        foreach (var other in Session.Behaviors)
+        {
+            if (!other.IsRunning || !_activeBehaviors.ContainsKey(other.Id) || string.Equals(other.Id, incoming.Id, StringComparison.OrdinalIgnoreCase) || other.ExecutionMode != BehaviorExecutionMode.Exclusive)
+                continue;
+
+            if (other.Priority == incoming.Priority)
+            {
+                StopBehaviorInternal(other);
+            }
+            else if (other.Priority < incoming.Priority)
+            {
+                other.Pause();
+            }
+            else
+            {
+                hasHigherPriority = true;
+            }
+        }
+
+        if (IsLoggingIn || hasHigherPriority)
+        {
+            incoming.Pause();
+        }
+        else
+        {
+            incoming.Resume();
+        }
+    }
+
+    private void ResumeHighestPriorityExclusiveBehavior()
+    {
+        if (IsLoggingIn)
+        {
+            foreach (var b in Session.Behaviors)
+            {
+                if (b.ExecutionMode == BehaviorExecutionMode.Exclusive)
+                {
+                    b.Pause();
+                }
+            }
+            return;
+        }
+
+        var runningExclusives = Session.Behaviors
+            .Where(b => b.IsRunning && _activeBehaviors.ContainsKey(b.Id) && b.ExecutionMode == BehaviorExecutionMode.Exclusive)
+            .OrderByDescending(b => b.Priority)
+            .ToList();
+
+        for (int i = 0; i < runningExclusives.Count; i++)
+        {
+            if (i == 0)
+                runningExclusives[i].Resume();
+            else
+                runningExclusives[i].Pause();
+        }
+    }
+
+    private async Task RunBehaviorLifecycleAsync(IBehavior behavior, IProgress<string> progress, long runId)
     {
         try
         {
@@ -276,11 +350,12 @@ public sealed class SessionWorker : IDisposable
         }
         finally
         {
-            if (_activeBehaviors.TryRemove(behavior.Id, out _) && !Cts.IsCancellationRequested)
+            if (_activeBehaviors.TryRemove(KeyValuePair.Create(behavior.Id, runId)) && !Cts.IsCancellationRequested)
             {
                 Publish(new BehaviorStateChangedEvent(Options.AccountId, behavior.Id, false, $"Đã dừng {behavior.Name}."));
                 Publish(new ActionReportedEvent(Options.AccountId, ActionExecutionReport.Success(behavior.Name, $"Đã dừng {behavior.Name}.")));
             }
+            ResumeHighestPriorityExclusiveBehavior();
         }
     }
 
@@ -304,48 +379,45 @@ public sealed class SessionWorker : IDisposable
             Publish(new BehaviorStateChangedEvent(Options.AccountId, behavior.Id, false, $"Đã dừng {behavior.Name}."));
             Publish(new ActionReportedEvent(Options.AccountId, ActionExecutionReport.Success(behavior.Name, $"Đã dừng {behavior.Name}.")));
         }
+        ResumeHighestPriorityExclusiveBehavior();
         return true;
     }
 
     public bool IsBehaviorRunning<TBehavior>() where TBehavior : class, IBehavior
     {
         var behavior = Session.GetBehavior<TBehavior>();
-        return behavior?.IsRunning ?? false;
+        return behavior != null && behavior.IsRunning && _activeBehaviors.ContainsKey(behavior.Id);
     }
 
     public bool IsBehaviorRunning(string behaviorId)
     {
         var behavior = Session.GetBehavior(behaviorId);
-        return behavior?.IsRunning ?? false;
+        return behavior != null && behavior.IsRunning && _activeBehaviors.ContainsKey(behavior.Id);
     }
 
     public IReadOnlyCollection<IBehavior> GetBehaviors() => Session.Behaviors.ToList();
 
     public void SetGameSpeed(float speed)
     {
-        GameSpeed = speed;
-        try
-        {
-            Session.Mono.CallUnityMethod("UnityEngine", "Time", "set_timeScale", IntPtr.Zero, speed);
-        }
-        catch
-        {
-        }
+        Options = Options with { GameSpeed = speed };
+        Session.SpeedController.SetSpeed(speed, Session.CurrentPlayer.IsInGame);
     }
 
     public void UpdateLaunchOptions(AccountLaunchOptions options)
     {
         Options = options;
+        if (Session.IsRunning)
+        {
+            Session.MaskingController.Configure(options.IsMasked, options.Username, Session.CurrentPlayer.IsInGame);
+        }
     }
 
     public void SetMasked(bool isMasked)
     {
-        IsMasked = isMasked;
         Options = Options with { IsMasked = isMasked };
         if (Session.IsRunning)
         {
-            Session.MaskingController.ApplyEarlyMaskingGuard(IsMasked, Session.CurrentPlayer.IsInGame, Options.Username);
-            Session.MaskingController.SyncInGameCharacterNameMasking(IsMasked, Session.CurrentPlayer.IsInGame, Options.Username);
+            Session.MaskingController.SetMasked(isMasked, Session.CurrentPlayer.IsInGame);
         }
     }
 
@@ -369,6 +441,12 @@ public sealed class SessionWorker : IDisposable
         Session.Kill();
         Cts.Dispose();
         Session.Dispose();
+        GC.SuppressFinalize(this);
+    }
+
+    public async ValueTask DisposeAsync()
+    {
+        await StopAsync();
         GC.SuppressFinalize(this);
     }
 }

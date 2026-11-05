@@ -2,14 +2,13 @@ using DragonBoyAccountManager.Core.Common;
 using DragonBoyAccountManager.Core.Interop.Memory;
 using DragonBoyAccountManager.Core.Interop.Native;
 
-namespace DragonBoyAccountManager.Core.Interop.Mono;
+namespace DragonBoyAccountManager.Core.Interop.Execution;
 
-public class MonoRemoteInvoker(IntPtr processHandle, IMemoryAccessor memory, RemoteScratchpad scratchpad)
+public class RemoteInvoker(IntPtr processHandle, IMemoryAccessor memory, RemoteScratchpad scratchpad)
 {
     private readonly IntPtr _processHandle = processHandle;
     private readonly IMemoryAccessor _memory = memory;
     private readonly RemoteScratchpad _scratchpad = scratchpad;
-    private readonly bool _is64Bit = memory.Is64Bit;
     private readonly Assembler _assembler = new();
 
     public IntPtr RootDomain { get; private set; } = IntPtr.Zero;
@@ -35,9 +34,7 @@ public class MonoRemoteInvoker(IntPtr processHandle, IMemoryAccessor memory, Rem
 
             _memory.Write(retValPtr, (long)0);
 
-            byte[] code = _is64Bit
-                ? Assemble64(functionAddress, retValPtr, args)
-                : Assemble86(functionAddress, retValPtr, args);
+            byte[] code = Assemble64(functionAddress, retValPtr, args);
 
             fixed (byte* pCode = code)
             {
@@ -60,10 +57,13 @@ public class MonoRemoteInvoker(IntPtr processHandle, IMemoryAccessor memory, Rem
             {
                 WaitResult result = NativeMethods.WaitForSingleObject(thread, Constants.DefaultTimeoutMs);
                 if (result != WaitResult.Signaled)
+                {
+                    NativeMethods.TerminateThread(thread, 1);
                     return IntPtr.Zero;
+                }
 
                 IntPtr ret = _memory.ReadIntPtr(retValPtr);
-                if (ret == unchecked((IntPtr)(long)0x00000000C0000005))
+                if (ret == unchecked((IntPtr)(long)0x00000000C0000005) || ret == unchecked((IntPtr)(long)0xFFFFFFFFC0000005))
                     return IntPtr.Zero;
 
                 return ret;
@@ -73,52 +73,6 @@ public class MonoRemoteInvoker(IntPtr processHandle, IMemoryAccessor memory, Rem
                 NativeMethods.CloseHandle(thread);
             }
         });
-    }
-
-    private byte[] Assemble86(IntPtr functionPtr, IntPtr retValPtr, IntPtr[] args)
-    {
-        _assembler.Clear();
-
-        bool needAttach = RootDomain != IntPtr.Zero && ThreadAttachAddress != IntPtr.Zero;
-        if (needAttach)
-        {
-            _assembler.PushEbx();
-            _assembler.Push(RootDomain);
-            _assembler.MovEax(ThreadAttachAddress);
-            _assembler.CallEax();
-            _assembler.AddEsp(4);
-            _assembler.MovEbxEax();
-        }
-
-        for (int i = args.Length - 1; i >= 0; i--)
-        {
-            _assembler.Push(args[i]);
-        }
-
-        _assembler.MovEax(functionPtr);
-        _assembler.CallEax();
-        if (args.Length > 0)
-        {
-            _assembler.AddEsp((byte)(args.Length * 4));
-        }
-        _assembler.MovEaxTo(retValPtr);
-
-        if (needAttach)
-        {
-            if (ThreadDetachAddress != IntPtr.Zero)
-            {
-                _assembler.TestEbxEbx();
-                _assembler.Jz(11);
-                _assembler.PushEbx();
-                _assembler.MovEax(ThreadDetachAddress);
-                _assembler.CallEax();
-                _assembler.AddEsp(4);
-            }
-            _assembler.PopEbx();
-        }
-
-        _assembler.Return();
-        return _assembler.ToByteArray();
     }
 
     private byte[] Assemble64(IntPtr functionPtr, IntPtr retValPtr, IntPtr[] args)
@@ -132,7 +86,14 @@ public class MonoRemoteInvoker(IntPtr processHandle, IMemoryAccessor memory, Rem
         }
 
         int slots = Math.Max(4, args.Length);
-        if (slots % 2 == 0) slots++;
+        if (needAttach)
+        {
+            if (slots % 2 != 0) slots++;
+        }
+        else
+        {
+            if (slots % 2 == 0) slots++;
+        }
         byte allocStack = (byte)(slots * 8);
 
         _assembler.SubRsp(allocStack);
@@ -145,8 +106,16 @@ public class MonoRemoteInvoker(IntPtr processHandle, IMemoryAccessor memory, Rem
             _assembler.MovR12Rax();
         }
 
-        if (args.Length > 0) _assembler.MovRcx(args[0]);
-        if (args.Length > 1) _assembler.MovRdx(args[1]);
+        if (args.Length > 0)
+        {
+            _assembler.MovRcx(args[0]);
+            _assembler.MovdXmm0Rcx();
+        }
+        if (args.Length > 1)
+        {
+            _assembler.MovRdx(args[1]);
+            _assembler.MovdXmm1Rdx();
+        }
         if (args.Length > 2) _assembler.MovR8(args[2]);
         if (args.Length > 3) _assembler.MovR9(args[3]);
 
@@ -160,8 +129,6 @@ public class MonoRemoteInvoker(IntPtr processHandle, IMemoryAccessor memory, Rem
         _assembler.CallRax();
         _assembler.MovRaxTo(retValPtr);
 
-        _assembler.AddRsp(allocStack);
-
         if (needAttach)
         {
             if (ThreadDetachAddress != IntPtr.Zero)
@@ -170,6 +137,12 @@ public class MonoRemoteInvoker(IntPtr processHandle, IMemoryAccessor memory, Rem
                 _assembler.MovRcxR12();
                 _assembler.CallRax();
             }
+        }
+
+        _assembler.AddRsp(allocStack);
+
+        if (needAttach)
+        {
             _assembler.PopR12();
         }
 
