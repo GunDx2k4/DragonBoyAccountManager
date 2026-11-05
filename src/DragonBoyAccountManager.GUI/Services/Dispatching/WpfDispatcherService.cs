@@ -1,4 +1,5 @@
 using System;
+using System.Threading;
 using System.Threading.Tasks;
 using System.Windows.Threading;
 
@@ -6,49 +7,89 @@ namespace DragonBoyAccountManager.GUI.Services.Dispatching;
 
 public sealed class WpfDispatcherService : IDispatcherService
 {
-    private static Dispatcher UiDispatcher =>
-        System.Windows.Application.Current?.Dispatcher
-        ?? throw new InvalidOperationException("Application.Current is null or has no Dispatcher.");
+    private readonly Dispatcher? _dispatcher;
+
+    public WpfDispatcherService(Dispatcher? dispatcher = null)
+    {
+        _dispatcher = dispatcher
+            ?? System.Windows.Application.Current?.Dispatcher
+            ?? Dispatcher.FromThread(Thread.CurrentThread);
+    }
+
+    private Dispatcher? UiDispatcher
+    {
+        get
+        {
+            if (_dispatcher is { HasShutdownStarted: false, HasShutdownFinished: false })
+            {
+                return _dispatcher;
+            }
+
+            var appDispatcher = System.Windows.Application.Current?.Dispatcher;
+            if (appDispatcher is { HasShutdownStarted: false, HasShutdownFinished: false })
+            {
+                return appDispatcher;
+            }
+
+            return null;
+        }
+    }
 
     public void Invoke(Action action)
     {
-        if (CheckAccess())
+        var dispatcher = UiDispatcher;
+        if (dispatcher == null) return;
+
+        if (dispatcher.CheckAccess())
         {
             action();
         }
         else
         {
-            UiDispatcher.Invoke(action);
+            dispatcher.Invoke(action);
         }
     }
 
     public T Invoke<T>(Func<T> func)
     {
-        if (CheckAccess())
+        var dispatcher = UiDispatcher;
+        if (dispatcher == null) return default!;
+
+        if (dispatcher.CheckAccess())
         {
             return func();
         }
-        return UiDispatcher.Invoke(func);
+        return dispatcher.Invoke(func);
     }
 
     public Task InvokeAsync(Action action)
     {
-        if (CheckAccess())
+        var dispatcher = UiDispatcher;
+        if (dispatcher == null) return Task.CompletedTask;
+
+        if (dispatcher.CheckAccess())
         {
             action();
             return Task.CompletedTask;
         }
-        return UiDispatcher.InvokeAsync(action).Task;
+        return dispatcher.InvokeAsync(action).Task;
     }
 
     public Task<T> InvokeAsync<T>(Func<T> func)
     {
-        if (CheckAccess())
+        var dispatcher = UiDispatcher;
+        if (dispatcher == null) return Task.FromResult(default(T)!);
+
+        if (dispatcher.CheckAccess())
         {
             return Task.FromResult(func());
         }
-        return UiDispatcher.InvokeAsync(func).Task;
+        return dispatcher.InvokeAsync(func).Task;
     }
 
-    public bool CheckAccess() => UiDispatcher.CheckAccess();
+    public bool CheckAccess()
+    {
+        var dispatcher = UiDispatcher;
+        return dispatcher != null && dispatcher.CheckAccess();
+    }
 }
