@@ -191,7 +191,6 @@ public sealed class CoreGameEngineAdapter : IGameEngineService, IDisposable
             GamePath = gamePath,
             ScreenWidth = width,
             ScreenHeight = height,
-            GameSpeed = account.GameSpeed,
             AutoLogin = account.AutoLogin,
             AutoAssignSkills = _settingsService?.Current.AutoAssignSkills == true,
             IsMasked = _isMasked
@@ -307,17 +306,6 @@ public sealed class CoreGameEngineAdapter : IGameEngineService, IDisposable
             }
         }
     }
-
-    public void SetGameSpeed(Guid accountId, float speed)
-    {
-        if (_accounts.TryGetValue(accountId, out var account))
-        {
-            account.GameSpeed = speed;
-        }
-        _gameEngine.SetGameSpeed(accountId, speed);
-    }
-
-    public float GetGameSpeed(Guid accountId) => _gameEngine.GetGameSpeed(accountId);
 
     public void SendGameKeyDown(Guid accountId, GameKey key) => _gameEngine.SendGameKeyDown(accountId, key);
     public void SendGameKeyUp(Guid accountId, GameKey key) => _gameEngine.SendGameKeyUp(accountId, key);

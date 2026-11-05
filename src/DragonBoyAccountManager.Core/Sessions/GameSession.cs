@@ -25,7 +25,6 @@ public sealed class GameSession : ISessionContext, IDisposable
     public MapScraper MapScraper { get; }
     public SessionMaskingController MaskingController { get; }
     public LoginScreenController LoginScreen { get; }
-    public GameSpeedController SpeedController { get; }
 
     public CommandDispatcher Dispatcher { get; }
     ICommandDispatcher ISessionContext.Dispatcher => Dispatcher;
@@ -106,7 +105,6 @@ public sealed class GameSession : ISessionContext, IDisposable
 
         MaskingController = new SessionMaskingController(runtime);
         LoginScreen = new LoginScreenController(runtime);
-        SpeedController = new GameSpeedController(runtime);
         PlayerScraper = new PlayerScraper(runtime, () => MaskingController.OriginalCharacterName);
         WorldScraper = new WorldScraper(runtime);
         MapScraper = new MapScraper(runtime);
@@ -163,7 +161,6 @@ public sealed class GameSession : ISessionContext, IDisposable
         }
 
         bool isInGame = CurrentPlayer.IsInGame;
-        SpeedController.OnTick(isInGame);
         MaskingController.OnTick(isInGame);
 
         Ticked?.Invoke(this);

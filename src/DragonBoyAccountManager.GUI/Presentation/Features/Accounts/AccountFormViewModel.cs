@@ -66,15 +66,6 @@ public sealed partial class AccountFormViewModel : ObservableObject, IActivatabl
     [NotifyPropertyChangedFor(nameof(DisplayUsername))]
     private bool _isMasked;
 
-    [ObservableProperty]
-    private bool _isApplySpeedToAll = true;
-
-    [ObservableProperty]
-    [NotifyPropertyChangedFor(nameof(GameSpeedText))]
-    private float _gameSpeed = 1.0f;
-
-    public string GameSpeedText => $"{GameSpeed:0.0}x";
-
     public ObservableCollection<string> AvailableServers { get; } = [];
     public ObservableCollection<WorldZoneInfo> AvailableZones { get; } = [];
     public ObservableCollection<SkillButtonItem> Skills { get; } = [];
@@ -221,7 +212,6 @@ public sealed partial class AccountFormViewModel : ObservableObject, IActivatabl
             Username = item.Username;
             Password = item.Password;
             SelectedServer = item.Server;
-            GameSpeed = item.GameSpeed;
             AutoLogin = item.Model.AutoLogin;
             CurrentZoneId = item.ZoneId;
             ZonePlayerDisplay = $"{item.CurrentPlayers ?? 0}/{item.MaxPlayers ?? 15}";
@@ -293,7 +283,6 @@ public sealed partial class AccountFormViewModel : ObservableObject, IActivatabl
         Username = string.Empty;
         Password = string.Empty;
         SelectedServer = AvailableServers.FirstOrDefault() ?? "Vũ trụ 1";
-        GameSpeed = 1.0f;
         AutoLogin = true;
         CurrentZoneId = null;
         ZonePlayerDisplay = "0/15";
@@ -307,20 +296,6 @@ public sealed partial class AccountFormViewModel : ObservableObject, IActivatabl
         IsEditing = false;
         OnPropertyChanged(nameof(CanDelete));
         OnPropertyChanged(nameof(CanModifyCredentials));
-    }
-
-    partial void OnGameSpeedChanged(float value)
-    {
-        if (_editingAccount != null)
-        {
-            _editingAccount.GameSpeed = value;
-            _editingAccount.Model.GameSpeed = value;
-        }
-
-        foreach (var id in ResolveSpeedTargets())
-        {
-            _gameEngine.SetGameSpeed(id, value);
-        }
     }
 
     [RelayCommand]
@@ -380,7 +355,6 @@ public sealed partial class AccountFormViewModel : ObservableObject, IActivatabl
             account.Password = trimmedPass;
             account.ServerName = SelectedServer;
             account.ServerId = serverId;
-            account.GameSpeed = GameSpeed;
             account.AutoLogin = AutoLogin;
         }
         else
@@ -391,7 +365,6 @@ public sealed partial class AccountFormViewModel : ObservableObject, IActivatabl
                 Password = trimmedPass,
                 ServerName = SelectedServer,
                 ServerId = serverId,
-                GameSpeed = GameSpeed,
                 AutoLogin = AutoLogin
             };
         }

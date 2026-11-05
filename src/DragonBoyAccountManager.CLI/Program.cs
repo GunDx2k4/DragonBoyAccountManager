@@ -152,7 +152,6 @@ var launchOptions = new AccountLaunchOptions
     GamePath = gamePath,
     AutoLogin = selectedAccount.AutoLogin,
     AutoAssignSkills = false,
-    GameSpeed = selectedAccount.GameSpeed > 0 ? selectedAccount.GameSpeed : 1.0f
 };
 
 AnsiConsole.MarkupLine($"[green]Đang khởi chạy tài khoản:[/] [cyan]{Markup.Escape(selectedAccount.Username)}[/]...");

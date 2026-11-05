@@ -69,17 +69,6 @@ public sealed class ActiveSelectionStore : IActiveSelectionService
         return [];
     }
 
-    public IReadOnlyList<Guid> GetRunningSpeedTargetAccountIds(bool applyToAll)
-    {
-        if (applyToAll && _allAccountsProvider != null)
-        {
-            var runningAll = _allAccountsProvider().Where(a => a.IsRunning).Select(a => a.Id).ToList();
-            if (runningAll.Count > 0) return runningAll;
-        }
-
-        return GetRunningTargetAccountIds();
-    }
-
     public AccountItemViewModel? FindAccount(Guid id)
     {
         return _allAccountsProvider?.Invoke().FirstOrDefault(a => a.Id == id);

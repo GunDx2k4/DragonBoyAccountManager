@@ -451,7 +451,6 @@ public sealed partial class AccountsPanelViewModel : ObservableObject
             existing.Model.Password = account.Password;
             existing.Model.ServerName = account.ServerName;
             existing.Model.ServerId = account.ServerId;
-            existing.Model.GameSpeed = account.GameSpeed;
             existing.Model.AutoLogin = account.AutoLogin;
             existing.RefreshData();
         }

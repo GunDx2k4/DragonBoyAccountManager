@@ -116,7 +116,6 @@ public sealed class AccountStorageService : IAccountStorageService, IDisposable
             ServerName = a.ServerName,
             CreatedAt = a.CreatedAt,
             LastLogin = a.LastLogin,
-            GameSpeed = a.GameSpeed,
             AutoLogin = a.AutoLogin,
             AutoSettings = a.AutoSettings
         };

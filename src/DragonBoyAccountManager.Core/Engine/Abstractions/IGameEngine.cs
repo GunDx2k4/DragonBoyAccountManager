@@ -16,9 +16,6 @@ public interface IGameActionService
     TSnapshot? GetSnapshot<TSnapshot>(Guid accountId) where TSnapshot : class;
     IReadOnlyList<GameSkillInfo> GetSkills(Guid accountId);
 
-    void SetGameSpeed(Guid accountId, float speed);
-    float GetGameSpeed(Guid accountId);
-
     void SendGameKeyDown(Guid accountId, GameKey key);
     void SendGameKeyUp(Guid accountId, GameKey key);
     Task SendGameKeyPressAsync(Guid accountId, GameKey key, int holdMs = 120);

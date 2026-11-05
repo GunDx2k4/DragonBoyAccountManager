@@ -15,7 +15,6 @@ public interface IActiveSelectionService
 
     IReadOnlyList<AccountItemViewModel> GetTargetAccounts();
     IReadOnlyList<Guid> GetRunningTargetAccountIds();
-    IReadOnlyList<Guid> GetRunningSpeedTargetAccountIds(bool applyToAll);
     AccountItemViewModel? FindAccount(Guid id);
 
     void NotifyTargetsChanged();

@@ -12,7 +12,6 @@ public record AccountLaunchOptions
     public required string GamePath { get; init; }
     public int ScreenWidth { get; init; } = 1024;
     public int ScreenHeight { get; init; } = 600;
-    public float GameSpeed { get; init; } = 1.0f;
     public bool AutoLogin { get; init; } = true;
     public bool AutoAssignSkills { get; init; }
     public bool IsMasked { get; init; }

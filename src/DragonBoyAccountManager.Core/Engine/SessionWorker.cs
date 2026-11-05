@@ -19,7 +19,6 @@ public sealed class SessionWorker : IDisposable, IAsyncDisposable
     public Task? LoopTask { get; private set; }
 
     public bool HasAssignedSkills { get; set; }
-    public float GameSpeed => Session.SpeedController.TargetSpeed;
     public bool IsMasked => Session.MaskingController.IsMasked;
 
     private int _isLoggingIn;
@@ -40,7 +39,6 @@ public sealed class SessionWorker : IDisposable, IAsyncDisposable
         Session = session;
         Options = options;
         bool isInGame = Session.CurrentPlayer.IsInGame;
-        Session.SpeedController.SetSpeed(options.GameSpeed, isInGame);
         Session.MaskingController.Configure(options.IsMasked, options.Username, isInGame);
     }
 
@@ -396,12 +394,6 @@ public sealed class SessionWorker : IDisposable, IAsyncDisposable
     }
 
     public IReadOnlyCollection<IBehavior> GetBehaviors() => Session.Behaviors.ToList();
-
-    public void SetGameSpeed(float speed)
-    {
-        Options = Options with { GameSpeed = speed };
-        Session.SpeedController.SetSpeed(speed, Session.CurrentPlayer.IsInGame);
-    }
 
     public void UpdateLaunchOptions(AccountLaunchOptions options)
     {

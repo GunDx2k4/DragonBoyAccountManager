@@ -1947,7 +1947,6 @@
       "ServerScr.perform": 3314672,
       "Command.performAction": 3568944,
       "Application.set_runInBackground": 24057952,
-      "Time.set_timeScale": 24352400,
       "TField.setText": 2761152,
       "TField.getText": 2749936,
       "GameScr.gI": 4466592,

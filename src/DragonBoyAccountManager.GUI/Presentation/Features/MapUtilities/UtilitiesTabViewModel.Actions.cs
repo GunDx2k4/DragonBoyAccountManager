@@ -199,38 +199,4 @@ public sealed partial class UtilitiesTabViewModel
             StatusText = $"Dùng TDLT: {successCount}/{targets.Count} tài khoản thành công";
         }
     }
-
-    partial void OnGameSpeedChanged(float value)
-    {
-        if (_isInternalSpeedUpdate) return;
-        var targets = ResolveSpeedTargets();
-        if (targets.Count == 0) return;
-
-        foreach (var id in targets)
-        {
-            _gameEngine.SetGameSpeed(id, value);
-        }
-
-        StatusText = $"Đã đặt tốc độ {value:0.0}x ({targets.Count} tài khoản)";
-    }
-
-    [RelayCommand]
-    private void SetGameSpeed(string speedStr)
-    {
-        if (float.TryParse(speedStr, NumberStyles.Float, CultureInfo.InvariantCulture, out float speed))
-        {
-            GameSpeed = speed;
-        }
-    }
-
-    private List<Guid> ResolveSpeedTargets()
-    {
-        if (IsApplySpeedToAll)
-        {
-            var all = _selectionService?.GetRunningSpeedTargetAccountIds(true).ToList() ?? GetTargetAccountIds();
-            if (all.Count > 0) return all;
-        }
-
-        return GetTargetAccountIds();
-    }
 }

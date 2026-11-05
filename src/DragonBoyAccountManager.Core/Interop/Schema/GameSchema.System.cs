@@ -105,10 +105,4 @@ public static partial class GameSchema
         public const string ClassName = "Application";
         public const string MethodSetRunInBackground = "set_runInBackground";
     }
-
-    public static class Time
-    {
-        public const string ClassName = "Time";
-        public const string MethodSetTimeScale = "set_timeScale";
-    }
 }

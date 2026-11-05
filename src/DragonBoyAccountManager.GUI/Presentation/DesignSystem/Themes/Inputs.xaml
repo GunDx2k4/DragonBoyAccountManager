@@ -774,44 +774,6 @@
         </Setter>
     </Style>
 
-    <Style x:Key="GameSpeedQuickButtonStyle" TargetType="Button">
-        <Setter Property="Height" Value="22" />
-        <Setter Property="FontSize" Value="9" />
-        <Setter Property="FontWeight" Value="ExtraBold" />
-        <Setter Property="Foreground" Value="{DynamicResource GameTextDarkBrush}" />
-        <Setter Property="Cursor" Value="Hand" />
-        <Setter Property="FocusVisualStyle" Value="{x:Null}" />
-        <Setter Property="Template">
-            <Setter.Value>
-                <ControlTemplate TargetType="Button">
-                    <Border
-                        x:Name="OuterBorder"
-                        Padding="1,1,1,2"
-                        Background="{DynamicResource GameDarkBrownBrush}"
-                        CornerRadius="3.5"
-                        SnapsToDevicePixels="True">
-                        <Border
-                            x:Name="InnerFace"
-                            Background="{DynamicResource GameBgLightBrush}"
-                            CornerRadius="2.5">
-                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center" />
-                        </Border>
-                    </Border>
-                    <ControlTemplate.Triggers>
-                        <Trigger Property="IsMouseOver" Value="True">
-                            <Setter TargetName="InnerFace" Property="Background" Value="#FFF7CC" />
-                        </Trigger>
-                        <Trigger Property="IsPressed" Value="True">
-                            <Setter TargetName="OuterBorder" Property="Padding" Value="1,2,1,1" />
-                            <Setter TargetName="InnerFace" Property="Background" Value="#EDA23C" />
-                            <Setter Property="Foreground" Value="{DynamicResource GameTextLightBrush}" />
-                        </Trigger>
-                    </ControlTemplate.Triggers>
-                </ControlTemplate>
-            </Setter.Value>
-        </Setter>
-    </Style>
-
     <ControlTemplate x:Key="DragonBallHideAccountIconTemplate" TargetType="Control">
         <Grid Width="{TemplateBinding Width}" Height="{TemplateBinding Height}">
             <Viewbox Stretch="Uniform">

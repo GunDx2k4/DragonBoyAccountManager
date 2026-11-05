@@ -63,16 +63,6 @@ public sealed partial class UtilitiesTabViewModel : AccountAwareTabViewModel
     [ObservableProperty]
     private int _npcCount;
 
-    [ObservableProperty]
-    [NotifyPropertyChangedFor(nameof(GameSpeedText))]
-    private float _gameSpeed = 1.0f;
-
-    [ObservableProperty]
-    private bool _isApplySpeedToAll = true;
-
-    public string GameSpeedText => $"{GameSpeed:0.0}x";
-
-    private bool _isInternalSpeedUpdate;
     private CancellationTokenSource? _moveWaypointCts;
 
     public ObservableCollection<WaypointButtonItem> WaypointButtons { get; } = [];
@@ -165,19 +155,6 @@ public sealed partial class UtilitiesTabViewModel : AccountAwareTabViewModel
             if (account.IsRunning && account.Status == GameSessionStatus.Active)
             {
                 _gameEngine.RequestZoneList(account.Id);
-                float curSpeed = _gameEngine.GetGameSpeed(account.Id);
-                if (curSpeed > 0 && Math.Abs(GameSpeed - curSpeed) > 0.05f)
-                {
-                    _isInternalSpeedUpdate = true;
-                    try
-                    {
-                        GameSpeed = curSpeed;
-                    }
-                    finally
-                    {
-                        _isInternalSpeedUpdate = false;
-                    }
-                }
             }
             RefreshMapData();
         }

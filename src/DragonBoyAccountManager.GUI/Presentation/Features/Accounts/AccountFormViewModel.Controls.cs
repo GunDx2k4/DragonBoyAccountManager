@@ -11,15 +11,6 @@ namespace DragonBoyAccountManager.GUI.Presentation.Features.Accounts;
 public sealed partial class AccountFormViewModel
 {
     [RelayCommand]
-    private void SetGameSpeed(string speedStr)
-    {
-        if (float.TryParse(speedStr, NumberStyles.Float, CultureInfo.InvariantCulture, out float speed))
-        {
-            GameSpeed = speed;
-        }
-    }
-
-    [RelayCommand]
     public Task MoveUpAsync() => SendKeyPulseAsync(GameKey.Up);
 
     [RelayCommand]
@@ -211,17 +202,6 @@ public sealed partial class AccountFormViewModel
         if (_selectionService != null)
         {
             var running = _selectionService.GetRunningTargetAccountIds();
-            if (running.Count > 0) return running;
-        }
-
-        return _editingAccount != null ? [_editingAccount.Id] : [];
-    }
-
-    private IEnumerable<Guid> ResolveSpeedTargets()
-    {
-        if (_selectionService != null)
-        {
-            var running = _selectionService.GetRunningSpeedTargetAccountIds(IsApplySpeedToAll);
             if (running.Count > 0) return running;
         }
 

@@ -140,13 +140,9 @@ public sealed partial class AccountItemViewModel : ObservableObject
     [NotifyPropertyChangedFor(nameof(DisplayMapFullInfo))]
     private int? _maxPlayers;
 
-    [ObservableProperty]
-    private float _gameSpeed = 1.0f;
-
     public AccountItemViewModel(Account model)
     {
         Model = model;
-        _gameSpeed = model.GameSpeed;
     }
 
     public string DisplayUsername => IsMasked ? TextMaskHelper.MaskText(Username) : Username;
@@ -366,6 +362,5 @@ public sealed partial class AccountItemViewModel : ObservableObject
         OnPropertyChanged(nameof(ServerId));
         OnPropertyChanged(nameof(AutoLogin));
         OnPropertyChanged(nameof(DisplayUsername));
-        OnPropertyChanged(nameof(GameSpeed));
     }
 }

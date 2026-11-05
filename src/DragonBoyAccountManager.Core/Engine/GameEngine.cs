@@ -108,12 +108,6 @@ public sealed class GameEngine : IGameEngine, IAsyncDisposable
     public IReadOnlyCollection<IBehavior> GetBehaviors(Guid accountId)
         => Sessions.GetWorker(accountId)?.GetBehaviors() ?? [];
 
-    public void SetGameSpeed(Guid accountId, float speed)
-        => Sessions.GetWorker(accountId)?.SetGameSpeed(speed);
-
-    public float GetGameSpeed(Guid accountId)
-        => Sessions.GetWorker(accountId)?.GameSpeed ?? 1.0f;
-
     public void SendGameKeyDown(Guid accountId, GameKey key)
     {
         var session = Sessions.GetSession(accountId);
