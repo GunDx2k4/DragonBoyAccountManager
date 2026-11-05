@@ -236,7 +236,15 @@ public class WorldScraper(IGameRuntime runtime) : ISnapshotScraper<WorldSnapshot
             IntPtr popupPtr = _runtime.ReadFieldPtr(ptr, waypointLayout.Popup);
             if (popupPtr != IntPtr.Zero)
             {
-                name = _runtime.ReadStringField(popupPtr, popUpLayout.Says);
+                IntPtr saysPtr = _runtime.ReadFieldPtr(popupPtr, popUpLayout.Says);
+                if (saysPtr != IntPtr.Zero)
+                {
+                    string[] lines = _runtime.ReadStringArray(saysPtr);
+                    if (lines.Length > 0)
+                    {
+                        name = string.Join(" ", lines.Where(s => !string.IsNullOrWhiteSpace(s))).Trim();
+                    }
+                }
             }
 
             int centerX = (minX + maxX) / 2;
@@ -245,7 +253,23 @@ public class WorldScraper(IGameRuntime runtime) : ISnapshotScraper<WorldSnapshot
             result.Add(new WorldWaypointInfo(name, centerX, centerY, minX, minY, maxX, maxY));
         }
 
-        return result;
+        var sorted = result.OrderBy(w => w.X).ToList();
+        for (int i = 0; i < sorted.Count; i++)
+        {
+            if (string.IsNullOrWhiteSpace(sorted[i].Name))
+            {
+                string fallback = sorted.Count switch
+                {
+                    1 => "Cổng Vực",
+                    2 => i == 0 ? "Cổng Trái" : "Cổng Phải",
+                    3 => i == 0 ? "Cổng Trái" : (i == 1 ? "Cổng Giữa" : "Cổng Phải"),
+                    _ => $"Cổng {i + 1}"
+                };
+                sorted[i] = sorted[i] with { Name = fallback };
+            }
+        }
+
+        return sorted;
     }
 
     public IReadOnlyList<WorldZoneInfo> ScrapeZones()

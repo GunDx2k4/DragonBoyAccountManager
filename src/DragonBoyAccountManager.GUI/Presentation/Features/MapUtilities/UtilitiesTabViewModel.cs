@@ -259,8 +259,20 @@ public sealed partial class UtilitiesTabViewModel : AccountAwareTabViewModel
         AvailableZones.SyncZones(snapshot.Zones, snapshot.ZoneId, ref _selectedZone, ref _isRefreshingZones, () => OnPropertyChanged(nameof(SelectedZone)));
 
         var sortedWps = snapshot.Waypoints.OrderBy(w => w.X).ToList();
-        var newWaypointButtons = sortedWps.Take(3)
-            .Select(wp => new WaypointButtonItem(wp.Name, wp.X, wp.Y, wp))
+        var newWaypointButtons = sortedWps.Take(4)
+            .Select((wp, idx) =>
+            {
+                string displayName = !string.IsNullOrWhiteSpace(wp.Name)
+                    ? wp.Name
+                    : (sortedWps.Count switch
+                    {
+                        1 => "Cổng Vực",
+                        2 => idx == 0 ? "Cổng Trái" : "Cổng Phải",
+                        3 => idx == 0 ? "Cổng Trái" : (idx == 1 ? "Cổng Giữa" : "Cổng Phải"),
+                        _ => $"Cổng {idx + 1}"
+                    });
+                return new WaypointButtonItem(displayName, wp.X, wp.Y, wp);
+            })
             .ToList();
         WaypointButtons.SyncWith(newWaypointButtons);
 

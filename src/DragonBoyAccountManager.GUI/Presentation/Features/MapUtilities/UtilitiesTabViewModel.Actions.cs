@@ -98,7 +98,11 @@ public sealed partial class UtilitiesTabViewModel
         var cts = new CancellationTokenSource();
         _moveWaypointCts = cts;
 
-        StatusText = $"Đang di chuyển tới {wp.Name}...";
+        string destinationName = !string.IsNullOrWhiteSpace(wp.Name)
+            ? wp.Name
+            : (parameter as WaypointButtonItem)?.Name ?? "Waypoint";
+
+        StatusText = $"Đang di chuyển tới {destinationName}...";
 
         bool isTeleport = FastTeleport;
 
@@ -108,7 +112,7 @@ public sealed partial class UtilitiesTabViewModel
 
             if (!cts.Token.IsCancellationRequested)
             {
-                StatusText = $"Đã chuyển tới {wp.Name} ({targetIds.Count} tài khoản)";
+                StatusText = $"Đã chuyển tới {destinationName} ({targetIds.Count} tài khoản)";
             }
         }
         catch (OperationCanceledException)
