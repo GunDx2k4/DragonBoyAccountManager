@@ -51,7 +51,24 @@ public class PlayerScraper(IGameRuntime runtime, Func<string?>? originalNameReso
         try
         {
             isTdltActive = _runtime.ReadStatic<bool>(GameSchema.GameScr.ClassName, _runtime.Layout.GameScr.CanAutoPlay);
-            isAutoPlay = _runtime.ReadStatic<bool>(GameSchema.GameScr.ClassName, _runtime.Layout.GameScr.IsAutoPlay);
+            IntPtr autoTrainStatic = _runtime.GetStaticFieldsPtr(GameSchema.AutoTrainMenu.ClassName);
+            int isCheckedOffset = _runtime.Layout.AutoTrainMenu.IsChecked;
+            if (autoTrainStatic != IntPtr.Zero && isCheckedOffset >= 0)
+            {
+                IntPtr isCheckedArray = _runtime.ReadFieldPtr(autoTrainStatic, isCheckedOffset);
+                if (isCheckedArray != IntPtr.Zero && _runtime.ReadField<int>(isCheckedArray, 0x18) > 0)
+                {
+                    isAutoPlay = _runtime.Memory.Read<byte>(isCheckedArray + 0x20) != 0;
+                }
+                else
+                {
+                    isAutoPlay = _runtime.ReadStatic<bool>(GameSchema.GameScr.ClassName, _runtime.Layout.GameScr.IsAutoPlay);
+                }
+            }
+            else
+            {
+                isAutoPlay = _runtime.ReadStatic<bool>(GameSchema.GameScr.ClassName, _runtime.Layout.GameScr.IsAutoPlay);
+            }
         }
         catch { }
 

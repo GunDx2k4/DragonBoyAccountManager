@@ -22,12 +22,26 @@ public class CombatHandler(IGameRuntime runtime) :
             return Task.FromResult(Result.Failure("Nhân vật chưa vào game."));
 
         int charId = _runtime.ReadField<int>(charPtr, _runtime.Layout.Char.CharId);
+        bool canAutoPlay = _runtime.ReadStatic<bool>(GameSchema.GameScr.ClassName, _runtime.Layout.GameScr.CanAutoPlay);
         _runtime.WriteStatic(GameSchema.GameScr.ClassName, _runtime.Layout.GameScr.IsAutoPlay, command.Enable);
 
         IntPtr autoTrainStatic = _runtime.GetStaticFieldsPtr(GameSchema.AutoTrainMenu.ClassName);
         if (autoTrainStatic != IntPtr.Zero)
         {
             var layout = _runtime.Layout.AutoTrainMenu;
+
+            if (layout.IsCheckItem >= 0)
+            {
+                IntPtr isCheckItemArray = _runtime.ReadFieldPtr(autoTrainStatic, layout.IsCheckItem);
+                if (isCheckItemArray != IntPtr.Zero)
+                {
+                    int itemLen = _runtime.ReadField<int>(isCheckItemArray, 0x18);
+                    if (itemLen > 0)
+                    {
+                        _runtime.Memory.Write<byte>(isCheckItemArray + 0x20, (byte)(canAutoPlay ? 1 : 0));
+                    }
+                }
+            }
 
             if (layout.IsChecked >= 0)
             {
@@ -39,15 +53,23 @@ public class CombatHandler(IGameRuntime runtime) :
                     {
                         _runtime.Memory.Write<byte>(isCheckedArray + 0x20, (byte)(command.Enable ? 1 : 0));
                     }
-                    if (len > 1)
+                    if (command.Enable)
                     {
-                        _runtime.Memory.Write<byte>(isCheckedArray + 0x20 + 1, (byte)(command.AvoidSuperMobs ? 1 : 0));
-                    }
-                    if (len > 2)
-                    {
-                        _runtime.Memory.Write<byte>(isCheckedArray + 0x20 + 2, (byte)(command.ChangeZoneWhenNoMobs ? 1 : 0));
+                        if (len > 1)
+                        {
+                            _runtime.Memory.Write<byte>(isCheckedArray + 0x20 + 1, (byte)(command.AvoidSuperMobs ? 1 : 0));
+                        }
+                        if (len > 2)
+                        {
+                            _runtime.Memory.Write<byte>(isCheckedArray + 0x20 + 2, (byte)(command.ChangeZoneWhenNoMobs ? 1 : 0));
+                        }
                     }
                 }
+            }
+
+            if (!command.Enable)
+            {
+                return Task.FromResult(Result.Success("Đã tắt tự đánh trong game"));
             }
 
             if (layout.IsCheckAttackByHp >= 0)
@@ -173,7 +195,7 @@ public class CombatHandler(IGameRuntime runtime) :
                 }
             }
 
-            TryUpdateRmsConfigFile(charId, command);
+            TryUpdateRmsConfigFile(charId, command, canAutoPlay);
         }
 
         return Task.FromResult(Result.Success(command.Enable ? "Đã bật tự đánh trong game" : "Đã tắt tự đánh trong game"));
@@ -191,7 +213,7 @@ public class CombatHandler(IGameRuntime runtime) :
         _runtime.WriteField(tfieldPtr, tfieldLayout.CaretPos, text.Length);
     }
 
-    private static void TryUpdateRmsConfigFile(int charId, SetInGameAutoTrainCommand command)
+    private static void TryUpdateRmsConfigFile(int charId, SetInGameAutoTrainCommand command, bool canAutoPlay)
     {
         if (charId <= 0) return;
         try
@@ -214,19 +236,55 @@ public class CombatHandler(IGameRuntime runtime) :
             reader.ReadByte();
             ReadUtf(reader);
             ReadUtf(reader);
+            reader.ReadByte();
+
+            int mobSectionStart = (int)ms.Position;
+            int mobCount = reader.ReadByte();
+            for (int i = 0; i < mobCount; i++)
+            {
+                ReadUtf(reader);
+                reader.ReadByte();
+            }
+            int mobBlockLength = (int)ms.Position - mobSectionStart;
+            byte[] mobBlock = bytes.AsSpan(mobSectionStart, mobBlockLength).ToArray();
+
+            int skillCount = reader.ReadByte();
+            byte[] skillBytes = reader.ReadBytes(skillCount);
+            if (command.SelectedSkillSlots is { Count: > 0 })
+            {
+                var selectedSet = command.SelectedSkillSlots.ToHashSet();
+                for (int i = 0; i < skillBytes.Length; i++)
+                {
+                    skillBytes[i] = (byte)(selectedSet.Contains(i) ? 1 : 0);
+                }
+            }
+
+            int itemCount = reader.ReadByte();
+            byte[] itemBytes = reader.ReadBytes(itemCount);
+            if (itemBytes.Length > 0)
+            {
+                itemBytes[0] = (byte)(canAutoPlay ? 1 : 0);
+            }
+
             int remainingOffset = (int)ms.Position;
             byte[] tail = bytes[remainingOffset..];
 
             using var outMs = new MemoryStream();
             using var writer = new BinaryWriter(outMs);
-            writer.Write((byte)(command.Enable ? 1 : 0));
             writer.Write((byte)(command.AvoidSuperMobs ? 1 : 0));
             writer.Write((byte)(command.ChangeZoneWhenNoMobs ? 1 : 0));
+            writer.Write((byte)(command.CheckAttackByHp ? 1 : 0));
             WriteUtf(writer, command.MinMobHp.ToString());
             WriteUtf(writer, command.MaxMobHp > 10000000000L ? "Không giới hạn" : command.MaxMobHp.ToString());
             writer.Write((byte)(command.AutoUsePean ? 1 : 0));
             WriteUtf(writer, command.PeanHpPercent.ToString());
             WriteUtf(writer, command.PeanMpPercent.ToString());
+            writer.Write((byte)(command.CheckAllMobs ? 1 : 0));
+            writer.Write(mobBlock);
+            writer.Write((byte)skillBytes.Length);
+            writer.Write(skillBytes);
+            writer.Write((byte)itemBytes.Length);
+            writer.Write(itemBytes);
             writer.Write(tail);
 
             File.WriteAllBytes(filePath, outMs.ToArray());

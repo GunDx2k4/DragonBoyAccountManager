@@ -53,8 +53,57 @@ public class InventoryHandler(IGameRuntime runtime) :
             }
         }
 
+        bool isTdltItem = command.TemplateId == GameDefinitions.DefaultTdltTemplateId
+            || GameDefinitions.IsTdlt(command.TemplateId)
+            || GameDefinitions.IsTdlt(targetTemplateId);
+
+        if (isTdltItem && TrySyncAutoTrainTdltState(out bool handledByAutoTrain))
+        {
+            if (handledByAutoTrain)
+            {
+                return Task.FromResult(Result.Success($"Đã dùng {resolvedName}"));
+            }
+        }
+
         _runtime.CallMethod(GameSchema.Service.ClassName, GameSchema.Service.MethodUseItem, service, (sbyte)0, (sbyte)1, targetBagIndex, targetTemplateId);
         return Task.FromResult(Result.Success($"Đã dùng {resolvedName}"));
+    }
+
+    private bool TrySyncAutoTrainTdltState(out bool handledByAutoTrain)
+    {
+        handledByAutoTrain = false;
+        IntPtr autoTrainStatic = _runtime.GetStaticFieldsPtr(GameSchema.AutoTrainMenu.ClassName);
+        if (autoTrainStatic == IntPtr.Zero) return false;
+
+        var layout = _runtime.Layout.AutoTrainMenu;
+        if (layout.IsCheckItem < 0) return false;
+
+        IntPtr isCheckItemArray = _runtime.ReadFieldPtr(autoTrainStatic, layout.IsCheckItem);
+        if (isCheckItemArray == IntPtr.Zero || _runtime.ReadField<int>(isCheckItemArray, 0x18) <= 0)
+            return false;
+
+        bool canAutoPlay = _runtime.ReadStatic<bool>(GameSchema.GameScr.ClassName, _runtime.Layout.GameScr.CanAutoPlay);
+        byte desiredTdltState = (byte)(!canAutoPlay ? 1 : 0);
+        _runtime.Memory.Write<byte>(isCheckItemArray + 0x20, desiredTdltState);
+
+        if (layout.IsChecked >= 0)
+        {
+            IntPtr isCheckedArray = _runtime.ReadFieldPtr(autoTrainStatic, layout.IsChecked);
+            if (isCheckedArray != IntPtr.Zero && _runtime.ReadField<int>(isCheckedArray, 0x18) > 0)
+            {
+                bool isAutoAttackEnabled = _runtime.Memory.Read<byte>(isCheckedArray + 0x20) != 0;
+                if (isAutoAttackEnabled)
+                {
+                    if (layout.LastTimeUseItem >= 0)
+                    {
+                        _runtime.WriteField(autoTrainStatic, layout.LastTimeUseItem, 0L);
+                    }
+                    handledByAutoTrain = true;
+                }
+            }
+        }
+
+        return true;
     }
 
     private bool TryResolveBagItem(

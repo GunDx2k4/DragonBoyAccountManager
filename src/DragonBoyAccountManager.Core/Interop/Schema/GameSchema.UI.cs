@@ -181,7 +181,9 @@ public static partial class GameSchema
         public const string StaticIsCheckAllMob = "isCheckAllMob";
         public const string StaticListSkills = "listSkills";
         public const string StaticIsCheckedSkill = "isCheckedSkill";
+        public const string StaticIsCheckItem = "isCheckItem";
         public const string StaticIsCheckPick = "isCheckPick";
+        public const string StaticLastTimeUseItem = "lastTimeUseItem";
 
         public const string FieldTfHpOn = "tfHpOn";
         public const string FieldTfHpDuoi = "tfHpDuoi";

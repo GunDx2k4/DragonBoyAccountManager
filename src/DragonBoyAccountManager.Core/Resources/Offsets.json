@@ -914,7 +914,9 @@
       "AutoTrainMenu.isCheckAllMob": 88,
       "AutoTrainMenu.listSkills": 104,
       "AutoTrainMenu.isCheckedSkill": 112,
-      "AutoTrainMenu.isCheckPick": 136
+      "AutoTrainMenu.isCheckItem": 128,
+      "AutoTrainMenu.isCheckPick": 136,
+      "AutoTrainMenu.lastTimeUseItem": 224
     },
     "InstanceFields": {
       "Main.level": 32,
