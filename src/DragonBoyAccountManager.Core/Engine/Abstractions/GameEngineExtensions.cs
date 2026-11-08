@@ -1,4 +1,5 @@
 using DragonBoyAccountManager.Core.Automation.Behaviors.Combat;
+using DragonBoyAccountManager.Core.Automation.Behaviors.Social;
 using DragonBoyAccountManager.Core.Common;
 using DragonBoyAccountManager.Core.Common.Results;
 using DragonBoyAccountManager.Core.Execution.Commands;
@@ -17,6 +18,21 @@ public static class GameEngineExtensions
 
     public static MapSnapshot? GetMapSnapshot(this IGameActionService engine, Guid accountId)
         => engine.GetSnapshot<MapSnapshot>(accountId);
+
+    public static IReadOnlyList<GameSkillInfo> GetSkills(this IGameActionService engine, Guid accountId)
+        => engine.GetPlayerSnapshot(accountId)?.SkillList ?? [];
+
+    public static async Task<bool> AutoMoveAsync(this IGameActionService engine, Guid accountId, int targetX, int targetY, bool isFastTeleport = false, CancellationToken cancellationToken = default)
+    {
+        var res = await engine.ExecuteCommandAsync(accountId, new NavigateCommand(targetX, targetY, isFastTeleport), cancellationToken);
+        return res.IsSuccess;
+    }
+
+    public static async Task<bool> EnterWaypointAsync(this IGameActionService engine, Guid accountId, int waypointX, int waypointY, bool isFastTeleport = false, CancellationToken cancellationToken = default)
+    {
+        var res = await engine.ExecuteCommandAsync(accountId, new EnterWaypointCommand(waypointX, waypointY, isFastTeleport), cancellationToken);
+        return res.IsSuccess;
+    }
 
     public static bool ChangeZone(this IGameActionService engine, Guid accountId, int zoneId)
     {

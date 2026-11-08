@@ -11,7 +11,7 @@ using DragonBoyAccountManager.GUI.Services.Settings;
 
 namespace DragonBoyAccountManager.GUI.Presentation.Features.MapUtilities;
 
-public sealed partial class UtilitiesTabViewModel : AccountAwareTabViewModel
+public sealed partial class MapUtilitiesTabViewModel : AccountAwareTabViewModel
 {
     private readonly ISettingsService _settingsService;
 
@@ -91,7 +91,7 @@ public sealed partial class UtilitiesTabViewModel : AccountAwareTabViewModel
         }
     }
 
-    public UtilitiesTabViewModel(
+    public MapUtilitiesTabViewModel(
         IGameEngineService gameEngine,
         ISettingsService settingsService,
         IActiveSelectionService? selectionService = null,

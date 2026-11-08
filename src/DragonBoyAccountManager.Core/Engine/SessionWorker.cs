@@ -215,6 +215,7 @@ public sealed class SessionWorker : IDisposable, IAsyncDisposable
                 ? ActionExecutionReport.Success(command.Name, res.Message)
                 : ActionExecutionReport.Failure(command.Name, res.Message);
             Publish(new ActionReportedEvent(Options.AccountId, report));
+            PublishSessionUpdate();
             return res;
         }
         return Result.Failure("Tài khoản chưa vào game.");

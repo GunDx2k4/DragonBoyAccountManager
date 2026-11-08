@@ -4,6 +4,7 @@ public record LaunchOptions
 {
     public required string GamePath { get; init; }
     public Guid? SessionId { get; init; }
+    public int? ServerId { get; init; }
     public string? WorkingDirectory { get; init; }
     public string? AdditionalArguments { get; init; }
     public int ScreenWidth { get; init; }

@@ -3,16 +3,16 @@ using System.Windows.Controls;
 
 namespace DragonBoyAccountManager.GUI.Presentation.Features.MapUtilities;
 
-public partial class UtilitiesTabView : UserControl
+public partial class MapUtilitiesTabView : UserControl
 {
-    public UtilitiesTabView()
+    public MapUtilitiesTabView()
     {
         InitializeComponent();
     }
 
     private void ZoneComboBox_DropDownOpened(object? sender, EventArgs e)
     {
-        if (DataContext is UtilitiesTabViewModel vm)
+        if (DataContext is MapUtilitiesTabViewModel vm)
         {
             vm.RequestZoneList();
         }
@@ -22,7 +22,7 @@ public partial class UtilitiesTabView : UserControl
     {
         if (sender is System.Windows.FrameworkElement fe && fe.DataContext != null)
         {
-            if (DataContext is UtilitiesTabViewModel vm)
+            if (DataContext is MapUtilitiesTabViewModel vm)
             {
                 vm.ClickObjectCommand.Execute(fe.DataContext);
                 e.Handled = true;

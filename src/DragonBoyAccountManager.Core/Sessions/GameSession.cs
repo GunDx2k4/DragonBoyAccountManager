@@ -1,11 +1,8 @@
 using System.Collections.Concurrent;
 using System.Diagnostics;
 using DragonBoyAccountManager.Core.Automation.Behaviors;
-using DragonBoyAccountManager.Core.Automation.Behaviors.Combat;
-using DragonBoyAccountManager.Core.Automation.Behaviors.Navigation;
+using DragonBoyAccountManager.Core.Automation.Navigation;
 using DragonBoyAccountManager.Core.Execution;
-using DragonBoyAccountManager.Core.Execution.Commands;
-using DragonBoyAccountManager.Core.Execution.Handlers;
 using DragonBoyAccountManager.Core.Interop.Abstractions;
 using DragonBoyAccountManager.Core.Interop.Schema;
 using DragonBoyAccountManager.Core.Sessions.Controllers;
@@ -20,9 +17,6 @@ public sealed class GameSession : ISessionContext, IDisposable
     public Process Process { get; }
     public IGameRuntime Runtime { get; }
 
-    public PlayerScraper PlayerScraper { get; }
-    public WorldScraper WorldScraper { get; }
-    public MapScraper MapScraper { get; }
     public SessionMaskingController MaskingController { get; }
     public LoginScreenController LoginScreen { get; }
 
@@ -48,6 +42,10 @@ public sealed class GameSession : ISessionContext, IDisposable
     public void RegisterBehavior<TBehavior>(TBehavior behavior) where TBehavior : class, IBehavior
     {
         ArgumentNullException.ThrowIfNull(behavior);
+        if (behavior is AutomationBehavior automationBehavior)
+        {
+            automationBehavior.AttachContext(this);
+        }
         _behaviors[typeof(TBehavior)] = behavior;
     }
 
@@ -105,13 +103,6 @@ public sealed class GameSession : ISessionContext, IDisposable
 
         MaskingController = new SessionMaskingController(runtime);
         LoginScreen = new LoginScreenController(runtime);
-        PlayerScraper = new PlayerScraper(runtime, () => MaskingController.OriginalCharacterName);
-        WorldScraper = new WorldScraper(runtime);
-        MapScraper = new MapScraper(runtime);
-
-        RegisterScraper(PlayerScraper);
-        RegisterScraper(WorldScraper);
-        RegisterScraper(MapScraper);
 
         _snapshots[typeof(PlayerSnapshot)] = PlayerSnapshot.Empty;
         _snapshots[typeof(WorldSnapshot)] = WorldSnapshot.Empty;
@@ -120,34 +111,7 @@ public sealed class GameSession : ISessionContext, IDisposable
         Dispatcher = new CommandDispatcher();
         Navigator = new AutoNavigator(Dispatcher);
 
-        var combatHandler = new CombatHandler(runtime);
-        var movementHandler = new MovementHandler(runtime, Navigator, this);
-        var inventoryHandler = new InventoryHandler(runtime);
-        var zoneHandler = new ZoneHandler(runtime);
-        var chatHandler = new ChatHandler(runtime);
-        var worldInteractionHandler = new WorldInteractionHandler(runtime);
-        var skillAssignmentHandler = new SkillAssignmentHandler(runtime);
-
-        Dispatcher.RegisterHandler<AttackMobCommand>(combatHandler);
-        Dispatcher.RegisterHandler<SelectSkillCommand>(combatHandler);
-        Dispatcher.RegisterHandler<SetInGameAutoTrainCommand>(combatHandler);
-        Dispatcher.RegisterHandler<MoveCommand>(movementHandler);
-        Dispatcher.RegisterHandler<NavigateCommand>(movementHandler);
-        Dispatcher.RegisterHandler<EnterWaypointCommand>(movementHandler);
-        Dispatcher.RegisterHandler<UseItemCommand>(inventoryHandler);
-        Dispatcher.RegisterHandler<PickItemCommand>(inventoryHandler);
-        Dispatcher.RegisterHandler<SendChatCommand>(chatHandler);
-        Dispatcher.RegisterHandler<WakeUpCommand>(worldInteractionHandler);
-        Dispatcher.RegisterHandler<ChangeZoneCommand>(zoneHandler);
-        Dispatcher.RegisterHandler<OpenZonePanelCommand>(zoneHandler);
-        Dispatcher.RegisterHandler<CloseZonePanelCommand>(zoneHandler);
-        Dispatcher.RegisterHandler<LoginCommand>(worldInteractionHandler);
-        Dispatcher.RegisterHandler<FocusEntityCommand>(worldInteractionHandler);
-        Dispatcher.RegisterHandler<AssignSkillsCommand>(skillAssignmentHandler);
-
-        RegisterBehavior(new AutoTrainBehavior(new AutoTrainOptions()));
-        RegisterBehavior(new AutoChatBehavior(new AutoChatOptions()));
-
+        DefaultSessionBootstrap.Configure(this);
         configure?.Invoke(this);
     }
 

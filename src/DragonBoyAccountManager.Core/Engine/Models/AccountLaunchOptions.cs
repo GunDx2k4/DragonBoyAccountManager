@@ -13,6 +13,9 @@ public record AccountLaunchOptions
     public int ScreenWidth { get; init; } = 1024;
     public int ScreenHeight { get; init; } = 600;
     public bool AutoLogin { get; init; } = true;
+    public bool AutoReconnect { get; init; } = true;
+    public int ReconnectDelaySeconds { get; init; } = 3;
+    public Func<(bool AutoReconnect, int DelaySeconds)>? ReconnectPolicyResolver { get; init; }
     public bool AutoAssignSkills { get; init; }
     public bool IsMasked { get; init; }
     public Action<GameSession>? ConfigureSession { get; init; }

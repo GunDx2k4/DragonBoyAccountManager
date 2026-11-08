@@ -1,6 +1,7 @@
 using System.Text;
 using DragonBoyAccountManager.Core.Accounts;
 using DragonBoyAccountManager.Core.Automation.Behaviors.Combat;
+using DragonBoyAccountManager.Core.Automation.Behaviors.Social;
 using DragonBoyAccountManager.Core.Common;
 using DragonBoyAccountManager.Core.Common.Results;
 using DragonBoyAccountManager.Core.Engine;
@@ -207,7 +208,7 @@ while (engine.IsRunning(accId))
             break;
 
         case "Bật tự động luyện tập":
-            engine.StartAutoTrain(accId, selectedAccount.AutoSettings.Train);
+            engine.StartAutoTrain(accId, selectedAccount.AutoSettings.GetBehaviorOptionsOrDefault<AutoTrainOptions>(AutoTrainBehavior.BehaviorId));
             break;
 
         case "Dừng tự động luyện tập":
@@ -271,6 +272,13 @@ static Account PromptNewAccount()
     int serverId = AnsiConsole.Prompt(new TextPrompt<int>("Server ID:").DefaultValue(0));
     string serverName = AnsiConsole.Prompt(new TextPrompt<string>("Tên Server:").DefaultValue("Vũ trụ 1"));
 
+    var autoSettings = new AccountAutoSettings();
+    autoSettings.SetBehaviorOptions(AutoTrainBehavior.BehaviorId, new AutoTrainOptions
+    {
+        AutoUsePean = true,
+        AvoidSuperMobs = true
+    });
+
     return new Account
     {
         Username = user,
@@ -278,16 +286,7 @@ static Account PromptNewAccount()
         ServerId = serverId,
         ServerName = serverName,
         AutoLogin = true,
-        AutoSettings = new AccountAutoSettings
-        {
-            Train = new AutoTrainOptions
-            {
-                UseTdlt = true,
-                AutoPickItems = true,
-                AutoUsePean = true,
-                AvoidSuperMobs = true
-            }
-        }
+        AutoSettings = autoSettings
     };
 }
 

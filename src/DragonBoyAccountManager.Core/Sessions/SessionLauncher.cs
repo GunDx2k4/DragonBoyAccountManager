@@ -8,7 +8,7 @@ using DragonBoyAccountManager.Core.Sessions.Validation;
 
 namespace DragonBoyAccountManager.Core.Sessions;
 
-public class SessionLauncher
+public class SessionLauncher : ISessionLauncher
 {
     public static ResolvedGamePaths Validate(string? gamePath)
     {
@@ -34,6 +34,17 @@ public class SessionLauncher
     public async Task<GameSession> LaunchAsync(LaunchOptions options, CancellationToken cancellationToken = default)
     {
         Validate(options.GamePath);
+
+        if (options.ServerId.HasValue)
+        {
+            GameRmsStorage.SetServerSelection(options.ServerId.Value);
+        }
+
+        if (options.ScreenWidth > 0 && options.ScreenHeight > 0)
+        {
+            int screenLevel = (options.ScreenWidth * options.ScreenHeight < 480000) ? 1 : 0;
+            GameRmsStorage.SetScreenLevel(screenLevel);
+        }
 
         string workingDir = options.WorkingDirectory ?? Path.GetDirectoryName(options.GamePath)!;
         var argsList = new List<string>

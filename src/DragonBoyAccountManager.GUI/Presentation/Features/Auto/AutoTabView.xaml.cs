@@ -18,7 +18,7 @@ public partial class AutoTabView : UserControl
             e.Handled = true;
             if (DataContext is AutoTabViewModel vm)
             {
-                vm.UseSkillSlotCommand.Execute(item);
+                vm.Train.UseSkillSlotCommand.Execute(item);
             }
         }
     }

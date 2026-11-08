@@ -8,7 +8,7 @@ using DragonBoyAccountManager.GUI.Services.Engine;
 
 namespace DragonBoyAccountManager.GUI.Presentation.Features.Accounts;
 
-public sealed partial class AccountFormViewModel
+public sealed partial class AccountConfigTabViewModel
 {
     [RelayCommand]
     public Task MoveUpAsync() => SendKeyPulseAsync(GameKey.Up);

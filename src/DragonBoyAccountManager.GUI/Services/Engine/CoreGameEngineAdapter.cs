@@ -22,8 +22,6 @@ public sealed class CoreGameEngineAdapter : IGameEngineService, IDisposable
     private readonly IWindowManagerService _windowManager;
     private readonly ISettingsService? _settingsService;
     private readonly ConcurrentDictionary<Guid, Account> _accounts = new();
-    private readonly ConcurrentDictionary<Guid, string> _gamePaths = new();
-    private readonly ConcurrentDictionary<Guid, CancellationTokenSource> _reconnectCts = new();
     private bool _isMasked;
 
     public event Action<SessionEvent>? OnSessionEvent;
@@ -67,73 +65,21 @@ public sealed class CoreGameEngineAdapter : IGameEngineService, IDisposable
                 HandleSessionUpdated(s.AccountId, s.Status, s.Snapshot);
                 break;
 
-            case SessionProcessExitedEvent e:
-                HandleProcessExited(e);
+            case SessionProcessExitedEvent e when e.UserInitiated:
+                _accounts.TryRemove(e.AccountId, out _);
                 break;
-        }
-    }
-
-    private void HandleProcessExited(SessionProcessExitedEvent e)
-    {
-        if (e.UserInitiated)
-        {
-            if (_reconnectCts.TryRemove(e.AccountId, out var cts))
-            {
-                cts.Cancel();
-                cts.Dispose();
-            }
-            _accounts.TryRemove(e.AccountId, out _);
-            _gamePaths.TryRemove(e.AccountId, out _);
-        }
-        else if (_accounts.TryGetValue(e.AccountId, out var account) &&
-                 _gamePaths.TryGetValue(e.AccountId, out var gamePath) &&
-                 (_settingsService == null || _settingsService.Current.AutoReconnect))
-        {
-            int delay = Math.Max(1, _settingsService?.Current.ReconnectDelaySeconds ?? 3);
-            string msg = $"Mất kết nối game. Tự động kết nối lại sau {delay} giây...";
-            OnSessionEvent?.Invoke(new SessionStateChangedEvent(e.AccountId, GameSessionStatus.Waiting, null));
-            OnSessionEvent?.Invoke(new SessionMessageEvent(e.AccountId, msg));
-            WeakReferenceMessenger.Default.Send(new SessionSnapshotUpdatedMessage(e.AccountId, GameSessionStatus.Waiting, null));
-
-            if (_reconnectCts.TryRemove(e.AccountId, out var oldCts))
-            {
-                oldCts.Cancel();
-                oldCts.Dispose();
-            }
-
-            var cts = new CancellationTokenSource();
-            _reconnectCts[e.AccountId] = cts;
-
-            _ = Task.Run(async () =>
-            {
-                try
-                {
-                    await Task.Delay(TimeSpan.FromSeconds(delay), cts.Token);
-                    if (!cts.Token.IsCancellationRequested && _accounts.ContainsKey(e.AccountId))
-                    {
-                        _reconnectCts.TryRemove(e.AccountId, out _);
-                        await StartAsync(account, gamePath);
-                    }
-                }
-                catch (OperationCanceledException)
-                {
-                }
-                finally
-                {
-                    cts.Dispose();
-                }
-            }, cts.Token);
-        }
-        else
-        {
-            _accounts.TryRemove(e.AccountId, out _);
-            _gamePaths.TryRemove(e.AccountId, out _);
         }
     }
 
     private void HandleSessionUpdated(Guid accountId, GameSessionStatus status, GameSessionSnapshot? snapshot)
     {
         WeakReferenceMessenger.Default.Send(new SessionSnapshotUpdatedMessage(accountId, status, snapshot));
+
+        if (status == GameSessionStatus.Offline)
+        {
+            _accounts.TryRemove(accountId, out _);
+            return;
+        }
 
         if (status == GameSessionStatus.Active && snapshot?.Player != null && !string.IsNullOrWhiteSpace(snapshot.Player.Name))
         {
@@ -157,24 +103,25 @@ public sealed class CoreGameEngineAdapter : IGameEngineService, IDisposable
         string username = account?.Username ?? accountId.ToString();
         string serverName = account?.ServerName ?? string.Empty;
 
-        _ = Task.Run(() => _windowManager.ApplyWindowStyleAsync(process, () =>
+        _ = Task.Run(async () =>
         {
-            var snap = _gameEngine.GetPlayerSnapshot(accountId);
-            string? charName = (snap != null && snap.IsInGame && !string.IsNullOrWhiteSpace(snap.Name)) ? snap.Name : null;
-            return FormatWindowTitle(username, serverName, charName);
-        }, customW, customH));
+            await _windowManager.ApplyWindowStyleAsync(process, () =>
+            {
+                var snap = _gameEngine.GetPlayerSnapshot(accountId);
+                string? charName = (snap != null && snap.IsInGame && !string.IsNullOrWhiteSpace(snap.Name)) ? snap.Name : null;
+                return FormatWindowTitle(username, serverName, charName);
+            }, customW, customH);
+
+            if (_settingsService?.Current.AutoArrangeWindows == true)
+            {
+                ArrangeWindows();
+            }
+        });
     }
 
     public async Task<bool> StartAsync(Account account, string gamePath)
     {
-        if (_reconnectCts.TryRemove(account.Id, out var existingCts))
-        {
-            existingCts.Cancel();
-            existingCts.Dispose();
-        }
-
         _accounts[account.Id] = account;
-        _gamePaths[account.Id] = gamePath;
 
         int customW = _settingsService?.Current.WindowCustomWidth ?? 0;
         int customH = _settingsService?.Current.WindowCustomHeight ?? 0;
@@ -192,59 +139,37 @@ public sealed class CoreGameEngineAdapter : IGameEngineService, IDisposable
             ScreenWidth = width,
             ScreenHeight = height,
             AutoLogin = account.AutoLogin,
+            AutoReconnect = _settingsService?.Current.AutoReconnect ?? true,
+            ReconnectDelaySeconds = _settingsService?.Current.ReconnectDelaySeconds ?? 3,
+            ReconnectPolicyResolver = () => (
+                _settingsService?.Current.AutoReconnect ?? true,
+                _settingsService?.Current.ReconnectDelaySeconds ?? 3),
             AutoAssignSkills = _settingsService?.Current.AutoAssignSkills == true,
             IsMasked = _isMasked
         };
 
-        bool started = await _gameEngine.StartAccountAsync(options);
-
-        if (started && _settingsService?.Current.AutoArrangeWindows == true)
-        {
-            ArrangeWindows();
-        }
-
-        return started;
+        return await _gameEngine.StartAccountAsync(options);
     }
 
     public Task StopAsync(Guid accountId)
     {
-        if (_reconnectCts.TryRemove(accountId, out var cts))
-        {
-            cts.Cancel();
-            cts.Dispose();
-        }
         _accounts.TryRemove(accountId, out _);
-        _gamePaths.TryRemove(accountId, out _);
         return _gameEngine.StopAccountAsync(accountId);
     }
 
     public Task StopAllAsync()
     {
-        foreach (var kvp in _reconnectCts)
-        {
-            kvp.Value.Cancel();
-            kvp.Value.Dispose();
-        }
-        _reconnectCts.Clear();
         _accounts.Clear();
-        _gamePaths.Clear();
         return _gameEngine.StopAllAccountsAsync();
     }
 
     public void StopAll()
     {
-        foreach (var kvp in _reconnectCts)
-        {
-            kvp.Value.Cancel();
-            kvp.Value.Dispose();
-        }
-        _reconnectCts.Clear();
         _accounts.Clear();
-        _gamePaths.Clear();
         _gameEngine.StopAllAccounts();
     }
 
-    public bool IsRunning(Guid accountId) => _gameEngine.IsRunning(accountId) || _reconnectCts.ContainsKey(accountId);
+    public bool IsRunning(Guid accountId) => _gameEngine.IsRunning(accountId);
 
     public int? GetProcessId(Guid accountId) => _gameEngine.GetProcessId(accountId);
 
@@ -317,19 +242,11 @@ public sealed class CoreGameEngineAdapter : IGameEngineService, IDisposable
 
     public Task<bool> LoginAsync(Guid accountId) => _gameEngine.LoginAsync(accountId);
 
-    public Task<bool> AutoMoveAsync(Guid accountId, int targetX, int targetY, bool isFastTeleport = false, CancellationToken cancellationToken = default) =>
-        _gameEngine.AutoMoveAsync(accountId, targetX, targetY, isFastTeleport, cancellationToken);
-
-    public Task<bool> EnterWaypointAsync(Guid accountId, int waypointX, int waypointY, bool isFastTeleport = false, CancellationToken cancellationToken = default) =>
-        _gameEngine.EnterWaypointAsync(accountId, waypointX, waypointY, isFastTeleport, cancellationToken);
-
     public Task<Result> ExecuteCommandAsync(Guid accountId, IGameCommand command, CancellationToken cancellationToken = default) =>
         _gameEngine.ExecuteCommandAsync(accountId, command, cancellationToken);
 
     public TSnapshot? GetSnapshot<TSnapshot>(Guid accountId) where TSnapshot : class =>
         _gameEngine.GetSnapshot<TSnapshot>(accountId);
-
-    public IReadOnlyList<GameSkillInfo> GetSkills(Guid accountId) => _gameEngine.GetSkills(accountId);
 
     public bool StartBehavior<TBehavior, TOptions>(Guid accountId, TOptions options)
         where TBehavior : class, IBehavior<TOptions>

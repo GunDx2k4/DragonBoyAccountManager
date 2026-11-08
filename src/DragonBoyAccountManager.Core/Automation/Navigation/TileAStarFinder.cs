@@ -1,4 +1,4 @@
-namespace DragonBoyAccountManager.Core.Automation.Behaviors.Navigation;
+namespace DragonBoyAccountManager.Core.Automation.Navigation;
 
 public static class TileAStarFinder
 {
@@ -76,107 +76,107 @@ public static class TileAStarFinder
             Array.Fill(gScore, float.MaxValue, 0, totalNodes);
             Array.Fill(parent, -1, 0, totalNodes);
 
-        var openSet = new PriorityQueue<int, float>();
+            var openSet = new PriorityQueue<int, float>();
 
-        gScore[startIndex] = 0;
-        openSet.Enqueue(startIndex, Heuristic(startTx, startTy, targetTx, targetTy));
+            gScore[startIndex] = 0;
+            openSet.Enqueue(startIndex, Heuristic(startTx, startTy, targetTx, targetTy));
 
-        bool found = false;
+            bool found = false;
 
-        while (openSet.Count > 0)
-        {
-            int current = openSet.Dequeue();
-            if (current == targetIndex)
+            while (openSet.Count > 0)
             {
-                found = true;
-                break;
-            }
-
-            int curX = current % tmw;
-            int curY = current / tmw;
-            float currentG = gScore[current];
-            bool curHasGround = IsGroundBelow(curX, curY, tmw, tmh, types);
-
-            int parentIdx = parent[current];
-            int prevDirX = parentIdx != -1 ? curX - (parentIdx % tmw) : 0;
-            int prevDirY = parentIdx != -1 ? curY - (parentIdx / tmw) : 0;
-
-            for (int i = 0; i < 4; i++)
-            {
-                int nx = curX + Dx[i];
-                int ny = curY + Dy[i];
-
-                if (nx < 0 || nx >= tmw || ny < 1 || ny >= tmh)
-                    continue;
-
-                if (!IsOpenSpace(nx, ny, tmw, tmh, types))
-                    continue;
-
-                bool neighborHasGround = IsGroundBelow(nx, ny, tmw, tmh, types);
-                float stepCost;
-
-                if (curHasGround && neighborHasGround && ny == curY)
+                int current = openSet.Dequeue();
+                if (current == targetIndex)
                 {
-                    stepCost = 1.0f;
-                }
-                else if (Dx[i] == 0 && Dy[i] == -1)
-                {
-                    stepCost = 1.3f;
-                }
-                else if (Dx[i] == 0 && Dy[i] == 1)
-                {
-                    stepCost = 1.2f;
-                }
-                else
-                {
-                    stepCost = 1.8f;
+                    found = true;
+                    break;
                 }
 
-                if (prevDirX != 0 || prevDirY != 0)
+                int curX = current % tmw;
+                int curY = current / tmw;
+                float currentG = gScore[current];
+                bool curHasGround = IsGroundBelow(curX, curY, tmw, tmh, types);
+
+                int parentIdx = parent[current];
+                int prevDirX = parentIdx != -1 ? curX - (parentIdx % tmw) : 0;
+                int prevDirY = parentIdx != -1 ? curY - (parentIdx / tmw) : 0;
+
+                for (int i = 0; i < 4; i++)
                 {
-                    if (Dx[i] != prevDirX || Dy[i] != prevDirY)
+                    int nx = curX + Dx[i];
+                    int ny = curY + Dy[i];
+
+                    if (nx < 0 || nx >= tmw || ny < 1 || ny >= tmh)
+                        continue;
+
+                    if (!IsOpenSpace(nx, ny, tmw, tmh, types))
+                        continue;
+
+                    bool neighborHasGround = IsGroundBelow(nx, ny, tmw, tmh, types);
+                    float stepCost;
+
+                    if (curHasGround && neighborHasGround && ny == curY)
                     {
-                        stepCost += 0.15f;
+                        stepCost = 1.0f;
+                    }
+                    else if (Dx[i] == 0 && Dy[i] == -1)
+                    {
+                        stepCost = 1.3f;
+                    }
+                    else if (Dx[i] == 0 && Dy[i] == 1)
+                    {
+                        stepCost = 1.2f;
+                    }
+                    else
+                    {
+                        stepCost = 1.8f;
+                    }
+
+                    if (prevDirX != 0 || prevDirY != 0)
+                    {
+                        if (Dx[i] != prevDirX || Dy[i] != prevDirY)
+                        {
+                            stepCost += 0.15f;
+                        }
+                    }
+
+                    int neighborIndex = ny * tmw + nx;
+                    float tentativeG = currentG + stepCost;
+
+                    if (tentativeG < gScore[neighborIndex])
+                    {
+                        parent[neighborIndex] = current;
+                        gScore[neighborIndex] = tentativeG;
+                        float fScore = tentativeG + Heuristic(nx, ny, targetTx, targetTy);
+                        openSet.Enqueue(neighborIndex, fScore);
                     }
                 }
-
-                int neighborIndex = ny * tmw + nx;
-                float tentativeG = currentG + stepCost;
-
-                if (tentativeG < gScore[neighborIndex])
-                {
-                    parent[neighborIndex] = current;
-                    gScore[neighborIndex] = tentativeG;
-                    float fScore = tentativeG + Heuristic(nx, ny, targetTx, targetTy);
-                    openSet.Enqueue(neighborIndex, fScore);
-                }
             }
-        }
 
-        if (!found)
+            if (!found)
+                return result;
+
+            var cellPath = new List<(int X, int Y)>();
+            int currIdx = targetIndex;
+            while (currIdx != -1)
+            {
+                cellPath.Add((currIdx % tmw, currIdx / tmw));
+                currIdx = parent[currIdx];
+            }
+            cellPath.Reverse();
+
+            var waypoints = CompressCollinearPath(cellPath);
+
+            result.Add((startPx, startPy));
+            for (int i = 1; i < waypoints.Count - 1; i++)
+            {
+                var (tx, ty) = waypoints[i];
+                var (px, py) = CellToFootPixel(tx, ty);
+                result.Add((px, py));
+            }
+            result.Add((targetPx, targetPy));
+
             return result;
-
-        var cellPath = new List<(int X, int Y)>();
-        int currIdx = targetIndex;
-        while (currIdx != -1)
-        {
-            cellPath.Add((currIdx % tmw, currIdx / tmw));
-            currIdx = parent[currIdx];
-        }
-        cellPath.Reverse();
-
-        var waypoints = CompressCollinearPath(cellPath);
-
-        result.Add((startPx, startPy));
-        for (int i = 1; i < waypoints.Count - 1; i++)
-        {
-            var (tx, ty) = waypoints[i];
-            var (px, py) = CellToFootPixel(tx, ty);
-            result.Add((px, py));
-        }
-        result.Add((targetPx, targetPy));
-
-        return result;
         }
         finally
         {

@@ -19,7 +19,7 @@ using DragonBoyAccountManager.GUI.Services.Settings;
 
 namespace DragonBoyAccountManager.GUI.Presentation.Features.Accounts;
 
-public sealed partial class AccountFormViewModel : ObservableObject, IActivatableTab
+public sealed partial class AccountConfigTabViewModel : ObservableObject, IActivatableTab
 {
     public void OnTabActivated()
     {
@@ -104,7 +104,7 @@ public sealed partial class AccountFormViewModel : ObservableObject, IActivatabl
 
     private readonly DispatcherTimer _cooldownTimer;
 
-    public AccountFormViewModel(
+    public AccountConfigTabViewModel(
         IGameEngineService gameEngine,
         IDialogService dialogService,
         IGameImageService gameImageService,

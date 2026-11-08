@@ -13,7 +13,7 @@ using DragonBoyAccountManager.GUI.Services.Updater;
 
 namespace DragonBoyAccountManager.GUI.Presentation.Features.Guide;
 
-public sealed partial class GuideViewModel : ObservableObject
+public sealed partial class GuideTabViewModel : ObservableObject
 {
     private readonly ISettingsService _settingsService;
     private readonly IDialogService _dialogService;
@@ -73,7 +73,7 @@ public sealed partial class GuideViewModel : ObservableObject
 
     public bool CanApplyUpdate => HasAppUpdate && !IsUpdatingApp;
 
-    public GuideViewModel(
+    public GuideTabViewModel(
         ISettingsService settingsService,
         IDialogService dialogService,
         IGameEnvironmentService envService,
@@ -113,7 +113,7 @@ public sealed partial class GuideViewModel : ObservableObject
                 }
             }
 
-            var asm = typeof(GuideViewModel).Assembly;
+            var asm = typeof(GuideTabViewModel).Assembly;
             var resourceName = asm.GetManifestResourceNames()
                 .FirstOrDefault(n => n.EndsWith("RELEASE_NOTES.md", StringComparison.OrdinalIgnoreCase));
             if (!string.IsNullOrEmpty(resourceName))
@@ -128,7 +128,7 @@ public sealed partial class GuideViewModel : ObservableObject
         }
         catch (Exception ex)
         {
-            Debug.WriteLine($"[GuideViewModel] Lỗi nạp nhật ký phiên bản: {ex.Message}");
+            Debug.WriteLine($"[GuideTabViewModel] Lỗi nạp nhật ký phiên bản: {ex.Message}");
         }
 
         return "Hiện chưa có thông tin nhật ký phiên bản.";
@@ -178,7 +178,7 @@ public sealed partial class GuideViewModel : ObservableObject
         }
         catch (Exception ex)
         {
-            Debug.WriteLine($"[GuideViewModel] Lỗi kiểm tra cập nhật khi khởi động: {ex.Message}");
+            Debug.WriteLine($"[GuideTabViewModel] Lỗi kiểm tra cập nhật khi khởi động: {ex.Message}");
         }
     }
 
@@ -249,7 +249,7 @@ public sealed partial class GuideViewModel : ObservableObject
             }
             catch (Exception ex)
             {
-                Debug.WriteLine($"[GuideViewModel] Lỗi kiểm tra cập nhật DBAM: {ex.Message}");
+                Debug.WriteLine($"[GuideTabViewModel] Lỗi kiểm tra cập nhật DBAM: {ex.Message}");
             }
 
             if (update != null)

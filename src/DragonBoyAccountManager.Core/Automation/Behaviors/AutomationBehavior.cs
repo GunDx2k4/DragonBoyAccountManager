@@ -28,6 +28,11 @@ public abstract class AutomationBehavior : IBehavior
         Id = id ?? name.Replace(" ", string.Empty);
     }
 
+    public void AttachContext(ISessionContext context)
+    {
+        Context = context;
+    }
+
     public async Task StartAsync(
         ISessionContext context,
         IProgress<string>? progress = null,
@@ -65,7 +70,6 @@ public abstract class AutomationBehavior : IBehavior
         }
         finally
         {
-            Context = null;
             Interlocked.Exchange(ref _isPaused, 0);
             Interlocked.CompareExchange(ref _internalCts, null, cts);
             cts.Dispose();

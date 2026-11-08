@@ -11,15 +11,22 @@ namespace DragonBoyAccountManager.Core.Engine;
 public sealed class SessionManager : ISessionManager, IDisposable, IAsyncDisposable
 {
     private readonly ConcurrentDictionary<Guid, SessionWorker> _workers = new();
+    private readonly ConcurrentDictionary<Guid, AccountLaunchOptions> _launchOptions = new();
+    private readonly ConcurrentDictionary<Guid, CancellationTokenSource> _reconnectCts = new();
     private readonly HashSet<Guid> _userStoppedAccounts = [];
     private readonly Lock _userStoppedLock = new();
     private readonly SemaphoreSlim _launchGate = new(1, 1);
-    private readonly SessionLauncher _launcher = new();
+    private readonly ISessionLauncher _launcher;
 
     public Action<GameSession>? SessionInitializer { get; set; }
     public IReadOnlyCollection<Guid> ActiveSessionIds => _workers.Keys.ToList();
 
     public event Action<SessionEvent>? EventPublished;
+
+    public SessionManager(ISessionLauncher? launcher = null)
+    {
+        _launcher = launcher ?? new SessionLauncher();
+    }
 
     private void Publish(SessionEvent evt)
     {
@@ -28,7 +35,8 @@ public sealed class SessionManager : ISessionManager, IDisposable, IAsyncDisposa
 
     public bool IsRunning(Guid accountId)
     {
-        return _workers.TryGetValue(accountId, out var worker) && worker.Session.IsRunning;
+        return (_workers.TryGetValue(accountId, out var worker) && worker.Session.IsRunning)
+               || _reconnectCts.ContainsKey(accountId);
     }
 
     public int? GetProcessId(Guid accountId)
@@ -58,12 +66,24 @@ public sealed class SessionManager : ISessionManager, IDisposable, IAsyncDisposa
             : null;
     }
 
+    private void CancelReconnect(Guid accountId)
+    {
+        if (_reconnectCts.TryRemove(accountId, out var cts))
+        {
+            try { cts.Cancel(); } catch { }
+            cts.Dispose();
+        }
+    }
+
     public async Task<bool> StartSessionAsync(AccountLaunchOptions options, CancellationToken cancellationToken = default)
     {
         if (string.IsNullOrWhiteSpace(options.GamePath) || !File.Exists(options.GamePath))
             return false;
 
-        await StopSessionAsync(options.AccountId);
+        CancelReconnect(options.AccountId);
+        await StopWorkerOnlyAsync(options.AccountId);
+
+        _launchOptions[options.AccountId] = options;
 
         lock (_userStoppedLock)
         {
@@ -89,6 +109,7 @@ public sealed class SessionManager : ISessionManager, IDisposable, IAsyncDisposa
             {
                 GamePath = options.GamePath,
                 SessionId = options.AccountId,
+                ServerId = options.ServerId,
                 ScreenWidth = options.ScreenWidth > 0 ? options.ScreenWidth : 1024,
                 ScreenHeight = options.ScreenHeight > 0 ? options.ScreenHeight : 600,
                 LogPrefix = $"DBAM_{options.Username}",
@@ -100,12 +121,6 @@ public sealed class SessionManager : ISessionManager, IDisposable, IAsyncDisposa
             await _launchGate.WaitAsync(cancellationToken);
             try
             {
-                GameRmsStorage.SetServerSelection(options.ServerId);
-                if (options.ScreenWidth > 0 && options.ScreenHeight > 0)
-                {
-                    int screenLevel = (options.ScreenWidth * options.ScreenHeight < 480000) ? 1 : 0;
-                    GameRmsStorage.SetScreenLevel(screenLevel);
-                }
                 session = await _launcher.LaunchAsync(launchOptions, cancellationToken);
             }
             finally
@@ -119,27 +134,7 @@ public sealed class SessionManager : ISessionManager, IDisposable, IAsyncDisposa
 
             _workers[options.AccountId] = worker;
 
-            session.Exited += (_, _) =>
-            {
-                bool userInitiated;
-                lock (_userStoppedLock)
-                {
-                    userInitiated = _userStoppedAccounts.Contains(options.AccountId);
-                }
-
-                if (_workers.TryRemove(options.AccountId, out var removed))
-                {
-                    removed.Dispose();
-                }
-
-                Publish(new SessionStateChangedEvent(options.AccountId, GameSessionStatus.Offline, null));
-                if (!userInitiated)
-                {
-                    Publish(new SessionMessageEvent(options.AccountId, "Tiến trình game đã thoát bất ngờ."));
-                }
-
-                Publish(new SessionProcessExitedEvent(options.AccountId, userInitiated));
-            };
+            session.Exited += (_, _) => HandleSessionExited(options.AccountId);
 
             Publish(new SessionProcessStartedEvent(options.AccountId, session.Process));
 
@@ -165,7 +160,75 @@ public sealed class SessionManager : ISessionManager, IDisposable, IAsyncDisposa
         }
     }
 
-    public async Task StopSessionAsync(Guid accountId)
+    private void HandleSessionExited(Guid accountId)
+    {
+        bool userInitiated;
+        lock (_userStoppedLock)
+        {
+            userInitiated = _userStoppedAccounts.Contains(accountId);
+        }
+
+        if (_workers.TryRemove(accountId, out var removed))
+        {
+            removed.Dispose();
+        }
+
+        if (userInitiated)
+        {
+            CancelReconnect(accountId);
+            _launchOptions.TryRemove(accountId, out _);
+            Publish(new SessionStateChangedEvent(accountId, GameSessionStatus.Offline, null));
+            Publish(new SessionProcessExitedEvent(accountId, true));
+            return;
+        }
+
+        if (_launchOptions.TryGetValue(accountId, out var savedOptions))
+        {
+            var (autoReconnect, rawDelay) = savedOptions.ReconnectPolicyResolver?.Invoke()
+                ?? (savedOptions.AutoReconnect, savedOptions.ReconnectDelaySeconds);
+
+            if (autoReconnect)
+            {
+                int delay = Math.Max(1, rawDelay);
+                string msg = $"Mất kết nối game. Tự động kết nối lại sau {delay} giây...";
+                Publish(new SessionStateChangedEvent(accountId, GameSessionStatus.Waiting, null));
+                Publish(new SessionMessageEvent(accountId, msg));
+                Publish(new SessionProcessExitedEvent(accountId, false));
+
+                CancelReconnect(accountId);
+                var cts = new CancellationTokenSource();
+                _reconnectCts[accountId] = cts;
+
+                _ = Task.Run(async () =>
+                {
+                    try
+                    {
+                        await Task.Delay(TimeSpan.FromSeconds(delay), cts.Token);
+                        if (!cts.Token.IsCancellationRequested && _launchOptions.TryGetValue(accountId, out var opts))
+                        {
+                            _reconnectCts.TryRemove(accountId, out _);
+                            await StartSessionAsync(opts, CancellationToken.None);
+                        }
+                    }
+                    catch (OperationCanceledException)
+                    {
+                    }
+                    finally
+                    {
+                        cts.Dispose();
+                    }
+                }, cts.Token);
+                return;
+            }
+        }
+
+        _launchOptions.TryRemove(accountId, out _);
+        Publish(new SessionStateChangedEvent(accountId, GameSessionStatus.Offline, null));
+        Publish(new SessionMessageEvent(accountId, "Tiến trình game đã thoát bất ngờ."));
+        Publish(new SessionProcessExitedEvent(accountId, false));
+    }
+
+    private async Task StopWorkerOnlyAsync(Guid accountId)
     {
         lock (_userStoppedLock)
         {
@@ -176,12 +239,26 @@ public sealed class SessionManager : ISessionManager, IDisposable, IAsyncDisposa
         {
             await worker.StopAsync();
         }
+    }
 
+    public async Task StopSessionAsync(Guid accountId)
+    {
+        CancelReconnect(accountId);
+        _launchOptions.TryRemove(accountId, out _);
+        await StopWorkerOnlyAsync(accountId);
         Publish(new SessionStateChangedEvent(accountId, GameSessionStatus.Offline, null));
     }
 
     public async Task StopAllSessionsAsync()
     {
+        foreach (var kvp in _reconnectCts)
+        {
+            try { kvp.Value.Cancel(); } catch { }
+            kvp.Value.Dispose();
+        }
+        _reconnectCts.Clear();
+        _launchOptions.Clear();
+
         var list = _workers.ToList();
         _workers.Clear();
 
@@ -202,6 +279,14 @@ public sealed class SessionManager : ISessionManager, IDisposable, IAsyncDisposa
 
     public void StopAllSessions()
     {
+        foreach (var kvp in _reconnectCts)
+        {
+            try { kvp.Value.Cancel(); } catch { }
+            kvp.Value.Dispose();
+        }
+        _reconnectCts.Clear();
+        _launchOptions.Clear();
+
         var list = _workers.ToList();
         _workers.Clear();
 

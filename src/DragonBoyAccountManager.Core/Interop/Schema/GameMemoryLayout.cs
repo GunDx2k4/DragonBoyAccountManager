@@ -205,14 +205,25 @@ public sealed record ControllerLayout(
     int IsLoadingData);
 
 public sealed record AutoTrainMenuLayout(
+    int Instance,
     int IsChecked,
     int IsCheckedSkill,
     int IsCheckAutoPean,
     int PeanHpPercent,
     int PeanMpPercent,
     int IsCheckAllMob,
+    int IsCheckedMobName,
+    int ListMobNames,
+    int ListSkills,
+    int IsCheckAttackByHp,
+    int HpQuaiOn,
+    int HpQuaiDuoi,
     int IsCheckPick,
-    int IsNhat);
+    int IsNhat,
+    int TfHpOn,
+    int TfHpDuoi,
+    int TfHpPean,
+    int TfMpPean);
 
 public sealed record ServiceLayout(
     int Instance);
@@ -500,14 +511,25 @@ public sealed class GameMemoryLayout
         );
 
         AutoTrainMenu = new AutoTrainMenuLayout(
+            Instance: ResolveStatic(schema, GameSchema.AutoTrainMenu.ClassName, GameSchema.AutoTrainMenu.StaticInstance),
             IsChecked: ResolveStatic(schema, GameSchema.AutoTrainMenu.ClassName, GameSchema.AutoTrainMenu.StaticIsChecked),
             IsCheckedSkill: ResolveStatic(schema, GameSchema.AutoTrainMenu.ClassName, GameSchema.AutoTrainMenu.StaticIsCheckedSkill),
             IsCheckAutoPean: ResolveStatic(schema, GameSchema.AutoTrainMenu.ClassName, GameSchema.AutoTrainMenu.StaticIsCheckAutoPean),
             PeanHpPercent: ResolveStatic(schema, GameSchema.AutoTrainMenu.ClassName, GameSchema.AutoTrainMenu.StaticPeanHpPercent),
             PeanMpPercent: ResolveStatic(schema, GameSchema.AutoTrainMenu.ClassName, GameSchema.AutoTrainMenu.StaticPeanMpPercent),
             IsCheckAllMob: ResolveStatic(schema, GameSchema.AutoTrainMenu.ClassName, GameSchema.AutoTrainMenu.StaticIsCheckAllMob),
+            IsCheckedMobName: ResolveStatic(schema, GameSchema.AutoTrainMenu.ClassName, GameSchema.AutoTrainMenu.StaticIsCheckedMobName),
+            ListMobNames: ResolveStatic(schema, GameSchema.AutoTrainMenu.ClassName, GameSchema.AutoTrainMenu.StaticListMobNames),
+            ListSkills: ResolveStatic(schema, GameSchema.AutoTrainMenu.ClassName, GameSchema.AutoTrainMenu.StaticListSkills),
+            IsCheckAttackByHp: ResolveStatic(schema, GameSchema.AutoTrainMenu.ClassName, GameSchema.AutoTrainMenu.StaticIsCheckAttackByHp),
+            HpQuaiOn: ResolveStatic(schema, GameSchema.AutoTrainMenu.ClassName, GameSchema.AutoTrainMenu.StaticHpQuaiOn),
+            HpQuaiDuoi: ResolveStatic(schema, GameSchema.AutoTrainMenu.ClassName, GameSchema.AutoTrainMenu.StaticHpQuaiDuoi),
             IsCheckPick: ResolveStatic(schema, GameSchema.AutoTrainMenu.ClassName, GameSchema.AutoTrainMenu.StaticIsCheckPick),
-            IsNhat: ResolveStatic(schema, GameSchema.AutoTrainMenu.ClassName, GameSchema.AutoTrainMenu.StaticIsNhat)
+            IsNhat: ResolveStatic(schema, GameSchema.AutoTrainMenu.ClassName, GameSchema.AutoTrainMenu.StaticIsNhat),
+            TfHpOn: ResolveInstance(schema, GameSchema.AutoTrainMenu.ClassName, GameSchema.AutoTrainMenu.FieldTfHpOn),
+            TfHpDuoi: ResolveInstance(schema, GameSchema.AutoTrainMenu.ClassName, GameSchema.AutoTrainMenu.FieldTfHpDuoi),
+            TfHpPean: ResolveInstance(schema, GameSchema.AutoTrainMenu.ClassName, GameSchema.AutoTrainMenu.FieldTfHpPean),
+            TfMpPean: ResolveInstance(schema, GameSchema.AutoTrainMenu.ClassName, GameSchema.AutoTrainMenu.FieldTfMpPean)
         );
 
         CharRva = schema.GetTypeInfoRva("Char");

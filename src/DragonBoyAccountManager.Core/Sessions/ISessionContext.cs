@@ -1,5 +1,5 @@
 using DragonBoyAccountManager.Core.Automation.Behaviors;
-using DragonBoyAccountManager.Core.Automation.Behaviors.Navigation;
+using DragonBoyAccountManager.Core.Automation.Navigation;
 using DragonBoyAccountManager.Core.Execution;
 using DragonBoyAccountManager.Core.Telemetry.Scrapers;
 using DragonBoyAccountManager.Core.Telemetry.Snapshots;

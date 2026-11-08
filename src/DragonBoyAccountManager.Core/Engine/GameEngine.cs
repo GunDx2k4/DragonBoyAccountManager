@@ -55,27 +55,8 @@ public sealed class GameEngine : IGameEngine, IAsyncDisposable
         return worker != null && await worker.ExecuteLoginAsync();
     }
 
-    public async Task<bool> AutoMoveAsync(Guid accountId, int targetX, int targetY, bool isFastTeleport = false, CancellationToken cancellationToken = default)
-    {
-        var result = await ExecuteCommandAsync(accountId, new NavigateCommand(targetX, targetY, isFastTeleport), cancellationToken);
-        var worker = Sessions.GetWorker(accountId);
-        worker?.PublishSessionUpdate();
-        return result.IsSuccess;
-    }
-
-    public async Task<bool> EnterWaypointAsync(Guid accountId, int waypointX, int waypointY, bool isFastTeleport = false, CancellationToken cancellationToken = default)
-    {
-        var result = await ExecuteCommandAsync(accountId, new EnterWaypointCommand(waypointX, waypointY, isFastTeleport), cancellationToken);
-        var worker = Sessions.GetWorker(accountId);
-        worker?.PublishSessionUpdate();
-        return result.IsSuccess;
-    }
-
     public TSnapshot? GetSnapshot<TSnapshot>(Guid accountId) where TSnapshot : class
         => Sessions.GetSnapshot<TSnapshot>(accountId);
-
-    public IReadOnlyList<GameSkillInfo> GetSkills(Guid accountId)
-        => GetSnapshot<PlayerSnapshot>(accountId)?.SkillList ?? [];
 
     public bool StartBehavior<TBehavior, TOptions>(Guid accountId, TOptions options)
         where TBehavior : class, IBehavior<TOptions>

@@ -17,7 +17,7 @@ public partial class AccountConfigTabView : UserControl
         InitializeComponent();
     }
 
-    private AccountFormViewModel? ViewModel => DataContext as AccountFormViewModel;
+    private AccountConfigTabViewModel? ViewModel => DataContext as AccountConfigTabViewModel;
 
     private void DpadButton_PreviewMouseDown(object sender, MouseButtonEventArgs e)
     {

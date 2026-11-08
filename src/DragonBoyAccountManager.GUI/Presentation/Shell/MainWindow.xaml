@@ -261,7 +261,7 @@
                                                             </TabItem>
 
                                                             <TabItem Header="TIỆN ÍCH" Style="{StaticResource GameTabItemStyle}" ToolTip="Tiện ích bản đồ, khu vực &amp; tìm kiếm">
-                                                                <utilities:UtilitiesTabView DataContext="{Binding UtilitiesTab}" />
+                                                                <utilities:MapUtilitiesTabView DataContext="{Binding UtilitiesTab}" />
                                                             </TabItem>
 
                                                             <TabItem Header="AUTO" Style="{StaticResource GameTabItemStyle}" ToolTip="Tự động luyện tập &amp; tự động chat">

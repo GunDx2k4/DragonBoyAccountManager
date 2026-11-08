@@ -1,15 +1,7 @@
 using DragonBoyAccountManager.Core.Execution.Commands;
 using DragonBoyAccountManager.Core.Sessions;
 
-namespace DragonBoyAccountManager.Core.Automation.Behaviors.Combat;
-
-public sealed record AutoChatOptions
-{
-    public IReadOnlyList<string> Messages { get; init; } = ["Chào mọi người!"];
-    public TimeSpan Delay { get; init; } = TimeSpan.FromSeconds(5);
-    public bool IsGlobal { get; init; }
-    public bool IsRandom { get; init; }
-}
+namespace DragonBoyAccountManager.Core.Automation.Behaviors.Social;
 
 public sealed class AutoChatBehavior(AutoChatOptions options)
     : AutomationBehavior<AutoChatOptions>("Auto Chat", options, BehaviorId)

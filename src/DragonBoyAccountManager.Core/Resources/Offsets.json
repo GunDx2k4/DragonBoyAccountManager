@@ -901,11 +901,18 @@
       "Tilemap.tilemapPositionsChanged": 8,
       "Tilemap.loopEndedForTileAnimation": 16,
       "AutoTrainMenu.isNhat": 0,
+      "AutoTrainMenu.instance": 8,
       "AutoTrainMenu.isChecked": 24,
+      "AutoTrainMenu.hpQuaiOn": 32,
+      "AutoTrainMenu.hpQuaiDuoi": 40,
+      "AutoTrainMenu.isCheckAttackByHp": 48,
       "AutoTrainMenu.isCheckAutoPean": 49,
       "AutoTrainMenu.peanHpPercent": 52,
       "AutoTrainMenu.peanMpPercent": 56,
+      "AutoTrainMenu.listMobNames": 72,
+      "AutoTrainMenu.isCheckedMobName": 80,
       "AutoTrainMenu.isCheckAllMob": 88,
+      "AutoTrainMenu.listSkills": 104,
       "AutoTrainMenu.isCheckedSkill": 112,
       "AutoTrainMenu.isCheckPick": 136
     },
@@ -1895,7 +1902,11 @@
       "ItemMap.yEnd": 28,
       "ItemMap.playerId": 44,
       "ItemMap.itemMapID": 48,
-      "ItemMap.template": 56
+      "ItemMap.template": 56,
+      "AutoTrainMenu.tfHpOn": 48,
+      "AutoTrainMenu.tfHpDuoi": 56,
+      "AutoTrainMenu.tfHpPean": 64,
+      "AutoTrainMenu.tfMpPean": 72
     },
     "Methods": {
       "Service.charMove": 4183344,

@@ -6,7 +6,7 @@
     xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
     xmlns:ui="clr-namespace:DragonBoyAccountManager.GUI.Presentation.DesignSystem.Controls"
     xmlns:viewmodels="clr-namespace:DragonBoyAccountManager.GUI.Presentation.Features.Feedback"
-    d:DataContext="{d:DesignInstance Type=viewmodels:FeedbackViewModel}"
+    d:DataContext="{d:DesignInstance Type=viewmodels:FeedbackTabViewModel}"
     d:DesignWidth="435"
     mc:Ignorable="d">
 

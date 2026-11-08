@@ -972,7 +972,7 @@
     <Style x:Key="GameAutoTrainToggleButtonStyle" BasedOn="{StaticResource GamePrimaryButton}" TargetType="Button">
         <Setter Property="Content" Value="BẬT AUTO ĐÁNH" />
         <Style.Triggers>
-            <DataTrigger Binding="{Binding IsAutoTrainRunning}" Value="True">
+            <DataTrigger Binding="{Binding IsRunning}" Value="True">
                 <Setter Property="Content" Value="DỪNG AUTO ĐÁNH" />
                 <Setter Property="Template" Value="{StaticResource GameDangerButtonTemplate}" />
                 <Setter Property="Foreground" Value="{DynamicResource GameBtnDangerTextBrush}" />
@@ -983,7 +983,7 @@
     <Style x:Key="GameAutoChatToggleButtonStyle" BasedOn="{StaticResource GamePrimaryButton}" TargetType="Button">
         <Setter Property="Content" Value="BẬT AUTO CHAT" />
         <Style.Triggers>
-            <DataTrigger Binding="{Binding IsAutoChatRunning}" Value="True">
+            <DataTrigger Binding="{Binding IsRunning}" Value="True">
                 <Setter Property="Content" Value="DỪNG AUTO CHAT" />
                 <Setter Property="Template" Value="{StaticResource GameDangerButtonTemplate}" />
                 <Setter Property="Foreground" Value="{DynamicResource GameBtnDangerTextBrush}" />

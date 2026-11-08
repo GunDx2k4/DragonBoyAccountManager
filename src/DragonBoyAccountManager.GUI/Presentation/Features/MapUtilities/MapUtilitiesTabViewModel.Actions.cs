@@ -4,7 +4,7 @@ using DragonBoyAccountManager.Core.Telemetry.Snapshots;
 
 namespace DragonBoyAccountManager.GUI.Presentation.Features.MapUtilities;
 
-public sealed partial class UtilitiesTabViewModel
+public sealed partial class MapUtilitiesTabViewModel
 {
     public void ExecuteChangeZone(int targetZone)
     {

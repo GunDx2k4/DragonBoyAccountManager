@@ -5,34 +5,12 @@ using DragonBoyAccountManager.Core.Sessions;
 
 namespace DragonBoyAccountManager.Core.Automation.Behaviors.Combat;
 
-public enum MobTargetMode
-{
-    ByTemplate = 0,
-    ByMobId = 1
-}
-
-public sealed record AutoTrainOptions
-{
-    public MobTargetMode TargetMode { get; init; } = MobTargetMode.ByTemplate;
-    public IReadOnlyList<int> SelectedSkillSlots { get; init; } = [0];
-    public IReadOnlyList<int> TargetMobTemplateIds { get; init; } = [];
-    public IReadOnlyList<int> TargetMobIds { get; init; } = [];
-    public bool IgnoreBosses { get; init; } = true;
-    public bool AvoidSuperMobs { get; init; } = true;
-    public bool AutoPickItems { get; init; } = true;
-    public bool AutoUsePean { get; init; } = true;
-    public int MinHpPercent { get; init; } = 20;
-    public int MinMpPercent { get; init; } = 20;
-    public bool UseTdlt { get; init; } = true;
-}
-
 public sealed class AutoTrainBehavior : AutomationBehavior<AutoTrainOptions>
 {
     public const string BehaviorId = "AutoTrain";
 
     private readonly AutoReviveInterrupter _reviveInterrupter = new();
     private readonly AutoPeanInterrupter _peanInterrupter;
-    private DateTime _lastTdltCheckTime = DateTime.MinValue;
     private DateTime _lastAutoSyncTime = DateTime.MinValue;
 
     public AutoTrainBehavior(AutoTrainOptions options)
@@ -43,23 +21,49 @@ public sealed class AutoTrainBehavior : AutomationBehavior<AutoTrainOptions>
         Interrupters.Register(_peanInterrupter);
     }
 
+    private SetInGameAutoTrainCommand BuildCommand(bool enable)
+    {
+        return new SetInGameAutoTrainCommand(
+            Enable: enable,
+            Reason: "DBAM_AutoTrain",
+            AvoidSuperMobs: Options.AvoidSuperMobs,
+            ChangeZoneWhenNoMobs: Options.ChangeZoneWhenNoMobs,
+            CheckAttackByHp: Options.CheckAttackByHp,
+            MinMobHp: Options.MinMobHp,
+            MaxMobHp: Options.MaxMobHp,
+            AutoUsePean: Options.AutoUsePean,
+            PeanHpPercent: Options.MinHpPercent,
+            PeanMpPercent: Options.MinMpPercent,
+            CheckAllMobs: Options.CheckAllMobs,
+            TargetMobNames: Options.TargetMobNames,
+            SelectedSkillSlots: Options.SelectedSkillSlots
+        );
+    }
+
     protected override void OnOptionsChanged(AutoTrainOptions previousOptions, AutoTrainOptions newOptions)
     {
         _peanInterrupter.Enabled = newOptions.AutoUsePean;
         _peanInterrupter.MinHpPercent = newOptions.MinHpPercent;
         _peanInterrupter.MinMpPercent = newOptions.MinMpPercent;
+
+        if (IsRunning && Context is { IsRunning: true, IsQuitRequested: false } ctx)
+        {
+            var cmd = BuildCommand(true);
+            _ = Task.Run(() => ctx.Dispatcher.DispatchAsync(cmd, CancellationToken.None));
+        }
     }
 
     protected override void OnStarted(IProgress<string>? progress)
     {
+        _lastAutoSyncTime = DateTime.MinValue;
         progress?.Report("[Auto Train] Bắt đầu tự động luyện tập...");
     }
 
     protected override void OnStopped(IProgress<string>? progress)
     {
-        if (Context != null)
+        if (Context is { IsRunning: true, IsQuitRequested: false } ctx)
         {
-            _ = Context.Dispatcher.DispatchAsync(new SetInGameAutoTrainCommand(false, "DBAM_Stop"), CancellationToken.None);
+            _ = Task.Run(() => ctx.Dispatcher.DispatchAsync(new SetInGameAutoTrainCommand(false, "DBAM_Stop"), CancellationToken.None));
         }
         progress?.Report("[Auto Train] Đã dừng tự động luyện tập.");
     }
@@ -78,19 +82,10 @@ public sealed class AutoTrainBehavior : AutomationBehavior<AutoTrainOptions>
             return;
         }
 
-        if (Options.UseTdlt && DateTime.UtcNow - _lastTdltCheckTime > TimeSpan.FromSeconds(5))
-        {
-            _lastTdltCheckTime = DateTime.UtcNow;
-            if (!player.IsTdltActive && (player.BagItems == null || player.BagItemList.Any(i => i.IsTdlt && i.Quantity > 0)))
-            {
-                await dispatcher.DispatchAsync(new UseItemCommand(-1, GameDefinitions.DefaultTdltTemplateId, "TDLT"), cancellationToken);
-            }
-        }
-
-        if (!player.IsAutoPlay && DateTime.UtcNow - _lastAutoSyncTime > TimeSpan.FromSeconds(2))
+        if ((!player.IsAutoPlay || _lastAutoSyncTime == DateTime.MinValue) && DateTime.UtcNow - _lastAutoSyncTime > TimeSpan.FromSeconds(2))
         {
             _lastAutoSyncTime = DateTime.UtcNow;
-            var result = await dispatcher.DispatchAsync(new SetInGameAutoTrainCommand(true, "DBAM_AutoTrain"), cancellationToken);
+            var result = await dispatcher.DispatchAsync(BuildCommand(true), cancellationToken);
             if (result.IsSuccess)
             {
                 progress?.Report("[Auto Train] Đã kích hoạt tự động đánh của game client.");

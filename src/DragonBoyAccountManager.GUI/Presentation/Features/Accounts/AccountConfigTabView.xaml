@@ -9,7 +9,7 @@
     xmlns:ui="clr-namespace:DragonBoyAccountManager.GUI.Presentation.DesignSystem.Controls"
     xmlns:autoItems="clr-namespace:DragonBoyAccountManager.GUI.Presentation.Features.Auto.Items"
     xmlns:viewmodels="clr-namespace:DragonBoyAccountManager.GUI.Presentation.Features.Accounts"
-    d:DataContext="{d:DesignInstance Type=viewmodels:AccountFormViewModel}"
+    d:DataContext="{d:DesignInstance Type=viewmodels:AccountConfigTabViewModel}"
     d:DesignHeight="520"
     d:DesignWidth="435"
     mc:Ignorable="d">

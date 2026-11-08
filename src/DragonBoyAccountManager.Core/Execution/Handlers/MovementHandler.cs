@@ -1,4 +1,4 @@
-using DragonBoyAccountManager.Core.Automation.Behaviors.Navigation;
+using DragonBoyAccountManager.Core.Automation.Navigation;
 using DragonBoyAccountManager.Core.Common.Results;
 using DragonBoyAccountManager.Core.Execution.Commands;
 using DragonBoyAccountManager.Core.Interop.Abstractions;

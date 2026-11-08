@@ -16,13 +16,13 @@ public sealed partial class MainViewModel : ObservableObject
     private readonly IReadOnlyDictionary<AppTab, IActivatableTab> _tabs;
 
     public AccountsPanelViewModel AccountsPanel { get; }
-    public AccountFormViewModel AccountForm { get; }
+    public AccountConfigTabViewModel AccountForm { get; }
     public AppStatusBarViewModel StatusBar { get; }
     public SettingsTabViewModel Settings { get; }
-    public GuideViewModel Guide { get; }
-    public UtilitiesTabViewModel UtilitiesTab { get; }
+    public GuideTabViewModel Guide { get; }
+    public MapUtilitiesTabViewModel UtilitiesTab { get; }
     public AutoTabViewModel AutoTab { get; }
-    public FeedbackViewModel Feedback { get; }
+    public FeedbackTabViewModel Feedback { get; }
     public AppTitleBarViewModel TitleBar { get; }
 
     [ObservableProperty]
@@ -42,14 +42,14 @@ public sealed partial class MainViewModel : ObservableObject
 
     public MainViewModel(
         AccountsPanelViewModel accountsPanel,
-        AccountFormViewModel accountForm,
+        AccountConfigTabViewModel accountForm,
         AppStatusBarViewModel statusBar,
         AppTitleBarViewModel titleBar,
         SettingsTabViewModel settings,
-        GuideViewModel guide,
-        UtilitiesTabViewModel utilitiesTab,
+        GuideTabViewModel guide,
+        MapUtilitiesTabViewModel utilitiesTab,
         AutoTabViewModel autoTab,
-        FeedbackViewModel feedback,
+        FeedbackTabViewModel feedback,
         IAccountStorageService storageService,
         IDialogService dialogService,
         IGameInputService gameInput)

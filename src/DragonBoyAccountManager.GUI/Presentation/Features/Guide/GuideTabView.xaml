@@ -8,7 +8,7 @@
     xmlns:assists="clr-namespace:DragonBoyAccountManager.GUI.Presentation.DesignSystem.Assists"
     xmlns:ui="clr-namespace:DragonBoyAccountManager.GUI.Presentation.DesignSystem.Controls"
     xmlns:viewmodels="clr-namespace:DragonBoyAccountManager.GUI.Presentation.Features.Guide"
-    d:DataContext="{d:DesignInstance Type=viewmodels:GuideViewModel}"
+    d:DataContext="{d:DesignInstance Type=viewmodels:GuideTabViewModel}"
     d:DesignHeight="600"
     d:DesignWidth="435"
     mc:Ignorable="d">

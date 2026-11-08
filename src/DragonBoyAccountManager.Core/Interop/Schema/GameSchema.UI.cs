@@ -170,17 +170,26 @@ public static partial class GameSchema
         public const string StaticInstance = "instance";
         public const string StaticIsNhat = "isNhat";
         public const string StaticIsChecked = "isChecked";
-        public const string StaticIsCheckAllMob = "isCheckAllMob";
-        public const string StaticIsCheckedMobName = "isCheckedMobName";
-        public const string StaticIsCheckedSkill = "isCheckedSkill";
+        public const string StaticHpQuaiOn = "hpQuaiOn";
+        public const string StaticHpQuaiDuoi = "hpQuaiDuoi";
+        public const string StaticIsCheckAttackByHp = "isCheckAttackByHp";
         public const string StaticIsCheckAutoPean = "isCheckAutoPean";
         public const string StaticPeanHpPercent = "peanHpPercent";
         public const string StaticPeanMpPercent = "peanMpPercent";
+        public const string StaticListMobNames = "listMobNames";
+        public const string StaticIsCheckedMobName = "isCheckedMobName";
+        public const string StaticIsCheckAllMob = "isCheckAllMob";
+        public const string StaticListSkills = "listSkills";
+        public const string StaticIsCheckedSkill = "isCheckedSkill";
         public const string StaticIsCheckPick = "isCheckPick";
+
+        public const string FieldTfHpOn = "tfHpOn";
+        public const string FieldTfHpDuoi = "tfHpDuoi";
+        public const string FieldTfHpPean = "tfHpPean";
+        public const string FieldTfMpPean = "tfMpPean";
 
         public const string MethodGI = "gI";
         public const string MethodSetAutoAttack = "setAutoAttack";
         public const string MethodUpdateAutoTrain = "updateAutoTrain";
-        public const string MethodScanSkills = "scanSkills";
     }
 }

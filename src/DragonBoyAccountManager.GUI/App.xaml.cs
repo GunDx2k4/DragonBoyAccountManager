@@ -40,14 +40,16 @@ public partial class App : System.Windows.Application
         services.AddSingleton<IHotkeyRoutingService, HotkeyRoutingService>();
 
         services.AddSingleton<AccountsPanelViewModel>();
-        services.AddSingleton<AccountFormViewModel>();
+        services.AddSingleton<AccountConfigTabViewModel>();
         services.AddSingleton<AppStatusBarViewModel>();
         services.AddSingleton<AppTitleBarViewModel>();
         services.AddSingleton<SettingsTabViewModel>();
-        services.AddSingleton<GuideViewModel>();
-        services.AddSingleton<UtilitiesTabViewModel>();
+        services.AddSingleton<GuideTabViewModel>();
+        services.AddSingleton<MapUtilitiesTabViewModel>();
+        services.AddSingleton<AutoTrainViewModel>();
+        services.AddSingleton<AutoChatViewModel>();
         services.AddSingleton<AutoTabViewModel>();
-        services.AddSingleton<FeedbackViewModel>();
+        services.AddSingleton<FeedbackTabViewModel>();
         services.AddSingleton<MainViewModel>();
 
         services.AddSingleton<MainWindow>();

@@ -1,5 +1,5 @@
 <UserControl
-    x:Class="DragonBoyAccountManager.GUI.Presentation.Features.MapUtilities.UtilitiesTabView"
+    x:Class="DragonBoyAccountManager.GUI.Presentation.Features.MapUtilities.MapUtilitiesTabView"
     xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
     xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
@@ -7,7 +7,7 @@
     xmlns:models="clr-namespace:DragonBoyAccountManager.Core.Telemetry.Snapshots;assembly=DragonBoyAccountManager.Core"
     xmlns:items="clr-namespace:DragonBoyAccountManager.GUI.Presentation.Features.MapUtilities.Items"
     xmlns:viewmodels="clr-namespace:DragonBoyAccountManager.GUI.Presentation.Features.MapUtilities"
-    d:DataContext="{d:DesignInstance Type=viewmodels:UtilitiesTabViewModel}"
+    d:DataContext="{d:DesignInstance Type=viewmodels:MapUtilitiesTabViewModel}"
     d:DesignHeight="550"
     d:DesignWidth="435"
     mc:Ignorable="d">

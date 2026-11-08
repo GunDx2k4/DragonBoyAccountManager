@@ -1,12 +1,10 @@
 using System.Windows.Threading;
-
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 
-
 namespace DragonBoyAccountManager.GUI.Presentation.Features.Feedback;
 
-public sealed partial class FeedbackViewModel : ObservableObject
+public sealed partial class FeedbackTabViewModel : ObservableObject
 {
     private readonly IFeedbackService _feedbackService;
     private readonly IDialogService _dialogService;
@@ -74,7 +72,7 @@ public sealed partial class FeedbackViewModel : ObservableObject
         !string.IsNullOrWhiteSpace(Content) &&
         Content.Trim().Length >= 10;
 
-    public FeedbackViewModel(
+    public FeedbackTabViewModel(
         IFeedbackService feedbackService,
         IDialogService dialogService)
     {

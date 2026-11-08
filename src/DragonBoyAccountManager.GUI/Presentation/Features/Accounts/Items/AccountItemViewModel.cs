@@ -3,8 +3,17 @@ using DragonBoyAccountManager.Core.Common;
 
 namespace DragonBoyAccountManager.GUI.Presentation.Features.Accounts.Items;
 
+public sealed class AccountBehaviorState
+{
+    public bool IsRunning { get; set; }
+    public string StatusText { get; set; } = string.Empty;
+    public int Counter { get; set; }
+}
+
 public sealed partial class AccountItemViewModel : ObservableObject
 {
+    private readonly Dictionary<string, AccountBehaviorState> _behaviorStates = new(StringComparer.OrdinalIgnoreCase);
+
     public Account Model { get; }
 
     public Guid Id => Model.Id;
@@ -15,20 +24,15 @@ public sealed partial class AccountItemViewModel : ObservableObject
     public bool AutoLogin => Model.AutoLogin;
     public AccountAutoSettings AutoSettings => Model.AutoSettings;
 
-    [ObservableProperty]
-    private bool _isAutoTrainRunning;
-
-    [ObservableProperty]
-    private string _autoTrainStatusText = "Chưa kích hoạt";
-
-    [ObservableProperty]
-    private bool _isAutoChatRunning;
-
-    [ObservableProperty]
-    private string _autoChatStatusText = "Chưa kích hoạt";
-
-    [ObservableProperty]
-    private int _chatSentCount;
+    public AccountBehaviorState GetBehaviorState(string behaviorId)
+    {
+        if (!_behaviorStates.TryGetValue(behaviorId, out var state))
+        {
+            state = new AccountBehaviorState();
+            _behaviorStates[behaviorId] = state;
+        }
+        return state;
+    }
 
     [ObservableProperty]
     private bool _isSelected;
@@ -334,10 +338,7 @@ public sealed partial class AccountItemViewModel : ObservableObject
             ProcessId = null;
             StatusMessage = string.Empty;
             LastActionReport = ActionExecutionReport.Idle();
-            IsAutoTrainRunning = false;
-            IsAutoChatRunning = false;
-            AutoTrainStatusText = "Chưa kích hoạt";
-            AutoChatStatusText = "Chưa kích hoạt";
+            _behaviorStates.Clear();
             UpdateSnapshot(null);
         }
         else if (newStatus is GameSessionStatus.Error or GameSessionStatus.Banned && !string.IsNullOrWhiteSpace(message))

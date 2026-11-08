@@ -4,7 +4,7 @@ using DragonBoyAccountManager.Core.Execution.Commands;
 using DragonBoyAccountManager.Core.Sessions;
 using DragonBoyAccountManager.Core.Telemetry.Snapshots;
 
-namespace DragonBoyAccountManager.Core.Automation.Behaviors.Navigation;
+namespace DragonBoyAccountManager.Core.Automation.Navigation;
 
 public class AutoNavigator(ICommandDispatcher dispatcher)
 {
