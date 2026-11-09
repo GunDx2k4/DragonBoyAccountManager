@@ -109,7 +109,7 @@ public abstract partial class AccountAwareTabViewModel : ObservableObject, IActi
 
     public void UpdateSyncTargetDisplay()
     {
-        var targets = GetTargetAccountIds(true);
+        var targets = GetTargetAccountIds();
         int count = targets.Count;
         SyncTargetDisplay = count > 1
             ? $"Đồng bộ: {count} tài khoản"
@@ -119,9 +119,9 @@ public abstract partial class AccountAwareTabViewModel : ObservableObject, IActi
     public AccountItemViewModel? ResolveAccount(Guid id) =>
         _selectionService?.FindAccount(id) ?? (ActiveAccount?.Id == id ? ActiveAccount : null);
 
-    protected List<Guid> GetTargetAccountIds(bool syncAll = true)
+    protected List<Guid> GetTargetAccountIds()
     {
-        if (syncAll && _selectionService != null)
+        if (_selectionService != null)
         {
             var running = _selectionService.GetRunningTargetAccountIds();
             if (running.Count > 0) return running.ToList();

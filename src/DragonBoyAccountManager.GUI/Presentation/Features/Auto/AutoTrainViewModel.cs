@@ -257,7 +257,7 @@ public sealed partial class AutoTrainViewModel : AutoFeatureViewModelBase
         int selectedCount = AutoTrainItems.Count(i => i.IsSelected);
         HasSelectedAutoItems = selectedCount > 0;
         OnOptionChanged();
-        var targets = GetTargetAccountIds(SyncAll);
+        var targets = GetTargetAccountIds();
         ItemStatusText = selectedCount > 0
             ? (targets.Count > 1
                 ? $"Đã cấu hình {selectedCount} vật phẩm ({targets.Count} tài khoản)"
@@ -272,7 +272,7 @@ public sealed partial class AutoTrainViewModel : AutoFeatureViewModelBase
         PersistActiveAccountSettings();
 
         var options = BuildCurrentOptions();
-        foreach (var id in GetTargetAccountIds(SyncAll))
+        foreach (var id in GetTargetAccountIds())
         {
             var targetAcc = ResolveAccount(id);
             if (targetAcc != null && targetAcc.Id != ActiveAccount.Id)
@@ -451,7 +451,7 @@ public sealed partial class AutoTrainViewModel : AutoFeatureViewModelBase
     {
         PersistActiveAccountSettings();
 
-        var targets = GetTargetAccountIds(SyncAll);
+        var targets = GetTargetAccountIds();
         if (targets.Count == 0)
         {
             StatusText = "Chưa chọn tài khoản!";
@@ -481,7 +481,7 @@ public sealed partial class AutoTrainViewModel : AutoFeatureViewModelBase
 
     private void StopAutoTrain()
     {
-        var targets = GetTargetAccountIds(SyncAll);
+        var targets = GetTargetAccountIds();
         foreach (var id in targets)
         {
             GameEngine.StopAutoTrain(id);

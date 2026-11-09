@@ -127,7 +127,7 @@ public sealed partial class AutoChatViewModel : AutoFeatureViewModelBase
         if (lines.Length == 0) return;
 
         string msg = lines[0];
-        var targets = GetTargetAccountIds(SyncAll);
+        var targets = GetTargetAccountIds();
         var chatType = (ChatType)SelectedChatTypeIndex;
 
         if (targets.Count == 0)
@@ -179,7 +179,7 @@ public sealed partial class AutoChatViewModel : AutoFeatureViewModelBase
             return;
         }
 
-        var targets = GetTargetAccountIds(SyncAll);
+        var targets = GetTargetAccountIds();
         if (targets.Count == 0)
         {
             StatusText = "Chưa chọn tài khoản đang chạy nào!";
@@ -219,7 +219,7 @@ public sealed partial class AutoChatViewModel : AutoFeatureViewModelBase
 
     private void StopAutoChat()
     {
-        var targets = GetTargetAccountIds(SyncAll);
+        var targets = GetTargetAccountIds();
         foreach (var id in targets)
         {
             GameEngine.StopAutoChat(id);

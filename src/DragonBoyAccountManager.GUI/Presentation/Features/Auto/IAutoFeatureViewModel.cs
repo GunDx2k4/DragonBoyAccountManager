@@ -43,9 +43,6 @@ public abstract partial class AutoFeatureViewModelBase : ObservableObject, IAuto
     private string _statusText = "Chưa kích hoạt";
 
     [ObservableProperty]
-    private bool _syncAll;
-
-    [ObservableProperty]
     private string _syncTargetDisplay = "1 tài khoản";
 
     protected AutoFeatureViewModelBase(
@@ -153,29 +150,12 @@ public abstract partial class AutoFeatureViewModelBase : ObservableObject, IAuto
         });
     }
 
-    partial void OnSyncAllChanged(bool value)
-    {
-        if (value)
-        {
-            var targets = GetTargetAccountIds(true);
-            IsRunning = targets.Any(id => GameEngine.IsBehaviorRunning(id, BehaviorId));
-        }
-        else
-        {
-            IsRunning = ActiveAccount != null && GameEngine.IsBehaviorRunning(ActiveAccount.Id, BehaviorId);
-            var state = ActiveAccount?.GetBehaviorState(BehaviorId);
-            StatusText = !string.IsNullOrWhiteSpace(state?.StatusText)
-                ? state.StatusText
-                : (IsRunning ? "Đang chạy..." : "Chưa kích hoạt");
-        }
-    }
-
     protected AccountItemViewModel? ResolveAccount(Guid id) =>
         SelectionService?.FindAccount(id) ?? (ActiveAccount?.Id == id ? ActiveAccount : null);
 
-    protected List<Guid> GetTargetAccountIds(bool syncAll = true)
+    protected List<Guid> GetTargetAccountIds()
     {
-        if (syncAll && SelectionService != null)
+        if (SelectionService != null)
         {
             var running = SelectionService.GetRunningTargetAccountIds();
             if (running.Count > 0) return running.ToList();
