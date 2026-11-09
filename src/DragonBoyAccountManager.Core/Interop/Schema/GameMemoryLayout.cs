@@ -35,7 +35,9 @@ public sealed record CharLayout(
     int MyChar,
     int IsChangingMap,
     int IsLoadingMap,
-    int VItemTime);
+    int VItemTime,
+    int IsPaintAura,
+    int IsPaintAura2);
 
 public sealed record TileMapLayout(
     int MapId,
@@ -63,7 +65,8 @@ public sealed record GameScrLayout(
     int VItemMap,
     int Zones,
     int OnScreenSkill,
-    int TextTime);
+    int TextTime,
+    int IsPaintChatVip);
 
 public sealed record GameMidletLayout(
     int Version,
@@ -159,7 +162,9 @@ public sealed record GameCanvasLayout(
     int ServerScreen,
     int LoginScr,
     int IsLoading,
-    int GameTick);
+    int GameTick,
+    int IsPlaySound,
+    int LowGraphic);
 
 public sealed record ServerListScreenLayout(
     int WaitToLogin,
@@ -239,6 +244,14 @@ public sealed record AutoTrainMenuLayout(
 public sealed record ServiceLayout(
     int Instance);
 
+public sealed record MResourcesLayout(
+    int AutoTrainTabNames,
+    int AutoTrainTabNames2,
+    int AutoPickNames);
+
+public sealed record MGraphicsLayout(
+    int ZoomLevel);
+
 public sealed class GameMemoryLayout
 {
     public CharLayout Char { get; }
@@ -272,6 +285,8 @@ public sealed class GameMemoryLayout
     public SplashScrLayout SplashScr { get; }
     public SessionLayout Session { get; }
     public AutoTrainMenuLayout AutoTrainMenu { get; }
+    public MResourcesLayout MResources { get; }
+    public MGraphicsLayout MGraphics { get; }
 
     public long CharRva { get; }
     public long TileMapRva { get; }
@@ -282,6 +297,8 @@ public sealed class GameMemoryLayout
     public long RmsRva { get; }
     public long ServiceRva { get; }
     public long AutoTrainMenuRva { get; }
+    public long MResourcesRva { get; }
+    public long MGraphicsRva { get; }
 
     public GameMemoryLayout(GameVersionSchema schema)
     {
@@ -321,7 +338,9 @@ public sealed class GameMemoryLayout
             MyChar: ResolveStatic(schema, GameSchema.Char.ClassName, GameSchema.Char.StaticMyChar),
             IsChangingMap: ResolveStatic(schema, GameSchema.Char.ClassName, GameSchema.Char.StaticIsChangingMap),
             IsLoadingMap: ResolveStatic(schema, GameSchema.Char.ClassName, GameSchema.Char.StaticIsLoadingMap),
-            VItemTime: ResolveStatic(schema, GameSchema.Char.ClassName, GameSchema.Char.StaticVItemTime)
+            VItemTime: ResolveStatic(schema, GameSchema.Char.ClassName, GameSchema.Char.StaticVItemTime),
+            IsPaintAura: ResolveStatic(schema, GameSchema.Char.ClassName, GameSchema.Char.StaticIsPaintAura),
+            IsPaintAura2: ResolveStatic(schema, GameSchema.Char.ClassName, GameSchema.Char.StaticIsPaintAura2)
         );
 
         TileMap = new TileMapLayout(
@@ -351,7 +370,8 @@ public sealed class GameMemoryLayout
             VItemMap: ResolveStatic(schema, GameSchema.GameScr.ClassName, GameSchema.GameScr.StaticVItemMap),
             Zones: ResolveInstance(schema, GameSchema.GameScr.ClassName, GameSchema.GameScr.FieldZones),
             OnScreenSkill: ResolveStatic(schema, GameSchema.GameScr.ClassName, GameSchema.GameScr.StaticOnScreenSkill),
-            TextTime: ResolveStatic(schema, GameSchema.GameScr.ClassName, GameSchema.GameScr.StaticTextTime)
+            TextTime: ResolveStatic(schema, GameSchema.GameScr.ClassName, GameSchema.GameScr.StaticTextTime),
+            IsPaintChatVip: ResolveStatic(schema, GameSchema.GameScr.ClassName, GameSchema.GameScr.StaticIsPaintChatVip)
         );
 
         GameMidlet = new GameMidletLayout(
@@ -463,7 +483,9 @@ public sealed class GameMemoryLayout
             ServerScreen: ResolveStatic(schema, GameSchema.GameCanvas.ClassName, GameSchema.GameCanvas.StaticServerScreen),
             LoginScr: ResolveStatic(schema, GameSchema.GameCanvas.ClassName, GameSchema.GameCanvas.StaticLoginScr),
             IsLoading: ResolveStatic(schema, GameSchema.GameCanvas.ClassName, GameSchema.GameCanvas.StaticIsLoading),
-            GameTick: ResolveStatic(schema, GameSchema.GameCanvas.ClassName, GameSchema.GameCanvas.StaticGameTick)
+            GameTick: ResolveStatic(schema, GameSchema.GameCanvas.ClassName, GameSchema.GameCanvas.StaticGameTick),
+            IsPlaySound: ResolveStatic(schema, GameSchema.GameCanvas.ClassName, GameSchema.GameCanvas.StaticIsPlaySound),
+            LowGraphic: ResolveStatic(schema, GameSchema.GameCanvas.ClassName, GameSchema.GameCanvas.StaticLowGraphic)
         );
 
         ServerListScreen = new ServerListScreenLayout(
@@ -556,6 +578,16 @@ public sealed class GameMemoryLayout
             TfMpPean: ResolveInstance(schema, GameSchema.AutoTrainMenu.ClassName, GameSchema.AutoTrainMenu.FieldTfMpPean)
         );
 
+        MResources = new MResourcesLayout(
+            AutoTrainTabNames: ResolveStatic(schema, GameSchema.mResources.ClassName, GameSchema.mResources.StaticAutoTrainTabNames),
+            AutoTrainTabNames2: ResolveStatic(schema, GameSchema.mResources.ClassName, GameSchema.mResources.StaticAutoTrainTabNames2),
+            AutoPickNames: ResolveStatic(schema, GameSchema.mResources.ClassName, GameSchema.mResources.StaticAutoPickNames)
+        );
+
+        MGraphics = new MGraphicsLayout(
+            ZoomLevel: ResolveStatic(schema, GameSchema.mGraphics.ClassName, GameSchema.mGraphics.StaticZoomLevel)
+        );
+
         CharRva = schema.GetTypeInfoRva("Char");
         TileMapRva = schema.GetTypeInfoRva("TileMap");
         GameScrRva = schema.GetTypeInfoRva("GameScr");
@@ -565,6 +597,8 @@ public sealed class GameMemoryLayout
         RmsRva = schema.GetTypeInfoRva("Rms");
         ServiceRva = schema.GetTypeInfoRva("Service");
         AutoTrainMenuRva = schema.GetTypeInfoRva("AutoTrainMenu");
+        MResourcesRva = schema.GetTypeInfoRva(GameSchema.mResources.ClassName);
+        MGraphicsRva = schema.GetTypeInfoRva(GameSchema.mGraphics.ClassName);
     }
 
     private static int ResolveInstance(GameVersionSchema schema, string className, string fieldName, int fallback = -1)

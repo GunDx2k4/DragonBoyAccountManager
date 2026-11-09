@@ -5,6 +5,7 @@ using System.Threading.Tasks;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Messaging;
 using DragonBoyAccountManager.Core.Common;
+using DragonBoyAccountManager.GUI.Presentation.Features.GameConfig;
 
 namespace DragonBoyAccountManager.GUI.Presentation.Shell;
 
@@ -22,6 +23,7 @@ public sealed partial class MainViewModel : ObservableObject
     public GuideTabViewModel Guide { get; }
     public MapUtilitiesTabViewModel UtilitiesTab { get; }
     public AutoTabViewModel AutoTab { get; }
+    public GameConfigTabViewModel GameConfig { get; }
     public FeedbackTabViewModel Feedback { get; }
     public AppTitleBarViewModel TitleBar { get; }
 
@@ -49,6 +51,7 @@ public sealed partial class MainViewModel : ObservableObject
         GuideTabViewModel guide,
         MapUtilitiesTabViewModel utilitiesTab,
         AutoTabViewModel autoTab,
+        GameConfigTabViewModel gameConfig,
         FeedbackTabViewModel feedback,
         IAccountStorageService storageService,
         IDialogService dialogService,
@@ -62,6 +65,7 @@ public sealed partial class MainViewModel : ObservableObject
         Guide = guide;
         UtilitiesTab = utilitiesTab;
         AutoTab = autoTab;
+        GameConfig = gameConfig;
         Feedback = feedback;
         _storageService = storageService;
         _dialogService = dialogService;
@@ -71,7 +75,8 @@ public sealed partial class MainViewModel : ObservableObject
         {
             [AppTab.AccountConfig] = AccountForm,
             [AppTab.MapUtilities] = UtilitiesTab,
-            [AppTab.Auto] = AutoTab
+            [AppTab.Auto] = AutoTab,
+            [AppTab.GameConfig] = GameConfig
         };
 
         WeakReferenceMessenger.Default.Register<RequestNavigateToTabMessage>(this, (_, m) => SelectedTabIndex = (int)m.Tab);

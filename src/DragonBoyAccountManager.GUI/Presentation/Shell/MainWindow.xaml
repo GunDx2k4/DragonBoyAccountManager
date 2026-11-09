@@ -1,4 +1,4 @@
-<Window
+﻿<Window
     x:Class="DragonBoyAccountManager.GUI.Presentation.Shell.MainWindow"
     xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
@@ -9,6 +9,7 @@
     xmlns:statusBar="clr-namespace:DragonBoyAccountManager.GUI.Presentation.Shell.StatusBar"
     xmlns:accounts="clr-namespace:DragonBoyAccountManager.GUI.Presentation.Features.Accounts"
     xmlns:auto="clr-namespace:DragonBoyAccountManager.GUI.Presentation.Features.Auto"
+    xmlns:gameconfig="clr-namespace:DragonBoyAccountManager.GUI.Presentation.Features.GameConfig"
     xmlns:utilities="clr-namespace:DragonBoyAccountManager.GUI.Presentation.Features.MapUtilities"
     xmlns:settings="clr-namespace:DragonBoyAccountManager.GUI.Presentation.Features.Settings"
     xmlns:guide="clr-namespace:DragonBoyAccountManager.GUI.Presentation.Features.Guide"
@@ -230,12 +231,15 @@
                                                                             <Setter Property="Text" Value="TỰ ĐỘNG LUYỆN TẬP &amp; TỰ ĐỘNG CHAT" />
                                                                         </DataTrigger>
                                                                         <DataTrigger Binding="{Binding SelectedIndex, ElementName=ConfigTabControl}" Value="3">
-                                                                            <Setter Property="Text" Value="CẤU HÌNH HỆ THỐNG" />
+                                                                            <Setter Property="Text" Value="CẤU HÌNH CLIENT GAME" />
                                                                         </DataTrigger>
                                                                         <DataTrigger Binding="{Binding SelectedIndex, ElementName=ConfigTabControl}" Value="4">
-                                                                            <Setter Property="Text" Value="HƯỚNG DẪN &amp; CẬP NHẬT PHIÊN BẢN" />
+                                                                            <Setter Property="Text" Value="CẤU HÌNH HỆ THỐNG" />
                                                                         </DataTrigger>
                                                                         <DataTrigger Binding="{Binding SelectedIndex, ElementName=ConfigTabControl}" Value="5">
+                                                                            <Setter Property="Text" Value="HƯỚNG DẪN &amp; CẬP NHẬT PHIÊN BẢN" />
+                                                                        </DataTrigger>
+                                                                        <DataTrigger Binding="{Binding SelectedIndex, ElementName=ConfigTabControl}" Value="6">
                                                                             <Setter Property="Text" Value="GÓP Ý &amp; BÁO CÁO LỖI" />
                                                                         </DataTrigger>
                                                                     </Style.Triggers>
@@ -266,6 +270,10 @@
 
                                                             <TabItem Header="AUTO" Style="{StaticResource GameTabItemStyle}" ToolTip="Tự động luyện tập &amp; tự động chat">
                                                                 <auto:AutoTabView DataContext="{Binding AutoTab}" />
+                                                            </TabItem>
+
+                                                            <TabItem Header="CẤU HÌNH" Style="{StaticResource GameTabItemStyle}" ToolTip="Cấu hình client game (Âm thanh, đồ họa, menu)">
+                                                                <gameconfig:GameConfigTabView DataContext="{Binding GameConfig}" />
                                                             </TabItem>
 
                                                             <TabItem Header="CÀI ĐẶT" Style="{StaticResource GameTabItemStyle}" ToolTip="Cấu hình hệ thống DBAM">

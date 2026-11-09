@@ -17,6 +17,8 @@ public static partial class GameSchema
         public const string StaticPanel = "panel";
         public const string StaticIsLoading = "isLoading";
         public const string StaticGameTick = "gameTick";
+        public const string StaticIsPlaySound = "isPlaySound";
+        public const string StaticLowGraphic = "lowGraphic";
 
         public const string MethodConnect = "connect";
         public const string MethodEndDlg = "endDlg";
@@ -117,6 +119,7 @@ public static partial class GameSchema
         public const string StaticOnScreenSkill = "onScreenSkill";
         public const string StaticIsAutoPlay = "isAutoPlay";
         public const string StaticCanAutoPlay = "canAutoPlay";
+        public const string StaticIsPaintChatVip = "isPaintChatVip";
 
         public const string FieldZones = "zones";
         public const string FieldMaxPlayer = "maxPlayer";
@@ -194,5 +197,19 @@ public static partial class GameSchema
         public const string MethodGI = "gI";
         public const string MethodSetAutoAttack = "setAutoAttack";
         public const string MethodUpdateAutoTrain = "updateAutoTrain";
+    }
+
+    public static class mResources
+    {
+        public const string ClassName = "mResources";
+        public const string StaticAutoTrainTabNames = "autoTrain_TabNames";
+        public const string StaticAutoTrainTabNames2 = "autoTrain_TabNames_2";
+        public const string StaticAutoPickNames = "autoPick_Names";
+    }
+
+    public static class mGraphics
+    {
+        public const string ClassName = "mGraphics";
+        public const string StaticZoomLevel = "zoomLevel";
     }
 }

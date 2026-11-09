@@ -19,6 +19,7 @@ public sealed class GameSession : ISessionContext, IDisposable
 
     public SessionMaskingController MaskingController { get; }
     public LoginScreenController LoginScreen { get; }
+    public GameConfigController ConfigController { get; }
 
     public CommandDispatcher Dispatcher { get; }
     ICommandDispatcher ISessionContext.Dispatcher => Dispatcher;
@@ -103,6 +104,7 @@ public sealed class GameSession : ISessionContext, IDisposable
 
         MaskingController = new SessionMaskingController(runtime);
         LoginScreen = new LoginScreenController(runtime);
+        ConfigController = new GameConfigController(runtime);
 
         _snapshots[typeof(PlayerSnapshot)] = PlayerSnapshot.Empty;
         _snapshots[typeof(WorldSnapshot)] = WorldSnapshot.Empty;
@@ -126,6 +128,7 @@ public sealed class GameSession : ISessionContext, IDisposable
 
         bool isInGame = CurrentPlayer.IsInGame;
         MaskingController.OnTick(isInGame);
+        ConfigController.OnTick();
 
         Ticked?.Invoke(this);
     }

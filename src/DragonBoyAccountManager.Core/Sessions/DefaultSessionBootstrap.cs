@@ -24,6 +24,7 @@ public static class DefaultSessionBootstrap
         var chatHandler = new ChatHandler(runtime);
         var worldInteractionHandler = new WorldInteractionHandler(runtime);
         var skillAssignmentHandler = new SkillAssignmentHandler(runtime);
+        var gameConfigHandler = new GameConfigHandler(session.ConfigController);
 
         dispatcher.RegisterHandler<AttackMobCommand>(combatHandler);
         dispatcher.RegisterHandler<SelectSkillCommand>(combatHandler);
@@ -41,6 +42,7 @@ public static class DefaultSessionBootstrap
         dispatcher.RegisterHandler<LoginCommand>(worldInteractionHandler);
         dispatcher.RegisterHandler<FocusEntityCommand>(worldInteractionHandler);
         dispatcher.RegisterHandler<AssignSkillsCommand>(skillAssignmentHandler);
+        dispatcher.RegisterHandler<SetGameConfigCommand>(gameConfigHandler);
 
         session.RegisterBehavior(new AutoTrainBehavior(new AutoTrainOptions()));
         session.RegisterBehavior(new AutoChatBehavior(new AutoChatOptions()));

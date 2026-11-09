@@ -8,9 +8,10 @@ public enum AppTab
     AccountConfig = 0,
     MapUtilities = 1,
     Auto = 2,
-    Settings = 3,
-    Guide = 4,
-    Feedback = 5
+    GameConfig = 3,
+    Settings = 4,
+    Guide = 5,
+    Feedback = 6
 }
 
 public sealed record ClearAccountSelectionMessage;

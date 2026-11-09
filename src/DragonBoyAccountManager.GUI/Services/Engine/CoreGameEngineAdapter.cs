@@ -9,6 +9,7 @@ using DragonBoyAccountManager.Core.Engine.Abstractions;
 using DragonBoyAccountManager.Core.Engine.Events;
 using DragonBoyAccountManager.Core.Engine.Models;
 using DragonBoyAccountManager.Core.Execution;
+using DragonBoyAccountManager.Core.Sessions;
 using DragonBoyAccountManager.Core.Telemetry.Snapshots;
 using DragonBoyAccountManager.GUI.Domain.Messaging;
 using DragonBoyAccountManager.GUI.Services.Settings;
@@ -123,6 +124,11 @@ public sealed class CoreGameEngineAdapter : IGameEngineService, IDisposable
     {
         _accounts[account.Id] = account;
 
+        if (_settingsService?.Current.GameConfig != null)
+        {
+            GameRmsStorage.SaveGameConfig(_settingsService.Current.GameConfig);
+        }
+
         int customW = _settingsService?.Current.WindowCustomWidth ?? 0;
         int customH = _settingsService?.Current.WindowCustomHeight ?? 0;
         int width = customW > 0 ? customW : 1024;
@@ -145,7 +151,14 @@ public sealed class CoreGameEngineAdapter : IGameEngineService, IDisposable
                 _settingsService?.Current.AutoReconnect ?? true,
                 _settingsService?.Current.ReconnectDelaySeconds ?? 3),
             AutoAssignSkills = _settingsService?.Current.AutoAssignSkills == true,
-            IsMasked = _isMasked
+            IsMasked = _isMasked,
+            ConfigureSession = session =>
+            {
+                if (_settingsService?.Current.GameConfig != null)
+                {
+                    session.ConfigController.ApplyConfig(_settingsService.Current.GameConfig);
+                }
+            }
         };
 
         return await _gameEngine.StartAccountAsync(options);
@@ -172,6 +185,8 @@ public sealed class CoreGameEngineAdapter : IGameEngineService, IDisposable
     public bool IsRunning(Guid accountId) => _gameEngine.IsRunning(accountId);
 
     public int? GetProcessId(Guid accountId) => _gameEngine.GetProcessId(accountId);
+
+    public IReadOnlyCollection<Guid> ActiveSessionIds => _gameEngine.Sessions.ActiveSessionIds;
 
     public bool FocusWindow(Guid accountId)
     {

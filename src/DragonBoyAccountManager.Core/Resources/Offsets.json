@@ -34,7 +34,9 @@
       "Command": 35393496,
       "Controller": 35402880,
       "TileMap": 35407136,
-      "AutoTrainMenu": 35357152
+      "AutoTrainMenu": 35357152,
+      "mResources": 35151304,
+      "mGraphics": 35151056
     },
     "StaticFields": {
       "Main.main": 0,
@@ -916,7 +918,11 @@
       "AutoTrainMenu.isCheckedSkill": 112,
       "AutoTrainMenu.isCheckItem": 128,
       "AutoTrainMenu.isCheckPick": 136,
-      "AutoTrainMenu.lastTimeUseItem": 224
+      "AutoTrainMenu.lastTimeUseItem": 224,
+      "mResources.autoTrain_TabNames": 168,
+      "mResources.autoTrain_TabNames_2": 176,
+      "mResources.autoPick_Names": 184,
+      "mGraphics.zoomLevel": 24
     },
     "InstanceFields": {
       "Main.level": 32,

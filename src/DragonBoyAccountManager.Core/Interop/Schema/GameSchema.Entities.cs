@@ -43,6 +43,8 @@ public static partial class GameSchema
 
         public const string StaticIsChangingMap = "ischangingMap";
         public const string StaticIsLoadingMap = "isLoadingMap";
+        public const string StaticIsPaintAura = "isPaintAura";
+        public const string StaticIsPaintAura2 = "isPaintAura2";
 
         public const string MethodMyCharz = "myCharz";
         public const string MethodFocusManualTo = "focusManualTo";

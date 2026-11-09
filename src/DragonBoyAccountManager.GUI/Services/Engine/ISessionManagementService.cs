@@ -8,4 +8,5 @@ public interface ISessionManagementService
     void StopAll();
     int? GetProcessId(Guid accountId);
     Task<bool> LoginAsync(Guid accountId);
+    IReadOnlyCollection<Guid> ActiveSessionIds { get; }
 }

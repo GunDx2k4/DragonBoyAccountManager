@@ -1,6 +1,7 @@
 using System;
 using System.Windows;
 
+using DragonBoyAccountManager.GUI.Presentation.Features.GameConfig;
 using Microsoft.Extensions.DependencyInjection;
 
 namespace DragonBoyAccountManager.GUI;
@@ -49,6 +50,7 @@ public partial class App : System.Windows.Application
         services.AddSingleton<AutoTrainViewModel>();
         services.AddSingleton<AutoChatViewModel>();
         services.AddSingleton<AutoTabViewModel>();
+        services.AddSingleton<GameConfigTabViewModel>();
         services.AddSingleton<FeedbackTabViewModel>();
         services.AddSingleton<MainViewModel>();
 

@@ -9,18 +9,6 @@ namespace DragonBoyAccountManager.GUI.Presentation.Features.Settings;
 
 public sealed partial class SettingsTabViewModel : ObservableObject
 {
-    private static readonly (string Label, (int Width, int Height) Value)[] WindowSizeChoices =
-    [
-        ("Giữ nguyên kích thước", (0, 0)),
-        ("1280 x 720 (HD / Zoom x2)", (1280, 720)),
-        ("1024 x 600 (Chuẩn PC / Zoom x2)", (1024, 600)),
-        ("960 x 540 (qHD / Zoom x2)", (960, 540)),
-        ("800 x 600 (Chuẩn 4:3 / Zoom x2)", (800, 600)),
-        ("720 x 320 (Chuẩn nhỏ / Zoom x1)", (720, 320)),
-        ("640 x 480 (Zoom x1)", (640, 480)),
-        ("512 x 384 (Nhỏ gọn / Zoom x1)", (512, 384))
-    ];
-
     private static readonly (string Label, WindowArrangeMode Value)[] ArrangeModeChoices =
     [
         ("Lưới tự động (Grid)", WindowArrangeMode.Grid),
@@ -79,18 +67,8 @@ public sealed partial class SettingsTabViewModel : ObservableObject
 
         Groups.Add(new SettingGroupViewModel(
             "window",
-            "CẤU HÌNH CỬA SỔ & KÍCH THƯỚC GAME",
-            "Thiết lập kích thước màn hình khi khởi động và bố cục sắp xếp")
-            .Add(SettingItemViewModel.CreateSelect(
-                "WindowSizePreset",
-                "Kích thước cửa sổ khi mở game",
-                WindowSizeChoices[0].Label,
-                WindowSizeChoices.Select(c => c.Label),
-                "Áp dụng kích thước này cho cửa sổ game ngay từ đầu khi vừa bật lên.")
-                .BindSelect(
-                    WindowSizeChoices,
-                    s => (Width: s.WindowCustomWidth, Height: s.WindowCustomHeight),
-                    (s, v) => { s.WindowCustomWidth = v.Width; s.WindowCustomHeight = v.Height; }))
+            "CẤU HÌNH BỐ CỤC & SẮP XẾP CỬA SỔ",
+            "Thiết lập tự động định vị và phân bổ vị trí các cửa sổ game trên màn hình")
             .Add(SettingItemViewModel.CreateBoolean(
                 "AutoArrangeWindows",
                 "Tự động sắp xếp cửa sổ khi mở game",

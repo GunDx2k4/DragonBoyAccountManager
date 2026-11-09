@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Text.Json.Serialization;
+using DragonBoyAccountManager.Core.Sessions;
 
 namespace DragonBoyAccountManager.GUI.Domain.Settings;
 
@@ -18,5 +19,6 @@ public sealed class AppSettings
     public bool FastTeleport { get; set; } = false;
     public bool AutoAssignSkills { get; set; } = true;
     public bool IsMasked { get; set; } = false;
+    public GameConfigOptions GameConfig { get; set; } = new();
     public Dictionary<string, string> CustomValues { get; set; } = new(StringComparer.OrdinalIgnoreCase);
 }
