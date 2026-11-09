@@ -64,6 +64,12 @@ public partial class AccountsPanelView : UserControl
             var selectedList = grid.SelectedItems.OfType<AccountItemViewModel>().ToList();
             ViewModel.UpdateSelectedRows(selectedList);
 
+            var selectedSet = new HashSet<AccountItemViewModel>(selectedList);
+            foreach (var item in ViewModel.Accounts)
+            {
+                item.IsSelected = selectedSet.Contains(item);
+            }
+
             if (grid.SelectedItem is AccountItemViewModel current)
             {
                 ViewModel.SelectedAccount = current;

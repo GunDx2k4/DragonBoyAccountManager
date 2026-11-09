@@ -169,6 +169,22 @@ public abstract partial class AutoFeatureViewModelBase : ObservableObject, IAuto
         return [];
     }
 
+    protected List<AccountItemViewModel> GetAllTargetAccounts()
+    {
+        if (SelectionService != null)
+        {
+            var targets = SelectionService.GetTargetAccounts();
+            if (targets.Count > 0) return targets.ToList();
+        }
+
+        if (ActiveAccount != null)
+        {
+            return [ActiveAccount];
+        }
+
+        return [];
+    }
+
     protected void RunOnUi(Action action)
     {
         if (Dispatcher != null)

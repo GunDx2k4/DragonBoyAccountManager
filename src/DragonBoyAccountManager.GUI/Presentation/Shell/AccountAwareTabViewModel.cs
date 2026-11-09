@@ -109,8 +109,7 @@ public abstract partial class AccountAwareTabViewModel : ObservableObject, IActi
 
     public void UpdateSyncTargetDisplay()
     {
-        var targets = GetTargetAccountIds();
-        int count = targets.Count;
+        int count = _selectionService?.TargetCount ?? (ActiveAccount != null ? 1 : 0);
         SyncTargetDisplay = count > 1
             ? $"Đồng bộ: {count} tài khoản"
             : (count == 1 ? "1 tài khoản" : "Chưa chọn tài khoản");

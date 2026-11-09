@@ -272,16 +272,16 @@ public sealed partial class AutoTrainViewModel : AutoFeatureViewModelBase
         PersistActiveAccountSettings();
 
         var options = BuildCurrentOptions();
-        foreach (var id in GetTargetAccountIds())
+        var allTargets = GetAllTargetAccounts();
+        foreach (var targetAcc in allTargets)
         {
-            var targetAcc = ResolveAccount(id);
-            if (targetAcc != null && targetAcc.Id != ActiveAccount.Id)
+            if (targetAcc.Id != ActiveAccount.Id)
             {
                 SaveSettings(targetAcc);
             }
-            if (targetAcc?.IsRunning == true)
+            if (targetAcc.IsRunning)
             {
-                GameEngine.UpdateAutoTrainOptions(id, options);
+                GameEngine.UpdateAutoTrainOptions(targetAcc.Id, options);
             }
         }
     }
@@ -461,21 +461,19 @@ public sealed partial class AutoTrainViewModel : AutoFeatureViewModelBase
         IsRunning = true;
         StatusText = targets.Count > 1 ? $"Đang khởi động ({targets.Count} tài khoản)..." : "Đang khởi động...";
 
+        var currentOptions = BuildCurrentOptions();
         foreach (var id in targets)
         {
             var targetAcc = ResolveAccount(id);
-            var options = targetAcc != null && targetAcc.Id != ActiveAccount?.Id
-                ? targetAcc.AutoSettings.GetBehaviorOptionsOrDefault<AutoTrainOptions>(BehaviorId)
-                : BuildCurrentOptions();
-
             if (targetAcc != null)
             {
+                SaveSettings(targetAcc);
                 var state = targetAcc.GetBehaviorState(BehaviorId);
                 state.IsRunning = true;
                 state.StatusText = "Đang khởi động...";
             }
 
-            GameEngine.StartAutoTrain(id, options);
+            GameEngine.StartAutoTrain(id, currentOptions);
         }
     }
 

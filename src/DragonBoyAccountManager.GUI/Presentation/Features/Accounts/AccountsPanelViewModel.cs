@@ -423,6 +423,12 @@ public sealed partial class AccountsPanelViewModel : ObservableObject
     {
         if (specific != null)
         {
+            var checkedItems = Accounts.Where(a => a.IsSelected).ToList();
+            if (checkedItems.Contains(specific)) return checkedItems;
+
+            if (_selectedRows.Contains(specific) && _selectedRows.Count > 1)
+                return [.. _selectedRows];
+
             return [specific];
         }
 

@@ -76,11 +76,20 @@ public sealed partial class AutoChatViewModel : AutoFeatureViewModelBase
 
         PersistActiveAccountSettings();
 
-        if (IsRunning)
+        var options = BuildCurrentOptions();
+        var chatType = options.IsGlobal ? ChatType.Global : ChatType.Map;
+        var allTargets = GetAllTargetAccounts();
+        foreach (var target in allTargets)
         {
-            var options = BuildCurrentOptions();
-            var chatType = options.IsGlobal ? ChatType.Global : ChatType.Map;
-            GameEngine.UpdateAutoChatConfig(ActiveAccount.Id, options.Messages, options.Delay, chatType, options.IsRandom);
+            if (target.Id != ActiveAccount.Id)
+            {
+                target.AutoSettings.SetBehaviorOptions(BehaviorId, options);
+                _ = StorageService.AddOrUpdateAsync(target.Model);
+            }
+            if (target.IsRunning)
+            {
+                GameEngine.UpdateAutoChatConfig(target.Id, options.Messages, options.Delay, chatType, options.IsRandom);
+            }
         }
     }
 
@@ -193,27 +202,15 @@ public sealed partial class AutoChatViewModel : AutoFeatureViewModelBase
         foreach (var id in targets)
         {
             var targetAcc = ResolveAccount(id);
-            if (targetAcc != null && targetAcc.Id != ActiveAccount?.Id)
+            if (targetAcc != null)
             {
-                var savedChat = targetAcc.AutoSettings.GetBehaviorOptionsOrDefault<AutoChatOptions>(BehaviorId);
-                var accOptions = savedChat.Messages is { Count: > 0 }
-                    ? savedChat
-                    : savedChat with { Messages = currentOptions.Messages };
+                targetAcc.AutoSettings.SetBehaviorOptions(BehaviorId, currentOptions);
+                _ = StorageService.AddOrUpdateAsync(targetAcc.Model);
                 var state = targetAcc.GetBehaviorState(BehaviorId);
                 state.IsRunning = true;
                 state.StatusText = "Đang chạy auto chat...";
-                GameEngine.StartAutoChat(id, accOptions);
             }
-            else
-            {
-                if (targetAcc != null)
-                {
-                    var state = targetAcc.GetBehaviorState(BehaviorId);
-                    state.IsRunning = true;
-                    state.StatusText = "Đang chạy auto chat...";
-                }
-                GameEngine.StartAutoChat(id, currentOptions);
-            }
+            GameEngine.StartAutoChat(id, currentOptions);
         }
     }
 
