@@ -33,37 +33,17 @@ public class CombatHandler(IGameRuntime runtime) :
             if (layout.IsCheckItem >= 0)
             {
                 IntPtr isCheckItemArray = _runtime.ReadFieldPtr(autoTrainStatic, layout.IsCheckItem);
-                if (isCheckItemArray != IntPtr.Zero)
-                {
-                    int itemLen = _runtime.ReadField<int>(isCheckItemArray, 0x18);
-                    if (itemLen > 0)
-                    {
-                        _runtime.Memory.Write<byte>(isCheckItemArray + 0x20, (byte)(canAutoPlay ? 1 : 0));
-                    }
-                }
+                _runtime.WriteBoolArrayElement(isCheckItemArray, 0, canAutoPlay);
             }
 
             if (layout.IsChecked >= 0)
             {
                 IntPtr isCheckedArray = _runtime.ReadFieldPtr(autoTrainStatic, layout.IsChecked);
-                if (isCheckedArray != IntPtr.Zero)
+                _runtime.WriteBoolArrayElement(isCheckedArray, 0, command.Enable);
+                if (command.Enable)
                 {
-                    int len = _runtime.ReadField<int>(isCheckedArray, 0x18);
-                    if (len > 0)
-                    {
-                        _runtime.Memory.Write<byte>(isCheckedArray + 0x20, (byte)(command.Enable ? 1 : 0));
-                    }
-                    if (command.Enable)
-                    {
-                        if (len > 1)
-                        {
-                            _runtime.Memory.Write<byte>(isCheckedArray + 0x20 + 1, (byte)(command.AvoidSuperMobs ? 1 : 0));
-                        }
-                        if (len > 2)
-                        {
-                            _runtime.Memory.Write<byte>(isCheckedArray + 0x20 + 2, (byte)(command.ChangeZoneWhenNoMobs ? 1 : 0));
-                        }
-                    }
+                    _runtime.WriteBoolArrayElement(isCheckedArray, 1, command.AvoidSuperMobs);
+                    _runtime.WriteBoolArrayElement(isCheckedArray, 2, command.ChangeZoneWhenNoMobs);
                 }
             }
 
@@ -110,14 +90,13 @@ public class CombatHandler(IGameRuntime runtime) :
                 if (listMobNamesPtr != IntPtr.Zero && isCheckedMobNameArray != IntPtr.Zero)
                 {
                     var mobNamePointers = CollectionHelper.ReadMyVector(_runtime, listMobNamesPtr);
-                    int arrayLen = _runtime.ReadField<int>(isCheckedMobNameArray, 0x18);
+                    int arrayLen = _runtime.ReadArrayLength(isCheckedMobNameArray);
                     int count = Math.Min(mobNamePointers.Count, arrayLen);
                     var targetSet = command.TargetMobNames.ToHashSet(StringComparer.OrdinalIgnoreCase);
                     for (int i = 0; i < count; i++)
                     {
                         string name = _runtime.ReadString(mobNamePointers[i]);
-                        byte isChecked = (byte)(targetSet.Contains(name) ? 1 : 0);
-                        _runtime.Memory.Write<byte>(isCheckedMobNameArray + 0x20 + i, isChecked);
+                        _runtime.WriteBoolArrayElement(isCheckedMobNameArray, i, targetSet.Contains(name));
                     }
                 }
             }
@@ -127,7 +106,7 @@ public class CombatHandler(IGameRuntime runtime) :
                 IntPtr isCheckedSkillArray = _runtime.ReadFieldPtr(autoTrainStatic, layout.IsCheckedSkill);
                 if (isCheckedSkillArray != IntPtr.Zero)
                 {
-                    int arrayLen = _runtime.ReadField<int>(isCheckedSkillArray, 0x18);
+                    int arrayLen = _runtime.ReadArrayLength(isCheckedSkillArray);
                     IntPtr listSkillsPtr = layout.ListSkills >= 0 ? _runtime.ReadFieldPtr(autoTrainStatic, layout.ListSkills) : IntPtr.Zero;
                     var skillPointers = listSkillsPtr != IntPtr.Zero ? CollectionHelper.ReadMyVector(_runtime, listSkillsPtr) : [];
 
@@ -150,8 +129,7 @@ public class CombatHandler(IGameRuntime runtime) :
                         int count = Math.Min(skillPointers.Count, arrayLen);
                         for (int i = 0; i < count; i++)
                         {
-                            byte isChecked = (byte)(selectedSkillPointers.Contains(skillPointers[i]) ? 1 : 0);
-                            _runtime.Memory.Write<byte>(isCheckedSkillArray + 0x20 + i, isChecked);
+                            _runtime.WriteBoolArrayElement(isCheckedSkillArray, i, selectedSkillPointers.Contains(skillPointers[i]));
                         }
                     }
                     else
@@ -160,8 +138,7 @@ public class CombatHandler(IGameRuntime runtime) :
                         var selectedSet = (command.SelectedSkillSlots ?? [0]).ToHashSet();
                         for (int i = 0; i < count; i++)
                         {
-                            byte isChecked = (byte)(selectedSet.Contains(i) ? 1 : 0);
-                            _runtime.Memory.Write<byte>(isCheckedSkillArray + 0x20 + i, isChecked);
+                            _runtime.WriteBoolArrayElement(isCheckedSkillArray, i, selectedSet.Contains(i));
                         }
                     }
                 }

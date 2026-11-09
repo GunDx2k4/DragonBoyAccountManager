@@ -79,27 +79,22 @@ public class InventoryHandler(IGameRuntime runtime) :
         if (layout.IsCheckItem < 0) return false;
 
         IntPtr isCheckItemArray = _runtime.ReadFieldPtr(autoTrainStatic, layout.IsCheckItem);
-        if (isCheckItemArray == IntPtr.Zero || _runtime.ReadField<int>(isCheckItemArray, 0x18) <= 0)
+        if (_runtime.ReadArrayLength(isCheckItemArray) <= 0)
             return false;
 
         bool canAutoPlay = _runtime.ReadStatic<bool>(GameSchema.GameScr.ClassName, _runtime.Layout.GameScr.CanAutoPlay);
-        byte desiredTdltState = (byte)(!canAutoPlay ? 1 : 0);
-        _runtime.Memory.Write<byte>(isCheckItemArray + 0x20, desiredTdltState);
+        _runtime.WriteBoolArrayElement(isCheckItemArray, 0, !canAutoPlay);
 
         if (layout.IsChecked >= 0)
         {
             IntPtr isCheckedArray = _runtime.ReadFieldPtr(autoTrainStatic, layout.IsChecked);
-            if (isCheckedArray != IntPtr.Zero && _runtime.ReadField<int>(isCheckedArray, 0x18) > 0)
+            if (_runtime.ReadBoolArrayElement(isCheckedArray, 0))
             {
-                bool isAutoAttackEnabled = _runtime.Memory.Read<byte>(isCheckedArray + 0x20) != 0;
-                if (isAutoAttackEnabled)
+                if (layout.LastTimeUseItem >= 0)
                 {
-                    if (layout.LastTimeUseItem >= 0)
-                    {
-                        _runtime.WriteField(autoTrainStatic, layout.LastTimeUseItem, 0L);
-                    }
-                    handledByAutoTrain = true;
+                    _runtime.WriteField(autoTrainStatic, layout.LastTimeUseItem, 0L);
                 }
+                handledByAutoTrain = true;
             }
         }
 

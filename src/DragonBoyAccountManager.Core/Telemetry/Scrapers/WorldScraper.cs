@@ -29,14 +29,9 @@ public class WorldScraper(IGameRuntime runtime) : ISnapshotScraper<WorldSnapshot
         IntPtr mapNamesPtr = _runtime.ReadStatic<IntPtr>(GameSchema.TileMap.ClassName, _runtime.Layout.TileMap.MapNames);
         if (mapNamesPtr != IntPtr.Zero && mapId >= 0)
         {
-            int length = _runtime.ReadField<int>(mapNamesPtr, 0x18);
-            if (length > 0 && length <= 10000 && mapId < length)
-            {
-                IntPtr elemPtr = _runtime.ReadFieldPtr(mapNamesPtr, 0x20 + (mapId * 8));
-                string name = _runtime.ReadString(elemPtr);
-                if (!string.IsNullOrWhiteSpace(name))
-                    return name;
-            }
+            string name = _runtime.ReadStringArrayElement(mapNamesPtr, mapId);
+            if (!string.IsNullOrWhiteSpace(name))
+                return name;
         }
         return string.Empty;
     }

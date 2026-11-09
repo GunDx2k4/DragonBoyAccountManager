@@ -56,9 +56,9 @@ public class PlayerScraper(IGameRuntime runtime, Func<string?>? originalNameReso
             if (autoTrainStatic != IntPtr.Zero && isCheckedOffset >= 0)
             {
                 IntPtr isCheckedArray = _runtime.ReadFieldPtr(autoTrainStatic, isCheckedOffset);
-                if (isCheckedArray != IntPtr.Zero && _runtime.ReadField<int>(isCheckedArray, 0x18) > 0)
+                if (_runtime.ReadArrayLength(isCheckedArray) > 0)
                 {
-                    isAutoPlay = _runtime.Memory.Read<byte>(isCheckedArray + 0x20) != 0;
+                    isAutoPlay = _runtime.ReadBoolArrayElement(isCheckedArray, 0);
                 }
                 else
                 {

@@ -33,4 +33,38 @@ public static class GameRuntimeExtensions
     {
         return runtime.ReadStatic<IntPtr>(GameSchema.GameCanvas.ClassName, runtime.Layout.GameCanvas.Instance);
     }
+
+    public static int ReadArrayLength(this IGameRuntime runtime, IntPtr arrayPtr)
+    {
+        if (arrayPtr == IntPtr.Zero) return 0;
+        int lenOffset = runtime.Memory.PointerSize * 3;
+        int length = runtime.ReadField<int>(arrayPtr, lenOffset);
+        return length is > 0 and <= 1_000_000 ? length : 0;
+    }
+
+    public static bool ReadBoolArrayElement(this IGameRuntime runtime, IntPtr arrayPtr, int index)
+    {
+        int length = runtime.ReadArrayLength(arrayPtr);
+        if (index < 0 || index >= length) return false;
+        int dataOffset = runtime.Memory.PointerSize * 4;
+        return runtime.Memory.Read<byte>(arrayPtr + dataOffset + index) != 0;
+    }
+
+    public static void WriteBoolArrayElement(this IGameRuntime runtime, IntPtr arrayPtr, int index, bool value)
+    {
+        int length = runtime.ReadArrayLength(arrayPtr);
+        if (index < 0 || index >= length) return;
+        int dataOffset = runtime.Memory.PointerSize * 4;
+        runtime.Memory.Write<byte>(arrayPtr + dataOffset + index, (byte)(value ? 1 : 0));
+    }
+
+    public static string ReadStringArrayElement(this IGameRuntime runtime, IntPtr arrayPtr, int index)
+    {
+        int length = runtime.ReadArrayLength(arrayPtr);
+        if (index < 0 || index >= length) return string.Empty;
+        int ptrSize = runtime.Memory.PointerSize;
+        int elemOffset = (ptrSize * 4) + (index * ptrSize);
+        IntPtr elemPtr = runtime.ReadFieldPtr(arrayPtr, elemOffset);
+        return runtime.ReadString(elemPtr);
+    }
 }
