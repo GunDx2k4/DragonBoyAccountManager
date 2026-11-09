@@ -241,13 +241,21 @@ public sealed class LoginScreenController(IGameRuntime runtime)
 
     public void SubmitLogin(bool isMasked, string username, string password)
     {
+        username = username?.Trim() ?? string.Empty;
+        password = password?.Trim() ?? string.Empty;
+
+        if (string.IsNullOrEmpty(username) || string.IsNullOrEmpty(password))
+        {
+            PerformScreenAction(GameSchema.LoginScr.ClassName, GameSchema.LoginScr.ActionSubmit);
+            return;
+        }
+
         try
         {
             IntPtr loginScr = GetLoginScreenPointer();
             if (loginScr != IntPtr.Zero)
             {
-                _runtime.CallMethod(GameSchema.LoginScr.ClassName, GameSchema.LoginScr.MethodDoLogin, loginScr);
-                return;
+                SetLoginCredentials(username, password, isMasked);
             }
 
             IntPtr serviceInst = _runtime.ReadStatic<IntPtr>(GameSchema.Service.ClassName, _runtime.Layout.Service.Instance);
@@ -271,9 +279,7 @@ public sealed class LoginScreenController(IGameRuntime runtime)
                     version = Constants.Client.DefaultVersion;
                 }
 
-                _runtime.CallMethod(GameSchema.Service.ClassName, GameSchema.Service.MethodSetClientType, serviceInst);
-                _runtime.CallMethod(GameSchema.Service.ClassName, GameSchema.Service.MethodLogin, serviceInst, username.Trim(), password.Trim(), version, (sbyte)0);
-                try { _runtime.CallMethod(GameSchema.GameCanvas.ClassName, GameSchema.GameCanvas.MethodStartWaitDlg, IntPtr.Zero); } catch { }
+                _runtime.CallMethod(GameSchema.Service.ClassName, GameSchema.Service.MethodLogin, serviceInst, username, password, version, (sbyte)0);
                 return;
             }
         }
@@ -291,6 +297,19 @@ public sealed class LoginScreenController(IGameRuntime runtime)
         if (loginScr == IntPtr.Zero) return false;
 
         var loginScrLayout = _runtime.Layout.LoginScr;
+        try
+        {
+            if (loginScrLayout.IsCheck >= 0)
+            {
+                _runtime.WriteField(loginScr, loginScrLayout.IsCheck, false);
+            }
+            if (loginScrLayout.IsLogin2 >= 0)
+            {
+                _runtime.WriteField(loginScr, loginScrLayout.IsLogin2, false);
+            }
+        }
+        catch { }
+
         IntPtr tfUser = _runtime.ReadFieldPtr(loginScr, loginScrLayout.TfUser);
         IntPtr tfPass = _runtime.ReadFieldPtr(loginScr, loginScrLayout.TfPass);
         if (tfUser == IntPtr.Zero || tfPass == IntPtr.Zero) return false;
@@ -482,12 +501,6 @@ public sealed class LoginScreenController(IGameRuntime runtime)
         if (tfieldPtr == IntPtr.Zero) return;
         text ??= string.Empty;
 
-        try { _runtime.CallMethod(GameSchema.TField.ClassName, GameSchema.TField.MethodSetText, tfieldPtr, text); }
-        catch { }
-
-        string cur = GetTFieldText(tfieldPtr) ?? string.Empty;
-        if (string.Equals(cur, text, StringComparison.Ordinal)) return;
-
         IntPtr strPtr = _runtime.CreateString(text);
         if (strPtr != IntPtr.Zero)
         {
@@ -508,18 +521,6 @@ public sealed class LoginScreenController(IGameRuntime runtime)
     private string? GetTFieldText(IntPtr tfieldPtr)
     {
         if (tfieldPtr == IntPtr.Zero) return null;
-        try
-        {
-            IntPtr res = _runtime.CallMethod(GameSchema.TField.ClassName, GameSchema.TField.MethodGetText, tfieldPtr);
-            if (res != IntPtr.Zero)
-            {
-                string text = _runtime.ReadString(res);
-                if (!string.IsNullOrEmpty(text))
-                    return text;
-            }
-        }
-        catch { }
-
         try { return _runtime.ReadStringField(tfieldPtr, _runtime.Layout.TField.Text); }
         catch { return null; }
     }

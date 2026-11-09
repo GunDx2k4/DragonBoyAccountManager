@@ -318,7 +318,14 @@ public sealed class AutoLoginBehavior : AutomationBehavior<AutoLoginOptions>
 
                 await Task.Delay(300, cancellationToken);
                 progress?.Report("[Auto Login] Xác thực hoàn tất, đang vào game...");
-                _loginScreen.LoginWithSavedCredentials();
+                if (!string.IsNullOrWhiteSpace(Options.Username) && !string.IsNullOrWhiteSpace(Options.Password))
+                {
+                    _loginScreen.SubmitLogin(Options.IsMasked, Options.Username, Options.Password);
+                }
+                else
+                {
+                    _loginScreen.LoginWithSavedCredentials();
+                }
                 loginWaitTimeout = DateTime.UtcNow.AddSeconds(15);
             }
         }

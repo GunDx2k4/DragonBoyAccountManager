@@ -29,7 +29,6 @@ public class WorldInteractionHandler(IGameRuntime runtime) :
         if (service == IntPtr.Zero)
             return Task.FromResult(Result.Failure("Không tìm thấy Service."));
 
-        _runtime.CallMethod(GameSchema.Service.ClassName, GameSchema.Service.MethodSetClientType, service);
         _runtime.CallMethod(GameSchema.Service.ClassName, GameSchema.Service.MethodLogin, service,
             command.Username, command.Password, command.Version, (sbyte)0);
         return Task.FromResult(Result.Success($"Đã gửi yêu cầu đăng nhập {command.Username}"));

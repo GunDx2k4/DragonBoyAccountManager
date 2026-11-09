@@ -46,6 +46,8 @@ public static partial class GameSchema
         public const string ClassName = "LoginScr";
         public const string FieldTfUser = "tfUser";
         public const string FieldTfPass = "tfPass";
+        public const string FieldIsCheck = "isCheck";
+        public const string FieldIsLogin2 = "isLogin2";
         public const string StaticServerName = "serverName";
         public const string MethodDoLogin = "doLogin";
 

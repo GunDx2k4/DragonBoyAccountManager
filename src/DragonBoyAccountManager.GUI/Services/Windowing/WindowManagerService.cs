@@ -56,7 +56,6 @@ public sealed class WindowManagerService : IWindowManagerService
     {
         IntPtr cachedHwnd = IntPtr.Zero;
         string? lastAppliedTitle = null;
-        bool sizeApplied = false;
 
         for (int i = 0; i < maxAttempts && !cancellationToken.IsCancellationRequested; i++)
         {
@@ -81,12 +80,9 @@ public sealed class WindowManagerService : IWindowManagerService
                         }
                     }
 
-                    if (!sizeApplied && width > 0 && height > 0)
+                    if (width > 0 && height > 0)
                     {
-                        if (ResizeWindow(proc, width, height))
-                        {
-                            sizeApplied = true;
-                        }
+                        ResizeWindow(proc, width, height);
                     }
                 }
                 catch { }

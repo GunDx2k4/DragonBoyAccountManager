@@ -100,6 +100,8 @@ public sealed class CoreGameEngineAdapter : IGameEngineService, IDisposable
     {
         int customW = _settingsService?.Current.WindowCustomWidth ?? 0;
         int customH = _settingsService?.Current.WindowCustomHeight ?? 0;
+        int targetW = customW > 0 ? customW : 1024;
+        int targetH = customH > 0 ? customH : 600;
         var account = _accounts.GetValueOrDefault(accountId);
         string username = account?.Username ?? accountId.ToString();
         string serverName = account?.ServerName ?? string.Empty;
@@ -111,7 +113,7 @@ public sealed class CoreGameEngineAdapter : IGameEngineService, IDisposable
                 var snap = _gameEngine.GetPlayerSnapshot(accountId);
                 string? charName = (snap != null && snap.IsInGame && !string.IsNullOrWhiteSpace(snap.Name)) ? snap.Name : null;
                 return FormatWindowTitle(username, serverName, charName);
-            }, customW, customH);
+            }, targetW, targetH);
 
             if (_settingsService?.Current.AutoArrangeWindows == true)
             {

@@ -7,8 +7,6 @@ public sealed class GameConfigController(IGameRuntime runtime)
 {
     private readonly IGameRuntime _runtime = runtime ?? throw new ArgumentNullException(nameof(runtime));
     private GameConfigOptions _currentConfig = new();
-    private int _appliedWidth;
-    private int _appliedHeight;
     private int _appliedZoom;
 
     public GameConfigOptions CurrentConfig => _currentConfig;
@@ -46,53 +44,23 @@ public sealed class GameConfigController(IGameRuntime runtime)
 
     public void ApplyResolutionAndZoom(GameConfigOptions config)
     {
-        int w = config.ScreenWidth;
-        int h = config.ScreenHeight;
         int zoom = config.ZoomLevel;
-
-        if (w <= 0 || h <= 0)
-        {
-            if (zoom == 1)
-            {
-                w = 720;
-                h = 320;
-            }
-            else
-            {
-                w = 1024;
-                h = 600;
-            }
-        }
-
         if (zoom <= 0)
         {
+            int w = config.ScreenWidth > 0 ? config.ScreenWidth : 1024;
+            int h = config.ScreenHeight > 0 ? config.ScreenHeight : 600;
             zoom = (w * h < 480000) ? 1 : 2;
         }
 
-        if (w == _appliedWidth && h == _appliedHeight && zoom == _appliedZoom)
+        if (zoom == _appliedZoom)
         {
             return;
         }
 
-        _appliedWidth = w;
-        _appliedHeight = h;
         _appliedZoom = zoom;
 
         try
         {
-            if (_runtime.ModuleBase != IntPtr.Zero)
-            {
-                IntPtr setResPtr = IntPtr.Add(_runtime.ModuleBase, GameSchema.UnityScreen.RvaSetResolution);
-                _runtime.InvokeMethod(setResPtr, IntPtr.Zero, (IntPtr)w, (IntPtr)h, IntPtr.Zero);
-            }
-
-            IntPtr scaleGuiStatic = _runtime.GetStaticFieldsPtr(GameSchema.ScaleGUI.ClassName);
-            if (scaleGuiStatic != IntPtr.Zero)
-            {
-                _runtime.WriteField(scaleGuiStatic, 0x4, (float)w);
-                _runtime.WriteField(scaleGuiStatic, 0x8, (float)h);
-            }
-
             var graphicsLayout = _runtime.Layout.MGraphics;
             IntPtr graphicsStatic = _runtime.GetStaticFieldsPtr(GameSchema.mGraphics.ClassName);
             if (graphicsStatic != IntPtr.Zero && graphicsLayout.ZoomLevel >= 0)
@@ -108,59 +76,6 @@ public sealed class GameConfigController(IGameRuntime runtime)
                 {
                     _runtime.WriteField(motherInstance, 0x18, zoom);
                 }
-            }
-
-            int canvasW = (w / zoom) + (w % zoom);
-            int canvasH = (h / zoom) + (h % zoom);
-
-            IntPtr canvasStatic = _runtime.GetStaticFieldsPtr(GameSchema.GameCanvas.ClassName);
-            if (canvasStatic != IntPtr.Zero)
-            {
-                _runtime.WriteField(canvasStatic, 144, canvasW);
-                _runtime.WriteField(canvasStatic, 148, canvasH);
-                _runtime.WriteField(canvasStatic, 152, canvasW / 2);
-                _runtime.WriteField(canvasStatic, 156, canvasH / 2);
-                _runtime.WriteField(canvasStatic, 160, canvasW / 3);
-                _runtime.WriteField(canvasStatic, 164, canvasH / 3);
-                _runtime.WriteField(canvasStatic, 168, (canvasW * 2) / 3);
-                _runtime.WriteField(canvasStatic, 172, (canvasH * 2) / 3);
-                _runtime.WriteField(canvasStatic, 176, (canvasW * 3) / 4);
-                _runtime.WriteField(canvasStatic, 180, (canvasH * 3) / 4);
-                _runtime.WriteField(canvasStatic, 184, canvasW / 6);
-                _runtime.WriteField(canvasStatic, 188, canvasH / 6);
-
-                IntPtr canvasInstance = _runtime.ReadFieldPtr(canvasStatic, 24);
-                if (canvasInstance != IntPtr.Zero && _runtime.ModuleBase != IntPtr.Zero)
-                {
-                    IntPtr initCanvasPtr = IntPtr.Add(_runtime.ModuleBase, GameSchema.GameCanvas.RvaInitGameCanvas);
-                    _runtime.InvokeMethod(initCanvasPtr, canvasInstance);
-                }
-
-                IntPtr serverScreen = _runtime.ReadFieldPtr(canvasStatic, 952);
-                if (serverScreen != IntPtr.Zero && _runtime.ModuleBase != IntPtr.Zero)
-                {
-                    IntPtr initCmdPtr = IntPtr.Add(_runtime.ModuleBase, GameSchema.ServerListScreen.RvaInitCommand);
-                    _runtime.InvokeMethod(initCmdPtr, serverScreen);
-                }
-            }
-
-            IntPtr gameScrStatic = _runtime.GetStaticFieldsPtr(GameSchema.GameScr.ClassName);
-            if (gameScrStatic != IntPtr.Zero)
-            {
-                _runtime.WriteField(gameScrStatic, 32, canvasW);
-                _runtime.WriteField(gameScrStatic, 36, canvasH);
-                _runtime.WriteField(gameScrStatic, 40, canvasW / 2);
-                _runtime.WriteField(gameScrStatic, 72, canvasH / 2);
-                _runtime.WriteField(gameScrStatic, 56, canvasW / 3);
-                _runtime.WriteField(gameScrStatic, 60, canvasH / 3);
-                _runtime.WriteField(gameScrStatic, 68, canvasH - 120);
-                _runtime.WriteField(gameScrStatic, 64, (canvasH * 2) / 3);
-                _runtime.WriteField(gameScrStatic, 84, (canvasW * 3) / 4);
-                _runtime.WriteField(gameScrStatic, 52, (canvasH * 3) / 4);
-                _runtime.WriteField(gameScrStatic, 88, canvasW / 6);
-                _runtime.WriteField(gameScrStatic, 92, canvasH / 6);
-                _runtime.WriteField(gameScrStatic, 1368, canvasW);
-                _runtime.WriteField(gameScrStatic, 1364, canvasH - 54);
             }
         }
         catch

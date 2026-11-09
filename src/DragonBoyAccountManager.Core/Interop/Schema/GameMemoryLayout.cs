@@ -203,6 +203,8 @@ public sealed record SessionLayout(
 public sealed record LoginScrLayout(
     int TfUser,
     int TfPass,
+    int IsCheck,
+    int IsLogin2,
     int IsUpdateAll,
     int IsUpdateData,
     int IsUpdateMap,
@@ -521,6 +523,8 @@ public sealed class GameMemoryLayout
         LoginScr = new LoginScrLayout(
             TfUser: ResolveInstance(schema, GameSchema.LoginScr.ClassName, GameSchema.LoginScr.FieldTfUser),
             TfPass: ResolveInstance(schema, GameSchema.LoginScr.ClassName, GameSchema.LoginScr.FieldTfPass),
+            IsCheck: ResolveInstance(schema, GameSchema.LoginScr.ClassName, GameSchema.LoginScr.FieldIsCheck),
+            IsLogin2: ResolveInstance(schema, GameSchema.LoginScr.ClassName, GameSchema.LoginScr.FieldIsLogin2),
             IsUpdateAll: ResolveStatic(schema, GameSchema.LoginScr.ClassName, GameSchema.LoginScr.StaticIsUpdateAll),
             IsUpdateData: ResolveStatic(schema, GameSchema.LoginScr.ClassName, GameSchema.LoginScr.StaticIsUpdateData),
             IsUpdateMap: ResolveStatic(schema, GameSchema.LoginScr.ClassName, GameSchema.LoginScr.StaticIsUpdateMap),
