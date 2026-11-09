@@ -77,14 +77,14 @@
                 <TabItem Style="{StaticResource GameTabItemStyle}">
                     <TabItem.Header>
                         <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
-                            <TextBlock Text="AUTO ĐÁNH" />
+                            <TextBlock Text="LUYỆN TẬP" />
                             <Ellipse
                                 Width="7"
                                 Height="7"
                                 Margin="6,0,0,0"
                                 VerticalAlignment="Center"
                                 Fill="{DynamicResource GameDangerBrush}"
-                                ToolTip="Auto đánh đang hoạt động"
+                                ToolTip="Tự động luyện tập đang hoạt động"
                                 Visibility="{Binding Train.IsRunning, Converter={StaticResource BooleanToVisibilityConverter}}" />
                         </StackPanel>
                     </TabItem.Header>
@@ -439,6 +439,193 @@
                                         Text="{Binding StatusText}"
                                         TextTrimming="CharacterEllipsis"
                                         ToolTip="{Binding StatusText}" />
+                                    <TextBlock
+                                        Grid.Column="1"
+                                        Margin="4,0,0,0"
+                                        FontSize="10"
+                                        FontWeight="SemiBold"
+                                        Foreground="{DynamicResource GameTextMutedBrush}"
+                                        Text="{Binding SyncTargetDisplay}"
+                                        TextTrimming="CharacterEllipsis"
+                                        ToolTip="{Binding SyncTargetDisplay}" />
+                                </Grid>
+                            </Border>
+
+                        </StackPanel>
+                    </ScrollViewer>
+                </TabItem>
+
+                <TabItem Style="{StaticResource GameTabItemStyle}">
+                    <TabItem.Header>
+                        <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                            <TextBlock Text="VẬT PHẨM" />
+                            <Ellipse
+                                Width="7"
+                                Height="7"
+                                Margin="6,0,0,0"
+                                VerticalAlignment="Center"
+                                Fill="{DynamicResource GameGreenBrush}"
+                                ToolTip="Có vật phẩm được chọn tự động dùng"
+                                Visibility="{Binding Train.HasSelectedAutoItems, Converter={StaticResource BooleanToVisibilityConverter}}" />
+                        </StackPanel>
+                    </TabItem.Header>
+                    <ScrollViewer FocusVisualStyle="{x:Null}" VerticalScrollBarVisibility="Auto">
+                        <StackPanel Margin="10,8" DataContext="{Binding Train}">
+
+                            <TextBlock
+                                Margin="0,0,0,6"
+                                FontSize="11"
+                                FontWeight="ExtraBold"
+                                Foreground="{DynamicResource GameTextDarkBrush}"
+                                Text="DANH SÁCH VẬT PHẨM TỰ DÙNG:" />
+
+                            <Border
+                                Margin="0,0,0,8"
+                                Padding="8,6"
+                                Background="{DynamicResource GameBgBrush}"
+                                BorderBrush="{DynamicResource GameBorderBrush}"
+                                BorderThickness="1"
+                                CornerRadius="4">
+                                <StackPanel>
+                                    <Grid Margin="0,0,0,6">
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="*" />
+                                            <ColumnDefinition Width="Auto" />
+                                        </Grid.ColumnDefinitions>
+                                        <TextBlock
+                                            VerticalAlignment="Center"
+                                            FontSize="10"
+                                            FontWeight="Bold"
+                                            Foreground="{DynamicResource GameTextMutedBrush}"
+                                            Text="Tự dùng khi hết hiệu ứng:"
+                                            TextTrimming="CharacterEllipsis" />
+                                        <StackPanel Grid.Column="1" Orientation="Horizontal">
+                                            <Button
+                                                Height="20"
+                                                Padding="6,0"
+                                                Margin="0,0,4,0"
+                                                Command="{Binding SelectAllItemsCommand}"
+                                                Content="TẤT CẢ"
+                                                FontSize="8.5"
+                                                FontWeight="Bold"
+                                                Style="{StaticResource GameSecondaryButton}" />
+                                            <Button
+                                                Height="20"
+                                                Padding="6,0"
+                                                Command="{Binding DeselectAllItemsCommand}"
+                                                Content="BỎ CHỌN"
+                                                FontSize="8.5"
+                                                FontWeight="Bold"
+                                                Style="{StaticResource GameSecondaryButton}" />
+                                        </StackPanel>
+                                    </Grid>
+
+                                    <Border
+                                        Background="{DynamicResource GameTabContentBrush}"
+                                        BorderBrush="{DynamicResource GameBorderBrush}"
+                                        BorderThickness="1"
+                                        CornerRadius="4"
+                                        Padding="4,3">
+                                        <ItemsControl ItemsSource="{Binding AutoTrainItems}">
+                                            <ItemsControl.ItemsPanel>
+                                                <ItemsPanelTemplate>
+                                                    <UniformGrid Columns="2" />
+                                                </ItemsPanelTemplate>
+                                            </ItemsControl.ItemsPanel>
+                                            <ItemsControl.ItemTemplate>
+                                                <DataTemplate DataType="{x:Type items:AutoItemSlotItem}">
+                                                    <Border
+                                                        Margin="2,2"
+                                                        Padding="5,4"
+                                                        Background="{DynamicResource GameBgBrush}"
+                                                        BorderBrush="{DynamicResource GameBorderBrush}"
+                                                        BorderThickness="1"
+                                                        CornerRadius="3"
+                                                        ToolTip="{Binding ToolTipText}">
+                                                        <Grid>
+                                                            <Grid.ColumnDefinitions>
+                                                                <ColumnDefinition Width="Auto" />
+                                                                <ColumnDefinition Width="Auto" />
+                                                                <ColumnDefinition Width="*" />
+                                                                <ColumnDefinition Width="Auto" />
+                                                            </Grid.ColumnDefinitions>
+                                                            <CheckBox
+                                                                Grid.Column="0"
+                                                                VerticalAlignment="Center"
+                                                                IsChecked="{Binding IsSelected, Mode=TwoWay}"
+                                                                Style="{StaticResource GameCheckBoxStyle}" />
+                                                            <Image
+                                                                Grid.Column="1"
+                                                                Width="18"
+                                                                Height="18"
+                                                                Margin="4,0,4,0"
+                                                                VerticalAlignment="Center"
+                                                                RenderOptions.BitmapScalingMode="NearestNeighbor"
+                                                                Source="{Binding Icon}"
+                                                                Stretch="Uniform"
+                                                                Visibility="{Binding HasIcon, Converter={StaticResource BooleanToVisibilityConverter}}" />
+                                                            <TextBlock
+                                                                Grid.Column="2"
+                                                                VerticalAlignment="Center"
+                                                                FontSize="10"
+                                                                FontWeight="Bold"
+                                                                Foreground="{DynamicResource GameTextDarkBrush}"
+                                                                Text="{Binding Name}"
+                                                                TextTrimming="CharacterEllipsis"
+                                                                ToolTip="{Binding ToolTipText}" />
+                                                            <Border
+                                                                Grid.Column="3"
+                                                                Margin="4,0,0,0"
+                                                                Padding="4,1"
+                                                                VerticalAlignment="Center"
+                                                                Background="{DynamicResource GameHeaderBrush}"
+                                                                BorderBrush="{DynamicResource GameBorderBrush}"
+                                                                BorderThickness="1"
+                                                                CornerRadius="2">
+                                                                <TextBlock
+                                                                    FontSize="9"
+                                                                    FontWeight="ExtraBold"
+                                                                    Foreground="{DynamicResource GameTextDarkBrush}"
+                                                                    Text="{Binding QuantityDisplay}"
+                                                                    TextTrimming="CharacterEllipsis"
+                                                                    ToolTip="{Binding ToolTipText}" />
+                                                            </Border>
+                                                        </Grid>
+                                                    </Border>
+                                                </DataTemplate>
+                                            </ItemsControl.ItemTemplate>
+                                        </ItemsControl>
+                                    </Border>
+                                </StackPanel>
+                            </Border>
+
+                            <CheckBox
+                                Margin="0,0,0,10"
+                                Content="Đồng bộ tất cả tài khoản đã chọn"
+                                FontSize="10.5"
+                                FontWeight="Bold"
+                                Foreground="{DynamicResource GameTextDarkBrush}"
+                                IsChecked="{Binding SyncAll}"
+                                Style="{StaticResource GameCheckBoxStyle}" />
+
+                            <Border
+                                Padding="8,6"
+                                Background="{DynamicResource GameHeaderBrush}"
+                                BorderBrush="{DynamicResource GameBorderBrush}"
+                                BorderThickness="1"
+                                CornerRadius="4">
+                                <Grid>
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="*" />
+                                        <ColumnDefinition Width="Auto" />
+                                    </Grid.ColumnDefinitions>
+                                    <TextBlock
+                                        FontSize="10.5"
+                                        FontWeight="Bold"
+                                        Foreground="{DynamicResource GameTextDarkBrush}"
+                                        Text="{Binding ItemStatusText}"
+                                        TextTrimming="CharacterEllipsis"
+                                        ToolTip="{Binding ItemStatusText}" />
                                     <TextBlock
                                         Grid.Column="1"
                                         Margin="4,0,0,0"

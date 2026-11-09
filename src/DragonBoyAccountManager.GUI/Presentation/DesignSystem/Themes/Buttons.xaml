@@ -970,10 +970,10 @@
     </Style>
 
     <Style x:Key="GameAutoTrainToggleButtonStyle" BasedOn="{StaticResource GamePrimaryButton}" TargetType="Button">
-        <Setter Property="Content" Value="BẬT AUTO ĐÁNH" />
+        <Setter Property="Content" Value="CHẠY LUYỆN TẬP" />
         <Style.Triggers>
             <DataTrigger Binding="{Binding IsRunning}" Value="True">
-                <Setter Property="Content" Value="DỪNG AUTO ĐÁNH" />
+                <Setter Property="Content" Value="DỪNG LUYỆN TẬP" />
                 <Setter Property="Template" Value="{StaticResource GameDangerButtonTemplate}" />
                 <Setter Property="Foreground" Value="{DynamicResource GameBtnDangerTextBrush}" />
             </DataTrigger>
