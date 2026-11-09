@@ -35,10 +35,15 @@ public sealed record WorldMobInfo(
     bool IsAlive,
     bool IsBoss,
     bool IsSuperMob = false,
-    bool IsFlying = false
+    bool IsFlying = false,
+    int XFirst = 0,
+    int YFirst = 0,
+    long DeathTimestampMs = 0
 ) : IWorldEntity
 {
     public string EntityType => "mob";
+    public int SpawnX => XFirst != 0 ? XFirst : X;
+    public int SpawnY => YFirst != 0 ? YFirst : Y;
 }
 
 public sealed record WorldBossInfo(

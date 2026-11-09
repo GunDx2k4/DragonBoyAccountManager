@@ -10,7 +10,9 @@ public class WorldScraper(IGameRuntime runtime) : ISnapshotScraper<WorldSnapshot
     private readonly IGameRuntime _runtime = runtime;
     private readonly ConcurrentDictionary<int, (string Name, bool IsFlying)> _mobTemplateCache = new();
     private readonly ConcurrentDictionary<int, string> _npcTemplateCache = new();
+    private readonly ConcurrentDictionary<int, long> _mobDeathTimes = new();
     private int _cachedMapId = -1;
+    private int _cachedZoneId = -1;
     private string _cachedMapName = string.Empty;
     private IReadOnlyList<WorldWaypointInfo> _cachedWaypoints = [];
 
@@ -44,11 +46,16 @@ public class WorldScraper(IGameRuntime runtime) : ISnapshotScraper<WorldSnapshot
         int mapId = GetMapId();
         int zoneId = GetZoneId();
 
-        if (mapId != _cachedMapId || mapId < 0)
+        if (mapId != _cachedMapId || zoneId != _cachedZoneId || mapId < 0)
         {
-            _cachedMapId = mapId;
-            _cachedMapName = string.Empty;
-            _cachedWaypoints = [];
+            if (mapId != _cachedMapId || mapId < 0)
+            {
+                _cachedMapId = mapId;
+                _cachedMapName = string.Empty;
+                _cachedWaypoints = [];
+            }
+            _cachedZoneId = zoneId;
+            _mobDeathTimes.Clear();
         }
 
         if (string.IsNullOrWhiteSpace(_cachedMapName) && mapId >= 0)
@@ -88,10 +95,12 @@ public class WorldScraper(IGameRuntime runtime) : ISnapshotScraper<WorldSnapshot
         if (vMobPtr == IntPtr.Zero) return result;
 
         var mobLayout = _runtime.Layout.Mob;
+        long nowMs = Environment.TickCount64;
         var pointers = CollectionHelper.ReadMyVector(_runtime, vMobPtr);
         foreach (var ptr in pointers)
         {
             if (ptr == IntPtr.Zero) continue;
+            if (mobLayout.IsMobMe >= 0 && _runtime.ReadField<bool>(ptr, mobLayout.IsMobMe)) continue;
 
             int id = _runtime.ReadField<int>(ptr, mobLayout.MobId);
             int templateId = _runtime.ReadField<int>(ptr, mobLayout.TemplateId);
@@ -99,15 +108,33 @@ public class WorldScraper(IGameRuntime runtime) : ISnapshotScraper<WorldSnapshot
             long maxHp = _runtime.ReadField<long>(ptr, mobLayout.MaxHp);
             int x = _runtime.ReadField<int>(ptr, mobLayout.X);
             int y = _runtime.ReadField<int>(ptr, mobLayout.Y);
+            int xFirst = mobLayout.XFirst >= 0 ? _runtime.ReadField<int>(ptr, mobLayout.XFirst) : x;
+            int yFirst = mobLayout.YFirst >= 0 ? _runtime.ReadField<int>(ptr, mobLayout.YFirst) : y;
             int status = _runtime.ReadField<int>(ptr, mobLayout.Status);
             bool isBoss = _runtime.ReadField<bool>(ptr, mobLayout.IsBoss);
             sbyte levelBoss = _runtime.ReadField<sbyte>(ptr, mobLayout.LevelBoss);
 
             bool isAlive = hp > 0 && status != 0 && status != 1;
+            long deathTimestampMs = 0;
+            if (isAlive)
+            {
+                _mobDeathTimes.TryRemove(id, out _);
+            }
+            else
+            {
+                long initialDeathTime = status == 0 ? nowMs - 1500 : nowMs;
+                deathTimestampMs = _mobDeathTimes.GetOrAdd(id, initialDeathTime);
+                if (x == 0 && y == 0)
+                {
+                    x = xFirst;
+                    y = yFirst;
+                }
+            }
+
             var (name, isFlying) = GetMobTemplateInfo(templateId);
 
             result.Add(new WorldMobInfo(
-                id, templateId, name, hp, maxHp, x, y, status, isAlive, isBoss, levelBoss > 0, isFlying));
+                id, templateId, name, hp, maxHp, x, y, status, isAlive, isBoss, levelBoss > 0, isFlying, xFirst, yFirst, deathTimestampMs));
         }
 
         return result;

@@ -76,9 +76,12 @@ public sealed record MobLayout(
     int MaxHp,
     int X,
     int Y,
+    int XFirst,
+    int YFirst,
     int Status,
     int IsBoss,
     int LevelBoss,
+    int IsMobMe,
     int ArrMobTemplate);
 
 public sealed record MobTemplateLayout(
@@ -356,9 +359,12 @@ public sealed class GameMemoryLayout
             MaxHp: ResolveInstance(schema, GameSchema.Mob.ClassName, GameSchema.Mob.FieldMaxHp),
             X: ResolveInstance(schema, GameSchema.Mob.ClassName, GameSchema.Mob.FieldX),
             Y: ResolveInstance(schema, GameSchema.Mob.ClassName, GameSchema.Mob.FieldY),
+            XFirst: ResolveInstance(schema, GameSchema.Mob.ClassName, GameSchema.Mob.FieldXFirst),
+            YFirst: ResolveInstance(schema, GameSchema.Mob.ClassName, GameSchema.Mob.FieldYFirst),
             Status: ResolveInstance(schema, GameSchema.Mob.ClassName, GameSchema.Mob.FieldStatus),
             IsBoss: ResolveInstance(schema, GameSchema.Mob.ClassName, GameSchema.Mob.FieldIsBoss),
             LevelBoss: ResolveInstance(schema, GameSchema.Mob.ClassName, GameSchema.Mob.FieldLevelBoss),
+            IsMobMe: ResolveInstance(schema, GameSchema.Mob.ClassName, GameSchema.Mob.FieldIsMobMe),
             ArrMobTemplate: ResolveStatic(schema, GameSchema.Mob.ClassName, GameSchema.Mob.StaticArrMobTemplate)
         );
 

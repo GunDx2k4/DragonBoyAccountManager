@@ -83,6 +83,7 @@ public static partial class GameSchema
         public const string FieldIsDontMove = "isDontMove";
         public const string FieldIsBoss = "isBoss";
         public const string FieldLevelBoss = "levelBoss";
+        public const string FieldIsMobMe = "isMobMe";
     }
 
     public static class MobTemplate

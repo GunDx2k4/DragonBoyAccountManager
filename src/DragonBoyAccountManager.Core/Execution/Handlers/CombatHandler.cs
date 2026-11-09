@@ -377,9 +377,16 @@ public class CombatHandler(IGameRuntime runtime) :
         if (mobPtr == IntPtr.Zero)
             return Result.Failure($"Không tìm thấy quái #{command.MobId} hoặc con trỏ không hợp lệ.");
 
+        long mobHp = _runtime.ReadField<long>(mobPtr, _runtime.Layout.Mob.Hp);
+        int mobStatus = _runtime.ReadField<int>(mobPtr, _runtime.Layout.Mob.Status);
+        if (mobHp <= 0 || mobStatus == 0 || mobStatus == 1)
+            return Result.Failure($"Quái #{command.MobId} đã chết.");
+
         IntPtr charPtr = _runtime.GetMyCharPtr();
         if (charPtr == IntPtr.Zero)
             return Result.Failure("Nhân vật chưa vào game.");
+
+        _runtime.WriteField(charPtr, _runtime.Layout.Char.MobFocus, mobPtr);
 
         int playerX = _runtime.ReadField<int>(charPtr, _runtime.Layout.Char.X);
         int cdir = command.TargetX >= playerX ? 1 : -1;
