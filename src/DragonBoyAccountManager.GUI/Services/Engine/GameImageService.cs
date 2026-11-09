@@ -13,7 +13,7 @@ public sealed class GameImageService : IGameImageService
     private readonly string _rmsDir;
     private readonly ConcurrentDictionary<int, ImageSource> _cache = new();
     private readonly ConcurrentDictionary<byte, BitmapSource> _bigBitmaps = new();
-    private readonly Dictionary<int, AtlasRegion> _atlas = [];
+    private readonly ConcurrentDictionary<int, AtlasRegion> _atlas = new();
 
     private readonly record struct AtlasRegion(byte BigId, short X, short Y, short W, short H);
 
@@ -44,7 +44,10 @@ public sealed class GameImageService : IGameImageService
                 short y = (short)((data[offset++] << 8) | data[offset++]);
                 short w = (short)((data[offset++] << 8) | data[offset++]);
                 short h = (short)((data[offset++] << 8) | data[offset++]);
-                _atlas[i] = new AtlasRegion(bigId, x, y, w, h);
+                if (x < 256 && y < 256 && w < 256 && h < 256)
+                {
+                    _atlas[i] = new AtlasRegion(bigId, x, y, w, h);
+                }
             }
         }
         catch
@@ -59,6 +62,40 @@ public sealed class GameImageService : IGameImageService
         if (_cache.TryGetValue(iconId, out var cached))
         {
             return cached;
+        }
+
+        if (_atlas.Count == 0)
+        {
+            LoadAtlas();
+        }
+
+        if (_atlas.TryGetValue(iconId, out var region))
+        {
+            var bigBmp = GetBigBitmap(region.BigId);
+            if (bigBmp != null)
+            {
+                int x = region.X * 2;
+                int y = region.Y * 2;
+                int w = region.W * 2;
+                int h = region.H * 2;
+
+                if (x >= 0 && y >= 0 && w > 0 && h > 0 &&
+                    x + w <= bigBmp.PixelWidth &&
+                    y + h <= bigBmp.PixelHeight)
+                {
+                    try
+                    {
+                        var rect = new Int32Rect(x, y, w, h);
+                        var cropped = new CroppedBitmap(bigBmp, rect);
+                        cropped.Freeze();
+                        _cache[iconId] = cropped;
+                        return cropped;
+                    }
+                    catch
+                    {
+                    }
+                }
+            }
         }
 
         if (Directory.Exists(_rmsDir))
@@ -77,29 +114,6 @@ public sealed class GameImageService : IGameImageService
                     bmp.Freeze();
                     _cache[iconId] = bmp;
                     return bmp;
-                }
-                catch
-                {
-                }
-            }
-        }
-
-        if (_atlas.TryGetValue(iconId, out var region))
-        {
-            var bigBmp = GetBigBitmap(region.BigId);
-            if (bigBmp != null &&
-                region.X >= 0 && region.Y >= 0 &&
-                region.W > 0 && region.H > 0 &&
-                region.X + region.W <= bigBmp.PixelWidth &&
-                region.Y + region.H <= bigBmp.PixelHeight)
-            {
-                try
-                {
-                    var rect = new Int32Rect(region.X, region.Y, region.W, region.H);
-                    var cropped = new CroppedBitmap(bigBmp, rect);
-                    cropped.Freeze();
-                    _cache[iconId] = cropped;
-                    return cropped;
                 }
                 catch
                 {

@@ -89,10 +89,18 @@ public sealed partial class SkillButtonItem : ObservableObject
             ManaUse = info.ManaUse;
             LastTimeUse = info.LastTimeUse;
 
-            if (info.IconId >= 0 && IconId != info.IconId)
+            if (info.IconId >= 0)
             {
-                IconId = info.IconId;
-                Icon = imageService.GetSmallImage(info.IconId);
+                if (IconId != info.IconId || Icon == null)
+                {
+                    IconId = info.IconId;
+                    Icon = imageService.GetSmallImage(info.IconId);
+                }
+            }
+            else
+            {
+                IconId = -1;
+                Icon = null;
             }
         }
         else if (syncSelection)

@@ -221,13 +221,13 @@ public class PlayerScraper(IGameRuntime runtime, Func<string?>? originalNameReso
 
             short skillId = _runtime.ReadField<short>(skillPtr, skillLayout.SkillId);
             int point = _runtime.ReadField<int>(skillPtr, skillLayout.Point);
-            int coolDown = (int)_runtime.ReadField<long>(skillPtr, skillLayout.CoolDown);
+            int coolDown = _runtime.ReadField<int>(skillPtr, skillLayout.CoolDown);
             long lastTime = _runtime.ReadField<long>(skillPtr, skillLayout.LastTimeUseThisSkill);
             int mana = _runtime.ReadField<int>(skillPtr, skillLayout.ManaUse);
 
             string name = $"Skill {skillId}";
             int iconId = -1;
-            if (_skillTemplateCache.TryGetValue(skillId, out var cachedSkill))
+            if (_skillTemplateCache.TryGetValue(skillId, out var cachedSkill) && cachedSkill.IconId >= 0)
             {
                 name = cachedSkill.Name;
                 iconId = cachedSkill.IconId;
@@ -238,11 +238,14 @@ public class PlayerScraper(IGameRuntime runtime, Func<string?>? originalNameReso
                 if (templatePtr != IntPtr.Zero)
                 {
                     string tmplName = _runtime.ReadStringField(templatePtr, skillTemplateLayout.Name);
-                    iconId = _runtime.ReadField<short>(templatePtr, skillTemplateLayout.IconId);
+                    iconId = _runtime.ReadField<int>(templatePtr, skillTemplateLayout.IconId);
                     if (!string.IsNullOrWhiteSpace(tmplName))
                     {
                         name = tmplName;
-                        _skillTemplateCache[skillId] = (tmplName, iconId);
+                        if (iconId >= 0)
+                        {
+                            _skillTemplateCache[skillId] = (tmplName, iconId);
+                        }
                     }
                 }
             }

@@ -44,7 +44,7 @@ public sealed partial class AutoItemSlotItem : ObservableObject
 
     public void EnsureIconLoaded(IGameImageService imageService)
     {
-        if (Icon is null && IconId > 0)
+        if (Icon is null && IconId >= 0)
         {
             Icon = imageService.GetSmallImage(IconId);
         }
