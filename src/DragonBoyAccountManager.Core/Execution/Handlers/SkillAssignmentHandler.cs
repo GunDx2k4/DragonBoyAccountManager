@@ -51,12 +51,6 @@ public class SkillAssignmentHandler(IGameRuntime runtime) : IGameCommandHandler<
                 _runtime.WriteField(charPtr, charLayout.MySkill, validSkills[0]);
             }
 
-            IntPtr gameScr = _runtime.GetGameScrPtr();
-            if (gameScr != IntPtr.Zero)
-            {
-                _runtime.CallMethod(GameSchema.GameScr.ClassName, GameSchema.GameScr.MethodSaveKeySkillToRMS, gameScr);
-            }
-
             return Task.FromResult(Result.Success($"Đã tự động gán {assignedCount} kỹ năng vào phím tắt 1 - 0 thành công!"));
         }
         catch (Exception ex)

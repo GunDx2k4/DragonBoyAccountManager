@@ -124,8 +124,7 @@ public sealed class WindowManagerService : IWindowManagerService
         }
 
         uint flags = User32.SWP_NOZORDER | User32.SWP_NOMOVE | User32.SWP_SHOWWINDOW | User32.SWP_NOACTIVATE;
-        User32.SetWindowPos(hWnd, IntPtr.Zero, 0, 0, targetW, targetH, flags);
-        return false;
+        return User32.SetWindowPos(hWnd, IntPtr.Zero, 0, 0, targetW, targetH, flags);
     }
 
     public bool PositionWindow(Process proc, int x, int y, int width = 0, int height = 0)

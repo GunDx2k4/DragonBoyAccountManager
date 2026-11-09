@@ -1,9 +1,7 @@
 using CommunityToolkit.Mvvm.ComponentModel;
-using CommunityToolkit.Mvvm.Input;
 using DragonBoyAccountManager.Core.Execution.Commands;
 using DragonBoyAccountManager.Core.Sessions;
 using DragonBoyAccountManager.GUI.Presentation.Shell;
-using DragonBoyAccountManager.GUI.Services.Dialogs;
 using DragonBoyAccountManager.GUI.Services.Engine;
 using DragonBoyAccountManager.GUI.Services.Settings;
 
@@ -26,7 +24,7 @@ public sealed partial class GameConfigTabViewModel : ObservableObject, IActivata
 
     private readonly ISettingsService _settingsService;
     private readonly IGameEngineService _gameEngine;
-    private readonly IDialogService _dialogService;
+    private bool _isLoading;
 
     [ObservableProperty]
     private bool _isPlaySound = true;
@@ -47,28 +45,31 @@ public sealed partial class GameConfigTabViewModel : ObservableObject, IActivata
     private int _zoomLevel = 2;
 
     [ObservableProperty]
-    private bool _enablePickTab = true;
-
-    [ObservableProperty]
     private string _selectedSizeOption = WindowSizeChoices[1].Label;
+
+    partial void OnIsPlaySoundChanged(bool value) => AutoApplyAndSave();
+    partial void OnLowGraphicChanged(bool value) => AutoApplyAndSave();
+    partial void OnIsPaintAuraChanged(bool value) => AutoApplyAndSave();
+    partial void OnIsPaintAura2Changed(bool value) => AutoApplyAndSave();
+    partial void OnIsPaintChatVipChanged(bool value) => AutoApplyAndSave();
 
     partial void OnSelectedSizeOptionChanged(string value)
     {
         var match = WindowSizeChoices.FirstOrDefault(c => c.Label == value);
         if (match.Zoom > 0)
         {
-            ZoomLevel = match.Zoom;
+            _zoomLevel = match.Zoom;
+            OnPropertyChanged(nameof(ZoomLevel));
         }
+        AutoApplyAndSave();
     }
 
     public GameConfigTabViewModel(
         ISettingsService settingsService,
-        IGameEngineService gameEngine,
-        IDialogService dialogService)
+        IGameEngineService gameEngine)
     {
         _settingsService = settingsService ?? throw new ArgumentNullException(nameof(settingsService));
         _gameEngine = gameEngine ?? throw new ArgumentNullException(nameof(gameEngine));
-        _dialogService = dialogService ?? throw new ArgumentNullException(nameof(dialogService));
 
         LoadFromSettings();
     }
@@ -84,61 +85,96 @@ public sealed partial class GameConfigTabViewModel : ObservableObject, IActivata
 
     private void LoadFromSettings()
     {
-        var config = _settingsService.Current.GameConfig ?? new GameConfigOptions();
-        IsPlaySound = config.IsPlaySound;
-        LowGraphic = config.LowGraphic;
-        IsPaintAura = config.IsPaintAura;
-        IsPaintAura2 = config.IsPaintAura2;
-        IsPaintChatVip = config.IsPaintChatVip;
-        ZoomLevel = config.ZoomLevel > 0 ? config.ZoomLevel : 2;
-        EnablePickTab = config.EnablePickTab;
+        _isLoading = true;
+        try
+        {
+            var config = _settingsService.Current.GameConfig ?? new GameConfigOptions();
+            IsPlaySound = config.IsPlaySound;
+            LowGraphic = config.LowGraphic;
+            IsPaintAura = config.IsPaintAura;
+            IsPaintAura2 = config.IsPaintAura2;
+            IsPaintChatVip = config.IsPaintChatVip;
+            ZoomLevel = config.ZoomLevel > 0 ? config.ZoomLevel : 2;
 
-        int curW = _settingsService.Current.WindowCustomWidth;
-        int curH = _settingsService.Current.WindowCustomHeight;
-        var match = WindowSizeChoices.FirstOrDefault(c => c.Width == curW && c.Height == curH);
-        if (match.Width > 0)
-        {
-            SelectedSizeOption = match.Label;
+            int curW = _settingsService.Current.WindowCustomWidth;
+            int curH = _settingsService.Current.WindowCustomHeight;
+            var match = WindowSizeChoices.FirstOrDefault(c => c.Width == curW && c.Height == curH);
+            if (match.Width > 0)
+            {
+                SelectedSizeOption = match.Label;
+            }
+            else if (ZoomLevel == 1)
+            {
+                SelectedSizeOption = "720 x 320 (Chuẩn nhỏ / Zoom x1)";
+            }
+            else
+            {
+                SelectedSizeOption = "1024 x 600 (Chuẩn PC / Zoom x2)";
+            }
         }
-        else if (ZoomLevel == 1)
+        finally
         {
-            SelectedSizeOption = "720 x 320 (Chuẩn nhỏ / Zoom x1)";
-        }
-        else
-        {
-            SelectedSizeOption = "1024 x 600 (Chuẩn PC / Zoom x2)";
+            _isLoading = false;
         }
     }
 
-    public GameConfigOptions CreateOptions() => new()
+    public GameConfigOptions CreateOptions()
     {
-        IsPlaySound = IsPlaySound,
-        LowGraphic = LowGraphic,
-        IsPaintAura = IsPaintAura,
-        IsPaintAura2 = IsPaintAura2,
-        IsPaintChatVip = IsPaintChatVip,
-        ZoomLevel = ZoomLevel,
-        EnablePickTab = EnablePickTab
-    };
+        var match = WindowSizeChoices.FirstOrDefault(c => c.Label == SelectedSizeOption);
+        int w = match.Width > 0 ? match.Width : (_settingsService.Current.WindowCustomWidth > 0 ? _settingsService.Current.WindowCustomWidth : 1024);
+        int h = match.Height > 0 ? match.Height : (_settingsService.Current.WindowCustomHeight > 0 ? _settingsService.Current.WindowCustomHeight : 600);
 
-    [RelayCommand]
-    public async Task SaveConfigAsync()
+        return new()
+        {
+            IsPlaySound = IsPlaySound,
+            LowGraphic = LowGraphic,
+            IsPaintAura = IsPaintAura,
+            IsPaintAura2 = IsPaintAura2,
+            IsPaintChatVip = IsPaintChatVip,
+            ZoomLevel = ZoomLevel,
+            EnablePickTab = true,
+            ScreenWidth = w,
+            ScreenHeight = h
+        };
+    }
+
+    private void AutoApplyAndSave()
     {
-        var config = CreateOptions();
-        _settingsService.Current.GameConfig = config;
+        if (_isLoading)
+        {
+            return;
+        }
 
+        _ = ApplyAndSaveAsync();
+    }
+
+    public async Task ApplyAndSaveAsync()
+    {
         var match = WindowSizeChoices.FirstOrDefault(c => c.Label == SelectedSizeOption);
         if (match.Width > 0 && match.Height > 0)
         {
             _settingsService.Current.WindowCustomWidth = match.Width;
             _settingsService.Current.WindowCustomHeight = match.Height;
+            if (match.Zoom > 0)
+            {
+                ZoomLevel = match.Zoom;
+            }
         }
 
-        GameRmsStorage.SaveGameConfig(config);
+        var config = CreateOptions();
+        _settingsService.Current.GameConfig = config;
+
         await _settingsService.SaveAsync();
 
+        if (match.Width > 0 && match.Height > 0)
+        {
+            foreach (var id in _gameEngine.ActiveSessionIds)
+            {
+                _gameEngine.SetResolution(id, match.Width, match.Height);
+            }
+        }
+
         await BroadcastConfigToSessionsAsync(config);
-        _dialogService.ShowInfo("Cấu hình Game", "Đã lưu cấu hình RMS và áp dụng thành công!");
     }
 
     private async Task<int> BroadcastConfigToSessionsAsync(GameConfigOptions config)

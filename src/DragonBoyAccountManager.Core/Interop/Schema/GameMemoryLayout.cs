@@ -164,7 +164,20 @@ public sealed record GameCanvasLayout(
     int IsLoading,
     int GameTick,
     int IsPlaySound,
-    int LowGraphic);
+    int LowGraphic,
+    int W,
+    int H,
+    int HW,
+    int HH);
+
+public sealed record ScaleGUILayout(
+    int ScaleScreen,
+    int Width,
+    int Height);
+
+public sealed record MotherCanvasLayout(
+    int Instance,
+    int ZoomLevel);
 
 public sealed record ServerListScreenLayout(
     int WaitToLogin,
@@ -287,6 +300,8 @@ public sealed class GameMemoryLayout
     public AutoTrainMenuLayout AutoTrainMenu { get; }
     public MResourcesLayout MResources { get; }
     public MGraphicsLayout MGraphics { get; }
+    public ScaleGUILayout ScaleGUI { get; }
+    public MotherCanvasLayout MotherCanvas { get; }
 
     public long CharRva { get; }
     public long TileMapRva { get; }
@@ -485,7 +500,11 @@ public sealed class GameMemoryLayout
             IsLoading: ResolveStatic(schema, GameSchema.GameCanvas.ClassName, GameSchema.GameCanvas.StaticIsLoading),
             GameTick: ResolveStatic(schema, GameSchema.GameCanvas.ClassName, GameSchema.GameCanvas.StaticGameTick),
             IsPlaySound: ResolveStatic(schema, GameSchema.GameCanvas.ClassName, GameSchema.GameCanvas.StaticIsPlaySound),
-            LowGraphic: ResolveStatic(schema, GameSchema.GameCanvas.ClassName, GameSchema.GameCanvas.StaticLowGraphic)
+            LowGraphic: ResolveStatic(schema, GameSchema.GameCanvas.ClassName, GameSchema.GameCanvas.StaticLowGraphic),
+            W: ResolveStatic(schema, GameSchema.GameCanvas.ClassName, GameSchema.GameCanvas.StaticW),
+            H: ResolveStatic(schema, GameSchema.GameCanvas.ClassName, GameSchema.GameCanvas.StaticH),
+            HW: ResolveStatic(schema, GameSchema.GameCanvas.ClassName, GameSchema.GameCanvas.StaticHw),
+            HH: ResolveStatic(schema, GameSchema.GameCanvas.ClassName, GameSchema.GameCanvas.StaticHh)
         );
 
         ServerListScreen = new ServerListScreenLayout(
@@ -586,6 +605,17 @@ public sealed class GameMemoryLayout
 
         MGraphics = new MGraphicsLayout(
             ZoomLevel: ResolveStatic(schema, GameSchema.mGraphics.ClassName, GameSchema.mGraphics.StaticZoomLevel)
+        );
+
+        ScaleGUI = new ScaleGUILayout(
+            ScaleScreen: ResolveStatic(schema, GameSchema.ScaleGUI.ClassName, GameSchema.ScaleGUI.StaticScaleScreen),
+            Width: ResolveStatic(schema, GameSchema.ScaleGUI.ClassName, GameSchema.ScaleGUI.StaticWidth),
+            Height: ResolveStatic(schema, GameSchema.ScaleGUI.ClassName, GameSchema.ScaleGUI.StaticHeight)
+        );
+
+        MotherCanvas = new MotherCanvasLayout(
+            Instance: ResolveStatic(schema, GameSchema.MotherCanvas.ClassName, GameSchema.MotherCanvas.StaticInstance),
+            ZoomLevel: ResolveInstance(schema, GameSchema.MotherCanvas.ClassName, GameSchema.MotherCanvas.FieldZoomLevel)
         );
 
         CharRva = schema.GetTypeInfoRva("Char");

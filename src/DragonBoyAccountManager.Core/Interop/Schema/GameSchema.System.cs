@@ -100,6 +100,29 @@ public static partial class GameSchema
         public const string FieldItemsAlt = "items";
     }
 
+    public static class ScaleGUI
+    {
+        public const string ClassName = "ScaleGUI";
+        public const string StaticScaleScreen = "scaleScreen";
+        public const string StaticWidth = "WIDTH";
+        public const string StaticHeight = "HEIGHT";
+        public const string MethodInitScaleGUI = "initScaleGUI";
+        public const int RvaInitScaleGUI = 0x29AD20;
+    }
+
+    public static class MotherCanvas
+    {
+        public const string ClassName = "MotherCanvas";
+        public const string StaticInstance = "instance";
+        public const string FieldZoomLevel = "zoomLevel";
+    }
+
+    public static class UnityScreen
+    {
+        public const string ClassName = "Screen";
+        public const int RvaSetResolution = 0x1707A20;
+    }
+
     public static class Application
     {
         public const string ClassName = "Application";

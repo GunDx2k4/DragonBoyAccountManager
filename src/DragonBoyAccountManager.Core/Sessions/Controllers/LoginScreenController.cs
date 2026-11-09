@@ -309,13 +309,6 @@ public sealed class LoginScreenController(IGameRuntime runtime)
         SetTFieldText(tfUser, username);
         SetTFieldText(tfPass, password);
 
-        try
-        {
-            _runtime.CallMethod(GameSchema.Rms.ClassName, GameSchema.Rms.MethodSaveRMSString, IntPtr.Zero, GameSchema.Rms.KeyAcc, username.Trim());
-            _runtime.CallMethod(GameSchema.Rms.ClassName, GameSchema.Rms.MethodSaveRMSString, IntPtr.Zero, GameSchema.Rms.KeyPass, password.Trim());
-        }
-        catch { }
-
         string curUser = GetTFieldText(tfUser) ?? string.Empty;
         string curPass = GetTFieldText(tfPass) ?? string.Empty;
 

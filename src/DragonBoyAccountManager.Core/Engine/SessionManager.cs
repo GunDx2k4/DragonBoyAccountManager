@@ -112,6 +112,7 @@ public sealed class SessionManager : ISessionManager, IDisposable, IAsyncDisposa
                 ServerId = options.ServerId,
                 ScreenWidth = options.ScreenWidth > 0 ? options.ScreenWidth : 1024,
                 ScreenHeight = options.ScreenHeight > 0 ? options.ScreenHeight : 600,
+                ZoomLevel = options.ZoomLevel,
                 LogPrefix = $"DBAM_{options.Username}",
                 IsMasked = options.IsMasked,
                 ConfigureSession = combinedConfigure

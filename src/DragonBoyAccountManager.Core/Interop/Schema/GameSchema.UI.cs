@@ -19,6 +19,10 @@ public static partial class GameSchema
         public const string StaticGameTick = "gameTick";
         public const string StaticIsPlaySound = "isPlaySound";
         public const string StaticLowGraphic = "lowGraphic";
+        public const string StaticW = "w";
+        public const string StaticH = "h";
+        public const string StaticHw = "hw";
+        public const string StaticHh = "hh";
 
         public const string MethodConnect = "connect";
         public const string MethodEndDlg = "endDlg";
@@ -26,6 +30,8 @@ public static partial class GameSchema
         public const string MethodStartWaitDlg = "startWaitDlg";
         public const string MethodKeyPressedz = "keyPressedz";
         public const string MethodKeyReleasedz = "keyReleasedz";
+        public const string MethodInitGameCanvas = "initGameCanvas";
+        public const int RvaInitGameCanvas = 0x331240;
     }
 
     public static class Screen
@@ -64,6 +70,8 @@ public static partial class GameSchema
         public const string MethodSelectServer = "selectServer";
         public const string MethodConnectIP = "ConnectIP";
         public const string MethodLoginNew = "Login_New";
+        public const string MethodInitCommand = "initCommand";
+        public const int RvaInitCommand = 0x31F580;
 
         public const int ActionSelectServer = 6;
         public const int ActionOpenLogin = 7;

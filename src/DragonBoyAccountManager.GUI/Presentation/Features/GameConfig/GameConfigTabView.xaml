@@ -19,7 +19,7 @@
                     <Border Style="{StaticResource GameSettingRowBorderStyle}">
                         <StackPanel>
                             <CheckBox
-                                Content="Âm thanh game (Sound)"
+                                Content="Âm thanh game"
                                 FontSize="11.5"
                                 FontWeight="Bold"
                                 IsChecked="{Binding IsPlaySound}"
@@ -29,7 +29,7 @@
                                 FontSize="9.5"
                                 Foreground="{DynamicResource GameTextMutedBrush}"
                                 Style="{StaticResource GameCollapsibleDescriptionTextBlockStyle}"
-                                Text="Bật hoặc tắt nhạc nền và hiệu ứng âm thanh trong game (isPlaySound)."
+                                Text="Bật hoặc tắt nhạc nền và hiệu ứng âm thanh trong game."
                                 TextWrapping="Wrap" />
                         </StackPanel>
                     </Border>
@@ -37,7 +37,7 @@
                     <Border Style="{StaticResource GameSettingRowBorderStyle}">
                         <StackPanel>
                             <CheckBox
-                                Content="Giảm đồ họa (Low Graphic)"
+                                Content="Giảm đồ họa"
                                 FontSize="11.5"
                                 FontWeight="Bold"
                                 IsChecked="{Binding LowGraphic}"
@@ -47,7 +47,7 @@
                                 FontSize="9.5"
                                 Foreground="{DynamicResource GameTextMutedBrush}"
                                 Style="{StaticResource GameCollapsibleDescriptionTextBlockStyle}"
-                                Text="Tắt hiệu ứng nền phụ giúp game mượt hơn và giảm tải CPU (lowGraphic)."
+                                Text="Tắt hiệu ứng hình ảnh phụ giúp game mượt hơn và nhẹ máy."
                                 TextWrapping="Wrap" />
                         </StackPanel>
                     </Border>
@@ -58,7 +58,7 @@
                                 FontSize="11"
                                 FontWeight="Bold"
                                 Foreground="{DynamicResource GameTextDarkBrush}"
-                                Text="Kích thước cửa sổ &amp; Mức thu phóng (Size / Zoom)" />
+                                Text="Kích thước cửa sổ và độ thu phóng" />
                             <TextBlock
                                 Margin="0,1,0,4"
                                 FontSize="9"
@@ -81,7 +81,7 @@
                     <Border Style="{StaticResource GameSettingRowBorderStyle}">
                         <StackPanel>
                             <CheckBox
-                                Content="Hiển thị hào quang nhân vật (Aura 1)"
+                                Content="Hiển thị hào quang nhân vật"
                                 FontSize="11.5"
                                 FontWeight="Bold"
                                 IsChecked="{Binding IsPaintAura}"
@@ -91,7 +91,7 @@
                                 FontSize="9.5"
                                 Foreground="{DynamicResource GameTextMutedBrush}"
                                 Style="{StaticResource GameCollapsibleDescriptionTextBlockStyle}"
-                                Text="Vẽ vòng sáng hào quang quanh nhân vật (isPaintAura)."
+                                Text="Hiển thị vòng sáng hào quang quanh nhân vật."
                                 TextWrapping="Wrap" />
                         </StackPanel>
                     </Border>
@@ -99,7 +99,7 @@
                     <Border Style="{StaticResource GameSettingRowBorderStyle}">
                         <StackPanel>
                             <CheckBox
-                                Content="Hiển thị hào quang phụ (Aura 2)"
+                                Content="Hiển thị hào quang phụ"
                                 FontSize="11.5"
                                 FontWeight="Bold"
                                 IsChecked="{Binding IsPaintAura2}"
@@ -109,7 +109,7 @@
                                 FontSize="9.5"
                                 Foreground="{DynamicResource GameTextMutedBrush}"
                                 Style="{StaticResource GameCollapsibleDescriptionTextBlockStyle}"
-                                Text="Vẽ hào quang cấp 2 của trang bị hoặc danh hiệu (isPaintAura2)."
+                                Text="Hiển thị hiệu ứng ánh sáng của trang bị hoặc danh hiệu."
                                 TextWrapping="Wrap" />
                         </StackPanel>
                     </Border>
@@ -127,44 +127,12 @@
                                 FontSize="9.5"
                                 Foreground="{DynamicResource GameTextMutedBrush}"
                                 Style="{StaticResource GameCollapsibleDescriptionTextBlockStyle}"
-                                Text="Hiển thị khung thông báo chat thế giới VIP phía trên màn hình (isPaintChatVip)."
+                                Text="Hiển thị khung thông báo chat thế giới VIP phía trên màn hình."
                                 TextWrapping="Wrap" />
                         </StackPanel>
                     </Border>
                 </StackPanel>
             </ui:GameCard>
-
-            <ui:GameCard Margin="0,0,0,10" Header="MENU CLIENT GỐC (IN-GAME)">
-                <StackPanel>
-                    <Border Style="{StaticResource GameSettingRowBorderStyle}">
-                        <StackPanel>
-                            <CheckBox
-                                Content="Mở khóa Tab 'Nhặt Đồ' trong Menu Luyện Tập"
-                                FontSize="11.5"
-                                FontWeight="Bold"
-                                IsChecked="{Binding EnablePickTab}"
-                                Style="{StaticResource GameCheckBoxStyle}" />
-                            <TextBlock
-                                Margin="22,2,0,0"
-                                FontSize="9.5"
-                                Foreground="{DynamicResource GameTextMutedBrush}"
-                                Style="{StaticResource GameCollapsibleDescriptionTextBlockStyle}"
-                                Text="Bật cờ AutoTrainMenu.isNhat để hiển thị đủ 3 tab Luyện Tập / Nhặt Đồ / Cài Đặt trong menu game."
-                                TextWrapping="Wrap" />
-                        </StackPanel>
-                    </Border>
-                </StackPanel>
-            </ui:GameCard>
-
-            <Button
-                Height="30"
-                MinWidth="130"
-                Margin="0,4,0,10"
-                HorizontalAlignment="Center"
-                Command="{Binding SaveConfigCommand}"
-                Content="LƯU CẤU HÌNH"
-                FontSize="11.5"
-                Style="{StaticResource GamePrimaryButton}" />
         </StackPanel>
     </ScrollViewer>
 </UserControl>

@@ -9,4 +9,6 @@ public sealed record GameConfigOptions
     public bool IsPaintChatVip { get; init; } = true;
     public int ZoomLevel { get; init; } = 2;
     public bool EnablePickTab { get; init; } = true;
+    public int ScreenWidth { get; init; }
+    public int ScreenHeight { get; init; }
 }

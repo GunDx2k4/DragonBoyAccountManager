@@ -36,7 +36,9 @@
       "TileMap": 35407136,
       "AutoTrainMenu": 35357152,
       "mResources": 35151304,
-      "mGraphics": 35151056
+      "mGraphics": 35151056,
+      "MotherCanvas": 35266504,
+      "ScaleGUI": 35346576
     },
     "StaticFields": {
       "Main.main": 0,
@@ -922,7 +924,11 @@
       "mResources.autoTrain_TabNames": 168,
       "mResources.autoTrain_TabNames_2": 176,
       "mResources.autoPick_Names": 184,
-      "mGraphics.zoomLevel": 24
+      "mGraphics.zoomLevel": 24,
+      "ScaleGUI.scaleScreen": 0,
+      "ScaleGUI.WIDTH": 4,
+      "ScaleGUI.HEIGHT": 8,
+      "MotherCanvas.instance": 0
     },
     "InstanceFields": {
       "Main.level": 32,
@@ -937,6 +943,7 @@
       "Main.timeup": 72,
       "Main.isRun": 80,
       "Main.lastMousePos": 84,
+      "MotherCanvas.zoomLevel": 24,
       "Session_ME.sendingMessage": 16,
       "Session_ME.lastTimeConn": 16,
       "Session_ME.host": 24,
@@ -1918,6 +1925,9 @@
       "ItemTime.idIcon": 16
     },
     "Methods": {
+      "ScaleGUI.initScaleGUI": 2731296,
+      "GameCanvas.initGameCanvas": 3346880,
+      "Screen.SetResolution": 24148512,
       "Service.charMove": 4183344,
       "Service.requestChangeZone": 4221056,
       "Service.openUIZone": 4217360,

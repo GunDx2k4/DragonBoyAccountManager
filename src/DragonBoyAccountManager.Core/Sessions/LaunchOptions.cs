@@ -9,6 +9,7 @@ public record LaunchOptions
     public string? AdditionalArguments { get; init; }
     public int ScreenWidth { get; init; }
     public int ScreenHeight { get; init; }
+    public int ZoomLevel { get; init; }
     public bool EnableLogging { get; init; } = true;
     public string LogPrefix { get; init; } = "DragonBoy";
     public bool IsMasked { get; init; }

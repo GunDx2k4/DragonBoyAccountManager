@@ -124,15 +124,11 @@ public sealed class CoreGameEngineAdapter : IGameEngineService, IDisposable
     {
         _accounts[account.Id] = account;
 
-        if (_settingsService?.Current.GameConfig != null)
-        {
-            GameRmsStorage.SaveGameConfig(_settingsService.Current.GameConfig);
-        }
-
         int customW = _settingsService?.Current.WindowCustomWidth ?? 0;
         int customH = _settingsService?.Current.WindowCustomHeight ?? 0;
         int width = customW > 0 ? customW : 1024;
         int height = customH > 0 ? customH : 600;
+        int zoom = _settingsService?.Current.GameConfig?.ZoomLevel ?? (width * height < 480000 ? 1 : 2);
 
         var options = new AccountLaunchOptions
         {
@@ -144,6 +140,7 @@ public sealed class CoreGameEngineAdapter : IGameEngineService, IDisposable
             GamePath = gamePath,
             ScreenWidth = width,
             ScreenHeight = height,
+            ZoomLevel = zoom,
             AutoLogin = account.AutoLogin,
             AutoReconnect = _settingsService?.Current.AutoReconnect ?? true,
             ReconnectDelaySeconds = _settingsService?.Current.ReconnectDelaySeconds ?? 3,
@@ -154,10 +151,14 @@ public sealed class CoreGameEngineAdapter : IGameEngineService, IDisposable
             IsMasked = _isMasked,
             ConfigureSession = session =>
             {
-                if (_settingsService?.Current.GameConfig != null)
+                var cfg = _settingsService?.Current.GameConfig ?? new GameConfigOptions();
+                var configWithRes = cfg with
                 {
-                    session.ConfigController.ApplyConfig(_settingsService.Current.GameConfig);
-                }
+                    ScreenWidth = width,
+                    ScreenHeight = height,
+                    ZoomLevel = cfg.ZoomLevel > 0 ? cfg.ZoomLevel : zoom
+                };
+                session.ConfigController.ApplyConfig(configWithRes);
             }
         };
 
@@ -223,7 +224,24 @@ public sealed class CoreGameEngineAdapter : IGameEngineService, IDisposable
     public bool SetResolution(Guid accountId, int width, int height)
     {
         var process = _gameEngine.GetProcess(accountId);
-        return process != null && _windowManager.ResizeWindow(process, width, height);
+        if (process == null) return false;
+
+        bool resized = _windowManager.ResizeWindow(process, width, height);
+
+        var session = _gameEngine.Sessions.GetSession(accountId);
+        if (session != null)
+        {
+            int zoom = _settingsService?.Current.GameConfig?.ZoomLevel ?? (width * height < 480000 ? 1 : 2);
+            var updatedConfig = (_settingsService?.Current.GameConfig ?? new GameConfigOptions()) with
+            {
+                ScreenWidth = width,
+                ScreenHeight = height,
+                ZoomLevel = zoom
+            };
+            session.ConfigController.ApplyConfig(updatedConfig);
+        }
+
+        return resized;
     }
 
     public void SetMasked(bool isMasked)

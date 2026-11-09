@@ -12,6 +12,7 @@ public record AccountLaunchOptions
     public required string GamePath { get; init; }
     public int ScreenWidth { get; init; } = 1024;
     public int ScreenHeight { get; init; } = 600;
+    public int ZoomLevel { get; init; } = 2;
     public bool AutoLogin { get; init; } = true;
     public bool AutoReconnect { get; init; } = true;
     public int ReconnectDelaySeconds { get; init; } = 3;

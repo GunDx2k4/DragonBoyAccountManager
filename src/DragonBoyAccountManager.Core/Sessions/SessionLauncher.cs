@@ -35,17 +35,6 @@ public class SessionLauncher : ISessionLauncher
     {
         Validate(options.GamePath);
 
-        if (options.ServerId.HasValue)
-        {
-            GameRmsStorage.SetServerSelection(options.ServerId.Value);
-        }
-
-        if (options.ScreenWidth > 0 && options.ScreenHeight > 0)
-        {
-            int screenLevel = (options.ScreenWidth * options.ScreenHeight < 480000) ? 1 : 0;
-            GameRmsStorage.SetScreenLevel(screenLevel);
-        }
-
         string workingDir = options.WorkingDirectory ?? Path.GetDirectoryName(options.GamePath)!;
         var argsList = new List<string>
         {
@@ -97,6 +86,16 @@ public class SessionLauncher : ISessionLauncher
             if (options.ScreenWidth > 0 && options.ScreenHeight > 0)
             {
                 ApplyCustomResolutionPatch(gameRuntime, options.ScreenWidth, options.ScreenHeight);
+                ApplyResolutionInRam(gameRuntime, options.ScreenWidth, options.ScreenHeight, options.ZoomLevel);
+            }
+
+            if (options.ServerId.HasValue && gameRuntime.Layout.ServerListScreen.IpSelect >= 0)
+            {
+                try
+                {
+                    gameRuntime.WriteStatic(GameSchema.ServerListScreen.ClassName, gameRuntime.Layout.ServerListScreen.IpSelect, options.ServerId.Value);
+                }
+                catch { }
             }
 
             return new GameSession(process, gameRuntime, options.SessionId ?? Guid.NewGuid(), options.ConfigureSession);
@@ -156,6 +155,82 @@ public class SessionLauncher : ISessionLauncher
                     {
                         NativeMethods.VirtualProtectEx(runtime.ProcessHandle, branch1, 10, oldProtect1, out _);
                     }
+                }
+            }
+        }
+        catch
+        {
+        }
+    }
+
+    private static void ApplyResolutionInRam(IGameRuntime runtime, int width, int height, int zoomLevel)
+    {
+        if (runtime.ModuleBase == IntPtr.Zero || width <= 0 || height <= 0) return;
+
+        try
+        {
+            if (zoomLevel <= 0)
+            {
+                zoomLevel = (width * height < 480000) ? 1 : 2;
+            }
+
+            IntPtr setResPtr = IntPtr.Add(runtime.ModuleBase, GameSchema.UnityScreen.RvaSetResolution);
+            runtime.InvokeMethod(setResPtr, IntPtr.Zero, (IntPtr)width, (IntPtr)height, IntPtr.Zero);
+
+            IntPtr scaleGuiStatic = runtime.GetStaticFieldsPtr(GameSchema.ScaleGUI.ClassName);
+            if (scaleGuiStatic != IntPtr.Zero)
+            {
+                runtime.WriteField(scaleGuiStatic, 0x4, (float)width);
+                runtime.WriteField(scaleGuiStatic, 0x8, (float)height);
+            }
+
+            IntPtr graphicsStatic = runtime.GetStaticFieldsPtr(GameSchema.mGraphics.ClassName);
+            if (graphicsStatic != IntPtr.Zero)
+            {
+                runtime.WriteField(graphicsStatic, 0x18, zoomLevel);
+            }
+
+            IntPtr motherCanvasStatic = runtime.GetStaticFieldsPtr(GameSchema.MotherCanvas.ClassName);
+            if (motherCanvasStatic != IntPtr.Zero)
+            {
+                IntPtr motherInstance = runtime.ReadFieldPtr(motherCanvasStatic, 0x0);
+                if (motherInstance != IntPtr.Zero)
+                {
+                    runtime.WriteField(motherInstance, 0x18, zoomLevel);
+                }
+            }
+
+            int canvasW = (width / zoomLevel) + (width % zoomLevel);
+            int canvasH = (height / zoomLevel) + (height % zoomLevel);
+
+            IntPtr canvasStatic = runtime.GetStaticFieldsPtr(GameSchema.GameCanvas.ClassName);
+            if (canvasStatic != IntPtr.Zero)
+            {
+                runtime.WriteField(canvasStatic, 144, canvasW);
+                runtime.WriteField(canvasStatic, 148, canvasH);
+                runtime.WriteField(canvasStatic, 152, canvasW / 2);
+                runtime.WriteField(canvasStatic, 156, canvasH / 2);
+                runtime.WriteField(canvasStatic, 160, canvasW / 3);
+                runtime.WriteField(canvasStatic, 164, canvasH / 3);
+                runtime.WriteField(canvasStatic, 168, (canvasW * 2) / 3);
+                runtime.WriteField(canvasStatic, 172, (canvasH * 2) / 3);
+                runtime.WriteField(canvasStatic, 176, (canvasW * 3) / 4);
+                runtime.WriteField(canvasStatic, 180, (canvasH * 3) / 4);
+                runtime.WriteField(canvasStatic, 184, canvasW / 6);
+                runtime.WriteField(canvasStatic, 188, canvasH / 6);
+
+                IntPtr canvasInstance = runtime.ReadFieldPtr(canvasStatic, 24);
+                if (canvasInstance != IntPtr.Zero)
+                {
+                    IntPtr initCanvasPtr = IntPtr.Add(runtime.ModuleBase, GameSchema.GameCanvas.RvaInitGameCanvas);
+                    runtime.InvokeMethod(initCanvasPtr, canvasInstance);
+                }
+
+                IntPtr serverScreen = runtime.ReadFieldPtr(canvasStatic, 952);
+                if (serverScreen != IntPtr.Zero)
+                {
+                    IntPtr initCmdPtr = IntPtr.Add(runtime.ModuleBase, GameSchema.ServerListScreen.RvaInitCommand);
+                    runtime.InvokeMethod(initCmdPtr, serverScreen);
                 }
             }
         }
