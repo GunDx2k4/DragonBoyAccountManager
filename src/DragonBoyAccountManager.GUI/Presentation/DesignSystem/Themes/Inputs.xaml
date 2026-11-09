@@ -124,12 +124,12 @@
     <Style x:Key="GameCollapsibleDescriptionTextBlockStyle" TargetType="TextBlock">
         <Setter Property="Visibility" Value="Visible" />
         <Style.Triggers>
-            <DataTrigger Binding="{Binding Description}" Value="{x:Null}">
+            <Trigger Property="Text" Value="{x:Null}">
                 <Setter Property="Visibility" Value="Collapsed" />
-            </DataTrigger>
-            <DataTrigger Binding="{Binding Description}" Value="">
+            </Trigger>
+            <Trigger Property="Text" Value="">
                 <Setter Property="Visibility" Value="Collapsed" />
-            </DataTrigger>
+            </Trigger>
         </Style.Triggers>
     </Style>
 
