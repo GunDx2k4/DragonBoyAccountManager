@@ -166,6 +166,36 @@ public class CombatHandler(IGameRuntime runtime) :
                 }
             }
 
+            if (layout.IsCheckPick >= 0)
+            {
+                IntPtr isCheckPickArray = _runtime.ReadFieldPtr(autoTrainStatic, layout.IsCheckPick);
+                if (isCheckPickArray != IntPtr.Zero)
+                {
+                    _runtime.WriteBoolArrayElement(isCheckPickArray, 0, command.AutoPick);
+                    _runtime.WriteBoolArrayElement(isCheckPickArray, 1, command.PickOthersItems);
+                    _runtime.WriteBoolArrayElement(isCheckPickArray, 2, command.PickAllMap);
+                    _runtime.WriteBoolArrayElement(isCheckPickArray, 3, command.AutoDropItems);
+                }
+            }
+
+            if (layout.IsNhat >= 0)
+            {
+                _runtime.WriteField(autoTrainStatic, layout.IsNhat, true);
+            }
+
+            if (layout.StrIdNhat >= 0)
+            {
+                _runtime.WriteStaticString(GameSchema.AutoTrainMenu.ClassName, layout.StrIdNhat, command.FilterPickIds ?? string.Empty);
+            }
+            if (layout.StrIdLoaiTru >= 0)
+            {
+                _runtime.WriteStaticString(GameSchema.AutoTrainMenu.ClassName, layout.StrIdLoaiTru, command.FilterExcludeIds ?? string.Empty);
+            }
+            if (layout.StrIdVutBo >= 0)
+            {
+                _runtime.WriteStaticString(GameSchema.AutoTrainMenu.ClassName, layout.StrIdVutBo, command.FilterDropIds ?? string.Empty);
+            }
+
             if (layout.Instance >= 0)
             {
                 IntPtr instancePtr = _runtime.ReadFieldPtr(autoTrainStatic, layout.Instance);
@@ -190,6 +220,21 @@ public class CombatHandler(IGameRuntime runtime) :
                     {
                         IntPtr tfHpDuoi = _runtime.ReadFieldPtr(instancePtr, layout.TfHpDuoi);
                         SetTFieldText(tfHpDuoi, command.MaxMobHp > 10000000000L ? "Không giới hạn" : command.MaxMobHp.ToString());
+                    }
+                    if (layout.TfIdNhat >= 0)
+                    {
+                        IntPtr tfIdNhat = _runtime.ReadFieldPtr(instancePtr, layout.TfIdNhat);
+                        SetTFieldText(tfIdNhat, command.FilterPickIds ?? string.Empty);
+                    }
+                    if (layout.TfIdLoaiTru >= 0)
+                    {
+                        IntPtr tfIdLoaiTru = _runtime.ReadFieldPtr(instancePtr, layout.TfIdLoaiTru);
+                        SetTFieldText(tfIdLoaiTru, command.FilterExcludeIds ?? string.Empty);
+                    }
+                    if (layout.TfIdVutBo >= 0)
+                    {
+                        IntPtr tfIdVutBo = _runtime.ReadFieldPtr(instancePtr, layout.TfIdVutBo);
+                        SetTFieldText(tfIdVutBo, command.FilterDropIds ?? string.Empty);
                     }
                 }
             }

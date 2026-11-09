@@ -5,6 +5,7 @@ using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using DragonBoyAccountManager.Core.Automation.Behaviors.Combat;
 using DragonBoyAccountManager.Core.Common;
+using DragonBoyAccountManager.Core.Execution.Commands;
 using DragonBoyAccountManager.Core.Interop.Schema;
 using DragonBoyAccountManager.Core.Telemetry.Snapshots;
 using DragonBoyAccountManager.GUI.Presentation.Features.Accounts.Items;
@@ -51,10 +52,34 @@ public sealed partial class AutoTrainViewModel : AutoFeatureViewModelBase
     private bool _checkAllMobs = true;
 
     [ObservableProperty]
+    private bool _autoPick = true;
+
+    [ObservableProperty]
+    private bool _pickOthersItems;
+
+    [ObservableProperty]
+    private bool _pickAllMap;
+
+    [ObservableProperty]
+    private bool _autoDropItems;
+
+    [ObservableProperty]
+    private string _filterPickIds = string.Empty;
+
+    [ObservableProperty]
+    private string _filterExcludeIds = string.Empty;
+
+    [ObservableProperty]
+    private string _filterDropIds = string.Empty;
+
+    [ObservableProperty]
     private bool _hasSelectedAutoItems;
 
     [ObservableProperty]
     private string _itemStatusText = "Chưa chọn vật phẩm tự dùng";
+
+    [ObservableProperty]
+    private string _pickStatusText = "Chưa bật tự động nhặt";
 
     public ObservableCollection<MobFilterItem> AvailableMobTypes { get; } = [];
     public ObservableCollection<SkillButtonItem> AutoTrainSkills { get; } = [];
@@ -89,6 +114,15 @@ public sealed partial class AutoTrainViewModel : AutoFeatureViewModelBase
             Interval = TimeSpan.FromMilliseconds(100)
         };
         _cooldownTimer.Tick += (_, _) => UpdateCooldowns();
+
+        PropertyChanged += (_, e) =>
+        {
+            if (e.PropertyName == nameof(SyncTargetDisplay))
+            {
+                UpdateItemStatusText();
+                UpdatePickStatus();
+            }
+        };
     }
 
     public override void OnActivated()
@@ -151,6 +185,13 @@ public sealed partial class AutoTrainViewModel : AutoFeatureViewModelBase
         PeanHpPercent = train.MinHpPercent;
         PeanMpPercent = train.MinMpPercent;
         CheckAllMobs = train.CheckAllMobs;
+        AutoPick = train.AutoPick;
+        PickOthersItems = train.PickOthersItems;
+        PickAllMap = train.PickAllMap;
+        AutoDropItems = train.AutoDropItems;
+        FilterPickIds = train.FilterPickIds ?? string.Empty;
+        FilterExcludeIds = train.FilterExcludeIds ?? string.Empty;
+        FilterDropIds = train.FilterDropIds ?? string.Empty;
 
         var selectedSlots = train.SelectedSkillSlots is { Count: > 0 }
             ? train.SelectedSkillSlots.ToHashSet()
@@ -171,9 +212,8 @@ public sealed partial class AutoTrainViewModel : AutoFeatureViewModelBase
         }
 
         HasSelectedAutoItems = selectedItemIds.Count > 0;
-        ItemStatusText = selectedItemIds.Count > 0
-            ? $"Đã cấu hình {selectedItemIds.Count} vật phẩm tự dùng"
-            : "Chưa chọn vật phẩm tự dùng";
+        UpdateItemStatusText();
+        UpdatePickStatus();
 
         var state = account.GetBehaviorState(BehaviorId);
         IsRunning = GameEngine.IsAutoTrainRunning(account.Id);
@@ -228,6 +268,34 @@ public sealed partial class AutoTrainViewModel : AutoFeatureViewModelBase
     partial void OnPeanMpPercentChanged(int value) => OnOptionChanged();
     partial void OnCheckAllMobsChanged(bool value) => OnOptionChanged();
 
+
+    partial void OnAutoPickChanged(bool value)
+    {
+        UpdatePickStatus();
+        OnOptionChanged();
+    }
+
+    partial void OnPickOthersItemsChanged(bool value)
+    {
+        UpdatePickStatus();
+        OnOptionChanged();
+    }
+
+    partial void OnPickAllMapChanged(bool value)
+    {
+        UpdatePickStatus();
+        OnOptionChanged();
+    }
+
+    partial void OnAutoDropItemsChanged(bool value)
+    {
+        UpdatePickStatus();
+        OnOptionChanged();
+    }
+    partial void OnFilterPickIdsChanged(string value) => OnOptionChanged();
+    partial void OnFilterExcludeIdsChanged(string value) => OnOptionChanged();
+    partial void OnFilterDropIdsChanged(string value) => OnOptionChanged();
+
     private void OnSkillItemPropertyChanged(object? sender, PropertyChangedEventArgs e)
     {
         if (!_isBulkUpdating && e.PropertyName == nameof(SkillButtonItem.IsSelected))
@@ -252,17 +320,41 @@ public sealed partial class AutoTrainViewModel : AutoFeatureViewModelBase
         }
     }
 
-    private void UpdateItemSelectionStatusAndSave()
+    private void UpdateItemStatusText()
     {
         int selectedCount = AutoTrainItems.Count(i => i.IsSelected);
         HasSelectedAutoItems = selectedCount > 0;
-        OnOptionChanged();
         var targets = GetTargetAccountIds();
         ItemStatusText = selectedCount > 0
             ? (targets.Count > 1
                 ? $"Đã cấu hình {selectedCount} vật phẩm ({targets.Count} tài khoản)"
                 : $"Đã cấu hình {selectedCount} vật phẩm tự dùng")
             : "Chưa chọn vật phẩm tự dùng";
+    }
+
+    private void UpdatePickStatus()
+    {
+        var targets = GetTargetAccountIds();
+        string targetSuffix = targets.Count > 1 ? $" ({targets.Count} tài khoản)" : string.Empty;
+        if (AutoPick)
+        {
+            var modes = new List<string>();
+            if (PickAllMap) modes.Add("toàn map");
+            if (PickOthersItems) modes.Add("người khác");
+            if (AutoDropItems) modes.Add("tự vứt");
+            string modeDesc = modes.Count > 0 ? $" ({string.Join(", ", modes)})" : string.Empty;
+            PickStatusText = $"Tự động nhặt: Đang bật{modeDesc}{targetSuffix}";
+        }
+        else
+        {
+            PickStatusText = $"Chưa bật tự động nhặt{targetSuffix}";
+        }
+    }
+
+    private void UpdateItemSelectionStatusAndSave()
+    {
+        UpdateItemStatusText();
+        OnOptionChanged();
     }
 
     private void OnOptionChanged()
@@ -279,12 +371,42 @@ public sealed partial class AutoTrainViewModel : AutoFeatureViewModelBase
             {
                 SaveSettings(targetAcc);
             }
-            if (targetAcc.IsRunning)
+            if (GameEngine.IsAutoTrainRunning(targetAcc.Id))
             {
                 GameEngine.UpdateAutoTrainOptions(targetAcc.Id, options);
             }
+            else if (targetAcc.IsRunning)
+            {
+                var cmd = BuildInGameSyncCommand(options);
+                _ = GameEngine.ExecuteCommandAsync(targetAcc.Id, cmd);
+            }
         }
     }
+
+    private static SetInGameAutoTrainCommand BuildInGameSyncCommand(AutoTrainOptions options) =>
+        new(
+            Enable: false,
+            Reason: "DBAM_SaveConfig",
+            AvoidSuperMobs: options.AvoidSuperMobs,
+            ChangeZoneWhenNoMobs: options.ChangeZoneWhenNoMobs,
+            CheckAttackByHp: options.CheckAttackByHp,
+            MinMobHp: options.MinMobHp,
+            MaxMobHp: options.MaxMobHp,
+            AutoUsePean: options.AutoUsePean,
+            PeanHpPercent: options.MinHpPercent,
+            PeanMpPercent: options.MinMpPercent,
+            CheckAllMobs: options.CheckAllMobs,
+            TargetMobNames: options.TargetMobNames,
+            SelectedSkillSlots: options.SelectedSkillSlots,
+            SelectedItemTemplateIds: options.SelectedItemTemplateIds,
+            AutoPick: options.AutoPick,
+            PickOthersItems: options.PickOthersItems,
+            PickAllMap: options.PickAllMap,
+            AutoDropItems: options.AutoDropItems,
+            FilterPickIds: options.FilterPickIds,
+            FilterExcludeIds: options.FilterExcludeIds,
+            FilterDropIds: options.FilterDropIds
+        );
 
     [RelayCommand]
     public void ToggleAutoTrain()
@@ -443,7 +565,14 @@ public sealed partial class AutoTrainViewModel : AutoFeatureViewModelBase
             MaxMobHp = MaxMobHp,
             AutoUsePean = AutoUsePean,
             MinHpPercent = PeanHpPercent,
-            MinMpPercent = PeanMpPercent
+            MinMpPercent = PeanMpPercent,
+            AutoPick = AutoPick,
+            PickOthersItems = PickOthersItems,
+            PickAllMap = PickAllMap,
+            AutoDropItems = AutoDropItems,
+            FilterPickIds = FilterPickIds,
+            FilterExcludeIds = FilterExcludeIds,
+            FilterDropIds = FilterDropIds
         };
     }
 

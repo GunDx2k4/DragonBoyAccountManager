@@ -920,6 +920,9 @@
       "AutoTrainMenu.isCheckedSkill": 112,
       "AutoTrainMenu.isCheckItem": 128,
       "AutoTrainMenu.isCheckPick": 136,
+      "AutoTrainMenu.strIdNhat": 144,
+      "AutoTrainMenu.strIdLoaiTru": 152,
+      "AutoTrainMenu.strIdVutBo": 160,
       "AutoTrainMenu.lastTimeUseItem": 224,
       "mResources.autoTrain_TabNames": 168,
       "mResources.autoTrain_TabNames_2": 176,
@@ -1922,6 +1925,9 @@
       "AutoTrainMenu.tfHpDuoi": 56,
       "AutoTrainMenu.tfHpPean": 64,
       "AutoTrainMenu.tfMpPean": 72,
+      "AutoTrainMenu.tfIdNhat": 80,
+      "AutoTrainMenu.tfIdLoaiTru": 88,
+      "AutoTrainMenu.tfIdVutBo": 96,
       "ItemTime.idIcon": 16
     },
     "Methods": {

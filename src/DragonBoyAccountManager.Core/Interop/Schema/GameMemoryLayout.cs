@@ -251,10 +251,16 @@ public sealed record AutoTrainMenuLayout(
     int IsCheckPick,
     int LastTimeUseItem,
     int IsNhat,
+    int StrIdNhat,
+    int StrIdLoaiTru,
+    int StrIdVutBo,
     int TfHpOn,
     int TfHpDuoi,
     int TfHpPean,
-    int TfMpPean);
+    int TfMpPean,
+    int TfIdNhat,
+    int TfIdLoaiTru,
+    int TfIdVutBo);
 
 public sealed record ServiceLayout(
     int Instance);
@@ -595,10 +601,16 @@ public sealed class GameMemoryLayout
             IsCheckPick: ResolveStatic(schema, GameSchema.AutoTrainMenu.ClassName, GameSchema.AutoTrainMenu.StaticIsCheckPick),
             LastTimeUseItem: ResolveStatic(schema, GameSchema.AutoTrainMenu.ClassName, GameSchema.AutoTrainMenu.StaticLastTimeUseItem),
             IsNhat: ResolveStatic(schema, GameSchema.AutoTrainMenu.ClassName, GameSchema.AutoTrainMenu.StaticIsNhat),
+            StrIdNhat: ResolveStatic(schema, GameSchema.AutoTrainMenu.ClassName, GameSchema.AutoTrainMenu.StaticStrIdNhat),
+            StrIdLoaiTru: ResolveStatic(schema, GameSchema.AutoTrainMenu.ClassName, GameSchema.AutoTrainMenu.StaticStrIdLoaiTru),
+            StrIdVutBo: ResolveStatic(schema, GameSchema.AutoTrainMenu.ClassName, GameSchema.AutoTrainMenu.StaticStrIdVutBo),
             TfHpOn: ResolveInstance(schema, GameSchema.AutoTrainMenu.ClassName, GameSchema.AutoTrainMenu.FieldTfHpOn),
             TfHpDuoi: ResolveInstance(schema, GameSchema.AutoTrainMenu.ClassName, GameSchema.AutoTrainMenu.FieldTfHpDuoi),
             TfHpPean: ResolveInstance(schema, GameSchema.AutoTrainMenu.ClassName, GameSchema.AutoTrainMenu.FieldTfHpPean),
-            TfMpPean: ResolveInstance(schema, GameSchema.AutoTrainMenu.ClassName, GameSchema.AutoTrainMenu.FieldTfMpPean)
+            TfMpPean: ResolveInstance(schema, GameSchema.AutoTrainMenu.ClassName, GameSchema.AutoTrainMenu.FieldTfMpPean),
+            TfIdNhat: ResolveInstance(schema, GameSchema.AutoTrainMenu.ClassName, GameSchema.AutoTrainMenu.FieldTfIdNhat),
+            TfIdLoaiTru: ResolveInstance(schema, GameSchema.AutoTrainMenu.ClassName, GameSchema.AutoTrainMenu.FieldTfIdLoaiTru),
+            TfIdVutBo: ResolveInstance(schema, GameSchema.AutoTrainMenu.ClassName, GameSchema.AutoTrainMenu.FieldTfIdVutBo)
         );
 
         MResources = new MResourcesLayout(

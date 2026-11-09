@@ -31,7 +31,14 @@ public sealed record SetInGameAutoTrainCommand(
     bool CheckAllMobs = true,
     IReadOnlyList<string>? TargetMobNames = null,
     IReadOnlyList<int>? SelectedSkillSlots = null,
-    IReadOnlyList<short>? SelectedItemTemplateIds = null
+    IReadOnlyList<short>? SelectedItemTemplateIds = null,
+    bool AutoPick = true,
+    bool PickOthersItems = false,
+    bool PickAllMap = false,
+    bool AutoDropItems = false,
+    string FilterPickIds = "",
+    string FilterExcludeIds = "",
+    string FilterDropIds = ""
 ) : IGameCommand
 {
     public string Name => Enable ? "Bật tự đánh trong game" : "Tắt tự đánh trong game";

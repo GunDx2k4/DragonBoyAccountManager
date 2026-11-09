@@ -197,12 +197,18 @@ public static partial class GameSchema
         public const string StaticIsCheckedSkill = "isCheckedSkill";
         public const string StaticIsCheckItem = "isCheckItem";
         public const string StaticIsCheckPick = "isCheckPick";
+        public const string StaticStrIdNhat = "strIdNhat";
+        public const string StaticStrIdLoaiTru = "strIdLoaiTru";
+        public const string StaticStrIdVutBo = "strIdVutBo";
         public const string StaticLastTimeUseItem = "lastTimeUseItem";
 
         public const string FieldTfHpOn = "tfHpOn";
         public const string FieldTfHpDuoi = "tfHpDuoi";
         public const string FieldTfHpPean = "tfHpPean";
         public const string FieldTfMpPean = "tfMpPean";
+        public const string FieldTfIdNhat = "tfIdNhat";
+        public const string FieldTfIdLoaiTru = "tfIdLoaiTru";
+        public const string FieldTfIdVutBo = "tfIdVutBo";
 
         public const string MethodGI = "gI";
         public const string MethodSetAutoAttack = "setAutoAttack";
