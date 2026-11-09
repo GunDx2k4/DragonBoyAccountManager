@@ -62,14 +62,14 @@ public sealed class SessionMaskingController(IGameRuntime runtime)
             var loginScrLayout = _runtime.Layout.LoginScr;
             var tfieldLayout = _runtime.Layout.TField;
 
+            string curRmsAcc = _runtime.ReadStaticString(GameSchema.Rms.ClassName, rmsLayout.RMS_acc);
+            if (curRmsAcc != "acc")
+            {
+                _runtime.WriteStaticString(GameSchema.Rms.ClassName, rmsLayout.RMS_acc, "acc");
+            }
+
             if (isMasked)
             {
-                string curRmsAcc = _runtime.ReadStaticString(GameSchema.Rms.ClassName, rmsLayout.RMS_acc);
-                if (curRmsAcc != "DBAM")
-                {
-                    _runtime.WriteStaticString(GameSchema.Rms.ClassName, rmsLayout.RMS_acc, "DBAM");
-                }
-
                 IntPtr serverScreen = _runtime.ReadStatic<IntPtr>(GameSchema.GameCanvas.ClassName, gameCanvasLayout.ServerScreen);
                 if (serverScreen != IntPtr.Zero)
                 {
@@ -102,17 +102,6 @@ public sealed class SessionMaskingController(IGameRuntime runtime)
                         {
                             _runtime.WriteField(tfUser, tfieldLayout.InputType, GameSchema.TField.InputTypePassword);
                         }
-
-                        if (!isInGame)
-                        {
-                            string curText = _runtime.ReadStringField(tfUser, tfieldLayout.Text) ?? string.Empty;
-                            if (!string.IsNullOrEmpty(curText) && !string.Equals(curText, username, StringComparison.Ordinal) && !curText.Contains('*'))
-                            {
-                                string masked = TextMaskHelper.MaskText(curText);
-                                _runtime.WriteStringField(tfUser, tfieldLayout.Text, masked);
-                                _runtime.WriteStringField(tfUser, tfieldLayout.PaintedText, masked);
-                            }
-                        }
                     }
 
                     if (tfPass != IntPtr.Zero)
@@ -127,12 +116,6 @@ public sealed class SessionMaskingController(IGameRuntime runtime)
             }
             else
             {
-                string curRmsAcc = _runtime.ReadStaticString(GameSchema.Rms.ClassName, rmsLayout.RMS_acc);
-                if (curRmsAcc != "acc")
-                {
-                    _runtime.WriteStaticString(GameSchema.Rms.ClassName, rmsLayout.RMS_acc, "acc");
-                }
-
                 if (!string.IsNullOrEmpty(OriginalServerListCaption))
                 {
                     IntPtr serverScreen = _runtime.ReadStatic<IntPtr>(GameSchema.GameCanvas.ClassName, gameCanvasLayout.ServerScreen);
@@ -178,9 +161,6 @@ public sealed class SessionMaskingController(IGameRuntime runtime)
         try
         {
             var charLayout = _runtime.Layout.Char;
-            var gameCanvasLayout = _runtime.Layout.GameCanvas;
-            var loginScrLayout = _runtime.Layout.LoginScr;
-            var tfieldLayout = _runtime.Layout.TField;
 
             IntPtr myCharPtr = _runtime.ReadStatic<IntPtr>(GameSchema.Char.ClassName, charLayout.MyChar);
             if (myCharPtr != IntPtr.Zero)
@@ -202,34 +182,6 @@ public sealed class SessionMaskingController(IGameRuntime runtime)
                     {
                         _runtime.WriteStringField(myCharPtr, charLayout.Name, OriginalCharacterName);
                         OriginalCharacterName = null;
-                    }
-                }
-            }
-
-            IntPtr loginScr = _runtime.ReadStatic<IntPtr>(GameSchema.GameCanvas.ClassName, gameCanvasLayout.LoginScr);
-            if (loginScr != IntPtr.Zero)
-            {
-                IntPtr tfUser = _runtime.ReadFieldPtr(loginScr, loginScrLayout.TfUser);
-                if (tfUser != IntPtr.Zero)
-                {
-                    string currentTfUser = _runtime.ReadStringField(tfUser, tfieldLayout.Text) ?? string.Empty;
-                    if (isMasked)
-                    {
-                        string maskedUser = TextMaskHelper.MaskText(username);
-                        if (!string.IsNullOrEmpty(maskedUser) && currentTfUser != maskedUser)
-                        {
-                            _runtime.WriteStringField(tfUser, tfieldLayout.Text, maskedUser);
-                            _runtime.WriteStringField(tfUser, tfieldLayout.PaintedText, maskedUser);
-                            _runtime.WriteField(tfUser, tfieldLayout.InputType, GameSchema.TField.InputTypePassword);
-                        }
-                    }
-                    else
-                    {
-                        if (!string.IsNullOrEmpty(username) && currentTfUser != username)
-                        {
-                            _runtime.WriteStringField(tfUser, tfieldLayout.Text, username);
-                            _runtime.WriteStringField(tfUser, tfieldLayout.PaintedText, username);
-                        }
                     }
                 }
             }

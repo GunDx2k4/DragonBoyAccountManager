@@ -250,34 +250,31 @@ public sealed class LoginScreenController(IGameRuntime runtime)
                 return;
             }
 
-            if (isMasked)
+            IntPtr serviceInst = _runtime.ReadStatic<IntPtr>(GameSchema.Service.ClassName, _runtime.Layout.Service.Instance);
+            if (serviceInst == IntPtr.Zero)
             {
-                IntPtr serviceInst = _runtime.ReadStatic<IntPtr>(GameSchema.Service.ClassName, _runtime.Layout.Service.Instance);
-                if (serviceInst == IntPtr.Zero)
+                serviceInst = _runtime.CallMethod(GameSchema.Service.ClassName, GameSchema.Service.MethodGI, IntPtr.Zero);
+            }
+
+            if (serviceInst != IntPtr.Zero)
+            {
+                bool connected = false;
+                try { connected = _runtime.ReadStatic<bool>(GameSchema.Session.ClassName, _runtime.Layout.Session.Connected); } catch { }
+                if (!connected)
                 {
-                    serviceInst = _runtime.CallMethod(GameSchema.Service.ClassName, GameSchema.Service.MethodGI, IntPtr.Zero);
+                    try { _runtime.CallMethod(GameSchema.GameCanvas.ClassName, GameSchema.GameCanvas.MethodConnect, IntPtr.Zero); } catch { }
                 }
 
-                if (serviceInst != IntPtr.Zero)
+                string? version = _runtime.ReadStaticString(GameSchema.GameMidlet.ClassName, _runtime.Layout.GameMidlet.Version);
+                if (string.IsNullOrWhiteSpace(version))
                 {
-                    bool connected = false;
-                    try { connected = _runtime.ReadStatic<bool>(GameSchema.Session.ClassName, _runtime.Layout.Session.Connected); } catch { }
-                    if (!connected)
-                    {
-                        try { _runtime.CallMethod(GameSchema.GameCanvas.ClassName, GameSchema.GameCanvas.MethodConnect, IntPtr.Zero); } catch { }
-                    }
-
-                    string? version = _runtime.ReadStaticString(GameSchema.GameMidlet.ClassName, _runtime.Layout.GameMidlet.Version);
-                    if (string.IsNullOrWhiteSpace(version))
-                    {
-                        version = Constants.Client.DefaultVersion;
-                    }
-
-                    _runtime.CallMethod(GameSchema.Service.ClassName, GameSchema.Service.MethodSetClientType, serviceInst);
-                    _runtime.CallMethod(GameSchema.Service.ClassName, GameSchema.Service.MethodLogin, serviceInst, username.Trim(), password.Trim(), version, (sbyte)0);
-                    try { _runtime.CallMethod(GameSchema.GameCanvas.ClassName, GameSchema.GameCanvas.MethodStartWaitDlg, IntPtr.Zero); } catch { }
-                    return;
+                    version = Constants.Client.DefaultVersion;
                 }
+
+                _runtime.CallMethod(GameSchema.Service.ClassName, GameSchema.Service.MethodSetClientType, serviceInst);
+                _runtime.CallMethod(GameSchema.Service.ClassName, GameSchema.Service.MethodLogin, serviceInst, username.Trim(), password.Trim(), version, (sbyte)0);
+                try { _runtime.CallMethod(GameSchema.GameCanvas.ClassName, GameSchema.GameCanvas.MethodStartWaitDlg, IntPtr.Zero); } catch { }
+                return;
             }
         }
         catch { }
@@ -328,20 +325,15 @@ public sealed class LoginScreenController(IGameRuntime runtime)
 
     public void PreMaskServerListScreen(bool isMasked)
     {
-        if (!isMasked) return;
         try
         {
             string curRmsAcc = _runtime.ReadStaticString(GameSchema.Rms.ClassName, _runtime.Layout.Rms.RMS_acc);
-            if (curRmsAcc != "DBAM")
+            if (curRmsAcc != "acc")
             {
-                _runtime.WriteStaticString(GameSchema.Rms.ClassName, _runtime.Layout.Rms.RMS_acc, "DBAM");
+                _runtime.WriteStaticString(GameSchema.Rms.ClassName, _runtime.Layout.Rms.RMS_acc, "acc");
             }
 
-            try
-            {
-                _runtime.CallMethod(GameSchema.Rms.ClassName, GameSchema.Rms.MethodSaveRMSString, IntPtr.Zero, GameSchema.Rms.KeyPass, string.Empty);
-            }
-            catch { }
+            if (!isMasked) return;
 
             IntPtr serverScreen = _runtime.ReadStatic<IntPtr>(GameSchema.GameCanvas.ClassName, _runtime.Layout.GameCanvas.ServerScreen);
             if (serverScreen != IntPtr.Zero)
@@ -379,17 +371,10 @@ public sealed class LoginScreenController(IGameRuntime runtime)
                 if (tfUser != IntPtr.Zero)
                 {
                     _runtime.WriteField(tfUser, tfieldLayout.InputType, GameSchema.TField.InputTypePassword);
-                    string curText = GetTFieldText(tfUser) ?? string.Empty;
-                    if (!string.IsNullOrEmpty(curText) && !string.Equals(curText, username, StringComparison.Ordinal) && !curText.Contains('*'))
-                    {
-                        string masked = TextMaskHelper.MaskText(curText);
-                        SetTFieldText(tfUser, masked);
-                    }
                 }
                 if (tfPass != IntPtr.Zero)
                 {
                     _runtime.WriteField(tfPass, tfieldLayout.InputType, GameSchema.TField.InputTypePassword);
-                    SetTFieldText(tfPass, string.Empty);
                 }
             }
         }
@@ -400,6 +385,12 @@ public sealed class LoginScreenController(IGameRuntime runtime)
     {
         try
         {
+            string curRmsAcc = _runtime.ReadStaticString(GameSchema.Rms.ClassName, _runtime.Layout.Rms.RMS_acc);
+            if (curRmsAcc != "acc")
+            {
+                _runtime.WriteStaticString(GameSchema.Rms.ClassName, _runtime.Layout.Rms.RMS_acc, "acc");
+            }
+
             IntPtr loginScr = GetLoginScreenPointer();
             if (loginScr != IntPtr.Zero)
             {
@@ -409,24 +400,13 @@ public sealed class LoginScreenController(IGameRuntime runtime)
                 IntPtr tfPass = _runtime.ReadFieldPtr(loginScr, loginScrLayout.TfPass);
                 if (tfUser != IntPtr.Zero)
                 {
-                    string masked = TextMaskHelper.MaskText(username);
-                    SetTFieldText(tfUser, masked);
                     _runtime.WriteField(tfUser, tfieldLayout.InputType, GameSchema.TField.InputTypePassword);
                 }
-                if (tfPass != IntPtr.Zero) SetTFieldText(tfPass, string.Empty);
+                if (tfPass != IntPtr.Zero)
+                {
+                    _runtime.WriteField(tfPass, tfieldLayout.InputType, GameSchema.TField.InputTypePassword);
+                }
             }
-
-            string curRmsAcc = _runtime.ReadStaticString(GameSchema.Rms.ClassName, _runtime.Layout.Rms.RMS_acc);
-            if (curRmsAcc != "DBAM")
-            {
-                _runtime.WriteStaticString(GameSchema.Rms.ClassName, _runtime.Layout.Rms.RMS_acc, "DBAM");
-            }
-
-            try
-            {
-                _runtime.CallMethod(GameSchema.Rms.ClassName, GameSchema.Rms.MethodSaveRMSString, IntPtr.Zero, GameSchema.Rms.KeyPass, string.Empty);
-            }
-            catch { }
         }
         catch { }
     }
