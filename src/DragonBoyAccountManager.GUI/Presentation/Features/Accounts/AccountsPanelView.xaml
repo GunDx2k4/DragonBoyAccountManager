@@ -213,19 +213,19 @@
                                 FontWeight="SemiBold"
                                 Foreground="{DynamicResource GameTextDarkBrush}"
                                 LineHeight="16"
-                                Text="1. Tải bản game PC gốc 2.5.0 trực tiếp tại trang chủ (ngocrongonline.com) — KHÔNG cài đặt bản mod."
+                                Text="1. Tải bản game PC gốc 2.5.2 trực tiếp tại trang chủ (ngocrongonline.com) — KHÔNG cài đặt bản mod."
                                 TextWrapping="Wrap" />
                             <TextBlock
                                 FontSize="10.5"
                                 Foreground="{DynamicResource GameTextDarkBrush}"
                                 LineHeight="16"
-                                Text="2. Giải nén đầy đủ thư mục game, kiểm tra có file [TênGame].exe và thư mục [TênGame]_Data\Managed\Assembly-CSharp.dll."
+                                Text="2. Bản mới là file thực thi độc lập duy nhất (Dragonboy252.exe), không có thư mục Data hay DLL phụ trợ."
                                 TextWrapping="Wrap" />
                             <TextBlock
                                 FontSize="10.5"
                                 Foreground="{DynamicResource GameTextDarkBrush}"
                                 LineHeight="16"
-                                Text="3. Bấm nút 'Chọn file game (.exe)' bên dưới để liên kết. Sau đó thêm tài khoản và mở game bình thường."
+                                Text="3. Bấm nút 'Chọn file game (.exe)' bên dưới để liên kết tới Dragonboy252.exe. Sau đó thêm tài khoản và mở game bình thường."
                                 TextWrapping="Wrap" />
                         </StackPanel>
                     </StackPanel>

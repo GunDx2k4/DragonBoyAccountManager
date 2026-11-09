@@ -17,23 +17,23 @@ public sealed partial class AccountsPanelViewModel
         switch (ClientStatus)
         {
             case ClientStatus.GameNotFound:
-                AssemblyGuidanceTitle = "CHƯA THIẾT LẬP FILE GAME GỐC 2.5.0 (.EXE)";
-                AssemblyGuidanceMessage = "DBAM yêu cầu phiên bản game PC gốc 2.5.0 tải tại trang chủ (ngocrongonline.com) — tuyệt đối không cài bản mod. Vui lòng bấm \"Chọn file game (.exe)\" để bắt đầu.";
+                AssemblyGuidanceTitle = "CHƯA THIẾT LẬP FILE GAME GỐC 2.5.2 (DRAGONBOY252.EXE)";
+                AssemblyGuidanceMessage = "DBAM yêu cầu phiên bản game PC gốc 2.5.2 (Dragonboy252.exe) tải tại trang chủ (ngocrongonline.com) — tuyệt đối không cài bản mod. Vui lòng bấm \"Chọn file game (.exe)\" để bắt đầu.";
                 break;
 
             case ClientStatus.AssemblyNotFound:
-                AssemblyGuidanceTitle = "KHÔNG TÌM THẤY ASSEMBLY-CSHARP.DLL";
-                AssemblyGuidanceMessage = "Đã nhận file .exe nhưng thiếu file Assembly-CSharp.dll trong Data\\Managed. Vui lòng tải bản game PC 2.5.0 gốc tại trang chủ (không dùng bản mod) và kiểm tra lại thư mục game.";
+                AssemblyGuidanceTitle = "FILE GAME KHÔNG HỢP LỆ";
+                AssemblyGuidanceMessage = "Đã nhận file nhưng không nhận dạng được client Dragonboy252.exe hợp lệ. Vui lòng tải bản game PC gốc 2.5.2 (Dragonboy252.exe) tại trang chủ (không dùng bản mod).";
                 break;
 
             case ClientStatus.ModifiedOrMod:
                 AssemblyGuidanceTitle = "PHÁT HIỆN FILE GAME BỊ SỬA ĐỔI HOẶC BẢN MOD";
-                AssemblyGuidanceMessage = "DBAM chỉ hỗ trợ phiên bản gốc 2.5.0 chính thức từ trang chủ. Các bản mod (Mod, Auto, Hack, DLL đã can thiệp) có thể gây lỗi bộ nhớ hoặc không tương thích!";
+                AssemblyGuidanceMessage = "DBAM chỉ hỗ trợ phiên bản gốc 2.5.2 (Dragonboy252.exe) chính thức từ trang chủ. Các bản mod (Mod, Auto, Hack, file đã can thiệp) có thể gây lỗi bộ nhớ hoặc không tương thích!";
                 break;
 
             case ClientStatus.OutdatedVersion:
                 AssemblyGuidanceTitle = "PHIÊN BẢN GAME ĐÃ CŨ";
-                AssemblyGuidanceMessage = "Phiên bản game hiện tại không phải 2.5.0. Vui lòng tải bản mới nhất tại ngocrongonline.com để sử dụng.";
+                AssemblyGuidanceMessage = "Phiên bản game hiện tại không phải 2.5.2. Vui lòng tải bản Dragonboy252.exe mới nhất tại ngocrongonline.com để sử dụng.";
                 break;
 
             default:
@@ -84,19 +84,17 @@ public sealed partial class AccountsPanelViewModel
         if (metadata?.Status == ClientStatus.AssemblyNotFound)
         {
             _dialogService.ShowWarning(
-                "Không tìm thấy Assembly-CSharp",
-                $"Đã nhận diện file thực thi game: {Path.GetFileName(gamePath)}\n" +
-                "Nhưng không tìm thấy file Assembly-CSharp.dll trong thư mục dữ liệu Data\\Managed.\n\n" +
-                "Vui lòng tải bản game PC gốc 2.5.0 tại trang chủ (ngocrongonline.com) — không dùng bản mod, và đảm bảo cấu trúc:\n" +
-                "- [TênGame].exe\n" +
-                "- [TênGame]_Data\\Managed\\Assembly-CSharp.dll");
+                "File game không hợp lệ",
+                $"Đã nhận diện file: {Path.GetFileName(gamePath)}\n" +
+                "Nhưng không nhận dạng được client Dragonboy252.exe hợp lệ.\n\n" +
+                "Vui lòng tải bản game PC gốc 2.5.2 (Dragonboy252.exe) tại trang chủ (ngocrongonline.com) — không dùng bản mod.");
         }
         else
         {
             bool chooseNow = _dialogService.ShowConfirmation(
                 "Chưa cài đặt đường dẫn game",
-                "Chưa chọn tệp thực thi game (.exe) hoặc đường dẫn không tồn tại.\n\n" +
-                "Vui lòng tải bản game PC gốc 2.5.0 tại trang chủ (ngocrongonline.com) — tuyệt đối không cài bản mod.\n\n" +
+                "Chưa chọn tệp thực thi game Dragonboy252.exe hoặc đường dẫn không tồn tại.\n\n" +
+                "Vui lòng tải bản game PC gốc 2.5.2 (Dragonboy252.exe) tại trang chủ (ngocrongonline.com) — tuyệt đối không cài bản mod.\n\n" +
                 "Bạn có muốn chọn file game (.exe) ngay bây giờ không?",
                 "Chọn file ngay",
                 "Để sau");

@@ -219,19 +219,19 @@
                                     FontWeight="SemiBold"
                                     Foreground="{DynamicResource GameTextDarkBrush}"
                                     LineHeight="16"
-                                    Text="1. Tải bản game PC gốc 2.5.0 trực tiếp tại trang chủ (ngocrongonline.com) — KHÔNG dùng bản mod."
+                                    Text="1. Tải bản game PC gốc 2.5.2 (Dragonboy252.exe) trực tiếp tại trang chủ (ngocrongonline.com) — KHÔNG dùng bản mod."
                                     TextWrapping="Wrap" />
                                 <TextBlock
                                     FontSize="10.5"
                                     Foreground="{DynamicResource GameTextDarkBrush}"
                                     LineHeight="16"
-                                    Text="2. Giải nén thư mục game trên máy tính."
+                                    Text="2. Bản mới là file thực thi độc lập duy nhất (Dragonboy252.exe), không cần giải nén thư mục hay DLL phụ trợ."
                                     TextWrapping="Wrap" />
                                 <TextBlock
                                     FontSize="10.5"
                                     Foreground="{DynamicResource GameTextDarkBrush}"
                                     LineHeight="16"
-                                    Text="3. Bấm nút 'Chọn file ngay' ở trên rồi chọn file .exe của game."
+                                    Text="3. Bấm nút 'Chọn file ngay' ở trên rồi trỏ đến file Dragonboy252.exe."
                                     TextWrapping="Wrap" />
                             </StackPanel>
                         </StackPanel>
@@ -298,7 +298,7 @@
                                 FontWeight="SemiBold"
                                 Foreground="{DynamicResource GameTextDarkBrush}"
                                 LineHeight="16"
-                                Text="Chỉ sử dụng bản game PC gốc v2.5.0 tải tại trang chủ (ngocrongonline.com) — tuyệt đối KHÔNG dùng bản mod."
+                                Text="Chỉ sử dụng bản game PC gốc v2.5.2 (Dragonboy252.exe) tải tại trang chủ (ngocrongonline.com) — tuyệt đối KHÔNG dùng bản mod."
                                 TextWrapping="Wrap" />
                         </StackPanel>
                     </Border>
@@ -308,12 +308,12 @@
                             FontSize="11.5"
                             FontWeight="Bold"
                             Foreground="{DynamicResource GameTextDarkBrush}"
-                            Text="1. Tải và giải nén game" />
+                            Text="1. Tải file game gốc" />
                         <TextBlock
                             Margin="10,2,0,0"
                             FontSize="11"
                             Foreground="{DynamicResource GameTextMutedBrush}"
-                            Text="Tải bản game PC gốc 2.5.0 từ trang chủ rồi giải nén vào một thư mục trên máy tính."
+                            Text="Tải file game PC gốc 2.5.2 (Dragonboy252.exe) từ trang chủ về máy tính (bản mới chỉ là 1 file thực thi duy nhất)."
                             TextWrapping="Wrap" />
                     </StackPanel>
 
@@ -327,7 +327,7 @@
                             Margin="10,2,0,0"
                             FontSize="11"
                             Foreground="{DynamicResource GameTextMutedBrush}"
-                            Text="Bấm nút 'Chọn file game (.exe)' bên dưới rồi trỏ đến file .exe của game."
+                            Text="Bấm nút 'Chọn file game (.exe)' bên dưới rồi trỏ đến file Dragonboy252.exe."
                             TextWrapping="Wrap" />
                     </StackPanel>
 
@@ -379,7 +379,7 @@
                             Margin="10,2,0,0"
                             FontSize="11"
                             Foreground="{DynamicResource GameTextMutedBrush}"
-                            Text="Tải bản game PC gốc 2.5.0 tại trang chủ (ngocrongonline.com) — không cài bản mod. Bấm nút 'Chọn file...' ở thanh đáy cửa sổ để trỏ đến tệp thực thi (.exe) của game."
+                            Text="Tải bản game PC gốc 2.5.2 (Dragonboy252.exe) tại trang chủ (ngocrongonline.com) — không cài bản mod. Bấm nút 'Chọn file...' ở thanh đáy cửa sổ để trỏ đến file Dragonboy252.exe."
                             TextWrapping="Wrap" />
                     </StackPanel>
 

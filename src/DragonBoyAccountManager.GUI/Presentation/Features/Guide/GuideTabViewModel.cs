@@ -216,7 +216,7 @@ public sealed partial class GuideTabViewModel : ObservableObject
                     UpdateStatusMessage = "Chưa thiết lập đường dẫn game. Vui lòng bấm \"Chọn file game (.exe)\" để bắt đầu.";
                     break;
                 case ClientStatus.AssemblyNotFound:
-                    UpdateStatusMessage = "Đã nhận file .exe nhưng không tìm thấy Assembly-CSharp.dll trong Data\\Managed.";
+                    UpdateStatusMessage = "Đã nhận file .exe nhưng không nhận dạng được client Dragonboy252.exe hợp lệ.";
                     break;
                 case ClientStatus.Error:
                     UpdateStatusMessage = $"Lỗi: {metadata.ErrorMessage}";

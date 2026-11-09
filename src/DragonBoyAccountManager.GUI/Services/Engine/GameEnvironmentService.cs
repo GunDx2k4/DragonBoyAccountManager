@@ -134,8 +134,8 @@ public sealed class GameEnvironmentService : IGameEnvironmentService
                 break;
 
             case ClientStatus.AssemblyNotFound:
-                AssemblyStatus = "Không tìm thấy Assembly";
-                AssemblyStatusTooltip = $"Đã nhận file game: {Path.GetFileName(path)}\nNhưng không tìm thấy file Assembly-CSharp.dll trong thư mục dữ liệu Data\\Managed.\n(Bấm để chọn lại file game hoặc mở thư mục)";
+                AssemblyStatus = "Không tìm thấy file game";
+                AssemblyStatusTooltip = $"Đã nhận file: {Path.GetFileName(path)}\nNhưng không nhận dạng được tệp Dragonboy252.exe hợp lệ.\n(Bấm để chọn lại file game hoặc mở thư mục)";
                 break;
 
             case ClientStatus.Error:
