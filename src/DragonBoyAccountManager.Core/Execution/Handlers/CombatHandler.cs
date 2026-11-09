@@ -13,6 +13,7 @@ public class CombatHandler(IGameRuntime runtime) :
 {
     private readonly IGameRuntime _runtime = runtime;
     private IntPtr _cachedVMob;
+    private IntPtr _cachedVMobItems;
     private IntPtr _cachedEmptyVChar;
 
     public Task<Result> HandleAsync(SetInGameAutoTrainCommand command, CancellationToken cancellationToken)
@@ -21,9 +22,15 @@ public class CombatHandler(IGameRuntime runtime) :
         if (charPtr == IntPtr.Zero)
             return Task.FromResult(Result.Failure("Nhân vật chưa vào game."));
 
-        int charId = _runtime.ReadField<int>(charPtr, _runtime.Layout.Char.CharId);
-        bool canAutoPlay = _runtime.ReadStatic<bool>(GameSchema.GameScr.ClassName, _runtime.Layout.GameScr.CanAutoPlay);
-        _runtime.WriteStatic(GameSchema.GameScr.ClassName, _runtime.Layout.GameScr.IsAutoPlay, command.Enable);
+        bool isSaveConfigOnly = string.Equals(command.Reason, "DBAM_SaveConfig", StringComparison.Ordinal);
+        bool shouldSyncConfig = command.Enable
+            || string.Equals(command.Reason, "DBAM_Takeover", StringComparison.Ordinal)
+            || isSaveConfigOnly;
+
+        if (!isSaveConfigOnly)
+        {
+            _runtime.WriteStatic(GameSchema.GameScr.ClassName, _runtime.Layout.GameScr.IsAutoPlay, command.Enable);
+        }
 
         IntPtr autoTrainStatic = _runtime.GetStaticFieldsPtr(GameSchema.AutoTrainMenu.ClassName);
         if (autoTrainStatic != IntPtr.Zero)
@@ -33,21 +40,36 @@ public class CombatHandler(IGameRuntime runtime) :
             if (layout.IsCheckItem >= 0)
             {
                 IntPtr isCheckItemArray = _runtime.ReadFieldPtr(autoTrainStatic, layout.IsCheckItem);
-                _runtime.WriteBoolArrayElement(isCheckItemArray, 0, canAutoPlay);
+                if (isCheckItemArray != IntPtr.Zero)
+                {
+                    var selectedItemSet = command.SelectedItemTemplateIds is { Count: > 0 }
+                        ? command.SelectedItemTemplateIds.ToHashSet()
+                        : [];
+                    foreach (var def in GameDefinitions.AutoTrainItems)
+                    {
+                        _runtime.WriteBoolArrayElement(isCheckItemArray, def.Index, selectedItemSet.Contains(def.TemplateId));
+                    }
+                }
             }
 
             if (layout.IsChecked >= 0)
             {
                 IntPtr isCheckedArray = _runtime.ReadFieldPtr(autoTrainStatic, layout.IsChecked);
-                _runtime.WriteBoolArrayElement(isCheckedArray, 0, command.Enable);
-                if (command.Enable)
+                if (isCheckedArray != IntPtr.Zero)
                 {
-                    _runtime.WriteBoolArrayElement(isCheckedArray, 1, command.AvoidSuperMobs);
-                    _runtime.WriteBoolArrayElement(isCheckedArray, 2, command.ChangeZoneWhenNoMobs);
+                    if (!isSaveConfigOnly)
+                    {
+                        _runtime.WriteBoolArrayElement(isCheckedArray, 0, command.Enable);
+                    }
+                    if (shouldSyncConfig)
+                    {
+                        _runtime.WriteBoolArrayElement(isCheckedArray, 1, command.AvoidSuperMobs);
+                        _runtime.WriteBoolArrayElement(isCheckedArray, 2, command.ChangeZoneWhenNoMobs);
+                    }
                 }
             }
 
-            if (!command.Enable)
+            if (!shouldSyncConfig)
             {
                 return Task.FromResult(Result.Success("Đã tắt tự đánh trong game"));
             }
@@ -171,8 +193,6 @@ public class CombatHandler(IGameRuntime runtime) :
                     }
                 }
             }
-
-            TryUpdateRmsConfigFile(charId, command, canAutoPlay);
         }
 
         return Task.FromResult(Result.Success(command.Enable ? "Đã bật tự đánh trong game" : "Đã tắt tự đánh trong game"));
@@ -188,106 +208,6 @@ public class CombatHandler(IGameRuntime runtime) :
         _runtime.WriteStringField(tfieldPtr, tfieldLayout.Text, text);
         _runtime.WriteStringField(tfieldPtr, tfieldLayout.PaintedText, text);
         _runtime.WriteField(tfieldPtr, tfieldLayout.CaretPos, text.Length);
-    }
-
-    private static void TryUpdateRmsConfigFile(int charId, SetInGameAutoTrainCommand command, bool canAutoPlay)
-    {
-        if (charId <= 0) return;
-        try
-        {
-            string appDataLow = Path.Combine(
-                Environment.GetFolderPath(Environment.SpecialFolder.UserProfile),
-                "AppData", "LocalLow", "Team", "Dragonboy252");
-            string filePath = Path.Combine(appDataLow, $"AT_v6_{charId}");
-            if (!File.Exists(filePath)) return;
-
-            byte[] bytes = File.ReadAllBytes(filePath);
-            using var ms = new MemoryStream(bytes);
-            using var reader = new BinaryReader(ms);
-
-            reader.ReadByte();
-            reader.ReadByte();
-            reader.ReadByte();
-            ReadUtf(reader);
-            ReadUtf(reader);
-            reader.ReadByte();
-            ReadUtf(reader);
-            ReadUtf(reader);
-            reader.ReadByte();
-
-            int mobSectionStart = (int)ms.Position;
-            int mobCount = reader.ReadByte();
-            for (int i = 0; i < mobCount; i++)
-            {
-                ReadUtf(reader);
-                reader.ReadByte();
-            }
-            int mobBlockLength = (int)ms.Position - mobSectionStart;
-            byte[] mobBlock = bytes.AsSpan(mobSectionStart, mobBlockLength).ToArray();
-
-            int skillCount = reader.ReadByte();
-            byte[] skillBytes = reader.ReadBytes(skillCount);
-            if (command.SelectedSkillSlots is { Count: > 0 })
-            {
-                var selectedSet = command.SelectedSkillSlots.ToHashSet();
-                for (int i = 0; i < skillBytes.Length; i++)
-                {
-                    skillBytes[i] = (byte)(selectedSet.Contains(i) ? 1 : 0);
-                }
-            }
-
-            int itemCount = reader.ReadByte();
-            byte[] itemBytes = reader.ReadBytes(itemCount);
-            if (itemBytes.Length > 0)
-            {
-                itemBytes[0] = (byte)(canAutoPlay ? 1 : 0);
-            }
-
-            int remainingOffset = (int)ms.Position;
-            byte[] tail = bytes[remainingOffset..];
-
-            using var outMs = new MemoryStream();
-            using var writer = new BinaryWriter(outMs);
-            writer.Write((byte)(command.AvoidSuperMobs ? 1 : 0));
-            writer.Write((byte)(command.ChangeZoneWhenNoMobs ? 1 : 0));
-            writer.Write((byte)(command.CheckAttackByHp ? 1 : 0));
-            WriteUtf(writer, command.MinMobHp.ToString());
-            WriteUtf(writer, command.MaxMobHp > 10000000000L ? "Không giới hạn" : command.MaxMobHp.ToString());
-            writer.Write((byte)(command.AutoUsePean ? 1 : 0));
-            WriteUtf(writer, command.PeanHpPercent.ToString());
-            WriteUtf(writer, command.PeanMpPercent.ToString());
-            writer.Write((byte)(command.CheckAllMobs ? 1 : 0));
-            writer.Write(mobBlock);
-            writer.Write((byte)skillBytes.Length);
-            writer.Write(skillBytes);
-            writer.Write((byte)itemBytes.Length);
-            writer.Write(itemBytes);
-            writer.Write(tail);
-
-            File.WriteAllBytes(filePath, outMs.ToArray());
-        }
-        catch
-        {
-        }
-    }
-
-    private static string ReadUtf(BinaryReader reader)
-    {
-        int len = (reader.ReadByte() << 8) | reader.ReadByte();
-        if (len <= 0) return string.Empty;
-        byte[] b = reader.ReadBytes(len);
-        return System.Text.Encoding.UTF8.GetString(b);
-    }
-
-    private static void WriteUtf(BinaryWriter writer, string str)
-    {
-        byte[] b = System.Text.Encoding.UTF8.GetBytes(str);
-        writer.Write((byte)(b.Length >> 8));
-        writer.Write((byte)(b.Length & 0xFF));
-        if (b.Length > 0)
-        {
-            writer.Write(b);
-        }
     }
 
     public Task<Result> HandleAsync(SelectSkillCommand command, CancellationToken cancellationToken)
@@ -385,6 +305,7 @@ public class CombatHandler(IGameRuntime runtime) :
             return Result.Failure("Không thể tạo vector tấn công.");
 
         _runtime.CallMethod(GameSchema.MyVector.ClassName, GameSchema.MyVector.MethodAddElement, vMob, mobPtr);
+        PinVectorBackingStorage(vMob, ref _cachedVMobItems);
 
         _runtime.CallMethod(GameSchema.Service.ClassName, GameSchema.Service.MethodSendPlayerAttack, service, vMob, vChar, 1);
 
@@ -401,17 +322,47 @@ public class CombatHandler(IGameRuntime runtime) :
     private IntPtr EnsureValidMyVector(ref IntPtr vectorPtr, bool clearElements)
     {
         if (vectorPtr != IntPtr.Zero &&
-            _runtime.GetClassName(vectorPtr) == GameSchema.MyVector.ClassName &&
-            _runtime.ReadFieldPtr(vectorPtr, _runtime.Layout.MyVector.A) != IntPtr.Zero)
+            _runtime.GetClassName(vectorPtr) == GameSchema.MyVector.ClassName)
         {
-            if (clearElements)
+            IntPtr existingListPtr = _runtime.ReadFieldPtr(vectorPtr, _runtime.Layout.MyVector.A);
+            if (existingListPtr != IntPtr.Zero && _runtime.GetClassName(existingListPtr) == "ArrayList")
             {
-                _runtime.CallMethod(GameSchema.MyVector.ClassName, GameSchema.MyVector.MethodRemoveAllElements, vectorPtr);
+                if (clearElements)
+                {
+                    _runtime.CallMethod(GameSchema.MyVector.ClassName, GameSchema.MyVector.MethodRemoveAllElements, vectorPtr);
+                }
+                return vectorPtr;
             }
-            return vectorPtr;
         }
 
         vectorPtr = _runtime.CreateInstance(GameSchema.MyVector.ClassName);
+        if (vectorPtr != IntPtr.Zero)
+        {
+            _runtime.PinObject(vectorPtr);
+            IntPtr listPtr = _runtime.ReadFieldPtr(vectorPtr, _runtime.Layout.MyVector.A);
+            if (listPtr != IntPtr.Zero)
+            {
+                _runtime.PinObject(listPtr);
+                IntPtr itemsPtr = _runtime.ReadArrayListItemsPtr(listPtr);
+                if (itemsPtr != IntPtr.Zero)
+                {
+                    _runtime.PinObject(itemsPtr);
+                }
+            }
+        }
         return vectorPtr;
+    }
+
+    private void PinVectorBackingStorage(IntPtr vectorPtr, ref IntPtr cachedItemsPtr)
+    {
+        IntPtr listPtr = _runtime.ReadFieldPtr(vectorPtr, _runtime.Layout.MyVector.A);
+        if (listPtr == IntPtr.Zero) return;
+
+        IntPtr itemsPtr = _runtime.ReadArrayListItemsPtr(listPtr);
+        if (itemsPtr != IntPtr.Zero && itemsPtr != cachedItemsPtr)
+        {
+            cachedItemsPtr = itemsPtr;
+            _runtime.PinObject(itemsPtr);
+        }
     }
 }

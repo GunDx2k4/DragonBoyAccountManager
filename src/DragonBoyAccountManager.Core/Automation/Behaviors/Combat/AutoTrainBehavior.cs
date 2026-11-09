@@ -1,6 +1,7 @@
 using DragonBoyAccountManager.Core.Automation.Interrupters;
 using DragonBoyAccountManager.Core.Execution;
 using DragonBoyAccountManager.Core.Execution.Commands;
+using DragonBoyAccountManager.Core.Interop.Schema;
 using DragonBoyAccountManager.Core.Sessions;
 using DragonBoyAccountManager.Core.Telemetry.Snapshots;
 
@@ -9,10 +10,15 @@ namespace DragonBoyAccountManager.Core.Automation.Behaviors.Combat;
 public sealed class AutoTrainBehavior : AutomationBehavior<AutoTrainOptions>
 {
     public const string BehaviorId = "AutoTrain";
+    private const long AutoItemGlobalCooldownMs = 1000;
+    private const long AutoTdltCooldownMs = 2000;
+    private const long AutoItemPerSlotCooldownMs = 60000;
 
     private readonly AutoReviveInterrupter _reviveInterrupter = new();
     private readonly AutoPeanInterrupter _peanInterrupter;
     private readonly Dictionary<int, long> _localSkillLastUseMs = new();
+    private readonly Dictionary<int, long> _lastItemUseByIndexMs = new();
+    private long _lastAutoItemUseMs;
     private bool _inGameAutoDisabled;
     private int _waitingSpawnMobId = -1;
     private DateTime _lastZoneChangeTime = DateTime.MinValue;
@@ -31,6 +37,27 @@ public sealed class AutoTrainBehavior : AutomationBehavior<AutoTrainOptions>
         _peanInterrupter.Enabled = newOptions.AutoUsePean;
         _peanInterrupter.MinHpPercent = newOptions.MinHpPercent;
         _peanInterrupter.MinMpPercent = newOptions.MinMpPercent;
+        _inGameAutoDisabled = false;
+        _lastItemUseByIndexMs.Clear();
+        _lastAutoItemUseMs = 0;
+
+        if (Context is { IsRunning: true, IsQuitRequested: false } ctx)
+        {
+            bool hadTdlt = previousOptions.SelectedItemTemplateIds?.Contains(GameDefinitions.DefaultTdltTemplateId) == true;
+            bool hasTdlt = newOptions.SelectedItemTemplateIds?.Contains(GameDefinitions.DefaultTdltTemplateId) == true;
+            string reason = IsRunning ? "DBAM_Takeover" : "DBAM_SaveConfig";
+            var cmd = BuildTakeoverCommand(newOptions, reason);
+            _ = Task.Run(async () =>
+            {
+                await ctx.Dispatcher.DispatchAsync(cmd, CancellationToken.None);
+                if (!IsRunning && hadTdlt && !hasTdlt && ctx.CurrentPlayer.IsTdltActive)
+                {
+                    await ctx.Dispatcher.DispatchAsync(
+                        new UseItemCommand(-1, GameDefinitions.DefaultTdltTemplateId, "Tự động luyện tập"),
+                        CancellationToken.None);
+                }
+            });
+        }
     }
 
     protected override void OnStarted(IProgress<string>? progress)
@@ -38,6 +65,8 @@ public sealed class AutoTrainBehavior : AutomationBehavior<AutoTrainOptions>
         _inGameAutoDisabled = false;
         _waitingSpawnMobId = -1;
         _localSkillLastUseMs.Clear();
+        _lastItemUseByIndexMs.Clear();
+        _lastAutoItemUseMs = 0;
         progress?.Report("[Auto Train] Bắt đầu tự động luyện tập...");
     }
 
@@ -45,7 +74,20 @@ public sealed class AutoTrainBehavior : AutomationBehavior<AutoTrainOptions>
     {
         if (Context is { IsRunning: true, IsQuitRequested: false } ctx)
         {
-            _ = Task.Run(() => ctx.Dispatcher.DispatchAsync(new SetInGameAutoTrainCommand(false, "DBAM_Stop"), CancellationToken.None));
+            var selectedItems = Options.SelectedItemTemplateIds;
+            bool hasTdlt = selectedItems?.Contains(GameDefinitions.DefaultTdltTemplateId) == true;
+            _ = Task.Run(async () =>
+            {
+                await ctx.Dispatcher.DispatchAsync(
+                    new SetInGameAutoTrainCommand(false, "DBAM_Stop", SelectedItemTemplateIds: selectedItems),
+                    CancellationToken.None);
+                if (hasTdlt && ctx.CurrentPlayer.IsTdltActive)
+                {
+                    await ctx.Dispatcher.DispatchAsync(
+                        new UseItemCommand(-1, GameDefinitions.DefaultTdltTemplateId, "Tự động luyện tập"),
+                        CancellationToken.None);
+                }
+            });
         }
         progress?.Report("[Auto Train] Đã dừng tự động luyện tập.");
     }
@@ -68,8 +110,10 @@ public sealed class AutoTrainBehavior : AutomationBehavior<AutoTrainOptions>
         if (player.IsAutoPlay || !_inGameAutoDisabled)
         {
             _inGameAutoDisabled = true;
-            await dispatcher.DispatchAsync(new SetInGameAutoTrainCommand(false, "DBAM_Takeover"), cancellationToken);
+            await dispatcher.DispatchAsync(BuildTakeoverCommand(Options), cancellationToken);
         }
+
+        await TryUseAutoItemAsync(player, world, dispatcher, progress, cancellationToken);
 
         var targetMobs = world.Mobs.Where(IsTargetMob).ToList();
         var aliveMobs = targetMobs.Where(m => m.IsAlive && (m.X > 0 || m.Y > 0)).ToList();
@@ -136,6 +180,144 @@ public sealed class AutoTrainBehavior : AutomationBehavior<AutoTrainOptions>
 
         await Task.Delay(120, cancellationToken);
     }
+
+    private async Task TryUseAutoItemAsync(
+        PlayerSnapshot player,
+        WorldSnapshot world,
+        ICommandDispatcher dispatcher,
+        IProgress<string>? progress,
+        CancellationToken cancellationToken)
+    {
+        long nowMs = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
+        if (nowMs - _lastAutoItemUseMs < AutoItemGlobalCooldownMs)
+            return;
+
+        var selectedIds = Options.SelectedItemTemplateIds ?? [];
+        var bagItems = player.BagItemList;
+        if (bagItems.Count == 0)
+            return;
+
+        bool wantTdlt = selectedIds.Contains(GameDefinitions.DefaultTdltTemplateId);
+        if (wantTdlt != player.IsTdltActive && !IsTdltOnCooldown(nowMs))
+        {
+            var tdltItem = bagItems.FirstOrDefault(i => i.Quantity >= 0 && (i.TemplateId == GameDefinitions.DefaultTdltTemplateId || i.IsTdlt));
+            if (tdltItem != null)
+            {
+                _lastAutoItemUseMs = nowMs;
+                _lastItemUseByIndexMs[0] = nowMs;
+                var res = await dispatcher.DispatchAsync(new UseItemCommand(tdltItem.Index, tdltItem.TemplateId, tdltItem.Name), cancellationToken);
+                if (res.IsSuccess)
+                {
+                    progress?.Report(wantTdlt
+                        ? $"[Auto Train] Tự động bật {tdltItem.Name}."
+                        : $"[Auto Train] Tự động tắt {tdltItem.Name}.");
+                }
+                return;
+            }
+        }
+
+        if (GameDefinitions.AutoTrainItems.Count > 1)
+        {
+            var discipleCharmDef = GameDefinitions.AutoTrainItems[1];
+            if (selectedIds.Contains(discipleCharmDef.TemplateId) &&
+                !IsItemOnCooldown(discipleCharmDef.Index, nowMs) &&
+                !IsItemBuffActive(player, discipleCharmDef))
+            {
+                var bagItem = bagItems.FirstOrDefault(i => i.Quantity > 0 && i.TemplateId == discipleCharmDef.TemplateId);
+                if (bagItem != null)
+                {
+                    _lastAutoItemUseMs = nowMs;
+                    _lastItemUseByIndexMs[discipleCharmDef.Index] = nowMs;
+                    var res = await dispatcher.DispatchAsync(new UseItemCommand(bagItem.Index, discipleCharmDef.TemplateId, discipleCharmDef.Name), cancellationToken);
+                    if (res.IsSuccess)
+                    {
+                        progress?.Report($"[Auto Train] Tự động dùng {discipleCharmDef.Name}.");
+                    }
+                    return;
+                }
+            }
+        }
+
+        if (GameDefinitions.AutoTrainItems.Count > 24)
+        {
+            var luckyTicketDef = GameDefinitions.AutoTrainItems[24];
+            if (selectedIds.Contains(luckyTicketDef.TemplateId) &&
+                !IsItemOnCooldown(luckyTicketDef.Index, nowMs) &&
+                world.MapId != 155 &&
+                world.MapId != 166 &&
+                !player.IsChangingMap)
+            {
+                var bagItem = bagItems.FirstOrDefault(i => i.Quantity > 0 && i.TemplateId == luckyTicketDef.TemplateId);
+                if (bagItem != null)
+                {
+                    _lastAutoItemUseMs = nowMs;
+                    _lastItemUseByIndexMs[luckyTicketDef.Index] = nowMs;
+                    var res = await dispatcher.DispatchAsync(new UseItemCommand(bagItem.Index, luckyTicketDef.TemplateId, luckyTicketDef.Name), cancellationToken);
+                    if (res.IsSuccess)
+                    {
+                        progress?.Report($"[Auto Train] Tự động dùng {luckyTicketDef.Name}.");
+                    }
+                    return;
+                }
+            }
+        }
+
+        for (int idx = 2; idx <= 23 && idx < GameDefinitions.AutoTrainItems.Count; idx++)
+        {
+            var def = GameDefinitions.AutoTrainItems[idx];
+            if (!selectedIds.Contains(def.TemplateId) ||
+                IsItemOnCooldown(def.Index, nowMs) ||
+                IsItemBuffActive(player, def))
+            {
+                continue;
+            }
+
+            var bagItem = bagItems.FirstOrDefault(i => i.Quantity > 0 && i.TemplateId == def.TemplateId);
+            if (bagItem == null)
+                continue;
+
+            _lastAutoItemUseMs = nowMs;
+            _lastItemUseByIndexMs[def.Index] = nowMs;
+            var res = await dispatcher.DispatchAsync(new UseItemCommand(bagItem.Index, def.TemplateId, def.Name), cancellationToken);
+            if (res.IsSuccess)
+            {
+                progress?.Report($"[Auto Train] Tự động dùng {def.Name}.");
+            }
+            return;
+        }
+    }
+
+    private bool IsTdltOnCooldown(long nowMs) =>
+        _lastItemUseByIndexMs.TryGetValue(0, out long lastUseMs) &&
+        nowMs - lastUseMs < AutoTdltCooldownMs;
+
+    private bool IsItemOnCooldown(int itemIndex, long nowMs) =>
+        _lastItemUseByIndexMs.TryGetValue(itemIndex, out long lastUseMs) &&
+        nowMs - lastUseMs < AutoItemPerSlotCooldownMs;
+
+    private static bool IsItemBuffActive(PlayerSnapshot player, AutoTrainItemDefinition def)
+    {
+        var activeIcons = player.ActiveBuffIconIdList;
+        if (activeIcons.Count == 0)
+            return false;
+
+        short mappedIcon = GetMappedBuffIconId(def.TemplateId);
+        if (mappedIcon != -1 && activeIcons.Contains(mappedIcon))
+            return true;
+
+        return activeIcons.Contains(def.IconId) || activeIcons.Contains(def.TemplateId);
+    }
+
+    private static short GetMappedBuffIconId(short templateId) => templateId switch
+    {
+        213 or 381 or 1150 => 2754,
+        216 or 383 or 1151 => 2756,
+        219 or 382 or 1152 => 2755,
+        222 => 2758,
+        384 or 1153 => 2757,
+        385 or 1154 => 2760,
+        _ => -1
+    };
 
     private bool IsTargetMob(WorldMobInfo mob)
     {
@@ -229,4 +411,21 @@ public sealed class AutoTrainBehavior : AutomationBehavior<AutoTrainOptions>
 
         return false;
     }
+
+    private static SetInGameAutoTrainCommand BuildTakeoverCommand(AutoTrainOptions options, string reason = "DBAM_Takeover") =>
+        new(
+            Enable: false,
+            Reason: reason,
+            AvoidSuperMobs: options.AvoidSuperMobs,
+            ChangeZoneWhenNoMobs: options.ChangeZoneWhenNoMobs,
+            CheckAttackByHp: options.CheckAttackByHp,
+            MinMobHp: options.MinMobHp,
+            MaxMobHp: options.MaxMobHp,
+            AutoUsePean: options.AutoUsePean,
+            PeanHpPercent: options.MinHpPercent,
+            PeanMpPercent: options.MinMpPercent,
+            CheckAllMobs: options.CheckAllMobs,
+            TargetMobNames: options.TargetMobNames,
+            SelectedSkillSlots: options.SelectedSkillSlots,
+            SelectedItemTemplateIds: options.SelectedItemTemplateIds);
 }

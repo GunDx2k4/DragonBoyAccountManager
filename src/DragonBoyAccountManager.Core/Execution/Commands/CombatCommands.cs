@@ -30,7 +30,8 @@ public sealed record SetInGameAutoTrainCommand(
     int PeanMpPercent = 50,
     bool CheckAllMobs = true,
     IReadOnlyList<string>? TargetMobNames = null,
-    IReadOnlyList<int>? SelectedSkillSlots = null
+    IReadOnlyList<int>? SelectedSkillSlots = null,
+    IReadOnlyList<short>? SelectedItemTemplateIds = null
 ) : IGameCommand
 {
     public string Name => Enable ? "Bật tự đánh trong game" : "Tắt tự đánh trong game";

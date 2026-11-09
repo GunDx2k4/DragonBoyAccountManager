@@ -34,7 +34,8 @@ public sealed record CharLayout(
     int IsManualFocus,
     int MyChar,
     int IsChangingMap,
-    int IsLoadingMap);
+    int IsLoadingMap,
+    int VItemTime);
 
 public sealed record TileMapLayout(
     int MapId,
@@ -61,7 +62,8 @@ public sealed record GameScrLayout(
     int VCharInMap,
     int VItemMap,
     int Zones,
-    int OnScreenSkill);
+    int OnScreenSkill,
+    int TextTime);
 
 public sealed record GameMidletLayout(
     int Version,
@@ -114,12 +116,16 @@ public sealed record SkillTemplateLayout(
 
 public sealed record ItemLayout(
     int Template,
-    int Quantity);
+    int Quantity,
+    int IndexUi);
 
 public sealed record ItemTemplateLayout(
     int Id,
     int Type,
     int Name);
+
+public sealed record ItemTimeLayout(
+    int IdIcon);
 
 public sealed record ItemMapLayout(
     int ItemMapId,
@@ -247,6 +253,7 @@ public sealed class GameMemoryLayout
     public SkillTemplateLayout SkillTemplate { get; }
     public ItemLayout Item { get; }
     public ItemTemplateLayout ItemTemplate { get; }
+    public ItemTimeLayout ItemTime { get; }
     public ItemMapLayout ItemMap { get; }
     public WaypointLayout Waypoint { get; }
     public PopUpLayout PopUp { get; }
@@ -313,7 +320,8 @@ public sealed class GameMemoryLayout
             IsManualFocus: ResolveInstance(schema, GameSchema.Char.ClassName, GameSchema.Char.FieldIsManualFocus),
             MyChar: ResolveStatic(schema, GameSchema.Char.ClassName, GameSchema.Char.StaticMyChar),
             IsChangingMap: ResolveStatic(schema, GameSchema.Char.ClassName, GameSchema.Char.StaticIsChangingMap),
-            IsLoadingMap: ResolveStatic(schema, GameSchema.Char.ClassName, GameSchema.Char.StaticIsLoadingMap)
+            IsLoadingMap: ResolveStatic(schema, GameSchema.Char.ClassName, GameSchema.Char.StaticIsLoadingMap),
+            VItemTime: ResolveStatic(schema, GameSchema.Char.ClassName, GameSchema.Char.StaticVItemTime)
         );
 
         TileMap = new TileMapLayout(
@@ -342,7 +350,8 @@ public sealed class GameMemoryLayout
             VCharInMap: ResolveStatic(schema, GameSchema.GameScr.ClassName, GameSchema.GameScr.StaticVCharInMap),
             VItemMap: ResolveStatic(schema, GameSchema.GameScr.ClassName, GameSchema.GameScr.StaticVItemMap),
             Zones: ResolveInstance(schema, GameSchema.GameScr.ClassName, GameSchema.GameScr.FieldZones),
-            OnScreenSkill: ResolveStatic(schema, GameSchema.GameScr.ClassName, GameSchema.GameScr.StaticOnScreenSkill)
+            OnScreenSkill: ResolveStatic(schema, GameSchema.GameScr.ClassName, GameSchema.GameScr.StaticOnScreenSkill),
+            TextTime: ResolveStatic(schema, GameSchema.GameScr.ClassName, GameSchema.GameScr.StaticTextTime)
         );
 
         GameMidlet = new GameMidletLayout(
@@ -403,13 +412,18 @@ public sealed class GameMemoryLayout
 
         Item = new ItemLayout(
             Template: ResolveInstance(schema, GameSchema.Item.ClassName, GameSchema.Item.FieldTemplate),
-            Quantity: ResolveInstance(schema, GameSchema.Item.ClassName, GameSchema.Item.FieldQuantity)
+            Quantity: ResolveInstance(schema, GameSchema.Item.ClassName, GameSchema.Item.FieldQuantity),
+            IndexUi: ResolveInstance(schema, GameSchema.Item.ClassName, GameSchema.Item.FieldIndexUi)
         );
 
         ItemTemplate = new ItemTemplateLayout(
             Id: ResolveInstance(schema, GameSchema.ItemTemplate.ClassName, GameSchema.ItemTemplate.FieldId),
             Type: ResolveInstance(schema, GameSchema.ItemTemplate.ClassName, GameSchema.ItemTemplate.FieldType),
             Name: ResolveInstance(schema, GameSchema.ItemTemplate.ClassName, GameSchema.ItemTemplate.FieldName)
+        );
+
+        ItemTime = new ItemTimeLayout(
+            IdIcon: ResolveInstance(schema, GameSchema.ItemTime.ClassName, GameSchema.ItemTime.FieldIdIcon)
         );
 
         ItemMap = new ItemMapLayout(

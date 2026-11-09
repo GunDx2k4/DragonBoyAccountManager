@@ -23,6 +23,7 @@ public class Il2CppRuntime : IGameRuntime
     private IntPtr _objectNewAddress = IntPtr.Zero;
     private IntPtr _stringNewAddress = IntPtr.Zero;
     private IntPtr _getStringClassAddress = IntPtr.Zero;
+    private IntPtr _gcHandleNewAddress = IntPtr.Zero;
     private IntPtr _domainGetAddr = IntPtr.Zero;
     private IntPtr _attachAddr = IntPtr.Zero;
     private IntPtr _detachAddr = IntPtr.Zero;
@@ -113,7 +114,7 @@ public class Il2CppRuntime : IGameRuntime
                 int nameRva = _memory.ReadInt(names + i * 4);
                 string funcName = _memory.ReadString(_gameAssemblyModule + nameRva, Constants.DefaultStringLength, Encoding.ASCII);
 
-                if (funcName is "il2cpp_domain_get" or "il2cpp_thread_attach" or "il2cpp_thread_detach" or "il2cpp_object_new" or "il2cpp_string_new" or "mono_get_string_class")
+                if (funcName is "il2cpp_domain_get" or "il2cpp_thread_attach" or "il2cpp_thread_detach" or "il2cpp_object_new" or "il2cpp_string_new" or "mono_get_string_class" or "il2cpp_gchandle_new")
                 {
                     ushort ordinal = _memory.ReadUShort(ordinals + i * 2);
                     uint funcRva = _memory.ReadUInt(functions + ordinal * 4);
@@ -128,6 +129,7 @@ public class Il2CppRuntime : IGameRuntime
                     else if (funcName == "il2cpp_object_new") _objectNewAddress = funcAddress;
                     else if (funcName == "il2cpp_string_new") _stringNewAddress = funcAddress;
                     else if (funcName == "mono_get_string_class") _getStringClassAddress = funcAddress;
+                    else if (funcName == "il2cpp_gchandle_new") _gcHandleNewAddress = funcAddress;
                 }
             }
         }
@@ -545,6 +547,13 @@ public class Il2CppRuntime : IGameRuntime
         {
             return IntPtr.Zero;
         }
+    }
+
+    public uint PinObject(IntPtr objectPtr)
+    {
+        EnsureDomainInitialized();
+        if (objectPtr == IntPtr.Zero || _gcHandleNewAddress == IntPtr.Zero) return 0;
+        return (uint)_invoker.Call(_gcHandleNewAddress, objectPtr, (IntPtr)1);
     }
 
     public void Dispose()

@@ -67,4 +67,11 @@ public static class GameRuntimeExtensions
         IntPtr elemPtr = runtime.ReadFieldPtr(arrayPtr, elemOffset);
         return runtime.ReadString(elemPtr);
     }
+
+    public static IntPtr ReadArrayListItemsPtr(this IGameRuntime runtime, IntPtr arrayListPtr)
+    {
+        if (arrayListPtr == IntPtr.Zero) return IntPtr.Zero;
+        int itemsOffset = runtime.Memory.PointerSize * 2;
+        return runtime.ReadFieldPtr(arrayListPtr, itemsOffset);
+    }
 }

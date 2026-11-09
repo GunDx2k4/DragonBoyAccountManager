@@ -74,10 +74,11 @@ public class PlayerScraper(IGameRuntime runtime, Func<string?>? originalNameReso
 
         var skills = isInGame ? ScrapeSkills(charPtr) : [];
         var bagItems = isInGame ? ScrapeBagItems(charPtr) : [];
+        var activeBuffIcons = isInGame ? ScrapeActiveBuffIconIds() : [];
 
         return new PlayerSnapshot(
             id, name, hp, maxHp, power, gender, x, y,
-            isAlive, isInGame, isChangingMap, mp, maxMp, status, isTdltActive, isAutoPlay, skills, bagItems);
+            isAlive, isInGame, isChangingMap, mp, maxMp, status, isTdltActive, isAutoPlay, skills, bagItems, activeBuffIcons);
     }
 
     public bool IsChangingMap(IntPtr charPtr = default)
@@ -140,10 +141,59 @@ public class PlayerScraper(IGameRuntime runtime, Func<string?>? originalNameReso
             bool isPean = GameDefinitions.IsPean(templateId, type);
             bool isCapsule = GameDefinitions.IsCapsule(templateId);
             bool isTdlt = GameDefinitions.IsTdlt(templateId);
+            int indexUi = itemLayout.IndexUi >= 0 ? _runtime.ReadField<int>(itemPtr, itemLayout.IndexUi) : i;
+            sbyte bagIndex = indexUi is >= 0 and <= sbyte.MaxValue ? (sbyte)indexUi : (sbyte)i;
 
             result.Add(new InventoryItem(
-                (sbyte)i, templateId, name, string.Empty, quantity, type, isPean, isCapsule, isTdlt));
+                bagIndex, templateId, name, string.Empty, quantity, type, isPean, isCapsule, isTdlt));
         }
+
+        return result;
+    }
+
+    public IReadOnlyList<int> ScrapeActiveBuffIconIds()
+    {
+        var result = new List<int>();
+        int idIconOffset = _runtime.Layout.ItemTime.IdIcon;
+        if (idIconOffset < 0) return result;
+
+        try
+        {
+            if (_runtime.Layout.Char.VItemTime >= 0)
+            {
+                IntPtr vItemTimePtr = _runtime.ReadStatic<IntPtr>(GameSchema.Char.ClassName, _runtime.Layout.Char.VItemTime);
+                if (vItemTimePtr != IntPtr.Zero)
+                {
+                    foreach (IntPtr ptr in CollectionHelper.ReadMyVector(_runtime, vItemTimePtr))
+                    {
+                        if (ptr == IntPtr.Zero) continue;
+                        short idIcon = _runtime.ReadField<short>(ptr, idIconOffset);
+                        if (idIcon > 0 && !result.Contains(idIcon))
+                        {
+                            result.Add(idIcon);
+                        }
+                    }
+                }
+            }
+
+            if (_runtime.Layout.GameScr.TextTime >= 0)
+            {
+                IntPtr textTimePtr = _runtime.ReadStatic<IntPtr>(GameSchema.GameScr.ClassName, _runtime.Layout.GameScr.TextTime);
+                if (textTimePtr != IntPtr.Zero)
+                {
+                    foreach (IntPtr ptr in CollectionHelper.ReadMyVector(_runtime, textTimePtr))
+                    {
+                        if (ptr == IntPtr.Zero) continue;
+                        short idIcon = _runtime.ReadField<short>(ptr, idIconOffset);
+                        if (idIcon > 0 && !result.Contains(idIcon))
+                        {
+                            result.Add(idIcon);
+                        }
+                    }
+                }
+            }
+        }
+        catch { }
 
         return result;
     }

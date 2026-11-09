@@ -32,6 +32,7 @@ public interface IGameRuntime : IDisposable
     void WritePointerArrayElement(IntPtr arrayPtr, int index, IntPtr value);
 
     IntPtr CreateInstance(string className, params object?[]? args);
+    uint PinObject(IntPtr objectPtr);
 
     IntPtr ResolveMethod(string className, string methodName, int paramCount = 0);
     IntPtr CallMethod(string className, string methodName, IntPtr thisObj, params object?[]? args);

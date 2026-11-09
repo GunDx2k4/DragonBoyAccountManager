@@ -6,6 +6,7 @@ public static partial class GameSchema
     {
         public const string ClassName = "Char";
         public const string StaticMyChar = "myChar";
+        public const string StaticVItemTime = "vItemTime";
 
         public const string FieldCharId = "charID";
         public const string FieldName = "cName";
@@ -126,7 +127,14 @@ public static partial class GameSchema
     {
         public const string ClassName = "Item";
         public const string FieldTemplate = "template";
+        public const string FieldIndexUi = "indexUI";
         public const string FieldQuantity = "quantity";
+    }
+
+    public static class ItemTime
+    {
+        public const string ClassName = "ItemTime";
+        public const string FieldIdIcon = "idIcon";
     }
 
     public static class ItemTemplate

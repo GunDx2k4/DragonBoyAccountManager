@@ -57,48 +57,38 @@ public class InventoryHandler(IGameRuntime runtime) :
             || GameDefinitions.IsTdlt(command.TemplateId)
             || GameDefinitions.IsTdlt(targetTemplateId);
 
-        if (isTdltItem && TrySyncAutoTrainTdltState(out bool handledByAutoTrain))
+        if (targetBagIndex >= 0)
         {
-            if (handledByAutoTrain)
-            {
-                return Task.FromResult(Result.Success($"Đã dùng {resolvedName}"));
-            }
+            targetTemplateId = -1;
+        }
+
+        if (isTdltItem)
+        {
+            SyncAutoTrainTdltState();
         }
 
         _runtime.CallMethod(GameSchema.Service.ClassName, GameSchema.Service.MethodUseItem, service, (sbyte)0, (sbyte)1, targetBagIndex, targetTemplateId);
         return Task.FromResult(Result.Success($"Đã dùng {resolvedName}"));
     }
 
-    private bool TrySyncAutoTrainTdltState(out bool handledByAutoTrain)
+    private void SyncAutoTrainTdltState()
     {
-        handledByAutoTrain = false;
         IntPtr autoTrainStatic = _runtime.GetStaticFieldsPtr(GameSchema.AutoTrainMenu.ClassName);
-        if (autoTrainStatic == IntPtr.Zero) return false;
+        if (autoTrainStatic == IntPtr.Zero) return;
 
         var layout = _runtime.Layout.AutoTrainMenu;
-        if (layout.IsCheckItem < 0) return false;
+        if (layout.IsCheckItem < 0 || layout.IsChecked < 0) return;
+
+        IntPtr isCheckedArray = _runtime.ReadFieldPtr(autoTrainStatic, layout.IsChecked);
+        if (!_runtime.ReadBoolArrayElement(isCheckedArray, 0))
+            return;
 
         IntPtr isCheckItemArray = _runtime.ReadFieldPtr(autoTrainStatic, layout.IsCheckItem);
         if (_runtime.ReadArrayLength(isCheckItemArray) <= 0)
-            return false;
+            return;
 
         bool canAutoPlay = _runtime.ReadStatic<bool>(GameSchema.GameScr.ClassName, _runtime.Layout.GameScr.CanAutoPlay);
         _runtime.WriteBoolArrayElement(isCheckItemArray, 0, !canAutoPlay);
-
-        if (layout.IsChecked >= 0)
-        {
-            IntPtr isCheckedArray = _runtime.ReadFieldPtr(autoTrainStatic, layout.IsChecked);
-            if (_runtime.ReadBoolArrayElement(isCheckedArray, 0))
-            {
-                if (layout.LastTimeUseItem >= 0)
-                {
-                    _runtime.WriteField(autoTrainStatic, layout.LastTimeUseItem, 0L);
-                }
-                handledByAutoTrain = true;
-            }
-        }
-
-        return true;
     }
 
     private bool TryResolveBagItem(
@@ -139,7 +129,8 @@ public class InventoryHandler(IGameRuntime runtime) :
 
             if (isMatch)
             {
-                bagIndex = (sbyte)i;
+                int indexUi = itemLayout.IndexUi >= 0 ? _runtime.ReadField<int>(itemPtr, itemLayout.IndexUi) : i;
+                bagIndex = indexUi is >= 0 and <= sbyte.MaxValue ? (sbyte)indexUi : (sbyte)i;
                 templateId = curTemplateId;
                 itemType = curType;
                 itemName = _runtime.ReadStringField(templatePtr, itemTemplateLayout.Name);

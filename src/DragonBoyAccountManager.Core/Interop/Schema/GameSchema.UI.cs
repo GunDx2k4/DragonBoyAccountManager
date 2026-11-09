@@ -108,6 +108,7 @@ public static partial class GameSchema
     {
         public const string ClassName = "GameScr";
         public const string StaticInstance = "instance";
+        public const string StaticTextTime = "textTime";
         public const string StaticVMob = "vMob";
         public const string StaticVNpc = "vNpc";
         public const string StaticVCharInMap = "vCharInMap";

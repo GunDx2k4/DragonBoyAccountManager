@@ -1908,7 +1908,8 @@
       "AutoTrainMenu.tfHpOn": 48,
       "AutoTrainMenu.tfHpDuoi": 56,
       "AutoTrainMenu.tfHpPean": 64,
-      "AutoTrainMenu.tfMpPean": 72
+      "AutoTrainMenu.tfMpPean": 72,
+      "ItemTime.idIcon": 16
     },
     "Methods": {
       "Service.charMove": 4183344,
