@@ -1,5 +1,11 @@
 # DragonBoy Account Manager (DBAM) - Release Notes
 
+## Phiên bản v1.0.5
+
+- **Hỗ trợ phiên bản**: Cập nhật toàn diện tương thích với game client phiên bản 2.5.2. - **Chức năng mới**: - Đồng bộ toàn diện hệ thống Tự Động Luyện Tập nguyên bản của game 2.5.2: tự đánh quái, lọc quái theo tên, cài đặt khoảng máu quái tấn công. - Tự động sử dụng 25 loại vật phẩm bổ trợ (Cuồng nộ, Bổ huyết, Bổ khí, Giáp xên, Khẩu trang, Thẻ tự động...). - Tự động nhặt đồ, nhặt đồ người khác, nhặt toàn bản đồ và tự động vứt bỏ vật phẩm rác theo danh sách ID cài đặt. - Tự động duy trì và mua mới 4 loại bùa hỗ trợ (Mạnh mẽ, Da trâu, Trí tuệ, Thu hút). - **Sửa lỗi**: - Khắc phục triệt để lỗi game 2.5.2 không nhận cấu hình tự động khi chưa từng bấm mở bảng tự luyện tập trong game. - Khắc phục lỗi tự động mở bảng đổi khu vực khi nhân vật chuyển bản đồ. - **Độ ổn định & Tối ưu**: - Tối ưu hóa điều khiển nhân vật mượt mà, loại bỏ hiện tượng giật lag và khựng khi tự động luyện tập.
+
+---
+
 ## Phiên bản v1.0.4
 
 - **Giao diện Retro Pixel Ngọc Rồng**: Đại tu toàn diện giao diện theo phong cách game gốc với thanh tiêu đề biển hiệu, thanh trạng thái chuẩn HUD và khay tài khoản hoài cổ
