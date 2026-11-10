@@ -6,6 +6,12 @@ public sealed record AutoTrainItemDefinition(
     int IconId,
     string Name);
 
+public sealed record AutoTrainBuaDefinition(
+    int Index,
+    short TemplateId,
+    int IconId,
+    string Name);
+
 public static class GameDefinitions
 {
     public static readonly IReadOnlyList<AutoTrainItemDefinition> AutoTrainItems =
@@ -35,6 +41,14 @@ public static class GameDefinitions
         new(22, 211, 1394, "Nho tím"),
         new(23, 212, 1395, "Nho xanh"),
         new(24, 2021, 16979, "Phiếu sao vàng may mắn")
+    ];
+
+    public static readonly IReadOnlyList<AutoTrainBuaDefinition> AutoTrainBuas =
+    [
+        new(0, 213, 2754, "Bùa Mạnh Mẽ"),
+        new(1, 216, 2756, "Bùa Da Trâu"),
+        new(2, 222, 2758, "Bùa Trí Tuệ"),
+        new(3, 219, 2755, "Bùa Thu Hút")
     ];
 
     public static readonly HashSet<int> PeanTemplateIds =

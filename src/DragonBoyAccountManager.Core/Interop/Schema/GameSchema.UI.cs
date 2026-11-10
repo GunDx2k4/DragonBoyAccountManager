@@ -197,6 +197,8 @@ public static partial class GameSchema
         public const string StaticIsCheckedSkill = "isCheckedSkill";
         public const string StaticIsCheckItem = "isCheckItem";
         public const string StaticIsCheckPick = "isCheckPick";
+        public const string StaticIsCheckBua = "isCheckBua";
+        public const string StaticMuaBuaKills = "muaBuaKills";
         public const string StaticStrIdNhat = "strIdNhat";
         public const string StaticStrIdLoaiTru = "strIdLoaiTru";
         public const string StaticStrIdVutBo = "strIdVutBo";
@@ -209,10 +211,15 @@ public static partial class GameSchema
         public const string FieldTfIdNhat = "tfIdNhat";
         public const string FieldTfIdLoaiTru = "tfIdLoaiTru";
         public const string FieldTfIdVutBo = "tfIdVutBo";
+        public const string FieldTfBuaKills = "tfBuaKills";
 
         public const string MethodGI = "gI";
         public const string MethodSetAutoAttack = "setAutoAttack";
         public const string MethodUpdateAutoTrain = "updateAutoTrain";
+        public const string MethodScanSkills = "scanSkills";
+        public const string MethodScanMobsInMap = "scanMobsInMap";
+        public const string MethodSaveAutoTrainConfig = "saveAutoTrainConfig";
+        public const string MethodLoadAutoTrainConfig = "loadAutoTrainConfig";
     }
 
     public static class mResources

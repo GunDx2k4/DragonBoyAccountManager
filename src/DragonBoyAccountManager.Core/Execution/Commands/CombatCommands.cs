@@ -32,6 +32,7 @@ public sealed record SetInGameAutoTrainCommand(
     IReadOnlyList<string>? TargetMobNames = null,
     IReadOnlyList<int>? SelectedSkillSlots = null,
     IReadOnlyList<short>? SelectedItemTemplateIds = null,
+    IReadOnlyList<short>? SelectedBuaTemplateIds = null,
     bool AutoPick = true,
     bool PickOthersItems = false,
     bool PickAllMap = false,

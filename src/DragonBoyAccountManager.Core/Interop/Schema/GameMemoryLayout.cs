@@ -168,7 +168,11 @@ public sealed record GameCanvasLayout(
     int W,
     int H,
     int HW,
-    int HH);
+    int HH,
+    int Panel);
+
+public sealed record PanelLayout(
+    int IsShow);
 
 public sealed record ScaleGUILayout(
     int ScaleScreen,
@@ -249,6 +253,8 @@ public sealed record AutoTrainMenuLayout(
     int HpQuaiDuoi,
     int IsCheckItem,
     int IsCheckPick,
+    int IsCheckBua,
+    int MuaBuaKills,
     int LastTimeUseItem,
     int IsNhat,
     int StrIdNhat,
@@ -260,7 +266,8 @@ public sealed record AutoTrainMenuLayout(
     int TfMpPean,
     int TfIdNhat,
     int TfIdLoaiTru,
-    int TfIdVutBo);
+    int TfIdVutBo,
+    int TfBuaKills);
 
 public sealed record ServiceLayout(
     int Instance);
@@ -294,6 +301,7 @@ public sealed class GameMemoryLayout
     public MovePointLayout MovePoint { get; }
     public MyVectorLayout MyVector { get; }
     public GameCanvasLayout GameCanvas { get; }
+    public PanelLayout Panel { get; }
     public ServerListScreenLayout ServerListScreen { get; }
     public LoginScrLayout LoginScr { get; }
     public CommandLayout Command { get; }
@@ -512,7 +520,12 @@ public sealed class GameMemoryLayout
             W: ResolveStatic(schema, GameSchema.GameCanvas.ClassName, GameSchema.GameCanvas.StaticW),
             H: ResolveStatic(schema, GameSchema.GameCanvas.ClassName, GameSchema.GameCanvas.StaticH),
             HW: ResolveStatic(schema, GameSchema.GameCanvas.ClassName, GameSchema.GameCanvas.StaticHw),
-            HH: ResolveStatic(schema, GameSchema.GameCanvas.ClassName, GameSchema.GameCanvas.StaticHh)
+            HH: ResolveStatic(schema, GameSchema.GameCanvas.ClassName, GameSchema.GameCanvas.StaticHh),
+            Panel: ResolveStatic(schema, GameSchema.GameCanvas.ClassName, GameSchema.GameCanvas.StaticPanel)
+        );
+
+        Panel = new PanelLayout(
+            IsShow: ResolveInstance(schema, GameSchema.Panel.ClassName, GameSchema.Panel.FieldIsShow)
         );
 
         ServerListScreen = new ServerListScreenLayout(
@@ -599,6 +612,8 @@ public sealed class GameMemoryLayout
             HpQuaiDuoi: ResolveStatic(schema, GameSchema.AutoTrainMenu.ClassName, GameSchema.AutoTrainMenu.StaticHpQuaiDuoi),
             IsCheckItem: ResolveStatic(schema, GameSchema.AutoTrainMenu.ClassName, GameSchema.AutoTrainMenu.StaticIsCheckItem),
             IsCheckPick: ResolveStatic(schema, GameSchema.AutoTrainMenu.ClassName, GameSchema.AutoTrainMenu.StaticIsCheckPick),
+            IsCheckBua: ResolveStatic(schema, GameSchema.AutoTrainMenu.ClassName, GameSchema.AutoTrainMenu.StaticIsCheckBua),
+            MuaBuaKills: ResolveStatic(schema, GameSchema.AutoTrainMenu.ClassName, GameSchema.AutoTrainMenu.StaticMuaBuaKills),
             LastTimeUseItem: ResolveStatic(schema, GameSchema.AutoTrainMenu.ClassName, GameSchema.AutoTrainMenu.StaticLastTimeUseItem),
             IsNhat: ResolveStatic(schema, GameSchema.AutoTrainMenu.ClassName, GameSchema.AutoTrainMenu.StaticIsNhat),
             StrIdNhat: ResolveStatic(schema, GameSchema.AutoTrainMenu.ClassName, GameSchema.AutoTrainMenu.StaticStrIdNhat),
@@ -610,7 +625,8 @@ public sealed class GameMemoryLayout
             TfMpPean: ResolveInstance(schema, GameSchema.AutoTrainMenu.ClassName, GameSchema.AutoTrainMenu.FieldTfMpPean),
             TfIdNhat: ResolveInstance(schema, GameSchema.AutoTrainMenu.ClassName, GameSchema.AutoTrainMenu.FieldTfIdNhat),
             TfIdLoaiTru: ResolveInstance(schema, GameSchema.AutoTrainMenu.ClassName, GameSchema.AutoTrainMenu.FieldTfIdLoaiTru),
-            TfIdVutBo: ResolveInstance(schema, GameSchema.AutoTrainMenu.ClassName, GameSchema.AutoTrainMenu.FieldTfIdVutBo)
+            TfIdVutBo: ResolveInstance(schema, GameSchema.AutoTrainMenu.ClassName, GameSchema.AutoTrainMenu.FieldTfIdVutBo),
+            TfBuaKills: ResolveInstance(schema, GameSchema.AutoTrainMenu.ClassName, GameSchema.AutoTrainMenu.FieldTfBuaKills)
         );
 
         MResources = new MResourcesLayout(

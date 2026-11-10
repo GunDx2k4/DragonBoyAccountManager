@@ -25,7 +25,7 @@ public sealed partial class AccountConfigTabViewModel : ObservableObject, IActiv
     {
         StartPolling();
         RefreshSkills();
-        RequestZoneList();
+        SyncCurrentZoneFromSnapshot();
     }
 
     public void OnTabDeactivated()
@@ -171,6 +171,18 @@ public sealed partial class AccountConfigTabViewModel : ObservableObject, IActiv
         });
     }
 
+    private void SyncCurrentZoneFromSnapshot()
+    {
+        var accountId = _editingAccount?.Id ?? _selectionService?.GetRunningTargetAccountIds().FirstOrDefault();
+        if (accountId == null) return;
+
+        var snapshot = _gameEngine.GetWorldSnapshot(accountId.Value);
+        if (snapshot != null)
+        {
+            UpdateZones(snapshot.Zones, snapshot.ZoneId);
+        }
+    }
+
     private void RunOnUi(Action action)
     {
         if (_dispatcher != null)
@@ -219,7 +231,7 @@ public sealed partial class AccountConfigTabViewModel : ObservableObject, IActiv
 
             if (item.IsRunning)
             {
-                RequestZoneList();
+                SyncCurrentZoneFromSnapshot();
                 RefreshSkills();
             }
         }
@@ -239,7 +251,7 @@ public sealed partial class AccountConfigTabViewModel : ObservableObject, IActiv
             OnPropertyChanged(nameof(CanModifyCredentials));
             if (_editingAccount != null && _editingAccount.IsRunning)
             {
-                RequestZoneList();
+                SyncCurrentZoneFromSnapshot();
                 RefreshSkills();
             }
         }

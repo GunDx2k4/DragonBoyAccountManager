@@ -4,6 +4,7 @@ public sealed record AutoTrainOptions
 {
     public IReadOnlyList<int> SelectedSkillSlots { get; init; } = [0];
     public IReadOnlyList<short> SelectedItemTemplateIds { get; init; } = [];
+    public IReadOnlyList<short> SelectedBuaTemplateIds { get; init; } = [];
     public IReadOnlyList<string> TargetMobNames { get; init; } = [];
     public bool CheckAllMobs { get; init; } = true;
     public bool AvoidSuperMobs { get; init; } = true;

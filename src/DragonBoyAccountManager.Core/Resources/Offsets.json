@@ -38,7 +38,8 @@
       "mResources": 35151304,
       "mGraphics": 35151056,
       "MotherCanvas": 35266504,
-      "ScaleGUI": 35346576
+      "ScaleGUI": 35346576,
+      "Panel": 35290816
     },
     "StaticFields": {
       "Main.main": 0,
@@ -920,6 +921,8 @@
       "AutoTrainMenu.isCheckedSkill": 112,
       "AutoTrainMenu.isCheckItem": 128,
       "AutoTrainMenu.isCheckPick": 136,
+      "AutoTrainMenu.isCheckBua": 176,
+      "AutoTrainMenu.muaBuaKills": 168,
       "AutoTrainMenu.strIdNhat": 144,
       "AutoTrainMenu.strIdLoaiTru": 152,
       "AutoTrainMenu.strIdVutBo": 160,
@@ -934,6 +937,7 @@
       "MotherCanvas.instance": 0
     },
     "InstanceFields": {
+      "Panel.isShow": 16,
       "Main.level": 32,
       "Main.updateCount": 36,
       "Main.paintCount": 40,
@@ -1928,6 +1932,7 @@
       "AutoTrainMenu.tfIdNhat": 80,
       "AutoTrainMenu.tfIdLoaiTru": 88,
       "AutoTrainMenu.tfIdVutBo": 96,
+      "AutoTrainMenu.tfBuaKills": 104,
       "ItemTime.idIcon": 16
     },
     "Methods": {
@@ -1992,6 +1997,11 @@
       "GameScr.saveKeySkillToRMS": 4597552,
       "Char.myCharz": 4299408,
       "MovePoint..ctor": 3701216,
+      "AutoTrainMenu.gI": 4110176,
+      "AutoTrainMenu.scanSkills": 4142592,
+      "AutoTrainMenu.scanMobsInMap": 4142256,
+      "AutoTrainMenu.saveAutoTrainConfig": 4138784,
+      "AutoTrainMenu.loadAutoTrainConfig": 4118544,
       "AutoTrainMenu.setAutoAttack": 4143440,
       "AutoTrainMenu.updateAutoTrain": 4153584
     }

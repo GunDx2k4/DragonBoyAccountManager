@@ -37,6 +37,18 @@ public class CombatHandler(IGameRuntime runtime) :
         {
             var layout = _runtime.Layout.AutoTrainMenu;
 
+            IntPtr instancePtr = layout.Instance >= 0 ? _runtime.ReadFieldPtr(autoTrainStatic, layout.Instance) : IntPtr.Zero;
+            if (instancePtr == IntPtr.Zero)
+            {
+                instancePtr = _runtime.CallMethod(GameSchema.AutoTrainMenu.ClassName, GameSchema.AutoTrainMenu.MethodGI, IntPtr.Zero);
+            }
+
+            if (shouldSyncConfig)
+            {
+                _runtime.CallMethod(GameSchema.AutoTrainMenu.ClassName, GameSchema.AutoTrainMenu.MethodScanSkills, IntPtr.Zero);
+                _runtime.CallMethod(GameSchema.AutoTrainMenu.ClassName, GameSchema.AutoTrainMenu.MethodScanMobsInMap, IntPtr.Zero);
+            }
+
             if (layout.IsCheckItem >= 0)
             {
                 IntPtr isCheckItemArray = _runtime.ReadFieldPtr(autoTrainStatic, layout.IsCheckItem);
@@ -71,6 +83,7 @@ public class CombatHandler(IGameRuntime runtime) :
 
             if (!shouldSyncConfig)
             {
+                _runtime.CallMethod(GameSchema.AutoTrainMenu.ClassName, GameSchema.AutoTrainMenu.MethodSaveAutoTrainConfig, IntPtr.Zero);
                 return Task.FromResult(Result.Success("Đã tắt tự đánh trong game"));
             }
 
@@ -146,22 +159,21 @@ public class CombatHandler(IGameRuntime runtime) :
                         }
                     }
 
+                    bool hasCheckedSkill = false;
                     if (skillPointers.Count > 0 && selectedSkillPointers.Count > 0)
                     {
                         int count = Math.Min(skillPointers.Count, arrayLen);
                         for (int i = 0; i < count; i++)
                         {
-                            _runtime.WriteBoolArrayElement(isCheckedSkillArray, i, selectedSkillPointers.Contains(skillPointers[i]));
+                            bool isMatch = selectedSkillPointers.Contains(skillPointers[i]);
+                            _runtime.WriteBoolArrayElement(isCheckedSkillArray, i, isMatch);
+                            if (isMatch) hasCheckedSkill = true;
                         }
                     }
-                    else
+
+                    if (!hasCheckedSkill && arrayLen > 0 && command.Enable)
                     {
-                        int count = Math.Clamp(arrayLen, 0, 10);
-                        var selectedSet = (command.SelectedSkillSlots ?? [0]).ToHashSet();
-                        for (int i = 0; i < count; i++)
-                        {
-                            _runtime.WriteBoolArrayElement(isCheckedSkillArray, i, selectedSet.Contains(i));
-                        }
+                        _runtime.WriteBoolArrayElement(isCheckedSkillArray, 0, true);
                     }
                 }
             }
@@ -175,6 +187,21 @@ public class CombatHandler(IGameRuntime runtime) :
                     _runtime.WriteBoolArrayElement(isCheckPickArray, 1, command.PickOthersItems);
                     _runtime.WriteBoolArrayElement(isCheckPickArray, 2, command.PickAllMap);
                     _runtime.WriteBoolArrayElement(isCheckPickArray, 3, command.AutoDropItems);
+                }
+            }
+
+            if (layout.IsCheckBua >= 0)
+            {
+                IntPtr isCheckBuaArray = _runtime.ReadFieldPtr(autoTrainStatic, layout.IsCheckBua);
+                if (isCheckBuaArray != IntPtr.Zero)
+                {
+                    var selectedBuaSet = command.SelectedBuaTemplateIds is { Count: > 0 }
+                        ? command.SelectedBuaTemplateIds.ToHashSet()
+                        : [];
+                    foreach (var def in GameDefinitions.AutoTrainBuas)
+                    {
+                        _runtime.WriteBoolArrayElement(isCheckBuaArray, def.Index, selectedBuaSet.Contains(def.TemplateId));
+                    }
                 }
             }
 
@@ -196,47 +223,48 @@ public class CombatHandler(IGameRuntime runtime) :
                 _runtime.WriteStaticString(GameSchema.AutoTrainMenu.ClassName, layout.StrIdVutBo, command.FilterDropIds ?? string.Empty);
             }
 
-            if (layout.Instance >= 0)
+            if (instancePtr != IntPtr.Zero)
             {
-                IntPtr instancePtr = _runtime.ReadFieldPtr(autoTrainStatic, layout.Instance);
-                if (instancePtr != IntPtr.Zero)
+                if (layout.TfHpPean >= 0)
                 {
-                    if (layout.TfHpPean >= 0)
-                    {
-                        IntPtr tfHpPean = _runtime.ReadFieldPtr(instancePtr, layout.TfHpPean);
-                        SetTFieldText(tfHpPean, command.PeanHpPercent.ToString());
-                    }
-                    if (layout.TfMpPean >= 0)
-                    {
-                        IntPtr tfMpPean = _runtime.ReadFieldPtr(instancePtr, layout.TfMpPean);
-                        SetTFieldText(tfMpPean, command.PeanMpPercent.ToString());
-                    }
-                    if (layout.TfHpOn >= 0)
-                    {
-                        IntPtr tfHpOn = _runtime.ReadFieldPtr(instancePtr, layout.TfHpOn);
-                        SetTFieldText(tfHpOn, command.MinMobHp.ToString());
-                    }
-                    if (layout.TfHpDuoi >= 0)
-                    {
-                        IntPtr tfHpDuoi = _runtime.ReadFieldPtr(instancePtr, layout.TfHpDuoi);
-                        SetTFieldText(tfHpDuoi, command.MaxMobHp > 10000000000L ? "Không giới hạn" : command.MaxMobHp.ToString());
-                    }
-                    if (layout.TfIdNhat >= 0)
-                    {
-                        IntPtr tfIdNhat = _runtime.ReadFieldPtr(instancePtr, layout.TfIdNhat);
-                        SetTFieldText(tfIdNhat, command.FilterPickIds ?? string.Empty);
-                    }
-                    if (layout.TfIdLoaiTru >= 0)
-                    {
-                        IntPtr tfIdLoaiTru = _runtime.ReadFieldPtr(instancePtr, layout.TfIdLoaiTru);
-                        SetTFieldText(tfIdLoaiTru, command.FilterExcludeIds ?? string.Empty);
-                    }
-                    if (layout.TfIdVutBo >= 0)
-                    {
-                        IntPtr tfIdVutBo = _runtime.ReadFieldPtr(instancePtr, layout.TfIdVutBo);
-                        SetTFieldText(tfIdVutBo, command.FilterDropIds ?? string.Empty);
-                    }
+                    IntPtr tfHpPean = _runtime.ReadFieldPtr(instancePtr, layout.TfHpPean);
+                    SetTFieldText(tfHpPean, command.PeanHpPercent.ToString());
                 }
+                if (layout.TfMpPean >= 0)
+                {
+                    IntPtr tfMpPean = _runtime.ReadFieldPtr(instancePtr, layout.TfMpPean);
+                    SetTFieldText(tfMpPean, command.PeanMpPercent.ToString());
+                }
+                if (layout.TfHpOn >= 0)
+                {
+                    IntPtr tfHpOn = _runtime.ReadFieldPtr(instancePtr, layout.TfHpOn);
+                    SetTFieldText(tfHpOn, command.MinMobHp.ToString());
+                }
+                if (layout.TfHpDuoi >= 0)
+                {
+                    IntPtr tfHpDuoi = _runtime.ReadFieldPtr(instancePtr, layout.TfHpDuoi);
+                    SetTFieldText(tfHpDuoi, command.MaxMobHp > 10000000000L ? "Không giới hạn" : command.MaxMobHp.ToString());
+                }
+                if (layout.TfIdNhat >= 0)
+                {
+                    IntPtr tfIdNhat = _runtime.ReadFieldPtr(instancePtr, layout.TfIdNhat);
+                    SetTFieldText(tfIdNhat, command.FilterPickIds ?? string.Empty);
+                }
+                if (layout.TfIdLoaiTru >= 0)
+                {
+                    IntPtr tfIdLoaiTru = _runtime.ReadFieldPtr(instancePtr, layout.TfIdLoaiTru);
+                    SetTFieldText(tfIdLoaiTru, command.FilterExcludeIds ?? string.Empty);
+                }
+                if (layout.TfIdVutBo >= 0)
+                {
+                    IntPtr tfIdVutBo = _runtime.ReadFieldPtr(instancePtr, layout.TfIdVutBo);
+                    SetTFieldText(tfIdVutBo, command.FilterDropIds ?? string.Empty);
+                }
+            }
+
+            if (shouldSyncConfig)
+            {
+                _runtime.CallMethod(GameSchema.AutoTrainMenu.ClassName, GameSchema.AutoTrainMenu.MethodSaveAutoTrainConfig, IntPtr.Zero);
             }
         }
 

@@ -152,10 +152,6 @@ public sealed partial class MapUtilitiesTabViewModel : AccountAwareTabViewModel
         else
         {
             ActiveAccountInfo = FormatAccountDisplayInfo(account);
-            if (account.IsRunning && account.Status == GameSessionStatus.Active)
-            {
-                _gameEngine.RequestZoneList(account.Id);
-            }
             RefreshMapData();
         }
     }

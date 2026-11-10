@@ -84,6 +84,7 @@ public sealed partial class AutoTrainViewModel : AutoFeatureViewModelBase
     public ObservableCollection<MobFilterItem> AvailableMobTypes { get; } = [];
     public ObservableCollection<SkillButtonItem> AutoTrainSkills { get; } = [];
     public ObservableCollection<AutoItemSlotItem> AutoTrainItems { get; } = [];
+    public ObservableCollection<AutoItemSlotItem> AutoTrainBuas { get; } = [];
 
     public AutoTrainViewModel(
         IGameEngineService gameEngine,
@@ -107,6 +108,13 @@ public sealed partial class AutoTrainViewModel : AutoFeatureViewModelBase
             var autoItem = new AutoItemSlotItem(def.Index, def.TemplateId, def.IconId, def.Name);
             autoItem.PropertyChanged += OnAutoItemPropertyChanged;
             AutoTrainItems.Add(autoItem);
+        }
+
+        foreach (var def in GameDefinitions.AutoTrainBuas)
+        {
+            var autoBua = new AutoItemSlotItem(def.Index, def.TemplateId, def.IconId, def.Name);
+            autoBua.PropertyChanged += OnAutoBuaPropertyChanged;
+            AutoTrainBuas.Add(autoBua);
         }
 
         _cooldownTimer = new DispatcherTimer
@@ -211,6 +219,15 @@ public sealed partial class AutoTrainViewModel : AutoFeatureViewModelBase
             item.IsSelected = selectedItemIds.Contains(item.TemplateId);
         }
 
+        var selectedBuaIds = train.SelectedBuaTemplateIds is { Count: > 0 }
+            ? train.SelectedBuaTemplateIds.ToHashSet()
+            : [];
+
+        foreach (var item in AutoTrainBuas)
+        {
+            item.IsSelected = selectedBuaIds.Contains(item.TemplateId);
+        }
+
         HasSelectedAutoItems = selectedItemIds.Count > 0;
         UpdateItemStatusText();
         UpdatePickStatus();
@@ -233,6 +250,11 @@ public sealed partial class AutoTrainViewModel : AutoFeatureViewModelBase
     public void RefreshData()
     {
         foreach (var item in AutoTrainItems)
+        {
+            item.EnsureIconLoaded(_gameImageService);
+        }
+
+        foreach (var item in AutoTrainBuas)
         {
             item.EnsureIconLoaded(_gameImageService);
         }
@@ -320,6 +342,14 @@ public sealed partial class AutoTrainViewModel : AutoFeatureViewModelBase
         }
     }
 
+    private void OnAutoBuaPropertyChanged(object? sender, PropertyChangedEventArgs e)
+    {
+        if (!_isBulkUpdating && e.PropertyName == nameof(AutoItemSlotItem.IsSelected))
+        {
+            OnOptionChanged();
+        }
+    }
+
     private void UpdateItemStatusText()
     {
         int selectedCount = AutoTrainItems.Count(i => i.IsSelected);
@@ -399,6 +429,7 @@ public sealed partial class AutoTrainViewModel : AutoFeatureViewModelBase
             TargetMobNames: options.TargetMobNames,
             SelectedSkillSlots: options.SelectedSkillSlots,
             SelectedItemTemplateIds: options.SelectedItemTemplateIds,
+            SelectedBuaTemplateIds: options.SelectedBuaTemplateIds,
             AutoPick: options.AutoPick,
             PickOthersItems: options.PickOthersItems,
             PickAllMap: options.PickAllMap,
@@ -551,11 +582,13 @@ public sealed partial class AutoTrainViewModel : AutoFeatureViewModelBase
             : (ActiveAccount?.AutoSettings.GetBehaviorOptions<AutoTrainOptions>(BehaviorId)?.TargetMobNames ?? []);
 
         var selectedItemIds = AutoTrainItems.Where(i => i.IsSelected).Select(i => i.TemplateId).ToList();
+        var selectedBuaIds = AutoTrainBuas.Where(i => i.IsSelected).Select(i => i.TemplateId).ToList();
 
         return new AutoTrainOptions
         {
             SelectedSkillSlots = selectedSlots,
             SelectedItemTemplateIds = selectedItemIds,
+            SelectedBuaTemplateIds = selectedBuaIds,
             TargetMobNames = selectedMobNames,
             CheckAllMobs = CheckAllMobs,
             AvoidSuperMobs = AvoidSuperMobs,
