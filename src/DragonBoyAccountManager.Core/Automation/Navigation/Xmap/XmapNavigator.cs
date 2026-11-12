@@ -170,7 +170,21 @@ public static class XmapNavigator
             var transitionNpc = WorldMapWaypointExecutor.FindTransitionNpc(currentMapId, nextMapId, session.CurrentWorld.Npcs);
             if (transitionNpc != null && transitionNpc.X > 0 && transitionNpc.Y > 0)
             {
-                await WorldMapWaypointExecutor.UseSpaceShipAsync(runtime, charPtr, service, transitionNpc, currentMapId, nextMapId, cancellationToken);
+                if (!isFastTeleport)
+                {
+                    var navRes = await session.Navigator.NavigateAsync(
+                        session.CurrentPlayer,
+                        session.CurrentMap,
+                        transitionNpc.X,
+                        transitionNpc.Y - 3,
+                        false,
+                        null,
+                        cancellationToken);
+                    if (navRes.IsFailure)
+                        return navRes;
+                }
+
+                await WorldMapWaypointExecutor.UseSpaceShipAsync(runtime, charPtr, service, transitionNpc, currentMapId, nextMapId, isFastTeleport, cancellationToken);
                 return Result.Success();
             }
 
@@ -223,6 +237,33 @@ public static class XmapNavigator
         }
 
         WorldMapData.SyncLiveWaypoints(currentMapId, planetId, session.CurrentWorld.Waypoints);
+
+        if (!isFastTeleport)
+        {
+            int wpTargetX = WorldMapWaypointExecutor.GetWaypointTargetX(matchedWp, mapPixelWidth);
+            bool isAirOrTower = currentMapId is 45 or 46 or 47 or 48;
+            int wpTargetY = WorldMapWaypointExecutor.GetWaypointTargetY(matchedWp, isAirOrTower);
+
+            var navResult = await session.Navigator.NavigateAsync(
+                session.CurrentPlayer,
+                session.CurrentMap,
+                wpTargetX,
+                wpTargetY,
+                false,
+                null,
+                cancellationToken);
+            if (navResult.IsFailure)
+                return navResult;
+
+            await Task.Delay(80, cancellationToken);
+            session.Tick();
+            if (!session.CurrentPlayer.IsChangingMap)
+            {
+                string changeMapMethod = matchedWp.IsOffline ? GameSchema.Service.MethodGetMapOffline : GameSchema.Service.MethodRequestChangeMap;
+                runtime.CallMethod(GameSchema.Service.ClassName, changeMapMethod, service);
+            }
+            return Result.Success();
+        }
 
         return await WorldMapWaypointExecutor.StepToWaypointAsync(
             runtime,

@@ -33,8 +33,8 @@ public interface IGameRuntime : IDisposable
 
     IntPtr CreateInstance(string className, params object?[]? args);
     uint PinObject(IntPtr objectPtr);
+    void UnpinObject(uint gcHandle);
 
     IntPtr ResolveMethod(string className, string methodName, int paramCount = 0);
-    IntPtr InvokeMethod(IntPtr methodPtr, IntPtr thisObj, params IntPtr[]? args);
     IntPtr CallMethod(string className, string methodName, IntPtr thisObj, params object?[]? args);
 }

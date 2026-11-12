@@ -24,6 +24,7 @@ public class Il2CppRuntime : IGameRuntime
     private IntPtr _stringNewAddress = IntPtr.Zero;
     private IntPtr _getStringClassAddress = IntPtr.Zero;
     private IntPtr _gcHandleNewAddress = IntPtr.Zero;
+    private IntPtr _gcHandleFreeAddress = IntPtr.Zero;
     private IntPtr _domainGetAddr = IntPtr.Zero;
     private IntPtr _attachAddr = IntPtr.Zero;
     private IntPtr _detachAddr = IntPtr.Zero;
@@ -114,7 +115,7 @@ public class Il2CppRuntime : IGameRuntime
                 int nameRva = _memory.ReadInt(names + i * 4);
                 string funcName = _memory.ReadString(_gameAssemblyModule + nameRva, Constants.DefaultStringLength, Encoding.ASCII);
 
-                if (funcName is "il2cpp_domain_get" or "il2cpp_thread_attach" or "il2cpp_thread_detach" or "il2cpp_object_new" or "il2cpp_string_new" or "mono_get_string_class" or "il2cpp_gchandle_new")
+                if (funcName is "il2cpp_domain_get" or "il2cpp_thread_attach" or "il2cpp_thread_detach" or "il2cpp_object_new" or "il2cpp_string_new" or "mono_get_string_class" or "il2cpp_gchandle_new" or "il2cpp_gchandle_free")
                 {
                     ushort ordinal = _memory.ReadUShort(ordinals + i * 2);
                     uint funcRva = _memory.ReadUInt(functions + ordinal * 4);
@@ -130,6 +131,7 @@ public class Il2CppRuntime : IGameRuntime
                     else if (funcName == "il2cpp_string_new") _stringNewAddress = funcAddress;
                     else if (funcName == "mono_get_string_class") _getStringClassAddress = funcAddress;
                     else if (funcName == "il2cpp_gchandle_new") _gcHandleNewAddress = funcAddress;
+                    else if (funcName == "il2cpp_gchandle_free") _gcHandleFreeAddress = funcAddress;
                 }
             }
         }
@@ -257,15 +259,13 @@ public class Il2CppRuntime : IGameRuntime
 
     public string[] ReadStringArray(IntPtr arrayPtr)
     {
-        if (arrayPtr == IntPtr.Zero) return [];
-        int length = _memory.ReadInt(arrayPtr + 0x18);
-        if (length <= 0 || length > 10000) return [];
+        IntPtr[] ptrs = ReadPointerArray(arrayPtr);
+        if (ptrs.Length == 0) return [];
 
-        var res = new string[length];
-        for (int i = 0; i < length; i++)
+        var res = new string[ptrs.Length];
+        for (int i = 0; i < ptrs.Length; i++)
         {
-            IntPtr ptr = _memory.ReadIntPtr(arrayPtr + 0x20 + (i * 8));
-            res[i] = ReadString(ptr);
+            res[i] = ReadString(ptrs[i]);
         }
         return res;
     }
@@ -277,11 +277,12 @@ public class Il2CppRuntime : IGameRuntime
         if (length <= 0) return [];
         length = Math.Min(length, maxLength);
 
-        var res = new int[length];
-        for (int i = 0; i < length; i++)
-        {
-            res[i] = _memory.ReadInt(arrayPtr + 0x20 + (i * 4));
-        }
+        byte[] raw = _memory.ReadBytes(arrayPtr + 0x20, length * sizeof(int));
+        int actualCount = raw.Length / sizeof(int);
+        if (actualCount <= 0) return [];
+
+        var res = new int[actualCount];
+        Buffer.BlockCopy(raw, 0, res, 0, actualCount * sizeof(int));
         return res;
     }
 
@@ -291,10 +292,17 @@ public class Il2CppRuntime : IGameRuntime
         int length = _memory.ReadInt(arrayPtr + 0x18);
         if (length <= 0 || length > 10000) return [];
 
-        var res = new IntPtr[length];
-        for (int i = 0; i < length; i++)
+        int elemSize = _memory.PointerSize;
+        byte[] raw = _memory.ReadBytes(arrayPtr + 0x20, length * elemSize);
+        int actualCount = raw.Length / elemSize;
+        if (actualCount <= 0) return [];
+
+        var res = new IntPtr[actualCount];
+        for (int i = 0; i < actualCount; i++)
         {
-            res[i] = _memory.ReadIntPtr(arrayPtr + 0x20 + (i * 8));
+            res[i] = elemSize == 8
+                ? (IntPtr)BitConverter.ToInt64(raw, i * 8)
+                : (IntPtr)BitConverter.ToInt32(raw, i * 4);
         }
         return res;
     }
@@ -387,18 +395,6 @@ public class Il2CppRuntime : IGameRuntime
     {
         long rva = _schema.GetMethodRva(className, methodName);
         return rva > 0 ? _gameAssemblyModule + (nint)rva : IntPtr.Zero;
-    }
-
-    public IntPtr InvokeMethod(IntPtr methodPtr, IntPtr thisObj, params IntPtr[]? args)
-    {
-        EnsureDomainInitialized();
-        if (methodPtr == IntPtr.Zero) return IntPtr.Zero;
-
-        var fullArgs = new List<IntPtr>();
-        if (thisObj != IntPtr.Zero) fullArgs.Add(thisObj);
-        if (args != null && args.Length > 0) fullArgs.AddRange(args);
-
-        return _invoker.Call(methodPtr, [.. fullArgs]);
     }
 
     public IntPtr CallMethod(string className, string methodName, IntPtr thisObj, params object?[]? args)
@@ -498,25 +494,22 @@ public class Il2CppRuntime : IGameRuntime
 
         if (_stringKlass == IntPtr.Zero) return IntPtr.Zero;
 
-        return _scratchpad.WithLock(pad =>
+        int byteCount = (value.Length + 1) * 2;
+        int totalSize = 0x14 + byteCount;
+        IntPtr alloc = _memory.Allocate(totalSize);
+        if (alloc == IntPtr.Zero) return IntPtr.Zero;
+
+        _memory.Write(alloc, _stringKlass);
+        _memory.Write(alloc + 8, IntPtr.Zero);
+        _memory.Write(alloc + 0x10, value.Length);
+
+        fixed (char* p = value)
         {
-            int byteCount = (value.Length + 1) * 2;
-            int totalSize = 0x14 + byteCount;
-            if (totalSize > 0xF00) return IntPtr.Zero;
+            NativeMethods.WriteProcessMemory(_processHandle, alloc + 0x14, p, (nuint)byteCount, out _);
+        }
+        _memory.Write<short>(alloc + 0x14 + (value.Length * 2), 0);
 
-            IntPtr alloc = pad.StringDataBuffer;
-            _memory.Write(alloc, _stringKlass);
-            _memory.Write(alloc + 8, IntPtr.Zero);
-            _memory.Write(alloc + 0x10, value.Length);
-
-            fixed (char* p = value)
-            {
-                NativeMethods.WriteProcessMemory(_processHandle, alloc + 0x14, p, (nuint)byteCount, out _);
-            }
-            _memory.Write<short>(alloc + 0x14 + (value.Length * 2), 0);
-
-            return alloc;
-        });
+        return alloc;
     }
 
     public IntPtr CreateInstance(string className, params object?[]? args)
@@ -554,6 +547,13 @@ public class Il2CppRuntime : IGameRuntime
         EnsureDomainInitialized();
         if (objectPtr == IntPtr.Zero || _gcHandleNewAddress == IntPtr.Zero) return 0;
         return (uint)_invoker.Call(_gcHandleNewAddress, objectPtr, (IntPtr)1);
+    }
+
+    public void UnpinObject(uint gcHandle)
+    {
+        if (gcHandle == 0 || _gcHandleFreeAddress == IntPtr.Zero) return;
+        EnsureDomainInitialized();
+        _ = _invoker.Call(_gcHandleFreeAddress, (IntPtr)gcHandle);
     }
 
     public void Dispose()

@@ -206,9 +206,9 @@ public sealed class LoginScreenController(IGameRuntime runtime)
         catch { }
     }
 
-    public void OpenLoginScreen(bool isMasked, string username)
+    public void OpenLoginScreen(bool isMasked)
     {
-        PreMaskLoginFields(isMasked, username);
+        PreMaskLoginFields(isMasked);
         try
         {
             IntPtr serverScreen = _runtime.ReadStatic<IntPtr>(GameSchema.GameCanvas.ClassName, _runtime.Layout.GameCanvas.ServerScreen);
@@ -339,93 +339,36 @@ public sealed class LoginScreenController(IGameRuntime runtime)
     {
         try
         {
-            string curRmsAcc = _runtime.ReadStaticString(GameSchema.Rms.ClassName, _runtime.Layout.Rms.RMS_acc);
-            if (curRmsAcc != "acc")
-            {
-                _runtime.WriteStaticString(GameSchema.Rms.ClassName, _runtime.Layout.Rms.RMS_acc, "acc");
-            }
-
+            SessionMaskingController.EnsureRmsAccKey(_runtime);
             if (!isMasked) return;
-
-            IntPtr serverScreen = _runtime.ReadStatic<IntPtr>(GameSchema.GameCanvas.ClassName, _runtime.Layout.GameCanvas.ServerScreen);
-            if (serverScreen != IntPtr.Zero)
-            {
-                IntPtr cmdArr = _runtime.ReadFieldPtr(serverScreen, _runtime.Layout.ServerListScreen.Cmd);
-                if (cmdArr != IntPtr.Zero)
-                {
-                    IntPtr[] cmds = _runtime.ReadPointerArray(cmdArr);
-                    if (cmds.Length > 0 && cmds[0] != IntPtr.Zero)
-                    {
-                        string caption = _runtime.ReadStringField(cmds[0], _runtime.Layout.Command.Caption) ?? string.Empty;
-                        if (caption != "DragonBoy Account Manager")
-                        {
-                            _runtime.WriteStringField(cmds[0], _runtime.Layout.Command.Caption, "DragonBoy Account Manager");
-                        }
-                    }
-                }
-            }
+            _ = SessionMaskingController.ApplyServerListCaptionMask(_runtime, "DragonBoy Account Manager");
         }
         catch { }
     }
 
-    public void PreMaskLoginFields(bool isMasked, string username)
+    public void PreMaskLoginFields(bool isMasked)
     {
         if (!isMasked) return;
         try
         {
-            IntPtr loginScr = GetLoginScreenPointer();
-            if (loginScr != IntPtr.Zero)
-            {
-                var loginScrLayout = _runtime.Layout.LoginScr;
-                var tfieldLayout = _runtime.Layout.TField;
-                IntPtr tfUser = _runtime.ReadFieldPtr(loginScr, loginScrLayout.TfUser);
-                IntPtr tfPass = _runtime.ReadFieldPtr(loginScr, loginScrLayout.TfPass);
-                if (tfUser != IntPtr.Zero)
-                {
-                    _runtime.WriteField(tfUser, tfieldLayout.InputType, GameSchema.TField.InputTypePassword);
-                }
-                if (tfPass != IntPtr.Zero)
-                {
-                    _runtime.WriteField(tfPass, tfieldLayout.InputType, GameSchema.TField.InputTypePassword);
-                }
-            }
+            SessionMaskingController.EnforceLoginScreenPasswordFields(_runtime, GetLoginScreenPointer());
         }
         catch { }
     }
 
-    public void ClearSensitiveInputs(string username)
+    public void ClearSensitiveInputs()
     {
         try
         {
-            string curRmsAcc = _runtime.ReadStaticString(GameSchema.Rms.ClassName, _runtime.Layout.Rms.RMS_acc);
-            if (curRmsAcc != "acc")
-            {
-                _runtime.WriteStaticString(GameSchema.Rms.ClassName, _runtime.Layout.Rms.RMS_acc, "acc");
-            }
-
-            IntPtr loginScr = GetLoginScreenPointer();
-            if (loginScr != IntPtr.Zero)
-            {
-                var loginScrLayout = _runtime.Layout.LoginScr;
-                var tfieldLayout = _runtime.Layout.TField;
-                IntPtr tfUser = _runtime.ReadFieldPtr(loginScr, loginScrLayout.TfUser);
-                IntPtr tfPass = _runtime.ReadFieldPtr(loginScr, loginScrLayout.TfPass);
-                if (tfUser != IntPtr.Zero)
-                {
-                    _runtime.WriteField(tfUser, tfieldLayout.InputType, GameSchema.TField.InputTypePassword);
-                }
-                if (tfPass != IntPtr.Zero)
-                {
-                    _runtime.WriteField(tfPass, tfieldLayout.InputType, GameSchema.TField.InputTypePassword);
-                }
-            }
+            SessionMaskingController.EnsureRmsAccKey(_runtime);
+            SessionMaskingController.EnforceLoginScreenPasswordFields(_runtime, GetLoginScreenPointer());
         }
         catch { }
     }
 
-    public void SwitchToLoginScreen(bool isMasked, string username)
+    public void SwitchToLoginScreen(bool isMasked)
     {
-        PreMaskLoginFields(isMasked, username);
+        PreMaskLoginFields(isMasked);
         try
         {
             IntPtr loginScr = _runtime.ReadStatic<IntPtr>(GameSchema.GameCanvas.ClassName, _runtime.Layout.GameCanvas.LoginScr);

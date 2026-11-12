@@ -77,16 +77,6 @@ public sealed class WorldMapGraph
         }
     }
 
-    public IReadOnlyList<MapNode> GetNodesByPlanet(string planetName)
-    {
-        lock (_lock)
-        {
-            return _nodes.Values.Where(m => string.Equals(m.PlanetName, planetName, StringComparison.OrdinalIgnoreCase))
-                                .OrderBy(m => m.Id)
-                                .ToList();
-        }
-    }
-
     public MapDirection ResolveDirection(
         int fromMapId,
         int toMapId,

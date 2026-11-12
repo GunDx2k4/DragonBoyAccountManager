@@ -141,21 +141,15 @@ public class MovementHandler :
                 approachX = Math.Min(mapPixelWidth - 35, targetX - 20);
             }
 
-            if (approachX != targetX)
-            {
-                await WorldMapWaypointExecutor.TeleportToAsync(_runtime, charPtr, service, approachX, targetY, cancellationToken);
-                await Task.Delay(100, cancellationToken);
-                _runtime.CallMethod(GameSchema.Service.ClassName, GameSchema.Service.MethodCharMove, service);
-                await Task.Delay(50, cancellationToken);
-            }
-
-            await WorldMapWaypointExecutor.TeleportToAsync(_runtime, charPtr, service, targetX, targetY, cancellationToken);
-            await Task.Delay(80, cancellationToken);
-            await WorldMapWaypointExecutor.SendNormalMoveAsync(_runtime, charPtr, service, targetX, targetY, cancellationToken);
-            await Task.Delay(60, cancellationToken);
-
-            string changeMapMethod = isOffline ? GameSchema.Service.MethodGetMapOffline : GameSchema.Service.MethodRequestChangeMap;
-            _runtime.CallMethod(GameSchema.Service.ClassName, changeMapMethod, service);
+            await WorldMapWaypointExecutor.ExecuteTeleportAndChangeMapAsync(
+                _runtime,
+                charPtr,
+                service,
+                targetX,
+                targetY,
+                approachX,
+                isOffline,
+                cancellationToken);
 
             return Result.Success("Đã tele tới waypoint và gửi yêu cầu chuyển map.");
         }

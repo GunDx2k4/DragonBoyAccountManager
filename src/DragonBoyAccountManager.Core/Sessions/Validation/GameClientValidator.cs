@@ -94,7 +94,7 @@ public class GameClientValidator : IGameClientValidator, IDisposable
 
         string exePath = Path.GetFullPath(gamePath);
         string dir = Path.GetDirectoryName(exePath) ?? string.Empty;
-        return new ResolvedGamePaths(dir, dir, exePath);
+        return new ResolvedGamePaths(dir, exePath);
     }
 
     public string ComputeFileSha256(string filePath)
@@ -180,9 +180,6 @@ public class GameClientValidator : IGameClientValidator, IDisposable
             metadata.IsCorrectVersion = false;
             return metadata;
         }
-
-        string dir = Path.GetDirectoryName(resolvedExe) ?? string.Empty;
-        metadata.ManagedDirectory = dir;
 
         try
         {

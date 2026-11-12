@@ -24,6 +24,8 @@ public sealed class SessionWorker : IDisposable, IAsyncDisposable
     private int _isLoggingIn;
     private volatile bool _wasInGame;
     private long _behaviorRunSequence;
+    private int _disposed;
+    private int _resourcesDisposed;
     public bool IsLoggingIn => Volatile.Read(ref _isLoggingIn) == 1;
     private readonly ConcurrentDictionary<string, long> _activeBehaviors = new(StringComparer.OrdinalIgnoreCase);
 
@@ -65,7 +67,9 @@ public sealed class SessionWorker : IDisposable, IAsyncDisposable
             {
                 if (Session.IsQuitRequested)
                 {
-                    await StopAsync();
+                    try { Cts.Cancel(); } catch { }
+                    Session.StopAllBehaviors();
+                    Session.Kill();
                     break;
                 }
 
@@ -416,6 +420,9 @@ public sealed class SessionWorker : IDisposable, IAsyncDisposable
 
     public async Task StopAsync()
     {
+        if (Interlocked.Exchange(ref _disposed, 1) == 1)
+            return;
+
         try { Cts.Cancel(); } catch { }
         Session.StopAllBehaviors();
         Session.Kill();
@@ -423,18 +430,37 @@ public sealed class SessionWorker : IDisposable, IAsyncDisposable
         {
             try { await LoopTask; } catch { }
         }
-        Cts.Dispose();
-        Session.Dispose();
+        DisposeResources();
     }
 
     public void Dispose()
     {
+        if (Interlocked.Exchange(ref _disposed, 1) == 1)
+            return;
+
         try { Cts.Cancel(); } catch { }
         Session.StopAllBehaviors();
         Session.Kill();
+
+        if (LoopTask == null || LoopTask.IsCompleted)
+        {
+            DisposeResources();
+        }
+        else
+        {
+            _ = LoopTask.ContinueWith(_ => DisposeResources(), TaskScheduler.Default);
+        }
+
+        GC.SuppressFinalize(this);
+    }
+
+    private void DisposeResources()
+    {
+        if (Interlocked.Exchange(ref _resourcesDisposed, 1) == 1)
+            return;
+
         Cts.Dispose();
         Session.Dispose();
-        GC.SuppressFinalize(this);
     }
 
     public async ValueTask DisposeAsync()

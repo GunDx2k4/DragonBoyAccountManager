@@ -16,6 +16,7 @@ public sealed class SessionManager : ISessionManager, IDisposable, IAsyncDisposa
     private readonly HashSet<Guid> _userStoppedAccounts = [];
     private readonly Lock _userStoppedLock = new();
     private readonly SemaphoreSlim _launchGate = new(1, 1);
+    private readonly CancellationTokenSource _disposeCts = new();
     private readonly ISessionLauncher _launcher;
 
     public Action<GameSession>? SessionInitializer { get; set; }
@@ -71,7 +72,6 @@ public sealed class SessionManager : ISessionManager, IDisposable, IAsyncDisposa
         if (_reconnectCts.TryRemove(accountId, out var cts))
         {
             try { cts.Cancel(); } catch { }
-            cts.Dispose();
         }
     }
 
@@ -204,21 +204,28 @@ public sealed class SessionManager : ISessionManager, IDisposable, IAsyncDisposa
                 {
                     try
                     {
-                        await Task.Delay(TimeSpan.FromSeconds(delay), cts.Token);
-                        if (!cts.Token.IsCancellationRequested && _launchOptions.TryGetValue(accountId, out var opts))
+                        if (_disposeCts.IsCancellationRequested || cts.IsCancellationRequested)
                         {
-                            _reconnectCts.TryRemove(accountId, out _);
-                            await StartSessionAsync(opts, CancellationToken.None);
+                            return;
+                        }
+
+                        using var linkedCts = CancellationTokenSource.CreateLinkedTokenSource(cts.Token, _disposeCts.Token);
+                        await Task.Delay(TimeSpan.FromSeconds(delay), linkedCts.Token);
+                        if (!linkedCts.Token.IsCancellationRequested && _launchOptions.TryGetValue(accountId, out var opts))
+                        {
+                            _reconnectCts.TryRemove(new KeyValuePair<Guid, CancellationTokenSource>(accountId, cts));
+                            await StartSessionAsync(opts, linkedCts.Token);
                         }
                     }
-                    catch (OperationCanceledException)
+                    catch (Exception ex) when (ex is OperationCanceledException or ObjectDisposedException)
                     {
                     }
                     finally
                     {
+                        _reconnectCts.TryRemove(new KeyValuePair<Guid, CancellationTokenSource>(accountId, cts));
                         cts.Dispose();
                     }
-                }, cts.Token);
+                }, CancellationToken.None);
                 return;
             }
         }
@@ -250,17 +257,15 @@ public sealed class SessionManager : ISessionManager, IDisposable, IAsyncDisposa
         Publish(new SessionStateChangedEvent(accountId, GameSessionStatus.Offline, null));
     }
 
-    public async Task StopAllSessionsAsync()
+    private List<(Guid Id, SessionWorker Worker)> DrainWorkersAndCancelReconnects()
     {
-        foreach (var kvp in _reconnectCts)
+        foreach (var id in _reconnectCts.Keys.ToList())
         {
-            try { kvp.Value.Cancel(); } catch { }
-            kvp.Value.Dispose();
+            CancelReconnect(id);
         }
-        _reconnectCts.Clear();
         _launchOptions.Clear();
 
-        var list = _workers.ToList();
+        var list = _workers.Select(kvp => (kvp.Key, kvp.Value)).ToList();
         _workers.Clear();
 
         lock (_userStoppedLock)
@@ -270,6 +275,13 @@ public sealed class SessionManager : ISessionManager, IDisposable, IAsyncDisposa
                 _userStoppedAccounts.Add(id);
             }
         }
+
+        return list;
+    }
+
+    public async Task StopAllSessionsAsync()
+    {
+        var list = DrainWorkersAndCancelReconnects();
 
         foreach (var (id, worker) in list)
         {
@@ -280,24 +292,7 @@ public sealed class SessionManager : ISessionManager, IDisposable, IAsyncDisposa
 
     public void StopAllSessions()
     {
-        foreach (var kvp in _reconnectCts)
-        {
-            try { kvp.Value.Cancel(); } catch { }
-            kvp.Value.Dispose();
-        }
-        _reconnectCts.Clear();
-        _launchOptions.Clear();
-
-        var list = _workers.ToList();
-        _workers.Clear();
-
-        lock (_userStoppedLock)
-        {
-            foreach (var (id, _) in list)
-            {
-                _userStoppedAccounts.Add(id);
-            }
-        }
+        var list = DrainWorkersAndCancelReconnects();
 
         foreach (var (id, worker) in list)
         {
@@ -308,14 +303,18 @@ public sealed class SessionManager : ISessionManager, IDisposable, IAsyncDisposa
 
     public void Dispose()
     {
+        try { _disposeCts.Cancel(); } catch { }
         StopAllSessions();
+        _disposeCts.Dispose();
         _launchGate.Dispose();
         GC.SuppressFinalize(this);
     }
 
     public async ValueTask DisposeAsync()
     {
+        try { _disposeCts.Cancel(); } catch { }
         await StopAllSessionsAsync();
+        _disposeCts.Dispose();
         _launchGate.Dispose();
         GC.SuppressFinalize(this);
     }

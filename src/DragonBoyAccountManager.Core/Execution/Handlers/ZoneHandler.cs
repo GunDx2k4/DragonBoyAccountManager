@@ -32,11 +32,17 @@ public class ZoneHandler(IGameRuntime runtime) :
 
         _ = Task.Run(async () =>
         {
-            await Task.Delay(250, CancellationToken.None);
-            CloseInGamePanel();
-            await Task.Delay(250, CancellationToken.None);
-            CloseInGamePanel();
-        });
+            try
+            {
+                await Task.Delay(250, cancellationToken);
+                CloseInGamePanel();
+                await Task.Delay(250, cancellationToken);
+                CloseInGamePanel();
+            }
+            catch (OperationCanceledException)
+            {
+            }
+        }, cancellationToken);
 
         return Task.FromResult(Result.Success("Đã gửi yêu cầu mở bảng chọn khu vực."));
     }
@@ -52,18 +58,26 @@ public class ZoneHandler(IGameRuntime runtime) :
         try
         {
             IntPtr gameCanvasStatic = _runtime.GetStaticFieldsPtr(GameSchema.GameCanvas.ClassName);
-            if (gameCanvasStatic != IntPtr.Zero)
+            int panelOffset = _runtime.Layout.GameCanvas.Panel;
+            int isShowOffset = _runtime.Layout.Panel.IsShow;
+            if (gameCanvasStatic != IntPtr.Zero && panelOffset >= 0 && isShowOffset >= 0)
             {
-                int panelOffset = _runtime.Layout.GameCanvas.Panel >= 0 ? _runtime.Layout.GameCanvas.Panel : 208;
                 IntPtr panelPtr = _runtime.ReadFieldPtr(gameCanvasStatic, panelOffset);
                 if (panelPtr != IntPtr.Zero)
                 {
-                    int isShowOffset = _runtime.Layout.Panel.IsShow >= 0 ? _runtime.Layout.Panel.IsShow : 16;
-                    _runtime.WriteField<bool>(panelPtr, isShowOffset, false);
+                    _runtime.WriteField(panelPtr, isShowOffset, false);
                 }
             }
 
-            _runtime.CallMethod(GameSchema.GameCanvas.ClassName, GameSchema.GameCanvas.MethodEndDlg, IntPtr.Zero);
+            IntPtr canvas = _runtime.ReadStatic<IntPtr>(GameSchema.GameCanvas.ClassName, _runtime.Layout.GameCanvas.Instance);
+            if (canvas == IntPtr.Zero)
+            {
+                canvas = _runtime.ReadStatic<IntPtr>(GameSchema.GameCanvas.ClassName, _runtime.Layout.GameCanvas.GameCanvas);
+            }
+            if (canvas != IntPtr.Zero)
+            {
+                _runtime.CallMethod(GameSchema.GameCanvas.ClassName, GameSchema.GameCanvas.MethodEndDlg, canvas);
+            }
         }
         catch
         {

@@ -14,17 +14,12 @@ public interface IMemoryAccessor : IDisposable
     void Write<T>(IntPtr address, T value) where T : unmanaged;
 
     byte[] ReadBytes(IntPtr address, int size);
-    bool TryReadBytes(IntPtr address, Span<byte> destination);
 
     byte ReadByte(IntPtr address);
-    short ReadShort(IntPtr address);
     ushort ReadUShort(IntPtr address);
     int ReadInt(IntPtr address);
     uint ReadUInt(IntPtr address);
     long ReadLong(IntPtr address);
-    ulong ReadULong(IntPtr address);
-    float ReadFloat(IntPtr address);
-    double ReadDouble(IntPtr address);
     IntPtr ReadIntPtr(IntPtr address);
 
     string ReadString(IntPtr address, int length, Encoding encoding);
@@ -33,10 +28,4 @@ public interface IMemoryAccessor : IDisposable
 
     IntPtr Allocate(int size);
     bool Free(IntPtr address);
-
-    IntPtr AllocateAndWrite(byte[] data);
-    IntPtr AllocateAndWrite(string? data);
-    IntPtr AllocateAndWrite<T>(T value) where T : unmanaged;
-    IntPtr AllocateAndWrite(IntPtr data);
-    IntPtr AllocateAndWrite(IntPtr[] data);
 }

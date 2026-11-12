@@ -25,20 +25,20 @@ public sealed class SessionMaskingController(IGameRuntime runtime)
     public void SetMasked(bool isMasked, bool isInGame)
     {
         IsMasked = isMasked;
-        ApplyEarlyMaskingGuard(IsMasked, isInGame, Username);
-        SyncInGameCharacterNameMasking(IsMasked, isInGame, Username);
+        ApplyEarlyMaskingGuard(IsMasked);
+        SyncInGameCharacterNameMasking(IsMasked, isInGame);
     }
 
     public void OnTick(bool isInGame)
     {
         if (IsMasked || HasOriginalServerListCaption)
         {
-            ApplyEarlyMaskingGuard(IsMasked, isInGame, Username);
+            ApplyEarlyMaskingGuard(IsMasked);
         }
 
         if (isInGame)
         {
-            SyncInGameCharacterNameMasking(IsMasked, true, Username);
+            SyncInGameCharacterNameMasking(IsMasked, true);
         }
         else
         {
@@ -51,86 +51,79 @@ public sealed class SessionMaskingController(IGameRuntime runtime)
         OriginalCharacterName = null;
     }
 
-    public void ApplyEarlyMaskingGuard(bool isMasked, bool isInGame, string username)
+    public static void EnsureRmsAccKey(IGameRuntime runtime)
+    {
+        string curRmsAcc = runtime.ReadStaticString(GameSchema.Rms.ClassName, runtime.Layout.Rms.RMS_acc);
+        if (curRmsAcc != GameSchema.Rms.KeyAcc)
+        {
+            runtime.WriteStaticString(GameSchema.Rms.ClassName, runtime.Layout.Rms.RMS_acc, GameSchema.Rms.KeyAcc);
+        }
+    }
+
+    public static string? ApplyServerListCaptionMask(IGameRuntime runtime, string targetCaption)
+    {
+        IntPtr serverScreen = runtime.ReadStatic<IntPtr>(GameSchema.GameCanvas.ClassName, runtime.Layout.GameCanvas.ServerScreen);
+        if (serverScreen == IntPtr.Zero) return null;
+
+        IntPtr cmdArr = runtime.ReadFieldPtr(serverScreen, runtime.Layout.ServerListScreen.Cmd);
+        if (cmdArr == IntPtr.Zero) return null;
+
+        IntPtr[] cmds = runtime.ReadPointerArray(cmdArr);
+        if (cmds.Length == 0 || cmds[0] == IntPtr.Zero) return null;
+
+        string caption = runtime.ReadStringField(cmds[0], runtime.Layout.Command.Caption) ?? string.Empty;
+        if (caption == targetCaption) return null;
+
+        runtime.WriteStringField(cmds[0], runtime.Layout.Command.Caption, targetCaption);
+        return caption;
+    }
+
+    public static void EnforceLoginScreenPasswordFields(IGameRuntime runtime, IntPtr loginScr)
+    {
+        if (loginScr == IntPtr.Zero) return;
+
+        var loginScrLayout = runtime.Layout.LoginScr;
+        var tfieldLayout = runtime.Layout.TField;
+        IntPtr tfUser = runtime.ReadFieldPtr(loginScr, loginScrLayout.TfUser);
+        IntPtr tfPass = runtime.ReadFieldPtr(loginScr, loginScrLayout.TfPass);
+
+        if (tfUser != IntPtr.Zero && runtime.ReadField<int>(tfUser, tfieldLayout.InputType) != GameSchema.TField.InputTypePassword)
+        {
+            runtime.WriteField(tfUser, tfieldLayout.InputType, GameSchema.TField.InputTypePassword);
+        }
+
+        if (tfPass != IntPtr.Zero && runtime.ReadField<int>(tfPass, tfieldLayout.InputType) != GameSchema.TField.InputTypePassword)
+        {
+            runtime.WriteField(tfPass, tfieldLayout.InputType, GameSchema.TField.InputTypePassword);
+        }
+    }
+
+    public void ApplyEarlyMaskingGuard(bool isMasked)
     {
         try
         {
-            var rmsLayout = _runtime.Layout.Rms;
             var gameCanvasLayout = _runtime.Layout.GameCanvas;
-            var serverListLayout = _runtime.Layout.ServerListScreen;
-            var commandLayout = _runtime.Layout.Command;
             var loginScrLayout = _runtime.Layout.LoginScr;
             var tfieldLayout = _runtime.Layout.TField;
 
-            string curRmsAcc = _runtime.ReadStaticString(GameSchema.Rms.ClassName, rmsLayout.RMS_acc);
-            if (curRmsAcc != "acc")
-            {
-                _runtime.WriteStaticString(GameSchema.Rms.ClassName, rmsLayout.RMS_acc, "acc");
-            }
+            EnsureRmsAccKey(_runtime);
 
             if (isMasked)
             {
-                IntPtr serverScreen = _runtime.ReadStatic<IntPtr>(GameSchema.GameCanvas.ClassName, gameCanvasLayout.ServerScreen);
-                if (serverScreen != IntPtr.Zero)
+                string? prevCaption = ApplyServerListCaptionMask(_runtime, "DragonBoy Account Manager");
+                if (prevCaption != null)
                 {
-                    IntPtr cmdArr = _runtime.ReadFieldPtr(serverScreen, serverListLayout.Cmd);
-                    if (cmdArr != IntPtr.Zero)
-                    {
-                        IntPtr[] cmds = _runtime.ReadPointerArray(cmdArr);
-                        if (cmds.Length > 0 && cmds[0] != IntPtr.Zero)
-                        {
-                            string caption = _runtime.ReadStringField(cmds[0], commandLayout.Caption) ?? string.Empty;
-                            if (caption != "DragonBoy Account Manager")
-                            {
-                                OriginalServerListCaption ??= caption;
-                                _runtime.WriteStringField(cmds[0], commandLayout.Caption, "DragonBoy Account Manager");
-                            }
-                        }
-                    }
+                    OriginalServerListCaption ??= prevCaption;
                 }
 
                 IntPtr loginScr = _runtime.ReadStatic<IntPtr>(GameSchema.GameCanvas.ClassName, gameCanvasLayout.LoginScr);
-                if (loginScr != IntPtr.Zero)
-                {
-                    IntPtr tfUser = _runtime.ReadFieldPtr(loginScr, loginScrLayout.TfUser);
-                    IntPtr tfPass = _runtime.ReadFieldPtr(loginScr, loginScrLayout.TfPass);
-
-                    if (tfUser != IntPtr.Zero)
-                    {
-                        int inputType = _runtime.ReadField<int>(tfUser, tfieldLayout.InputType);
-                        if (inputType != GameSchema.TField.InputTypePassword)
-                        {
-                            _runtime.WriteField(tfUser, tfieldLayout.InputType, GameSchema.TField.InputTypePassword);
-                        }
-                    }
-
-                    if (tfPass != IntPtr.Zero)
-                    {
-                        int passInputType = _runtime.ReadField<int>(tfPass, tfieldLayout.InputType);
-                        if (passInputType != GameSchema.TField.InputTypePassword)
-                        {
-                            _runtime.WriteField(tfPass, tfieldLayout.InputType, GameSchema.TField.InputTypePassword);
-                        }
-                    }
-                }
+                EnforceLoginScreenPasswordFields(_runtime, loginScr);
             }
             else
             {
                 if (!string.IsNullOrEmpty(OriginalServerListCaption))
                 {
-                    IntPtr serverScreen = _runtime.ReadStatic<IntPtr>(GameSchema.GameCanvas.ClassName, gameCanvasLayout.ServerScreen);
-                    if (serverScreen != IntPtr.Zero)
-                    {
-                        IntPtr cmdArr = _runtime.ReadFieldPtr(serverScreen, serverListLayout.Cmd);
-                        if (cmdArr != IntPtr.Zero)
-                        {
-                            IntPtr[] cmds = _runtime.ReadPointerArray(cmdArr);
-                            if (cmds.Length > 0 && cmds[0] != IntPtr.Zero)
-                            {
-                                _runtime.WriteStringField(cmds[0], commandLayout.Caption, OriginalServerListCaption);
-                            }
-                        }
-                    }
+                    _ = ApplyServerListCaptionMask(_runtime, OriginalServerListCaption);
                     OriginalServerListCaption = null;
                 }
 
@@ -154,7 +147,7 @@ public sealed class SessionMaskingController(IGameRuntime runtime)
         }
     }
 
-    public void SyncInGameCharacterNameMasking(bool isMasked, bool isInGame, string username)
+    public void SyncInGameCharacterNameMasking(bool isMasked, bool isInGame)
     {
         if (!isInGame) return;
 

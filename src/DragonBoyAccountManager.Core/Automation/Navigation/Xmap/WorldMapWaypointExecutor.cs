@@ -140,24 +140,45 @@ public static class WorldMapWaypointExecutor
         int wpTargetY = GetWaypointTargetY(wp, isAirOrTower);
         int approachX = GetWaypointApproachX(wp, wpTargetX, wpTargetY, mapPixelWidth, isAirOrTower);
 
-        if (approachX != wpTargetX)
+        await ExecuteTeleportAndChangeMapAsync(
+            runtime,
+            charPtr,
+            servicePtr,
+            wpTargetX,
+            wpTargetY,
+            approachX,
+            wp.IsOffline,
+            cancellationToken);
+
+        return Result.Success();
+    }
+
+    public static async Task ExecuteTeleportAndChangeMapAsync(
+        IGameRuntime runtime,
+        IntPtr charPtr,
+        IntPtr servicePtr,
+        int targetX,
+        int targetY,
+        int approachX,
+        bool isOffline,
+        CancellationToken cancellationToken = default)
+    {
+        if (approachX != targetX)
         {
-            await TeleportToAsync(runtime, charPtr, servicePtr, approachX, wpTargetY, cancellationToken);
+            await TeleportToAsync(runtime, charPtr, servicePtr, approachX, targetY, cancellationToken);
             await Task.Delay(100, cancellationToken);
             runtime.CallMethod(GameSchema.Service.ClassName, GameSchema.Service.MethodCharMove, servicePtr);
             await Task.Delay(50, cancellationToken);
         }
 
-        await TeleportToAsync(runtime, charPtr, servicePtr, wpTargetX, wpTargetY, cancellationToken);
+        await TeleportToAsync(runtime, charPtr, servicePtr, targetX, targetY, cancellationToken);
         await Task.Delay(80, cancellationToken);
 
-        await SendNormalMoveAsync(runtime, charPtr, servicePtr, wpTargetX, wpTargetY, cancellationToken);
+        await SendNormalMoveAsync(runtime, charPtr, servicePtr, targetX, targetY, cancellationToken);
         await Task.Delay(60, cancellationToken);
 
-        string changeMapMethod = wp.IsOffline ? GameSchema.Service.MethodGetMapOffline : GameSchema.Service.MethodRequestChangeMap;
+        string changeMapMethod = isOffline ? GameSchema.Service.MethodGetMapOffline : GameSchema.Service.MethodRequestChangeMap;
         runtime.CallMethod(GameSchema.Service.ClassName, changeMapMethod, servicePtr);
-
-        return Result.Success();
     }
 
     public static async Task<Result> StepToAirMapBottomAsync(
@@ -207,13 +228,17 @@ public static class WorldMapWaypointExecutor
         WorldNpcInfo shipNpc,
         int currentMapId,
         int targetPlanetMapId,
+        bool teleportToNpc = true,
         CancellationToken cancellationToken = default)
     {
         int npcX = shipNpc.X;
         int npcY = shipNpc.Y - 3;
 
-        await TeleportToAsync(runtime, charPtr, servicePtr, npcX, npcY, cancellationToken);
-        await Task.Delay(180, cancellationToken);
+        if (teleportToNpc)
+        {
+            await TeleportToAsync(runtime, charPtr, servicePtr, npcX, npcY, cancellationToken);
+            await Task.Delay(180, cancellationToken);
+        }
 
         runtime.CallMethod(GameSchema.Service.ClassName, GameSchema.Service.MethodOpenMenu, servicePtr, shipNpc.TemplateId);
         await Task.Delay(400, cancellationToken);

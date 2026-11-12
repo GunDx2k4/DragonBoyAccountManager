@@ -1,7 +1,7 @@
 using System.Diagnostics;
 using DragonBoyAccountManager.Core.Common;
-using DragonBoyAccountManager.Core.Interop;
 using DragonBoyAccountManager.Core.Interop.Abstractions;
+using DragonBoyAccountManager.Core.Interop.Il2Cpp;
 using DragonBoyAccountManager.Core.Interop.Schema;
 using DragonBoyAccountManager.Core.Interop.Native;
 using DragonBoyAccountManager.Core.Sessions.Validation;
@@ -80,7 +80,7 @@ public class SessionLauncher : ISessionLauncher
         IGameRuntime? gameRuntime = null;
         try
         {
-            gameRuntime = await GameRuntimeFactory.AttachAsync(process, cancellationToken: cancellationToken)
+            gameRuntime = await Il2CppRuntime.AttachAsync(process, cancellationToken: cancellationToken)
                           ?? throw new InvalidOperationException("Failed to attach game runtime.");
 
             if (options.ScreenWidth > 0 && options.ScreenHeight > 0)

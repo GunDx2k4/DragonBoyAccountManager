@@ -37,7 +37,7 @@ public sealed class AutoLoginBehavior : AutomationBehavior<AutoLoginOptions>
         {
             if (Options.IsMasked)
             {
-                _loginScreen.ClearSensitiveInputs(Options.Username);
+                _loginScreen.ClearSensitiveInputs();
             }
             progress?.Report($"[Auto Login] Nhân vật đã vào game: {player.Name}");
             Stop();
@@ -164,7 +164,7 @@ public sealed class AutoLoginBehavior : AutomationBehavior<AutoLoginOptions>
             if (!string.IsNullOrWhiteSpace(Options.Username) && !string.IsNullOrWhiteSpace(Options.Password))
             {
                 progress?.Report("[Auto Login] Mở màn hình đăng nhập...");
-                _loginScreen.OpenLoginScreen(Options.IsMasked, Options.Username);
+                _loginScreen.OpenLoginScreen(Options.IsMasked);
 
                 var waitLoginScrDeadline = DateTime.UtcNow.AddSeconds(5);
                 while (DateTime.UtcNow < waitLoginScrDeadline && !cancellationToken.IsCancellationRequested)
@@ -177,7 +177,7 @@ public sealed class AutoLoginBehavior : AutomationBehavior<AutoLoginOptions>
 
                 if (_loginScreen.GetCurrentScreenName() != GameSchema.LoginScr.ClassName)
                 {
-                    _loginScreen.SwitchToLoginScreen(Options.IsMasked, Options.Username);
+                    _loginScreen.SwitchToLoginScreen(Options.IsMasked);
                     await Task.Delay(500, cancellationToken);
                 }
 
@@ -207,7 +207,7 @@ public sealed class AutoLoginBehavior : AutomationBehavior<AutoLoginOptions>
         }
         else
         {
-            _loginScreen.SwitchToLoginScreen(Options.IsMasked, Options.Username);
+            _loginScreen.SwitchToLoginScreen(Options.IsMasked);
             await Task.Delay(800, cancellationToken);
         }
     }

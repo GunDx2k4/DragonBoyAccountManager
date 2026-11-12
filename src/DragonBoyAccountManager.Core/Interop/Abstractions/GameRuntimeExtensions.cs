@@ -29,11 +29,6 @@ public static class GameRuntimeExtensions
         return gameScr;
     }
 
-    public static IntPtr GetGameCanvasPtr(this IGameRuntime runtime)
-    {
-        return runtime.ReadStatic<IntPtr>(GameSchema.GameCanvas.ClassName, runtime.Layout.GameCanvas.Instance);
-    }
-
     public static int ReadArrayLength(this IGameRuntime runtime, IntPtr arrayPtr)
     {
         if (arrayPtr == IntPtr.Zero) return 0;

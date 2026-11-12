@@ -13,16 +13,6 @@ public interface IWorldEntity : IPositioned
     string EntityType { get; }
 }
 
-public static class PositionedExtensions
-{
-    public static double DistanceTo(this IPositioned source, int targetX, int targetY)
-    {
-        int dx = source.X - targetX;
-        int dy = source.Y - targetY;
-        return Math.Sqrt(dx * dx + dy * dy);
-    }
-}
-
 public sealed record WorldMobInfo(
     int Id,
     int TemplateId,

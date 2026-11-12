@@ -21,7 +21,7 @@ public sealed class GameConfigController(IGameRuntime runtime)
             ApplyResolutionAndZoom(config);
             ApplySoundAndGraphic(config);
             ApplyEffectsAndChat(config);
-            ApplyAutoPickTab(true);
+            ApplyAutoPickTab(config.EnablePickTab);
         }
         catch
         {
@@ -35,7 +35,7 @@ public sealed class GameConfigController(IGameRuntime runtime)
             ApplyResolutionAndZoom(_currentConfig);
             ApplySoundAndGraphic(_currentConfig);
             ApplyEffectsAndChat(_currentConfig);
-            ApplyAutoPickTab(true);
+            ApplyAutoPickTab(_currentConfig.EnablePickTab);
         }
         catch
         {
@@ -68,13 +68,17 @@ public sealed class GameConfigController(IGameRuntime runtime)
                 _runtime.WriteField(graphicsStatic, graphicsLayout.ZoomLevel, zoom);
             }
 
-            IntPtr motherCanvasStatic = _runtime.GetStaticFieldsPtr(GameSchema.MotherCanvas.ClassName);
-            if (motherCanvasStatic != IntPtr.Zero)
+            var motherLayout = _runtime.Layout.MotherCanvas;
+            if (motherLayout.Instance >= 0 && motherLayout.ZoomLevel >= 0)
             {
-                IntPtr motherInstance = _runtime.ReadFieldPtr(motherCanvasStatic, 0x0);
-                if (motherInstance != IntPtr.Zero)
+                IntPtr motherCanvasStatic = _runtime.GetStaticFieldsPtr(GameSchema.MotherCanvas.ClassName);
+                if (motherCanvasStatic != IntPtr.Zero)
                 {
-                    _runtime.WriteField(motherInstance, 0x18, zoom);
+                    IntPtr motherInstance = _runtime.ReadFieldPtr(motherCanvasStatic, motherLayout.Instance);
+                    if (motherInstance != IntPtr.Zero)
+                    {
+                        _runtime.WriteField(motherInstance, motherLayout.ZoomLevel, zoom);
+                    }
                 }
             }
         }

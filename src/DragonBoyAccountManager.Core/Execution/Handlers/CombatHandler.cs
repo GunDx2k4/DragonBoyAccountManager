@@ -14,6 +14,7 @@ public class CombatHandler(IGameRuntime runtime) :
     private readonly IGameRuntime _runtime = runtime;
     private IntPtr _cachedVMob;
     private IntPtr _cachedVMobItems;
+    private uint _cachedVMobItemsHandle;
     private IntPtr _cachedEmptyVChar;
 
     public Task<Result> HandleAsync(SetInGameAutoTrainCommand command, CancellationToken cancellationToken)
@@ -371,14 +372,14 @@ public class CombatHandler(IGameRuntime runtime) :
         if (service == IntPtr.Zero)
             return Result.Failure("Không tìm thấy Service.");
 
-        IntPtr vMob = EnsureValidMyVector(ref _cachedVMob, clearElements: true);
-        IntPtr vChar = EnsureValidMyVector(ref _cachedEmptyVChar, clearElements: false);
+        IntPtr vMob = EnsureValidMyVector(ref _cachedVMob, clearElements: true, pinInitialItems: false);
+        IntPtr vChar = EnsureValidMyVector(ref _cachedEmptyVChar, clearElements: false, pinInitialItems: true);
 
         if (vMob == IntPtr.Zero || vChar == IntPtr.Zero)
             return Result.Failure("Không thể tạo vector tấn công.");
 
         _runtime.CallMethod(GameSchema.MyVector.ClassName, GameSchema.MyVector.MethodAddElement, vMob, mobPtr);
-        PinVectorBackingStorage(vMob, ref _cachedVMobItems);
+        PinVectorBackingStorage(vMob, ref _cachedVMobItems, ref _cachedVMobItemsHandle);
 
         _runtime.CallMethod(GameSchema.Service.ClassName, GameSchema.Service.MethodSendPlayerAttack, service, vMob, vChar, 1);
 
@@ -392,7 +393,7 @@ public class CombatHandler(IGameRuntime runtime) :
         return Result.Success($"Đã đánh {command.MobName} #{command.MobId}");
     }
 
-    private IntPtr EnsureValidMyVector(ref IntPtr vectorPtr, bool clearElements)
+    private IntPtr EnsureValidMyVector(ref IntPtr vectorPtr, bool clearElements, bool pinInitialItems)
     {
         if (vectorPtr != IntPtr.Zero &&
             _runtime.GetClassName(vectorPtr) == GameSchema.MyVector.ClassName)
@@ -416,17 +417,20 @@ public class CombatHandler(IGameRuntime runtime) :
             if (listPtr != IntPtr.Zero)
             {
                 _runtime.PinObject(listPtr);
-                IntPtr itemsPtr = _runtime.ReadArrayListItemsPtr(listPtr);
-                if (itemsPtr != IntPtr.Zero)
+                if (pinInitialItems)
                 {
-                    _runtime.PinObject(itemsPtr);
+                    IntPtr itemsPtr = _runtime.ReadArrayListItemsPtr(listPtr);
+                    if (itemsPtr != IntPtr.Zero)
+                    {
+                        _runtime.PinObject(itemsPtr);
+                    }
                 }
             }
         }
         return vectorPtr;
     }
 
-    private void PinVectorBackingStorage(IntPtr vectorPtr, ref IntPtr cachedItemsPtr)
+    private void PinVectorBackingStorage(IntPtr vectorPtr, ref IntPtr cachedItemsPtr, ref uint cachedHandle)
     {
         IntPtr listPtr = _runtime.ReadFieldPtr(vectorPtr, _runtime.Layout.MyVector.A);
         if (listPtr == IntPtr.Zero) return;
@@ -434,8 +438,12 @@ public class CombatHandler(IGameRuntime runtime) :
         IntPtr itemsPtr = _runtime.ReadArrayListItemsPtr(listPtr);
         if (itemsPtr != IntPtr.Zero && itemsPtr != cachedItemsPtr)
         {
+            if (cachedHandle != 0)
+            {
+                _runtime.UnpinObject(cachedHandle);
+            }
             cachedItemsPtr = itemsPtr;
-            _runtime.PinObject(itemsPtr);
+            cachedHandle = _runtime.PinObject(itemsPtr);
         }
     }
 }

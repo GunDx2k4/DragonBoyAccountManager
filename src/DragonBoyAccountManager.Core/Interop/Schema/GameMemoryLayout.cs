@@ -321,18 +321,6 @@ public sealed class GameMemoryLayout
     public ScaleGUILayout ScaleGUI { get; }
     public MotherCanvasLayout MotherCanvas { get; }
 
-    public long CharRva { get; }
-    public long TileMapRva { get; }
-    public long GameScrRva { get; }
-    public long GameCanvasRva { get; }
-    public long GameMidletRva { get; }
-    public long MainRva { get; }
-    public long RmsRva { get; }
-    public long ServiceRva { get; }
-    public long AutoTrainMenuRva { get; }
-    public long MResourcesRva { get; }
-    public long MGraphicsRva { get; }
-
     public GameMemoryLayout(GameVersionSchema schema)
     {
         ArgumentNullException.ThrowIfNull(schema);
@@ -653,18 +641,6 @@ public sealed class GameMemoryLayout
             Instance: ResolveStatic(schema, GameSchema.MotherCanvas.ClassName, GameSchema.MotherCanvas.StaticInstance),
             ZoomLevel: ResolveInstance(schema, GameSchema.MotherCanvas.ClassName, GameSchema.MotherCanvas.FieldZoomLevel)
         );
-
-        CharRva = schema.GetTypeInfoRva("Char");
-        TileMapRva = schema.GetTypeInfoRva("TileMap");
-        GameScrRva = schema.GetTypeInfoRva("GameScr");
-        GameCanvasRva = schema.GetTypeInfoRva("GameCanvas");
-        GameMidletRva = schema.GetTypeInfoRva("GameMidlet");
-        MainRva = schema.GetTypeInfoRva("Main");
-        RmsRva = schema.GetTypeInfoRva("Rms");
-        ServiceRva = schema.GetTypeInfoRva("Service");
-        AutoTrainMenuRva = schema.GetTypeInfoRva("AutoTrainMenu");
-        MResourcesRva = schema.GetTypeInfoRva(GameSchema.mResources.ClassName);
-        MGraphicsRva = schema.GetTypeInfoRva(GameSchema.mGraphics.ClassName);
     }
 
     private static int ResolveInstance(GameVersionSchema schema, string className, string fieldName, int fallback = -1)

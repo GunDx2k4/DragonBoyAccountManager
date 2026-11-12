@@ -143,9 +143,6 @@ public static class GameEngineExtensions
             IsRandom = isRandom
         });
 
-    public static bool UpdateAutoChatOptions(this IGameAutomationService engine, Guid accountId, AutoChatOptions options)
-        => engine.UpdateBehaviorOptions<AutoChatBehavior, AutoChatOptions>(accountId, options);
-
     public static bool UpdateAutoChatConfig(this IGameAutomationService engine, Guid accountId, IReadOnlyList<string> messages, TimeSpan interval, ChatType type = ChatType.Map, bool isRandom = false)
         => engine.UpdateBehaviorOptions<AutoChatBehavior, AutoChatOptions>(accountId, new AutoChatOptions
         {

@@ -1,4 +1,3 @@
-using System.Buffers.Binary;
 using System.Collections.Concurrent;
 using System.Text;
 using DragonBoyAccountManager.Core.Interop.Native;
@@ -61,21 +60,6 @@ public class ProcessMemory(IntPtr handle) : IMemoryAccessor
         TryWrite(address, value);
     }
 
-    public unsafe bool TryReadBytes(IntPtr address, Span<byte> destination)
-    {
-        if (!IsValidAddress(address) || destination.IsEmpty) return false;
-
-        fixed (byte* pDest = destination)
-        {
-            return NativeMethods.ReadProcessMemory(
-                _handle,
-                address,
-                pDest,
-                (nuint)destination.Length,
-                out nuint bytesRead) && bytesRead == (nuint)destination.Length;
-        }
-    }
-
     public unsafe byte[] ReadBytes(IntPtr address, int size)
     {
         if (!IsValidAddress(address) || size <= 0) return [];
@@ -96,14 +80,10 @@ public class ProcessMemory(IntPtr handle) : IMemoryAccessor
     }
 
     public byte ReadByte(IntPtr address) => Read<byte>(address);
-    public short ReadShort(IntPtr address) => Read<short>(address);
     public ushort ReadUShort(IntPtr address) => Read<ushort>(address);
     public int ReadInt(IntPtr address) => Read<int>(address);
     public uint ReadUInt(IntPtr address) => Read<uint>(address);
     public long ReadLong(IntPtr address) => Read<long>(address);
-    public ulong ReadULong(IntPtr address) => Read<ulong>(address);
-    public float ReadFloat(IntPtr address) => Read<float>(address);
-    public double ReadDouble(IntPtr address) => Read<double>(address);
 
     public IntPtr ReadIntPtr(IntPtr address)
     {
@@ -164,66 +144,6 @@ public class ProcessMemory(IntPtr handle) : IMemoryAccessor
         if (address == IntPtr.Zero) return false;
         _allocations.TryRemove(address, out _);
         return NativeMethods.VirtualFreeEx(_handle, address, 0, MemoryFreeType.Release);
-    }
-
-    public unsafe IntPtr AllocateAndWrite(byte[] data)
-    {
-        if (data == null || data.Length == 0) return IntPtr.Zero;
-
-        IntPtr addr = Allocate(data.Length);
-        if (addr == IntPtr.Zero) return IntPtr.Zero;
-
-        fixed (byte* pData = data)
-        {
-            NativeMethods.WriteProcessMemory(_handle, addr, pData, (nuint)data.Length, out _);
-        }
-        return addr;
-    }
-
-    public IntPtr AllocateAndWrite(string? data)
-    {
-        if (string.IsNullOrEmpty(data))
-            return AllocateAndWrite([(byte)0]);
-
-        byte[] bytes = Encoding.UTF8.GetBytes(data.EndsWith('\0') ? data : data + "\0");
-        return AllocateAndWrite(bytes);
-    }
-
-    public unsafe IntPtr AllocateAndWrite<T>(T value) where T : unmanaged
-    {
-        IntPtr addr = Allocate(sizeof(T));
-        if (addr != IntPtr.Zero)
-        {
-            Write(addr, value);
-        }
-        return addr;
-    }
-
-    public IntPtr AllocateAndWrite(IntPtr data)
-    {
-        return Is64Bit
-            ? AllocateAndWrite(data.ToInt64())
-            : AllocateAndWrite(unchecked((int)(long)data));
-    }
-
-    public IntPtr AllocateAndWrite(IntPtr[] data)
-    {
-        if (data == null || data.Length == 0) return IntPtr.Zero;
-
-        int ptrSize = PointerSize;
-        byte[] bytes = new byte[data.Length * ptrSize];
-        for (int i = 0; i < data.Length; i++)
-        {
-            if (Is64Bit)
-            {
-                BinaryPrimitives.WriteInt64LittleEndian(bytes.AsSpan(i * 8, 8), data[i].ToInt64());
-            }
-            else
-            {
-                BinaryPrimitives.WriteInt32LittleEndian(bytes.AsSpan(i * 4, 4), unchecked((int)(long)data[i]));
-            }
-        }
-        return AllocateAndWrite(bytes);
     }
 
     public void Dispose()

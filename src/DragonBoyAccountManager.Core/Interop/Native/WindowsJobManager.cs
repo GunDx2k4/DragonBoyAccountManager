@@ -22,10 +22,6 @@ public static partial class WindowsJobManager
     [return: MarshalAs(UnmanagedType.Bool)]
     private static partial bool AssignProcessToJobObject(IntPtr hJob, IntPtr hProcess);
 
-    [LibraryImport(Kernel32, SetLastError = true)]
-    [return: MarshalAs(UnmanagedType.Bool)]
-    private static partial bool CloseHandle(IntPtr hObject);
-
     private const int JobObjectExtendedLimitInformation = 9;
     private const uint JOB_OBJECT_LIMIT_KILL_ON_JOB_CLOSE = 0x00002000;
 
