@@ -1,6 +1,11 @@
 using System.Globalization;
+using System.Windows;
 using CommunityToolkit.Mvvm.Input;
+using DragonBoyAccountManager.Core.Automation.Navigation.Xmap;
+using DragonBoyAccountManager.Core.Engine.Abstractions;
 using DragonBoyAccountManager.Core.Telemetry.Snapshots;
+using DragonBoyAccountManager.GUI.Presentation.Features.MapUtilities.Dialogs;
+using DragonBoyAccountManager.GUI.Presentation.Features.MapUtilities.Items;
 
 namespace DragonBoyAccountManager.GUI.Presentation.Features.MapUtilities;
 
@@ -94,8 +99,8 @@ public sealed partial class MapUtilitiesTabViewModel
         if (targetIds.Count == 0) return;
 
         _moveWaypointCts?.Cancel();
-        _moveWaypointCts?.Dispose();
         var cts = new CancellationTokenSource();
+        var token = cts.Token;
         _moveWaypointCts = cts;
 
         string destinationName = !string.IsNullOrWhiteSpace(wp.Name)
@@ -108,15 +113,23 @@ public sealed partial class MapUtilitiesTabViewModel
 
         try
         {
-            await Task.WhenAll(targetIds.Select(id => _gameEngine.EnterWaypointAsync(id, wp.X, wp.Y, isTeleport, cts.Token)));
+            await Task.WhenAll(targetIds.Select(id => _gameEngine.EnterWaypointAsync(id, wp.X, wp.Y, isTeleport, token)));
 
-            if (!cts.Token.IsCancellationRequested)
+            if (!token.IsCancellationRequested)
             {
                 StatusText = $"Đã chuyển tới {destinationName} ({targetIds.Count} tài khoản)";
             }
         }
         catch (OperationCanceledException)
         {
+        }
+        finally
+        {
+            if (_moveWaypointCts == cts)
+            {
+                _moveWaypointCts = null;
+            }
+            cts.Dispose();
         }
     }
 
@@ -136,8 +149,14 @@ public sealed partial class MapUtilitiesTabViewModel
         StatusText = $"Đã chọn {entity.Name} ({targetIds.Count} tài khoản)";
     }
 
-    [RelayCommand]
-    public async Task UseCapsuleAsync()
+    private static int ResolveTargetMapId(object? parameter) => parameter switch
+    {
+        XmapConnectedNodeItem item => item.TargetMapId,
+        int id => id,
+        _ => -1
+    };
+
+    private async Task ExecuteBatchActionAsync(string actionName, Func<Guid, Task<DragonBoyAccountManager.Core.Common.Results.Result>> action)
     {
         var targets = GetTargetAccountIds();
         if (targets.Count == 0)
@@ -150,7 +169,7 @@ public sealed partial class MapUtilitiesTabViewModel
         string lastMsg = string.Empty;
         foreach (var id in targets)
         {
-            var res = await _gameEngine.UseCapsuleAsync(id);
+            var res = await action(id);
             if (res.IsSuccess)
             {
                 successCount++;
@@ -158,45 +177,179 @@ public sealed partial class MapUtilitiesTabViewModel
             lastMsg = res.Message;
         }
 
-        if (targets.Count == 1)
+        StatusText = targets.Count == 1
+            ? lastMsg
+            : $"{actionName}: {successCount}/{targets.Count} tài khoản thành công";
+    }
+
+    [RelayCommand]
+    public Task UseCapsuleAsync() => ExecuteBatchActionAsync("Dùng Capsule", id => _gameEngine.UseCapsuleAsync(id));
+
+    [RelayCommand]
+    public Task UseTdltAsync() => ExecuteBatchActionAsync("Dùng TDLT", id => _gameEngine.UseTdltAsync(id));
+
+    [RelayCommand]
+    public async Task StartXmap(object? parameter)
+    {
+        XmapMapItemViewModel? target = parameter as XmapMapItemViewModel ?? SelectedXmapTarget;
+        if (target == null)
         {
-            StatusText = lastMsg;
+            StatusText = "Chưa chọn map đích!";
+            return;
         }
-        else
+
+        SelectedXmapTarget = target;
+
+        var targetIds = GetTargetAccountIds();
+        if (targetIds.Count == 0)
         {
-            StatusText = $"Dùng Capsule: {successCount}/{targets.Count} tài khoản thành công";
+            StatusText = "Chưa chọn tài khoản đang chạy nào!";
+            return;
+        }
+
+        _xmapCts?.Cancel();
+        var cts = new CancellationTokenSource();
+        var token = cts.Token;
+        _xmapCts = cts;
+
+        IsNavigatingXmap = true;
+        XmapStatus = $"Đang Xmap tới {target.DisplayText}...";
+        StatusText = $"Bắt đầu Xmap tới {target.DisplayText} ({targetIds.Count} tài khoản)";
+
+        bool isTeleport = FastTeleport;
+
+        try
+        {
+            var tasks = targetIds.Select(async id =>
+            {
+                var res = await _gameEngine.XmapMoveAsync(id, target.Id, isTeleport, token);
+                return res;
+            });
+
+            var results = await Task.WhenAll(tasks);
+            int successes = results.Count(r => r.IsSuccess);
+
+            if (!token.IsCancellationRequested)
+            {
+                StatusText = $"Xmap tới {target.DisplayText}: {successes}/{targetIds.Count} tài khoản thành công";
+                XmapStatus = $"Đã tới {target.DisplayText}";
+            }
+        }
+        catch (OperationCanceledException)
+        {
+            StatusText = "Đã dừng Xmap.";
+            XmapStatus = "Đã dừng";
+        }
+        finally
+        {
+            if (_xmapCts == cts)
+            {
+                IsNavigatingXmap = false;
+                _xmapCts = null;
+            }
+            cts.Dispose();
         }
     }
 
     [RelayCommand]
-    public async Task UseTdltAsync()
+    public void StopXmap()
     {
-        var targets = GetTargetAccountIds();
-        if (targets.Count == 0)
-        {
-            StatusText = "Chưa chọn tài khoản đang chạy nào!";
-            return;
-        }
+        _xmapCts?.Cancel();
+        IsNavigatingXmap = false;
+        XmapStatus = "Đã dừng";
+        StatusText = "Đã dừng Xmap.";
+    }
 
-        int successCount = 0;
-        string lastMsg = string.Empty;
-        foreach (var id in targets)
+    [RelayCommand]
+    public void ReloadXmap()
+    {
+        WorldMapGraph.Instance.Initialize();
+        InitializeXmapData();
+        StatusText = "Đã nạp lại dữ liệu map.";
+    }
+
+    [RelayCommand]
+    public void SelectConnectedNode(object? parameter)
+    {
+        int targetId = ResolveTargetMapId(parameter);
+        if (targetId >= 0)
         {
-            var res = await _gameEngine.UseTdltAsync(id);
-            if (res.IsSuccess)
+            var target = _allXmapMaps.FirstOrDefault(m => m.Id == targetId);
+            if (target != null)
             {
-                successCount++;
+                SelectedXmapTarget = target;
             }
-            lastMsg = res.Message;
         }
+    }
 
-        if (targets.Count == 1)
+    [RelayCommand]
+    public void OpenMapGraphDialog()
+    {
+        var vm = new XmapNodePickerViewModel(CurrentMapId, CurrentMapName, SelectedXmapTarget?.Id);
+        var dialog = new XmapNodePickerDialog(vm)
         {
-            StatusText = lastMsg;
+            Owner = Application.Current?.MainWindow
+        };
+
+        bool? result = dialog.ShowDialog();
+        if (result == true && dialog.SelectedNode != null)
+        {
+            var found = _allXmapMaps.FirstOrDefault(m => m.Id == dialog.SelectedNode.Id);
+            if (found != null)
+            {
+                SelectedXmapTarget = found;
+            }
         }
-        else
+    }
+
+    [RelayCommand]
+    public void InspectNode(object? parameter)
+    {
+        int targetId = ResolveTargetMapId(parameter);
+        if (targetId >= 0)
         {
-            StatusText = $"Dùng TDLT: {successCount}/{targets.Count} tài khoản thành công";
+            SetFocalMap(targetId, isUserExploration: true);
+        }
+    }
+
+    [RelayCommand]
+    public void ResetFocalToCurrent()
+    {
+        if (CurrentMapId >= 0)
+        {
+            SetFocalMap(CurrentMapId, isUserExploration: false);
+        }
+    }
+
+    [RelayCommand]
+    public async Task NavigateDirectNode(object? parameter)
+    {
+        int targetId = ResolveTargetMapId(parameter);
+        if (targetId < 0) return;
+
+        var targetMap = _allXmapMaps.FirstOrDefault(m => m.Id == targetId);
+        if (targetMap != null)
+        {
+            SelectedXmapTarget = targetMap;
+            await StartXmap(targetMap);
+        }
+    }
+
+    [RelayCommand]
+    public void SelectQuickTargetMapId()
+    {
+        if (int.TryParse(QuickTargetMapIdInput.Trim(), out int targetId))
+        {
+            var target = _allXmapMaps.FirstOrDefault(m => m.Id == targetId);
+            if (target != null)
+            {
+                SelectedXmapTarget = target;
+                QuickTargetMapIdInput = string.Empty;
+            }
+            else
+            {
+                StatusText = $"Không tìm thấy Map #{targetId}";
+            }
         }
     }
 }

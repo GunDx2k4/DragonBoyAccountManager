@@ -500,6 +500,14 @@
         po:Freeze="True"
         Color="#261405" />
     <SolidColorBrush
+        x:Key="GameSelectionAmberTintBrush"
+        po:Freeze="True"
+        Color="#22F9A825" />
+    <SolidColorBrush
+        x:Key="GameSelectionGreenTintBrush"
+        po:Freeze="True"
+        Color="#222E7D32" />
+    <SolidColorBrush
         x:Key="GameDragonBallStarBrush"
         po:Freeze="True"
         Color="#D81B00" />

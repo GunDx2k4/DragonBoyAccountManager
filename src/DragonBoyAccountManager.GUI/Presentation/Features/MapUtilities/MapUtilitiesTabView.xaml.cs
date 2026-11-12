@@ -29,4 +29,20 @@ public partial class MapUtilitiesTabView : UserControl
             }
         }
     }
+
+    private void XmapItem_MouseLeftButtonDown(object sender, System.Windows.Input.MouseButtonEventArgs e)
+    {
+        if (sender is System.Windows.FrameworkElement fe && fe.DataContext is Items.XmapMapItemViewModel item)
+        {
+            if (DataContext is MapUtilitiesTabViewModel vm)
+            {
+                vm.SelectedXmapTarget = item;
+                if (e.ClickCount >= 2)
+                {
+                    vm.StartXmapCommand.Execute(item);
+                }
+                e.Handled = true;
+            }
+        }
+    }
 }

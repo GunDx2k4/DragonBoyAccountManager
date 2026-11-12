@@ -652,6 +652,348 @@
                         </ItemsControl>
                     </ScrollViewer>
                 </TabItem>
+
+                <TabItem Style="{StaticResource GameTabItemStyle}">
+                    <TabItem.Header>
+                        <StackPanel Orientation="Horizontal">
+                            <TextBlock Text="XMAP" />
+                        </StackPanel>
+                    </TabItem.Header>
+                    <Grid Margin="4,4">
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto" />
+                            <RowDefinition Height="Auto" />
+                            <RowDefinition Height="*" />
+                        </Grid.RowDefinitions>
+
+                        <Border Grid.Row="0" Margin="0,0,0,5" Padding="6,6"
+                                Background="{DynamicResource GameBgBrush}"
+                                BorderBrush="{DynamicResource GameBorderBrush}"
+                                BorderThickness="1.5" CornerRadius="4">
+                            <Grid>
+                                <Grid.RowDefinitions>
+                                    <RowDefinition Height="Auto" />
+                                    <RowDefinition Height="Auto" />
+                                    <RowDefinition Height="Auto" />
+                                </Grid.RowDefinitions>
+
+                                <DockPanel Grid.Row="0" Margin="0,0,0,5">
+                                    <StackPanel Orientation="Horizontal" VerticalAlignment="Center" DockPanel.Dock="Left">
+                                        <Border Padding="4,1" Background="{DynamicResource GameGreenBrush}" CornerRadius="3" Margin="0,0,5,0">
+                                            <TextBlock Text="VỊ TRÍ" FontSize="8.5" FontWeight="ExtraBold" Foreground="{DynamicResource GameTextLightBrush}" />
+                                        </Border>
+                                        <TextBlock FontSize="10.5" FontWeight="Bold" Foreground="{DynamicResource GameTextDarkBrush}">
+                                            <Run Text="#" />
+                                            <Run Text="{Binding CurrentMapId, FallbackValue='0'}" />
+                                            <Run Text=" " />
+                                            <Run Text="{Binding CurrentMapName, FallbackValue='Chưa rõ'}" />
+                                        </TextBlock>
+                                    </StackPanel>
+
+                                    <StackPanel Orientation="Horizontal" VerticalAlignment="Center" HorizontalAlignment="Right" DockPanel.Dock="Right">
+                                        <Border Padding="4,1" Background="{DynamicResource GameBadgeShortcutBgBrush}" CornerRadius="3" Margin="0,0,5,0">
+                                            <TextBlock Text="ĐÍCH" FontSize="8.5" FontWeight="ExtraBold" Foreground="{DynamicResource GameBadgeShortcutTextBrush}" />
+                                        </Border>
+                                        <TextBlock FontSize="10.5" FontWeight="ExtraBold" Foreground="{DynamicResource GameTextYellowBrush}">
+                                            <Run Text="{Binding SelectedXmapTarget.DisplayText, Mode=OneWay, FallbackValue='Chưa chọn map'}" />
+                                        </TextBlock>
+                                    </StackPanel>
+                                </DockPanel>
+
+                                <Grid Grid.Row="1" Margin="0,0,0,5">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="*" />
+                                        <ColumnDefinition Width="Auto" />
+                                        <ColumnDefinition Width="Auto" />
+                                        <ColumnDefinition Width="Auto" />
+                                    </Grid.ColumnDefinitions>
+
+                                    <Button Grid.Column="0" Height="28" Margin="0,0,4,0"
+                                            Command="{Binding OpenMapGraphDialogCommand}"
+                                            Style="{StaticResource GamePrimaryButton}"
+                                            ToolTip="Mở sơ đồ đồ thị nhánh trực quan để chọn map đích">
+                                        <TextBlock Text="SƠ ĐỒ BẢN ĐỒ (CHỌN ĐÍCH)" FontSize="9.5" FontWeight="ExtraBold" Foreground="{DynamicResource GameTextLightBrush}" />
+                                    </Button>
+
+                                    <TextBox Grid.Column="1" Width="44" Height="28" Margin="0,0,4,0"
+                                             Text="{Binding QuickTargetMapIdInput, UpdateSourceTrigger=PropertyChanged}"
+                                             Style="{StaticResource GameTextBoxStyle}"
+                                             ToolTip="Nhập nhanh mã ID map đích" />
+
+                                    <Button Grid.Column="2" Height="28" Padding="8,0" Margin="0,0,4,0"
+                                            Command="{Binding SelectQuickTargetMapIdCommand}"
+                                            Style="{StaticResource GameSecondaryButton}"
+                                            ToolTip="Chọn map theo ID vừa nhập">
+                                        <TextBlock Text="CHỌN" FontSize="9" FontWeight="ExtraBold" Foreground="{DynamicResource GameBtnTanTextBrush}" />
+                                    </Button>
+
+                                    <Button Grid.Column="3" Height="28" Padding="8,0"
+                                            Command="{Binding ResetFocalToCurrentCommand}"
+                                            Style="{StaticResource GameSecondaryButton}"
+                                            ToolTip="Quay trở lại bản đồ tài khoản đang đứng">
+                                        <TextBlock Text="VỀ MAP ACC" FontSize="9" FontWeight="ExtraBold" Foreground="{DynamicResource GameBtnTanTextBrush}" />
+                                    </Button>
+                                </Grid>
+
+                                <Grid Grid.Row="2">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="*" />
+                                        <ColumnDefinition Width="Auto" />
+                                        <ColumnDefinition Width="Auto" />
+                                    </Grid.ColumnDefinitions>
+
+                                    <StackPanel Grid.Column="0" VerticalAlignment="Center" Margin="0,0,6,0">
+                                        <TextBlock FontSize="9" Foreground="{DynamicResource GameTextMutedBrush}"
+                                                   Text="{Binding XmapStatus, FallbackValue='Sẵn sàng'}"
+                                                   TextTrimming="CharacterEllipsis" />
+                                    </StackPanel>
+
+                                    <Button Grid.Column="1" Height="28" Padding="12,0" Margin="0,0,4,0"
+                                            Command="{Binding StartXmapCommand}"
+                                            Style="{StaticResource GamePrimaryButton}"
+                                            ToolTip="Bắt đầu di chuyển lộ trình Xmap">
+                                        <TextBlock Text="BẮT ĐẦU" FontSize="10.5" FontWeight="ExtraBold" Foreground="{DynamicResource GameTextLightBrush}" />
+                                    </Button>
+
+                                    <Button Grid.Column="2" Height="28" Padding="12,0"
+                                            Command="{Binding StopXmapCommand}"
+                                            IsEnabled="{Binding IsNavigatingXmap}"
+                                            Style="{StaticResource GameSecondaryButton}"
+                                            ToolTip="Dừng di chuyển Xmap ngay lập tức">
+                                        <TextBlock Text="DỪNG" FontSize="10.5" FontWeight="ExtraBold" Foreground="{DynamicResource GameBtnTanTextBrush}" />
+                                    </Button>
+                                </Grid>
+                            </Grid>
+                        </Border>
+
+                        <Border Grid.Row="1" Margin="0,0,0,5" Padding="5,3"
+                                Background="{DynamicResource GameTabContentBrush}"
+                                BorderBrush="{DynamicResource GameBorderBrush}"
+                                BorderThickness="1"
+                                CornerRadius="4">
+                            <Border.Style>
+                                <Style TargetType="Border">
+                                    <Setter Property="Visibility" Value="Visible" />
+                                    <Style.Triggers>
+                                        <DataTrigger Binding="{Binding CurrentRouteSteps.Count}" Value="0">
+                                            <Setter Property="Visibility" Value="Collapsed" />
+                                        </DataTrigger>
+                                    </Style.Triggers>
+                                </Style>
+                            </Border.Style>
+                            <StackPanel>
+                                <DockPanel Margin="0,0,0,2">
+                                    <TextBlock Text="LỘ TRÌNH KẾT NỐI:" FontSize="9" FontWeight="ExtraBold" Foreground="{DynamicResource GameTextYellowBrush}" DockPanel.Dock="Left" />
+                                    <TextBlock Text="{Binding RouteSummary}" FontSize="8.5" Foreground="{DynamicResource GameTextMutedBrush}" HorizontalAlignment="Right" TextTrimming="CharacterEllipsis" ToolTip="{Binding RouteSummary}" />
+                                </DockPanel>
+                                <ScrollViewer HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Disabled" FocusVisualStyle="{x:Null}">
+                                    <ItemsControl ItemsSource="{Binding CurrentRouteSteps}">
+                                        <ItemsControl.ItemsPanel>
+                                            <ItemsPanelTemplate>
+                                                <StackPanel Orientation="Horizontal" />
+                                            </ItemsPanelTemplate>
+                                        </ItemsControl.ItemsPanel>
+                                        <ItemsControl.ItemTemplate>
+                                            <DataTemplate DataType="{x:Type items:XmapRouteStepItem}">
+                                                <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                                                    <Border Padding="4,1" CornerRadius="3" BorderThickness="1">
+                                                        <Border.Style>
+                                                            <Style TargetType="Border">
+                                                                <Setter Property="Background" Value="{DynamicResource GameBgBrush}" />
+                                                                <Setter Property="BorderBrush" Value="{DynamicResource GameBorderBrush}" />
+                                                                <Style.Triggers>
+                                                                    <DataTrigger Binding="{Binding IsCurrent}" Value="True">
+                                                                        <Setter Property="Background" Value="{DynamicResource GameGreenBrush}" />
+                                                                        <Setter Property="BorderBrush" Value="{DynamicResource GameGreenBrush}" />
+                                                                    </DataTrigger>
+                                                                    <DataTrigger Binding="{Binding IsLast}" Value="True">
+                                                                        <Setter Property="Background" Value="{DynamicResource GameBadgeShortcutBgBrush}" />
+                                                                        <Setter Property="BorderBrush" Value="{DynamicResource GameBadgeShortcutBgBrush}" />
+                                                                    </DataTrigger>
+                                                                </Style.Triggers>
+                                                            </Style>
+                                                        </Border.Style>
+                                                        <StackPanel Orientation="Horizontal">
+                                                            <TextBlock FontSize="8.5" FontWeight="ExtraBold">
+                                                                <TextBlock.Style>
+                                                                    <Style TargetType="TextBlock">
+                                                                        <Setter Property="Foreground" Value="{DynamicResource GameTextDarkBrush}" />
+                                                                        <Style.Triggers>
+                                                                            <DataTrigger Binding="{Binding IsCurrent}" Value="True">
+                                                                                <Setter Property="Foreground" Value="{DynamicResource GameTextLightBrush}" />
+                                                                            </DataTrigger>
+                                                                            <DataTrigger Binding="{Binding IsLast}" Value="True">
+                                                                                <Setter Property="Foreground" Value="{DynamicResource GameBadgeShortcutTextBrush}" />
+                                                                            </DataTrigger>
+                                                                        </Style.Triggers>
+                                                                    </Style>
+                                                                </TextBlock.Style>
+                                                                <Run Text="#" />
+                                                                <Run Text="{Binding MapId}" />
+                                                                <Run Text=" " />
+                                                                <Run Text="{Binding MapName}" />
+                                                            </TextBlock>
+                                                            <TextBlock Margin="3,0,0,0" FontSize="7.5">
+                                                                <TextBlock.Style>
+                                                                    <Style TargetType="TextBlock">
+                                                                        <Setter Property="Foreground" Value="{DynamicResource GameTextMutedBrush}" />
+                                                                        <Style.Triggers>
+                                                                            <DataTrigger Binding="{Binding IsCurrent}" Value="True">
+                                                                                <Setter Property="Foreground" Value="{DynamicResource GameTextLightBrush}" />
+                                                                            </DataTrigger>
+                                                                            <DataTrigger Binding="{Binding IsLast}" Value="True">
+                                                                                <Setter Property="Foreground" Value="{DynamicResource GameBadgeShortcutTextBrush}" />
+                                                                            </DataTrigger>
+                                                                        </Style.Triggers>
+                                                                    </Style>
+                                                                </TextBlock.Style>
+                                                                <Run Text="(" />
+                                                                <Run Text="{Binding DirectionText}" />
+                                                                <Run Text=")" />
+                                                            </TextBlock>
+                                                        </StackPanel>
+                                                    </Border>
+                                                    <TextBlock Text="&gt;" FontSize="9" FontWeight="Bold" Foreground="{DynamicResource GameTextMutedBrush}" Margin="2,0,4,0">
+                                                        <TextBlock.Style>
+                                                            <Style TargetType="TextBlock">
+                                                                <Setter Property="Visibility" Value="Visible" />
+                                                                <Style.Triggers>
+                                                                    <DataTrigger Binding="{Binding IsLast}" Value="True">
+                                                                        <Setter Property="Visibility" Value="Collapsed" />
+                                                                    </DataTrigger>
+                                                                </Style.Triggers>
+                                                            </Style>
+                                                        </TextBlock.Style>
+                                                    </TextBlock>
+                                                </StackPanel>
+                                            </DataTemplate>
+                                        </ItemsControl.ItemTemplate>
+                                    </ItemsControl>
+                                </ScrollViewer>
+                            </StackPanel>
+                        </Border>
+
+                        <Border Grid.Row="2"
+                                Background="{DynamicResource GameTabContentBrush}"
+                                BorderBrush="{DynamicResource GameBorderBrush}"
+                                BorderThickness="1" CornerRadius="4" Padding="5,5">
+                            <DockPanel>
+                                <Border DockPanel.Dock="Top" Margin="0,0,0,5" Padding="6,4"
+                                        Background="{DynamicResource GameBgBrush}"
+                                        BorderBrush="{DynamicResource GameBorderBrush}"
+                                        BorderThickness="1" CornerRadius="4">
+                                    <DockPanel>
+                                        <StackPanel Orientation="Horizontal" VerticalAlignment="Center" DockPanel.Dock="Left">
+                                            <TextBlock Text="CỔNG TỪ: " FontSize="9" FontWeight="ExtraBold" Foreground="{DynamicResource GameTextMutedBrush}" />
+                                            <TextBlock FontSize="10.5" FontWeight="ExtraBold" Foreground="{DynamicResource GameTextDarkBrush}">
+                                                <Run Text="#" />
+                                                <Run Text="{Binding FocalMapId}" />
+                                                <Run Text=" " />
+                                                <Run Text="{Binding FocalMapName}" />
+                                            </TextBlock>
+                                            <TextBlock Text="{Binding FocalPlanetName, StringFormat=' ({0})'}" FontSize="8.5" Foreground="{DynamicResource GameTextMutedBrush}" VerticalAlignment="Center" Margin="3,0,0,0" TextTrimming="CharacterEllipsis" ToolTip="{Binding FocalPlanetName}" />
+                                        </StackPanel>
+
+                                        <Border DockPanel.Dock="Right" Padding="5,1" CornerRadius="3">
+                                            <Border.Style>
+                                                <Style TargetType="Border">
+                                                    <Setter Property="Background" Value="{DynamicResource GameBadgeShortcutBgBrush}" />
+                                                    <Style.Triggers>
+                                                        <DataTrigger Binding="{Binding IsFocalAtCurrentMap}" Value="True">
+                                                            <Setter Property="Background" Value="{DynamicResource GameGreenBrush}" />
+                                                        </DataTrigger>
+                                                    </Style.Triggers>
+                                                </Style>
+                                            </Border.Style>
+                                            <TextBlock FontSize="8" FontWeight="ExtraBold">
+                                                <TextBlock.Style>
+                                                    <Style TargetType="TextBlock">
+                                                        <Setter Property="Foreground" Value="{DynamicResource GameBadgeShortcutTextBrush}" />
+                                                        <Setter Property="Text" Value="ĐANG DUYỆT" />
+                                                        <Style.Triggers>
+                                                            <DataTrigger Binding="{Binding IsFocalAtCurrentMap}" Value="True">
+                                                                <Setter Property="Foreground" Value="{DynamicResource GameTextLightBrush}" />
+                                                                <Setter Property="Text" Value="VỊ TRÍ ACC" />
+                                                            </DataTrigger>
+                                                        </Style.Triggers>
+                                                    </Style>
+                                                </TextBlock.Style>
+                                            </TextBlock>
+                                        </Border>
+                                    </DockPanel>
+                                </Border>
+
+                                <ScrollViewer FocusVisualStyle="{x:Null}" VerticalScrollBarVisibility="Auto">
+                                    <ItemsControl ItemsSource="{Binding AllAdjacentNodes}">
+                                        <ItemsControl.ItemTemplate>
+                                            <DataTemplate DataType="{x:Type items:XmapConnectedNodeItem}">
+                                                <Border Margin="0,0,0,4" Padding="6,5"
+                                                        Background="{DynamicResource GameBgBrush}"
+                                                        BorderThickness="1.2" CornerRadius="4">
+                                                    <Border.Style>
+                                                        <Style TargetType="Border">
+                                                            <Setter Property="BorderBrush" Value="{DynamicResource GameBorderBrush}" />
+                                                            <Style.Triggers>
+                                                                <DataTrigger Binding="{Binding IsOnRoute}" Value="True">
+                                                                    <Setter Property="BorderBrush" Value="{DynamicResource GameTextYellowBrush}" />
+                                                                    <Setter Property="Background" Value="{DynamicResource GameSelectionAmberTintBrush}" />
+                                                                </DataTrigger>
+                                                            </Style.Triggers>
+                                                        </Style>
+                                                    </Border.Style>
+                                                    <Grid>
+                                                        <Grid.ColumnDefinitions>
+                                                            <ColumnDefinition Width="Auto" />
+                                                            <ColumnDefinition Width="*" />
+                                                            <ColumnDefinition Width="Auto" />
+                                                        </Grid.ColumnDefinitions>
+
+                                                        <Border Grid.Column="0" Width="68" Margin="0,0,8,0" Padding="4,2"
+                                                                VerticalAlignment="Center"
+                                                                Background="{DynamicResource GameTabContentBrush}"
+                                                                BorderBrush="{DynamicResource GameBorderBrush}"
+                                                                BorderThickness="1" CornerRadius="3">
+                                                            <TextBlock Text="{Binding DirectionLabel}" FontSize="8.5" FontWeight="ExtraBold"
+                                                                       Foreground="{DynamicResource GameTextDarkBrush}"
+                                                                       HorizontalAlignment="Center" TextTrimming="CharacterEllipsis" ToolTip="{Binding DirectionLabel}" />
+                                                        </Border>
+
+                                                        <StackPanel Grid.Column="1" VerticalAlignment="Center" Margin="0,0,6,0">
+                                                            <TextBlock FontSize="10.5" FontWeight="Bold" Foreground="{DynamicResource GameTextDarkBrush}" TextTrimming="CharacterEllipsis" ToolTip="{Binding TargetMapName}">
+                                                                <Run Text="#" />
+                                                                <Run Text="{Binding TargetMapId}" />
+                                                                <Run Text=" " />
+                                                                <Run Text="{Binding TargetMapName}" />
+                                                            </TextBlock>
+                                                            <TextBlock FontSize="8" Foreground="{DynamicResource GameTextMutedBrush}" Text="{Binding CoordinateDisplay}" TextTrimming="CharacterEllipsis" ToolTip="{Binding CoordinateDisplay}" />
+                                                        </StackPanel>
+
+                                                        <StackPanel Grid.Column="2" Orientation="Horizontal" VerticalAlignment="Center">
+                                                            <Button Height="24" Padding="10,0" Margin="0,0,4,0"
+                                                                    Command="{Binding DataContext.NavigateDirectNodeCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                                                                    CommandParameter="{Binding}"
+                                                                    Style="{StaticResource GamePrimaryButton}"
+                                                                    ToolTip="Đi ngay sang map này">
+                                                                <TextBlock Text="ĐI" FontSize="9" FontWeight="ExtraBold" Foreground="{DynamicResource GameTextLightBrush}" />
+                                                            </Button>
+                                                            <Button Width="26" Height="24"
+                                                                    Command="{Binding DataContext.InspectNodeCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                                                                    CommandParameter="{Binding}"
+                                                                    Style="{StaticResource GameSecondaryButton}"
+                                                                    ToolTip="Xem các cổng tiếp theo của map này">
+                                                                <TextBlock Text="&gt;" FontSize="9" FontWeight="ExtraBold" Foreground="{DynamicResource GameBtnTanTextBrush}" />
+                                                            </Button>
+                                                        </StackPanel>
+                                                    </Grid>
+                                                </Border>
+                                            </DataTemplate>
+                                        </ItemsControl.ItemTemplate>
+                                    </ItemsControl>
+                                </ScrollViewer>
+                            </DockPanel>
+                        </Border>
+                    </Grid>
+                </TabItem>
             </TabControl>
         </Border>
     </Grid>
