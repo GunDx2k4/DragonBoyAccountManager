@@ -9,9 +9,31 @@ namespace DragonBoyAccountManager.Core.Execution.Handlers;
 public class WorldInteractionHandler(IGameRuntime runtime) :
     IGameCommandHandler<FocusEntityCommand>,
     IGameCommandHandler<WakeUpCommand>,
-    IGameCommandHandler<LoginCommand>
+    IGameCommandHandler<LoginCommand>,
+    IGameCommandHandler<OpenNpcMenuCommand>,
+    IGameCommandHandler<ConfirmMenuCommand>
 {
     private readonly IGameRuntime _runtime = runtime;
+
+    public Task<Result> HandleAsync(OpenNpcMenuCommand command, CancellationToken cancellationToken)
+    {
+        IntPtr service = _runtime.GetServicePtr();
+        if (service == IntPtr.Zero)
+            return Task.FromResult(Result.Failure("Không tìm thấy Service."));
+
+        _runtime.CallMethod(GameSchema.Service.ClassName, GameSchema.Service.MethodOpenMenu, service, (int)command.NpcTemplateId);
+        return Task.FromResult(Result.Success($"Đã mở menu NPC #{command.NpcTemplateId}"));
+    }
+
+    public Task<Result> HandleAsync(ConfirmMenuCommand command, CancellationToken cancellationToken)
+    {
+        IntPtr service = _runtime.GetServicePtr();
+        if (service == IntPtr.Zero)
+            return Task.FromResult(Result.Failure("Không tìm thấy Service."));
+
+        _runtime.CallMethod(GameSchema.Service.ClassName, GameSchema.Service.MethodConfirmMenu, service, command.NpcTemplateId, command.SelectIndex);
+        return Task.FromResult(Result.Success($"Đã chọn menu #{command.SelectIndex} của NPC #{command.NpcTemplateId}"));
+    }
 
     public Task<Result> HandleAsync(WakeUpCommand command, CancellationToken cancellationToken)
     {

@@ -26,3 +26,11 @@ public sealed record EnterWaypointCommand(
 {
     public string Name => $"Đi qua waypoint ({WaypointX}, {WaypointY})";
 }
+
+public sealed record XmapMoveCommand(
+    int TargetMapId,
+    bool IsFastTeleport = false
+) : IGameCommand
+{
+    public string Name => $"Xmap tới map #{TargetMapId}";
+}

@@ -57,6 +57,8 @@ public static partial class GameSchema
         public const string MethodSendPlayerAttack = "sendPlayerAttack";
         public const string MethodSelectSkill = "selectSkill";
         public const string MethodWakeUpFromDead = "wakeUpFromDead";
+        public const string MethodOpenMenu = "openMenu";
+        public const string MethodConfirmMenu = "confirmMenu";
     }
 
     public static class Rms

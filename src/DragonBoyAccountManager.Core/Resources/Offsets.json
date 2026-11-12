@@ -1953,6 +1953,8 @@
       "Service.sendPlayerAttack": 4235216,
       "Service.selectSkill": 4230384,
       "Service.wakeUpFromDead": 4254656,
+      "Service.openMenu": 4216928,
+      "Service.confirmMenu": 4192064,
       "Service.gI": 4197120,
       "Rms.saveRMSString": 2726208,
       "Rms.saveRMSInt": 2725840,

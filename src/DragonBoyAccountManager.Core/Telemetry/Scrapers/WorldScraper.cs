@@ -188,12 +188,24 @@ public class WorldScraper(IGameRuntime runtime) : ISnapshotScraper<WorldSnapshot
             if (ptr == IntPtr.Zero) continue;
 
             int id = _runtime.ReadField<int>(ptr, npcLayout.NpcId);
-            int templateId = _runtime.ReadField<int>(ptr, npcLayout.TemplateId);
+            IntPtr templatePtr = _runtime.ReadField<IntPtr>(ptr, npcLayout.Template);
+            int templateId = -1;
+            string name = string.Empty;
+            if (templatePtr != IntPtr.Zero)
+            {
+                templateId = _runtime.ReadField<int>(templatePtr, _runtime.Layout.NpcTemplate.NpcTemplateId);
+                name = _runtime.ReadStringField(templatePtr, _runtime.Layout.NpcTemplate.Name);
+            }
+
+            if (string.IsNullOrWhiteSpace(name))
+            {
+                name = GetNpcTemplateName(templateId);
+            }
+
             int x = _runtime.ReadField<int>(ptr, npcLayout.Cx);
             int y = _runtime.ReadField<int>(ptr, npcLayout.Cy);
 
-            string name = GetNpcTemplateName(templateId);
-            result.Add(new WorldNpcInfo(id, name, x, y));
+            result.Add(new WorldNpcInfo(id, name, x, y, templateId));
         }
 
         return result;
@@ -253,6 +265,8 @@ public class WorldScraper(IGameRuntime runtime) : ISnapshotScraper<WorldSnapshot
             short minY = _runtime.ReadField<short>(ptr, waypointLayout.MinY);
             short maxX = _runtime.ReadField<short>(ptr, waypointLayout.MaxX);
             short maxY = _runtime.ReadField<short>(ptr, waypointLayout.MaxY);
+            bool isEnter = waypointLayout.IsEnter >= 0 && _runtime.ReadField<bool>(ptr, waypointLayout.IsEnter);
+            bool isOffline = waypointLayout.IsOffline >= 0 && _runtime.ReadField<bool>(ptr, waypointLayout.IsOffline);
 
             string name = string.Empty;
             IntPtr popupPtr = _runtime.ReadFieldPtr(ptr, waypointLayout.Popup);
@@ -272,7 +286,7 @@ public class WorldScraper(IGameRuntime runtime) : ISnapshotScraper<WorldSnapshot
             int centerX = (minX + maxX) / 2;
             int centerY = (minY + maxY) / 2;
 
-            result.Add(new WorldWaypointInfo(name, centerX, centerY, minX, minY, maxX, maxY));
+            result.Add(new WorldWaypointInfo(name, centerX, centerY, minX, minY, maxX, maxY, isOffline, isEnter));
         }
 
         var sorted = result.OrderBy(w => w.X).ToList();

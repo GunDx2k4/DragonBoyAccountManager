@@ -95,7 +95,7 @@ public sealed record MobTemplateLayout(
 
 public sealed record NpcLayout(
     int NpcId,
-    int TemplateId,
+    int Template,
     int Cx,
     int Cy,
     int ArrNpcTemplate);
@@ -142,6 +142,8 @@ public sealed record WaypointLayout(
     int MinY,
     int MaxX,
     int MaxY,
+    int IsEnter,
+    int IsOffline,
     int Popup);
 
 public sealed record PopUpLayout(
@@ -435,9 +437,9 @@ public sealed class GameMemoryLayout
 
         Npc = new NpcLayout(
             NpcId: ResolveInstance(schema, GameSchema.Npc.ClassName, GameSchema.Npc.FieldNpcId),
-            TemplateId: ResolveInstance(schema, GameSchema.Npc.ClassName, GameSchema.Npc.FieldTemplateId),
-            Cx: ResolveInstance(schema, GameSchema.Npc.ClassName, GameSchema.Npc.FieldCx),
-            Cy: ResolveInstance(schema, GameSchema.Npc.ClassName, GameSchema.Npc.FieldCy),
+            Template: ResolveInstance(schema, GameSchema.Npc.ClassName, GameSchema.Npc.FieldTemplate),
+            Cx: ResolveInstance(schema, GameSchema.Npc.ClassName, GameSchema.Npc.FieldCx, ResolveInstance(schema, GameSchema.Char.ClassName, GameSchema.Char.FieldX)),
+            Cy: ResolveInstance(schema, GameSchema.Npc.ClassName, GameSchema.Npc.FieldCy, ResolveInstance(schema, GameSchema.Char.ClassName, GameSchema.Char.FieldY)),
             ArrNpcTemplate: ResolveStatic(schema, GameSchema.Npc.ClassName, GameSchema.Npc.StaticArrNpcTemplate)
         );
 
@@ -490,6 +492,8 @@ public sealed class GameMemoryLayout
             MinY: ResolveInstance(schema, GameSchema.Waypoint.ClassName, GameSchema.Waypoint.FieldMinY),
             MaxX: ResolveInstance(schema, GameSchema.Waypoint.ClassName, GameSchema.Waypoint.FieldMaxX),
             MaxY: ResolveInstance(schema, GameSchema.Waypoint.ClassName, GameSchema.Waypoint.FieldMaxY),
+            IsEnter: ResolveInstance(schema, GameSchema.Waypoint.ClassName, GameSchema.Waypoint.FieldIsEnter),
+            IsOffline: ResolveInstance(schema, GameSchema.Waypoint.ClassName, GameSchema.Waypoint.FieldIsOffline),
             Popup: ResolveInstance(schema, GameSchema.Waypoint.ClassName, GameSchema.Waypoint.FieldPopup)
         );
 

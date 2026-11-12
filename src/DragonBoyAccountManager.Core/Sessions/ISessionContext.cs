@@ -12,6 +12,7 @@ public interface ISessionContext
     int ProcessId { get; }
     bool IsRunning { get; }
     bool IsQuitRequested { get; }
+    DragonBoyAccountManager.Core.Interop.Abstractions.IGameRuntime Runtime { get; }
 
     PlayerSnapshot CurrentPlayer { get; }
     WorldSnapshot CurrentWorld { get; }

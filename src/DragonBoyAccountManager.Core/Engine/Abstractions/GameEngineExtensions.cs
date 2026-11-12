@@ -34,6 +34,11 @@ public static class GameEngineExtensions
         return res.IsSuccess;
     }
 
+    public static async Task<Result> XmapMoveAsync(this IGameActionService engine, Guid accountId, int targetMapId, bool isFastTeleport = false, CancellationToken cancellationToken = default)
+    {
+        return await engine.ExecuteCommandAsync(accountId, new XmapMoveCommand(targetMapId, isFastTeleport), cancellationToken);
+    }
+
     public static bool ChangeZone(this IGameActionService engine, Guid accountId, int zoneId)
     {
         if (!engine.IsRunning(accountId)) return false;

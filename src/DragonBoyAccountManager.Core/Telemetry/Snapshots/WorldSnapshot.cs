@@ -77,14 +77,17 @@ public sealed record WorldWaypointInfo(
     short MinX,
     short MinY,
     short MaxX,
-    short MaxY
+    short MaxY,
+    bool IsOffline = false,
+    bool IsEnter = true
 ) : IPositioned;
 
 public sealed record WorldNpcInfo(
     int Id,
     string Name,
     int X,
-    int Y
+    int Y,
+    int TemplateId = -1
 ) : IWorldEntity
 {
     public string EntityType => "npc";

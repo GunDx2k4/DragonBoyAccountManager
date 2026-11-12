@@ -32,6 +32,7 @@ public static class DefaultSessionBootstrap
         dispatcher.RegisterHandler<MoveCommand>(movementHandler);
         dispatcher.RegisterHandler<NavigateCommand>(movementHandler);
         dispatcher.RegisterHandler<EnterWaypointCommand>(movementHandler);
+        dispatcher.RegisterHandler<XmapMoveCommand>(movementHandler);
         dispatcher.RegisterHandler<UseItemCommand>(inventoryHandler);
         dispatcher.RegisterHandler<PickItemCommand>(inventoryHandler);
         dispatcher.RegisterHandler<SendChatCommand>(chatHandler);
@@ -41,6 +42,8 @@ public static class DefaultSessionBootstrap
         dispatcher.RegisterHandler<CloseZonePanelCommand>(zoneHandler);
         dispatcher.RegisterHandler<LoginCommand>(worldInteractionHandler);
         dispatcher.RegisterHandler<FocusEntityCommand>(worldInteractionHandler);
+        dispatcher.RegisterHandler<OpenNpcMenuCommand>(worldInteractionHandler);
+        dispatcher.RegisterHandler<ConfirmMenuCommand>(worldInteractionHandler);
         dispatcher.RegisterHandler<AssignSkillsCommand>(skillAssignmentHandler);
         dispatcher.RegisterHandler<SetGameConfigCommand>(gameConfigHandler);
 

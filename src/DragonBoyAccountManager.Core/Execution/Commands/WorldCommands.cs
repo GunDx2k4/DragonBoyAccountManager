@@ -24,3 +24,18 @@ public sealed record FocusEntityCommand(
         ? $"Chọn {EntityType} #{EntityId}"
         : $"Chọn {EntityName}";
 }
+
+public sealed record OpenNpcMenuCommand(
+    short NpcTemplateId
+) : IGameCommand
+{
+    public string Name => $"Mở menu NPC #{NpcTemplateId}";
+}
+
+public sealed record ConfirmMenuCommand(
+    short NpcTemplateId,
+    sbyte SelectIndex
+) : IGameCommand
+{
+    public string Name => $"Chọn menu #{SelectIndex} từ NPC #{NpcTemplateId}";
+}
