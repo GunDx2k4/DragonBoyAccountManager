@@ -30,6 +30,49 @@ public sealed class XmapRouteStepItem
     public string DirectionText { get; init; } = string.Empty;
     public bool IsLast { get; init; }
     public bool IsCurrent { get; init; }
+
+    public static void PopulateRouteSteps(
+        ICollection<XmapRouteStepItem> target,
+        int currentMapId,
+        string currentMapName,
+        IReadOnlyList<NavigationStep> route,
+        string startTransitionText = "Bắt đầu")
+    {
+        target.Add(new XmapRouteStepItem
+        {
+            StepIndex = 1,
+            MapId = currentMapId,
+            MapName = currentMapName,
+            TransitionText = startTransitionText,
+            DirectionText = "Gốc",
+            IsCurrent = true,
+            IsLast = false
+        });
+
+        for (int i = 0; i < route.Count; i++)
+        {
+            var step = route[i];
+            string dirText = step.Transition.Direction switch
+            {
+                MapDirection.Left => "Trái",
+                MapDirection.Right => "Phải",
+                MapDirection.Center => "Giữa",
+                MapDirection.Npc => "NPC",
+                _ => "Cổng"
+            };
+
+            target.Add(new XmapRouteStepItem
+            {
+                StepIndex = i + 2,
+                MapId = step.TargetMapId,
+                MapName = step.TargetMapName,
+                TransitionText = step.Transition.IsNpc ? "NPC" : "Cổng",
+                DirectionText = dirText,
+                IsCurrent = false,
+                IsLast = i == route.Count - 1
+            });
+        }
+    }
 }
 
 public sealed partial class XmapMapItemViewModel : ObservableObject, IEquatable<XmapMapItemViewModel>
@@ -46,17 +89,9 @@ public sealed partial class XmapMapItemViewModel : ObservableObject, IEquatable<
     [ObservableProperty]
     private bool _isSelected;
 
-    public string DisplayText
-    {
-        get => $"#{Id} {Name}";
-        set { }
-    }
+    public string DisplayText => $"#{Id} {Name}";
 
-    public string PlanetDisplay
-    {
-        get => string.IsNullOrWhiteSpace(PlanetName) ? "Chung" : PlanetName;
-        set { }
-    }
+    public string PlanetDisplay => string.IsNullOrWhiteSpace(PlanetName) ? "Chung" : PlanetName;
 
     public int ConnectionCount => ConnectedNodes.Count;
 

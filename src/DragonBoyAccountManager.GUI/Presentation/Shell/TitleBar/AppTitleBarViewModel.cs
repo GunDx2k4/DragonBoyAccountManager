@@ -23,28 +23,12 @@ public sealed partial class AppTitleBarViewModel : ObservableObject
 
         _updater.UpdateDetected += _ =>
         {
-            RunOnUi(() =>
+            _dispatcher.Dispatch(() =>
             {
                 OnPropertyChanged(nameof(HasAppUpdate));
                 OnPropertyChanged(nameof(UpdateTooltip));
             });
         };
-    }
-
-    private void RunOnUi(Action action)
-    {
-        if (_dispatcher != null)
-        {
-            _ = _dispatcher.InvokeAsync(action);
-        }
-        else if (App.Current?.Dispatcher != null)
-        {
-            _ = App.Current.Dispatcher.InvokeAsync(action);
-        }
-        else
-        {
-            action();
-        }
     }
 
     [RelayCommand]

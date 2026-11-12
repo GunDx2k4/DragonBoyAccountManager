@@ -14,6 +14,21 @@ public partial class AccountsPanelView : UserControl
     {
         InitializeComponent();
         DataContextChanged += AccountsPanelView_DataContextChanged;
+        Loaded += (_, _) =>
+        {
+            if (ViewModel != null)
+            {
+                ViewModel.PropertyChanged -= OnViewModelPropertyChanged;
+                ViewModel.PropertyChanged += OnViewModelPropertyChanged;
+            }
+        };
+        Unloaded += (_, _) =>
+        {
+            if (ViewModel != null)
+            {
+                ViewModel.PropertyChanged -= OnViewModelPropertyChanged;
+            }
+        };
     }
 
     private AccountsPanelViewModel? ViewModel => DataContext as AccountsPanelViewModel;

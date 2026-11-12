@@ -123,25 +123,6 @@ public sealed class WindowManagerService : IWindowManagerService
         return User32.SetWindowPos(hWnd, IntPtr.Zero, 0, 0, targetW, targetH, flags);
     }
 
-    public bool PositionWindow(Process proc, int x, int y, int width = 0, int height = 0)
-    {
-        var hWnd = GetWindowHandle(proc);
-        if (hWnd == IntPtr.Zero) return false;
-
-        if (User32.IsIconic(hWnd))
-        {
-            User32.ShowWindow(hWnd, User32.SW_RESTORE);
-        }
-
-        uint flags = User32.SWP_NOZORDER | User32.SWP_SHOWWINDOW | User32.SWP_NOACTIVATE;
-        if (width <= 0 || height <= 0)
-        {
-            flags |= User32.SWP_NOSIZE;
-        }
-
-        return User32.SetWindowPos(hWnd, IntPtr.Zero, x, y, width, height, flags);
-    }
-
     public void ArrangeWindows(IReadOnlyList<Process> processes, WindowArrangeOptions? options = null)
     {
         options ??= new WindowArrangeOptions();

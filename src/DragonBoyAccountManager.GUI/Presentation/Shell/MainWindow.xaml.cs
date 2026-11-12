@@ -9,6 +9,7 @@ namespace DragonBoyAccountManager.GUI.Presentation.Shell;
 public partial class MainWindow : Window
 {
     private readonly IHotkeyRoutingService _hotkeyRoutingService;
+    private HwndSource? _hwndSource;
 
     public MainWindow(MainViewModel viewModel, IHotkeyRoutingService hotkeyRoutingService)
     {
@@ -43,8 +44,15 @@ public partial class MainWindow : Window
     {
         base.OnSourceInitialized(e);
         var handle = new WindowInteropHelper(this).Handle;
-        var source = HwndSource.FromHwnd(handle);
-        source?.AddHook(WndProc);
+        _hwndSource = HwndSource.FromHwnd(handle);
+        _hwndSource?.AddHook(WndProc);
+    }
+
+    protected override void OnClosed(EventArgs e)
+    {
+        _hwndSource?.RemoveHook(WndProc);
+        _hwndSource = null;
+        base.OnClosed(e);
     }
 
     private IntPtr WndProc(IntPtr hwnd, int msg, IntPtr wParam, IntPtr lParam, ref bool handled)

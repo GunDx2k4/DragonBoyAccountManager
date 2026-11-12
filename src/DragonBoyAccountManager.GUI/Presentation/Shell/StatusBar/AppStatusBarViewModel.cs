@@ -4,6 +4,7 @@ using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using CommunityToolkit.Mvvm.Messaging;
 using DragonBoyAccountManager.Core.Sessions.Validation;
+using DragonBoyAccountManager.GUI.Services.Dispatching;
 
 namespace DragonBoyAccountManager.GUI.Presentation.Shell.StatusBar;
 
@@ -11,6 +12,7 @@ public sealed partial class AppStatusBarViewModel : ObservableObject
 {
     private readonly IGameEnvironmentService _envService;
     private readonly IDialogService _dialogService;
+    private readonly IDispatcherService? _dispatcher;
 
     [ObservableProperty]
     private string _statusMessage = "Sẵn sàng";
@@ -42,18 +44,20 @@ public sealed partial class AppStatusBarViewModel : ObservableObject
 
     public AppStatusBarViewModel(
         IGameEnvironmentService envService,
-        IDialogService dialogService)
+        IDialogService dialogService,
+        IDispatcherService? dispatcher = null)
     {
         _envService = envService;
         _dialogService = dialogService;
+        _dispatcher = dispatcher;
         _appVersion = AppUpdaterService.CurrentVersionString;
 
         WeakReferenceMessenger.Default.Register<StatusMessageChangedMessage>(this, (_, m) =>
         {
-            StatusMessage = m.Message;
+            _dispatcher.Dispatch(() => StatusMessage = m.Message);
         });
 
-        _envService.EnvironmentChanged += () =>
+        _envService.EnvironmentChanged += () => _dispatcher.Dispatch(() =>
         {
             OnPropertyChanged(nameof(GamePath));
             OnPropertyChanged(nameof(Status));
@@ -61,7 +65,7 @@ public sealed partial class AppStatusBarViewModel : ObservableObject
             OnPropertyChanged(nameof(AssemblyStatusTooltip));
             OnPropertyChanged(nameof(AssemblyPath));
             OnPropertyChanged(nameof(GameVersion));
-        };
+        });
     }
 
     public void CheckAssemblyStatus()

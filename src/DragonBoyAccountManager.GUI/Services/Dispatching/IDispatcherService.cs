@@ -8,3 +8,22 @@ public interface IDispatcherService
     Task<T> InvokeAsync<T>(Func<T> func);
     bool CheckAccess();
 }
+
+public static class DispatcherExtensions
+{
+    public static void Dispatch(this IDispatcherService? dispatcher, Action action)
+    {
+        if (dispatcher != null)
+        {
+            _ = dispatcher.InvokeAsync(action);
+        }
+        else if (App.Current?.Dispatcher != null)
+        {
+            _ = App.Current.Dispatcher.InvokeAsync(action);
+        }
+        else
+        {
+            action();
+        }
+    }
+}

@@ -122,70 +122,8 @@ public sealed partial class SettingsTabViewModel : ObservableObject
             foreach (var item in group.Settings)
             {
                 item.LoadFromSettings?.Invoke(settings);
-
-                if (settings.CustomValues != null &&
-                    settings.CustomValues.TryGetValue($"{group.Id}.{item.Key}", out var rawVal))
-                {
-                    item.SetValueFromString(rawVal);
-                }
             }
         }
-    }
-
-    public SettingGroupViewModel? FindGroup(string id)
-    {
-        return Groups.FirstOrDefault(g => string.Equals(g.Id, id, StringComparison.OrdinalIgnoreCase));
-    }
-
-    public void RegisterGroup(SettingGroupViewModel group)
-    {
-        if (Groups.Any(g => string.Equals(g.Id, group.Id, StringComparison.OrdinalIgnoreCase)))
-        {
-            return;
-        }
-
-        if (_settingsService.Current.CustomValues != null)
-        {
-            foreach (var item in group.Settings)
-            {
-                item.LoadFromSettings?.Invoke(_settingsService.Current);
-                string fullKey = $"{group.Id}.{item.Key}";
-                if (_settingsService.Current.CustomValues.TryGetValue(fullKey, out var rawVal))
-                {
-                    item.SetValueFromString(rawVal);
-                }
-            }
-        }
-
-        Groups.Add(group);
-    }
-
-    public SettingGroupViewModel RegisterAction(
-        string actionId,
-        string actionTitle,
-        string? description = null,
-        bool defaultEnabled = false,
-        Action<SettingGroupViewModel>? configure = null)
-    {
-        var existing = FindGroup(actionId);
-        if (existing != null)
-        {
-            return existing;
-        }
-
-        bool isEnabled = defaultEnabled;
-        if (_settingsService.Current.CustomValues != null &&
-            _settingsService.Current.CustomValues.TryGetValue($"{actionId}.Enabled", out var rawEnabled) &&
-            bool.TryParse(rawEnabled, out var parsedEnabled))
-        {
-            isEnabled = parsedEnabled;
-        }
-
-        var group = new SettingGroupViewModel(actionId, actionTitle, description, hasToggle: true, isEnabled: isEnabled);
-        configure?.Invoke(group);
-
-        RegisterGroup(group);
-        return group;
     }
 
     [RelayCommand]
@@ -204,7 +142,6 @@ public sealed partial class SettingsTabViewModel : ObservableObject
             foreach (var item in group.Settings)
             {
                 item.ApplyToSettings?.Invoke(settings);
-                settings.CustomValues[$"{group.Id}.{item.Key}"] = item.GetValueAsString();
             }
         }
 

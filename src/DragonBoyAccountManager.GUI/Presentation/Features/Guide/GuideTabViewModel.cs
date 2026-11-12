@@ -7,18 +7,18 @@ using DragonBoyAccountManager.Core.Sessions.Validation;
 using DragonBoyAccountManager.GUI.Domain.Messaging;
 using DragonBoyAccountManager.GUI.Domain.Updates;
 using DragonBoyAccountManager.GUI.Services.Dialogs;
+using DragonBoyAccountManager.GUI.Services.Dispatching;
 using DragonBoyAccountManager.GUI.Services.Engine;
-using DragonBoyAccountManager.GUI.Services.Settings;
 using DragonBoyAccountManager.GUI.Services.Updater;
 
 namespace DragonBoyAccountManager.GUI.Presentation.Features.Guide;
 
 public sealed partial class GuideTabViewModel : ObservableObject
 {
-    private readonly ISettingsService _settingsService;
     private readonly IDialogService _dialogService;
     private readonly IGameEnvironmentService _envService;
     private readonly IAppUpdaterService _updaterService;
+    private readonly IDispatcherService? _dispatcher;
 
     [ObservableProperty]
     private string _appVersion;
@@ -74,20 +74,20 @@ public sealed partial class GuideTabViewModel : ObservableObject
     public bool CanApplyUpdate => HasAppUpdate && !IsUpdatingApp;
 
     public GuideTabViewModel(
-        ISettingsService settingsService,
         IDialogService dialogService,
         IGameEnvironmentService envService,
-        IAppUpdaterService updaterService)
+        IAppUpdaterService updaterService,
+        IDispatcherService? dispatcher = null)
     {
-        _settingsService = settingsService;
         _dialogService = dialogService;
         _envService = envService;
         _updaterService = updaterService;
+        _dispatcher = dispatcher;
         _appVersion = _updaterService.CurrentVersion;
 
         _releaseNotes = LoadReleaseNotes();
         SyncWithEnvironment();
-        _envService.EnvironmentChanged += SyncWithEnvironment;
+        _envService.EnvironmentChanged += () => _dispatcher.Dispatch(SyncWithEnvironment);
         _ = CheckAppUpdateOnStartupAsync();
     }
 

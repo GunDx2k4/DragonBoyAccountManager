@@ -185,19 +185,5 @@ public abstract partial class AutoFeatureViewModelBase : ObservableObject, IAuto
         return [];
     }
 
-    protected void RunOnUi(Action action)
-    {
-        if (Dispatcher != null)
-        {
-            _ = Dispatcher.InvokeAsync(action);
-        }
-        else if (App.Current?.Dispatcher != null)
-        {
-            _ = App.Current.Dispatcher.InvokeAsync(action);
-        }
-        else
-        {
-            action();
-        }
-    }
+    protected void RunOnUi(Action action) => Dispatcher.Dispatch(action);
 }

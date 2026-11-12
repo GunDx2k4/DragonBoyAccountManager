@@ -47,28 +47,6 @@ public sealed class SettingsService : ISettingsService, IDisposable
         catch { }
     }
 
-    public async Task LoadAsync()
-    {
-        await _lock.WaitAsync();
-        try
-        {
-            if (File.Exists(_filePath))
-            {
-                await using var stream = File.OpenRead(_filePath);
-                var settings = await JsonSerializer.DeserializeAsync<AppSettings>(stream, JsonOptions);
-                if (settings != null)
-                {
-                    Current = settings;
-                }
-            }
-        }
-        catch { }
-        finally
-        {
-            _lock.Release();
-        }
-    }
-
     public async Task SaveAsync()
     {
         await _lock.WaitAsync();

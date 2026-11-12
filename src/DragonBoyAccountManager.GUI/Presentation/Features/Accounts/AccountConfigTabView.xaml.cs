@@ -28,7 +28,7 @@ public partial class AccountConfigTabView : UserControl
         }
     }
 
-    private void DpadButton_PreviewMouseUp(object sender, MouseButtonEventArgs e)
+    private async void DpadButton_PreviewMouseUp(object sender, MouseButtonEventArgs e)
     {
         if (ViewModel != null && sender is FrameworkElement elem && elem.Tag is string keyStr && Enum.TryParse<GameKey>(keyStr, out var key))
         {
@@ -38,14 +38,10 @@ public partial class AccountConfigTabView : UserControl
                 if (elapsedMs < 100)
                 {
                     int delay = 100 - (int)elapsedMs;
-                    _ = Task.Delay(delay).ContinueWith(_ =>
-                    {
-                        Dispatcher.Invoke(() => ViewModel?.StopHoldingKey(key));
-                    });
-                    return;
+                    await Task.Delay(delay);
                 }
             }
-            ViewModel.StopHoldingKey(key);
+            ViewModel?.StopHoldingKey(key);
         }
     }
 

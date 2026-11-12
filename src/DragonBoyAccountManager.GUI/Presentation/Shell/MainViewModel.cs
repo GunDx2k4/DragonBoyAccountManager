@@ -13,7 +13,6 @@ public sealed partial class MainViewModel : ObservableObject
 {
     private readonly IAccountStorageService _storageService;
     private readonly IDialogService _dialogService;
-    private readonly IGameInputService _gameInput;
     private readonly IReadOnlyDictionary<AppTab, IActivatableTab> _tabs;
 
     public AccountsPanelViewModel AccountsPanel { get; }
@@ -54,8 +53,7 @@ public sealed partial class MainViewModel : ObservableObject
         GameConfigTabViewModel gameConfig,
         FeedbackTabViewModel feedback,
         IAccountStorageService storageService,
-        IDialogService dialogService,
-        IGameInputService gameInput)
+        IDialogService dialogService)
     {
         AccountsPanel = accountsPanel;
         AccountForm = accountForm;
@@ -69,7 +67,6 @@ public sealed partial class MainViewModel : ObservableObject
         Feedback = feedback;
         _storageService = storageService;
         _dialogService = dialogService;
-        _gameInput = gameInput;
 
         _tabs = new Dictionary<AppTab, IActivatableTab>
         {

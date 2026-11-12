@@ -431,47 +431,14 @@ public sealed partial class XmapNodePickerViewModel : ObservableObject
             return;
         }
 
+        XmapRouteStepItem.PopulateRouteSteps(PreviewRouteSteps, _currentMapId, _currentMapName, route, "Gốc");
+
         var routeMapIds = new HashSet<int> { _currentMapId };
         var routePairs = new HashSet<(int, int)>();
-
-        PreviewRouteSteps.Add(new XmapRouteStepItem
+        foreach (var step in route)
         {
-            StepIndex = 1,
-            MapId = _currentMapId,
-            MapName = _currentMapName,
-            TransitionText = "Gốc",
-            DirectionText = "Gốc",
-            IsCurrent = true,
-            IsLast = false
-        });
-
-        for (int i = 0; i < route.Count; i++)
-        {
-            var step = route[i];
-            bool isLast = i == route.Count - 1;
-
             routeMapIds.Add(step.TargetMapId);
             routePairs.Add((Math.Min(step.FromMapId, step.TargetMapId), Math.Max(step.FromMapId, step.TargetMapId)));
-
-            string dirText = step.Transition.Direction switch
-            {
-                MapDirection.Left => "Trái",
-                MapDirection.Right => "Phải",
-                MapDirection.Center => "Giữa",
-                MapDirection.Npc => "NPC",
-                _ => "Cổng"
-            };
-
-            PreviewRouteSteps.Add(new XmapRouteStepItem
-            {
-                StepIndex = i + 2,
-                MapId = step.TargetMapId,
-                MapName = step.TargetMapName,
-                TransitionText = step.Transition.IsNpc ? "NPC" : "Cổng",
-                DirectionText = dirText,
-                IsCurrent = false,
-                IsLast = isLast
-            });
         }
 
         foreach (var node in GraphNodes)

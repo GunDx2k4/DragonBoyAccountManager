@@ -176,7 +176,7 @@ public sealed partial class AccountConfigTabViewModel
             var freshSnapshot = _gameEngine.GetWorldSnapshot(accountId.Value);
             if (freshSnapshot != null && freshSnapshot.Zones.Count > 0)
             {
-                RunOnUi(() => UpdateZones(freshSnapshot.Zones, freshSnapshot.ZoneId));
+                _dispatcher.Dispatch(() => UpdateZones(freshSnapshot.Zones, freshSnapshot.ZoneId));
             }
         });
     }

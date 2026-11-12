@@ -391,45 +391,7 @@ public sealed partial class MapUtilitiesTabViewModel : AccountAwareTabViewModel
             return;
         }
 
-        CurrentRouteSteps.Add(new XmapRouteStepItem
-        {
-            StepIndex = 1,
-            MapId = CurrentMapId,
-            MapName = CurrentMapName,
-            TransitionText = "Bắt đầu",
-            DirectionText = "Gốc",
-            IsCurrent = true,
-            IsLast = false
-        });
-
-        for (int i = 0; i < route.Count; i++)
-        {
-            var step = route[i];
-            bool isLast = i == route.Count - 1;
-            string trans = step.Transition.Npc != null ? "NPC" : "Cổng";
-
-            var dir = step.Transition.Direction;
-            string dirText = dir switch
-            {
-                MapDirection.Left => "Trái",
-                MapDirection.Right => "Phải",
-                MapDirection.Center => "Giữa",
-                MapDirection.Npc => "NPC",
-                _ => "Cổng"
-            };
-
-            CurrentRouteSteps.Add(new XmapRouteStepItem
-            {
-                StepIndex = i + 2,
-                MapId = step.TargetMapId,
-                MapName = step.TargetMapName,
-                TransitionText = trans,
-                DirectionText = dirText,
-                IsCurrent = false,
-                IsLast = isLast
-            });
-        }
-
+        XmapRouteStepItem.PopulateRouteSteps(CurrentRouteSteps, CurrentMapId, CurrentMapName, route);
         RouteSummary = $"{route.Count} chặng: #{CurrentMapId} -> #{SelectedXmapTarget.Id}";
     }
 

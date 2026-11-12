@@ -562,7 +562,10 @@ public sealed class AppUpdaterService : IAppUpdaterService
             }
 
             bool isShaUpdateOnly = !hasNewerVersion && isShaMismatch;
-            return new AppUpdateInfo(tag, notes, downloadUrl, null, assetName, remoteSha256, remoteCommitSha, isShaUpdateOnly);
+            var updateInfo = new AppUpdateInfo(tag, notes, downloadUrl, null, assetName, remoteSha256, remoteCommitSha, isShaUpdateOnly);
+            LatestUpdate = updateInfo;
+            UpdateDetected?.Invoke(updateInfo);
+            return updateInfo;
         }
         catch (Exception ex)
         {

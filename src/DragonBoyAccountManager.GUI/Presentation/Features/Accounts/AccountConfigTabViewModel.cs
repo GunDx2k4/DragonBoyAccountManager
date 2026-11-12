@@ -158,16 +158,19 @@ public sealed partial class AccountConfigTabViewModel : ObservableObject, IActiv
         {
             if (_editingAccount?.Id == m.AccountId && m.Status == GameSessionStatus.Active)
             {
-                RunOnUi(RefreshSkills);
+                _dispatcher.Dispatch(RefreshSkills);
             }
         });
 
         WeakReferenceMessenger.Default.Register<MaskingStateChangedMessage>(this, (_, m) =>
         {
-            if (IsMasked != m.IsMasked)
+            _dispatcher.Dispatch(() =>
             {
-                IsMasked = m.IsMasked;
-            }
+                if (IsMasked != m.IsMasked)
+                {
+                    IsMasked = m.IsMasked;
+                }
+            });
         });
     }
 
@@ -180,22 +183,6 @@ public sealed partial class AccountConfigTabViewModel : ObservableObject, IActiv
         if (snapshot != null)
         {
             UpdateZones(snapshot.Zones, snapshot.ZoneId);
-        }
-    }
-
-    private void RunOnUi(Action action)
-    {
-        if (_dispatcher != null)
-        {
-            _ = _dispatcher.InvokeAsync(action);
-        }
-        else if (App.Current?.Dispatcher != null)
-        {
-            _ = App.Current.Dispatcher.InvokeAsync(action);
-        }
-        else
-        {
-            action();
         }
     }
 

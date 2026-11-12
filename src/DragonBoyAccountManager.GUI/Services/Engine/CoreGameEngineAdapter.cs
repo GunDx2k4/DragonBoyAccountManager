@@ -173,12 +173,6 @@ public sealed class CoreGameEngineAdapter : IGameEngineService, IDisposable
         return _gameEngine.StopAccountAsync(accountId);
     }
 
-    public Task StopAllAsync()
-    {
-        _accounts.Clear();
-        return _gameEngine.StopAllAccountsAsync();
-    }
-
     public void StopAll()
     {
         _accounts.Clear();

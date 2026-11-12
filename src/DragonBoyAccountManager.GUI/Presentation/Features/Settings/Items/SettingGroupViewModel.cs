@@ -51,18 +51,6 @@ public partial class SettingGroupViewModel : ObservableObject
         return Settings.FirstOrDefault(s => string.Equals(s.Key, key, StringComparison.OrdinalIgnoreCase));
     }
 
-    public bool GetBool(string key, bool fallback = false)
-    {
-        var item = Find(key);
-        return item != null ? item.BoolValue : fallback;
-    }
-
-    public int GetInt(string key, int fallback = 0)
-    {
-        var item = Find(key);
-        return item != null ? item.NumberValue : fallback;
-    }
-
     public string GetString(string key, string fallback = "")
     {
         var item = Find(key);

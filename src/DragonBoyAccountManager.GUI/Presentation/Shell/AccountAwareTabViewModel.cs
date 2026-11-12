@@ -74,21 +74,7 @@ public abstract partial class AccountAwareTabViewModel : ObservableObject, IActi
         });
     }
 
-    protected void RunOnUi(Action action)
-    {
-        if (_dispatcher != null)
-        {
-            _ = _dispatcher.InvokeAsync(action);
-        }
-        else if (App.Current?.Dispatcher != null)
-        {
-            _ = App.Current.Dispatcher.InvokeAsync(action);
-        }
-        else
-        {
-            action();
-        }
-    }
+    protected void RunOnUi(Action action) => _dispatcher.Dispatch(action);
 
     protected static string FormatAccountDisplayInfo(AccountItemViewModel account)
     {

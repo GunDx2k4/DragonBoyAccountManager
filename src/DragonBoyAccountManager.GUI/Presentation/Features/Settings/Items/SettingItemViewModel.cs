@@ -125,26 +125,6 @@ public partial class SettingItemViewModel : ObservableObject
         return item;
     }
 
-    public static SettingItemViewModel CreateText(
-        string key,
-        string label,
-        string defaultValue,
-        string? description = null,
-        int maxLength = 255,
-        Action<string>? onChanged = null)
-    {
-        var item = new SettingItemViewModel(key, label, SettingViewType.Text, description)
-        {
-            MaxLength = maxLength,
-            TextValue = defaultValue
-        };
-        if (onChanged != null)
-        {
-            item.OnChanged = vm => onChanged(vm.TextValue);
-        }
-        return item;
-    }
-
     public static SettingItemViewModel CreateSelect(
         string key,
         string label,

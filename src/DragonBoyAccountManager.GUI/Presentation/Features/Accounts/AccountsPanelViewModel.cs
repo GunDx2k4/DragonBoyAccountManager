@@ -123,8 +123,6 @@ public sealed partial class AccountsPanelViewModel : ObservableObject
         }
     }
 
-    public event Action<string>? OnStatusMessageUpdated;
-
     public AccountsPanelViewModel(
         IAccountStorageService storageService,
         IGameEngineService gameEngine,
@@ -147,7 +145,7 @@ public sealed partial class AccountsPanelViewModel : ObservableObject
             () => Accounts,
             () => GetTargetAccounts());
 
-        _envService.EnvironmentChanged += CheckAssemblyStatus;
+        _envService.EnvironmentChanged += () => _dispatcher.Dispatch(CheckAssemblyStatus);
         CheckAssemblyStatus();
 
         AccountsView = CollectionViewSource.GetDefaultView(Accounts);
@@ -159,37 +157,23 @@ public sealed partial class AccountsPanelViewModel : ObservableObject
 
         WeakReferenceMessenger.Default.Register<ClearAccountSelectionMessage>(this, (_, _) =>
         {
-            SelectedAccount = null;
+            _dispatcher.Dispatch(() => SelectedAccount = null);
         });
 
         WeakReferenceMessenger.Default.Register<MaskingStateChangedMessage>(this, (_, m) =>
         {
-            if (IsMasked != m.IsMasked)
+            _dispatcher.Dispatch(() =>
             {
-                IsMasked = m.IsMasked;
-            }
+                if (IsMasked != m.IsMasked)
+                {
+                    IsMasked = m.IsMasked;
+                }
+            });
         });
-    }
-
-    private void RunOnUi(Action action)
-    {
-        if (_dispatcher != null)
-        {
-            _ = _dispatcher.InvokeAsync(action);
-        }
-        else if (App.Current?.Dispatcher != null)
-        {
-            _ = App.Current.Dispatcher.InvokeAsync(action);
-        }
-        else
-        {
-            action();
-        }
     }
 
     private void NotifyStatusMessage(string message)
     {
-        OnStatusMessageUpdated?.Invoke(message);
         WeakReferenceMessenger.Default.Send(new StatusMessageChangedMessage(message));
     }
 
@@ -198,7 +182,7 @@ public sealed partial class AccountsPanelViewModel : ObservableObject
         switch (evt)
         {
             case SessionStateChangedEvent s:
-                RunOnUi(() =>
+                _dispatcher.Dispatch(() =>
                 {
                     var item = Accounts.FirstOrDefault(a => a.Id == s.AccountId);
                     if (item != null)
@@ -214,7 +198,7 @@ public sealed partial class AccountsPanelViewModel : ObservableObject
                 break;
 
             case SessionMessageEvent m:
-                RunOnUi(() =>
+                _dispatcher.Dispatch(() =>
                 {
                     var item = Accounts.FirstOrDefault(a => a.Id == m.AccountId);
                     if (item != null)
@@ -226,7 +210,7 @@ public sealed partial class AccountsPanelViewModel : ObservableObject
                 break;
 
             case ActionReportedEvent a:
-                RunOnUi(() =>
+                _dispatcher.Dispatch(() =>
                 {
                     var item = Accounts.FirstOrDefault(acc => acc.Id == a.AccountId);
                     item?.UpdateActionReport(a.Report);
