@@ -49,6 +49,7 @@ public partial class App : System.Windows.Application
         services.AddSingleton<MapUtilitiesTabViewModel>();
         services.AddSingleton<AutoTrainViewModel>();
         services.AddSingleton<AutoChatViewModel>();
+        services.AddSingleton<AutoBossViewModel>();
         services.AddSingleton<AutoTabViewModel>();
         services.AddSingleton<GameConfigTabViewModel>();
         services.AddSingleton<FeedbackTabViewModel>();

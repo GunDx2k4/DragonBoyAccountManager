@@ -14,18 +14,21 @@ public sealed partial class AutoTabViewModel : AccountAwareTabViewModel
 
     public AutoTrainViewModel Train { get; }
     public AutoChatViewModel Chat { get; }
+    public AutoBossViewModel Boss { get; }
 
     public AutoTabViewModel(
         IGameEngineService gameEngine,
         AutoTrainViewModel trainViewModel,
         AutoChatViewModel chatViewModel,
+        AutoBossViewModel bossViewModel,
         IActiveSelectionService? selectionService = null,
         IDispatcherService? dispatcher = null)
         : base(gameEngine, selectionService, dispatcher)
     {
         Train = trainViewModel;
         Chat = chatViewModel;
-        _features = [Train, Chat];
+        Boss = bossViewModel;
+        _features = [Train, Chat, Boss];
 
         _gameEngine.OnSessionEvent += HandleSessionEvent;
         PropertyChanged += (_, e) =>

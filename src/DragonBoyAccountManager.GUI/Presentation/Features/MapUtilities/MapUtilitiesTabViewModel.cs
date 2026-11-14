@@ -83,9 +83,6 @@ public sealed partial class MapUtilitiesTabViewModel : AccountAwareTabViewModel
     [ObservableProperty]
     private string _quickTargetMapIdInput = string.Empty;
 
-    public ObservableCollection<XmapConnectedNodeItem> LeftNodes { get; } = [];
-    public ObservableCollection<XmapConnectedNodeItem> CenterNodes { get; } = [];
-    public ObservableCollection<XmapConnectedNodeItem> RightNodes { get; } = [];
     public ObservableCollection<XmapConnectedNodeItem> AllAdjacentNodes { get; } = [];
 
     [ObservableProperty]
@@ -171,6 +168,15 @@ public sealed partial class MapUtilitiesTabViewModel : AccountAwareTabViewModel
         InitializeXmapData();
     }
 
+    private static int GetDirectionOrder(MapDirection direction) => direction switch
+    {
+        MapDirection.Left => 0,
+        MapDirection.Center => 1,
+        MapDirection.Right => 2,
+        MapDirection.Npc => 3,
+        _ => 4
+    };
+
     public void InitializeXmapData()
     {
         _allXmapMaps.Clear();
@@ -197,7 +203,9 @@ public sealed partial class MapUtilitiesTabViewModel : AccountAwareTabViewModel
                     Direction = t.Direction,
                     DirectionLabel = dirLabel
                 };
-            }).ToList();
+            })
+            .OrderBy(c => GetDirectionOrder(c.Direction))
+            .ToList();
 
             _allXmapMaps.Add(new XmapMapItemViewModel
             {
@@ -246,9 +254,7 @@ public sealed partial class MapUtilitiesTabViewModel : AccountAwareTabViewModel
             FocalMapCoordinates = isUserExploration ? "(Đang duyệt)" : string.Empty;
         }
 
-        var newLeft = new List<XmapConnectedNodeItem>();
-        var newCenter = new List<XmapConnectedNodeItem>();
-        var newRight = new List<XmapConnectedNodeItem>();
+        var adjacentNodes = new List<XmapConnectedNodeItem>();
 
         if (mapNode != null)
         {
@@ -274,14 +280,16 @@ public sealed partial class MapUtilitiesTabViewModel : AccountAwareTabViewModel
                 string coord = string.Empty;
                 if (IsFocalAtCurrentMap && liveWps != null)
                 {
-                    var matchingWp = liveWps.FirstOrDefault(w => w.Name == t.ToMapName || (!string.IsNullOrWhiteSpace(t.ToMapName) && w.Name.Contains(t.ToMapName)));
+                    var matchingWp = liveWps.FirstOrDefault(w =>
+                        !string.IsNullOrWhiteSpace(w.Name) &&
+                        (w.Name == t.ToMapName || WorldMapData.MatchMapName(w.Name, t.ToMapName)));
                     if (matchingWp != null)
                     {
                         coord = $"({matchingWp.X}, {matchingWp.Y})";
                     }
                 }
 
-                var item = new XmapConnectedNodeItem
+                adjacentNodes.Add(new XmapConnectedNodeItem
                 {
                     FromMapId = mapId,
                     TargetMapId = t.ToMapId,
@@ -290,33 +298,12 @@ public sealed partial class MapUtilitiesTabViewModel : AccountAwareTabViewModel
                     Direction = dir,
                     DirectionLabel = dirLabel,
                     CoordinateDisplay = coord
-                };
-
-                switch (dir)
-                {
-                    case MapDirection.Left:
-                        newLeft.Add(item);
-                        break;
-                    case MapDirection.Right:
-                        newRight.Add(item);
-                        break;
-                    default:
-                        newCenter.Add(item);
-                        break;
-                }
+                });
             }
         }
 
-        var allCombined = new List<XmapConnectedNodeItem>(newLeft.Count + newCenter.Count + newRight.Count);
-        allCombined.AddRange(newLeft);
-        allCombined.AddRange(newCenter);
-        allCombined.AddRange(newRight);
-
-        LeftNodes.SyncWith(newLeft);
-        CenterNodes.SyncWith(newCenter);
-        RightNodes.SyncWith(newRight);
-        AllAdjacentNodes.SyncWith(allCombined);
-
+        adjacentNodes.Sort((a, b) => GetDirectionOrder(a.Direction).CompareTo(GetDirectionOrder(b.Direction)));
+        AllAdjacentNodes.SyncWith(adjacentNodes);
         UpdateRouteHighlightsOnSpatialNodes();
     }
 
@@ -332,18 +319,6 @@ public sealed partial class MapUtilitiesTabViewModel : AccountAwareTabViewModel
             }
         }
 
-        foreach (var node in LeftNodes)
-        {
-            node.IsOnRoute = node.TargetMapId == nextTargetMapId;
-        }
-        foreach (var node in CenterNodes)
-        {
-            node.IsOnRoute = node.TargetMapId == nextTargetMapId;
-        }
-        foreach (var node in RightNodes)
-        {
-            node.IsOnRoute = node.TargetMapId == nextTargetMapId;
-        }
         foreach (var node in AllAdjacentNodes)
         {
             node.IsOnRoute = node.TargetMapId == nextTargetMapId;
@@ -522,12 +497,6 @@ public sealed partial class MapUtilitiesTabViewModel : AccountAwareTabViewModel
         CurrentMapName = !string.IsNullOrWhiteSpace(snapshot.MapName)
             ? snapshot.MapName
             : $"Map #{snapshot.MapId}";
-        UpdateCurrentMapFlags();
-
-        if (IsFocalAtCurrentMap || FocalMapId < 0 || previousMapId != CurrentMapId)
-        {
-            SetFocalMap(CurrentMapId, isUserExploration: false);
-        }
 
         CurrentPlayers = snapshot.CurrentPlayers;
         MaxPlayers = snapshot.MaxPlayers;
@@ -548,7 +517,7 @@ public sealed partial class MapUtilitiesTabViewModel : AccountAwareTabViewModel
 
         AvailableZones.SyncZones(snapshot.Zones, snapshot.ZoneId, ref _selectedZone, ref _isRefreshingZones, () => OnPropertyChanged(nameof(SelectedZone)));
 
-        var sortedWps = snapshot.Waypoints.OrderBy(w => w.X).ToList();
+        var sortedWps = snapshot.Waypoints.OrderBy(w => w.MinX).ToList();
         var newWaypointButtons = sortedWps.Take(4)
             .Select((wp, idx) =>
             {
@@ -565,6 +534,13 @@ public sealed partial class MapUtilitiesTabViewModel : AccountAwareTabViewModel
             })
             .ToList();
         WaypointButtons.SyncWith(newWaypointButtons);
+
+        UpdateCurrentMapFlags();
+
+        if (IsFocalAtCurrentMap || FocalMapId < 0 || previousMapId != CurrentMapId)
+        {
+            SetFocalMap(CurrentMapId, isUserExploration: false);
+        }
 
         UpdateSyncTargetDisplay();
         StatusText = $"Cập nhật lúc: {DateTime.Now:HH:mm:ss}";
@@ -600,9 +576,6 @@ public sealed partial class MapUtilitiesTabViewModel : AccountAwareTabViewModel
         FocalMapName = "Chưa chọn bản đồ";
         FocalPlanetName = string.Empty;
         FocalMapCoordinates = string.Empty;
-        LeftNodes.Clear();
-        CenterNodes.Clear();
-        RightNodes.Clear();
         AllAdjacentNodes.Clear();
         UpdateCurrentMapFlags();
         StatusText = string.Empty;

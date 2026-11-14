@@ -73,6 +73,11 @@
             BorderThickness="1.5"
             CornerRadius="6">
             <TabControl Style="{StaticResource GameTabControlStyle}">
+                <TabControl.ItemsPanel>
+                    <ItemsPanelTemplate>
+                        <UniformGrid Columns="5" />
+                    </ItemsPanelTemplate>
+                </TabControl.ItemsPanel>
                 <TabControl.Resources>
                     <Style TargetType="TabItem" BasedOn="{StaticResource GameTabItemStyle}">
                         <Setter Property="Height" Value="28" />
@@ -334,7 +339,8 @@
                                                             Background="{DynamicResource GameBgBrush}"
                                                             BorderBrush="{DynamicResource GameBorderBrush}"
                                                             BorderThickness="1"
-                                                            CornerRadius="3">
+                                                            CornerRadius="3"
+                                                            ToolTip="{Binding DisplayText}">
                                                             <CheckBox
                                                                 VerticalAlignment="Center"
                                                                 Content="{Binding Name}"
@@ -1094,6 +1100,381 @@
                                         ToolTip="{Binding SyncTargetDisplay}" />
                                 </Grid>
                             </Border>
+                        </StackPanel>
+                    </ScrollViewer>
+                </TabItem>
+
+                <TabItem ToolTip="Cấu hình tự động tìm kiếm &amp; săn Boss">
+                    <TabItem.Header>
+                        <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                            <TextBlock
+                                FontSize="9.5"
+                                FontWeight="ExtraBold"
+                                Text="SĂN BOSS"
+                                TextTrimming="CharacterEllipsis" />
+                            <Ellipse
+                                Width="6"
+                                Height="6"
+                                Margin="4,0,0,0"
+                                VerticalAlignment="Center"
+                                Fill="{DynamicResource GameGreenBrush}"
+                                Stroke="{DynamicResource GameBorderBrush}"
+                                StrokeThickness="0.8"
+                                ToolTip="Tự động săn Boss đang hoạt động"
+                                Visibility="{Binding Boss.IsRunning, Converter={StaticResource BooleanToVisibilityConverter}}" />
+                        </StackPanel>
+                    </TabItem.Header>
+                    <ScrollViewer FocusVisualStyle="{x:Null}" VerticalScrollBarVisibility="Auto">
+                        <StackPanel Margin="10,8,10,12" DataContext="{Binding Boss}">
+
+                            <TextBlock
+                                Margin="0,0,0,6"
+                                FontSize="11"
+                                FontWeight="ExtraBold"
+                                Foreground="{DynamicResource GameTextDarkBrush}"
+                                Text="TÙY CHỌN SĂN BOSS &amp; MỤC TIÊU:" />
+
+                            <Border
+                                Margin="0,0,0,8"
+                                Padding="8,6"
+                                Background="{DynamicResource GameBgBrush}"
+                                BorderBrush="{DynamicResource GameBorderBrush}"
+                                BorderThickness="1"
+                                CornerRadius="4">
+                                <StackPanel>
+                                    <Grid Margin="0,2,0,4">
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="110" />
+                                            <ColumnDefinition Width="*" />
+                                        </Grid.ColumnDefinitions>
+                                        <TextBlock
+                                            VerticalAlignment="Center"
+                                            FontSize="10.5"
+                                            FontWeight="Bold"
+                                            Foreground="{DynamicResource GameTextDarkBrush}"
+                                            Text="Tên Boss / Quái:" />
+                                        <TextBox
+                                            Grid.Column="1"
+                                            Height="24"
+                                            Padding="4,2"
+                                            FontSize="10"
+                                            Style="{StaticResource GameTextBoxStyle}"
+                                            Text="{Binding TargetBossName, UpdateSourceTrigger=PropertyChanged}" />
+                                    </Grid>
+
+                                    <Grid Margin="0,2,0,4">
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="*" />
+                                            <ColumnDefinition Width="*" />
+                                        </Grid.ColumnDefinitions>
+
+                                        <Grid Grid.Column="0" Margin="0,0,4,0">
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="Auto" />
+                                                <ColumnDefinition Width="*" />
+                                            </Grid.ColumnDefinitions>
+                                            <TextBlock
+                                                VerticalAlignment="Center"
+                                                Margin="0,0,6,0"
+                                                FontSize="10"
+                                                FontWeight="Bold"
+                                                Foreground="{DynamicResource GameTextDarkBrush}"
+                                                Text="Khu từ:" />
+                                            <TextBox
+                                                Grid.Column="1"
+                                                Height="24"
+                                                Padding="4,2"
+                                                FontSize="10"
+                                                HorizontalContentAlignment="Center"
+                                                Style="{StaticResource GameTextBoxStyle}"
+                                                Text="{Binding MinZone, UpdateSourceTrigger=PropertyChanged}" />
+                                        </Grid>
+
+                                        <Grid Grid.Column="1" Margin="4,0,0,0">
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="Auto" />
+                                                <ColumnDefinition Width="*" />
+                                            </Grid.ColumnDefinitions>
+                                            <TextBlock
+                                                VerticalAlignment="Center"
+                                                Margin="0,0,6,0"
+                                                FontSize="10"
+                                                FontWeight="Bold"
+                                                Foreground="{DynamicResource GameTextDarkBrush}"
+                                                Text="Đổi khu (giây):" />
+                                            <TextBox
+                                                Grid.Column="1"
+                                                Height="24"
+                                                Padding="4,2"
+                                                FontSize="10"
+                                                HorizontalContentAlignment="Center"
+                                                Style="{StaticResource GameTextBoxStyle}"
+                                                Text="{Binding ZoneChangeDelaySeconds, UpdateSourceTrigger=PropertyChanged}" />
+                                        </Grid>
+                                    </Grid>
+
+                                    <Grid Margin="0,4,0,2">
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="*" />
+                                            <ColumnDefinition Width="*" />
+                                        </Grid.ColumnDefinitions>
+                                        <CheckBox
+                                            Grid.Column="0"
+                                            Margin="0,2"
+                                            Content="Dịch chuyển nhanh"
+                                            FontSize="10.5"
+                                            FontWeight="Bold"
+                                            Foreground="{DynamicResource GameTextDarkBrush}"
+                                            IsChecked="{Binding IsFastTeleport}"
+                                            Style="{StaticResource GameCheckBoxStyle}" />
+                                        <CheckBox
+                                            Grid.Column="1"
+                                            Margin="0,2"
+                                            Content="Nhặt đồ người khác"
+                                            FontSize="10.5"
+                                            FontWeight="Bold"
+                                            Foreground="{DynamicResource GameTextDarkBrush}"
+                                            IsChecked="{Binding PickOthersItems}"
+                                            Style="{StaticResource GameCheckBoxStyle}" />
+                                    </Grid>
+
+                                    <Grid Margin="0,4,0,2">
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="110" />
+                                            <ColumnDefinition Width="*" />
+                                        </Grid.ColumnDefinitions>
+                                        <TextBlock
+                                            VerticalAlignment="Center"
+                                            FontSize="10"
+                                            FontWeight="Bold"
+                                            Foreground="{DynamicResource GameTextDarkBrush}"
+                                            Text="Lọc tên nhặt:" />
+                                        <TextBox
+                                            Grid.Column="1"
+                                            Height="24"
+                                            Padding="4,2"
+                                            FontSize="10"
+                                            Style="{StaticResource GameTextBoxStyle}"
+                                            Text="{Binding FilterPickNames, UpdateSourceTrigger=PropertyChanged}" />
+                                    </Grid>
+                                </StackPanel>
+                            </Border>
+
+                            <TextBlock
+                                Margin="0,4,0,6"
+                                FontSize="11"
+                                FontWeight="ExtraBold"
+                                Foreground="{DynamicResource GameTextDarkBrush}"
+                                Text="KỸ NĂNG TẤN CÔNG:" />
+
+                            <Border
+                                Margin="0,0,0,8"
+                                Padding="8,6"
+                                Background="{DynamicResource GameBgBrush}"
+                                BorderBrush="{DynamicResource GameBorderBrush}"
+                                BorderThickness="1"
+                                CornerRadius="4">
+                                <StackPanel>
+                                    <Grid Margin="0,0,0,6">
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="*" />
+                                            <ColumnDefinition Width="Auto" />
+                                        </Grid.ColumnDefinitions>
+                                        <TextBlock
+                                            VerticalAlignment="Center"
+                                            FontSize="10"
+                                            FontWeight="Bold"
+                                            Foreground="{DynamicResource GameTextMutedBrush}"
+                                            Text="Chọn các chiêu xoay tua:"
+                                            TextTrimming="CharacterEllipsis" />
+                                        <StackPanel Grid.Column="1" Orientation="Horizontal">
+                                            <Button
+                                                Height="20"
+                                                Padding="6,0"
+                                                Margin="0,0,4,0"
+                                                Command="{Binding SelectAllSkillsCommand}"
+                                                Content="TẤT CẢ"
+                                                FontSize="8.5"
+                                                FontWeight="Bold"
+                                                Style="{StaticResource GameSecondaryButton}" />
+                                            <Button
+                                                Height="20"
+                                                Padding="6,0"
+                                                Command="{Binding DeselectAllSkillsCommand}"
+                                                Content="BỎ CHỌN"
+                                                FontSize="8.5"
+                                                FontWeight="Bold"
+                                                Style="{StaticResource GameSecondaryButton}" />
+                                        </StackPanel>
+                                    </Grid>
+
+                                    <ItemsControl ItemsSource="{Binding BossSkills}">
+                                        <ItemsControl.ItemsPanel>
+                                            <ItemsPanelTemplate>
+                                                <UniformGrid Columns="5" />
+                                            </ItemsPanelTemplate>
+                                        </ItemsControl.ItemsPanel>
+                                        <ItemsControl.ItemTemplate>
+                                            <DataTemplate DataType="{x:Type items:SkillButtonItem}">
+                                                <CheckBox
+                                                    IsChecked="{Binding IsSelected, Mode=TwoWay}"
+                                                    Style="{StaticResource GameSkillSlotCheckBoxStyle}"
+                                                    ToolTip="{Binding ToolTipText}" />
+                                            </DataTemplate>
+                                        </ItemsControl.ItemTemplate>
+                                    </ItemsControl>
+                                </StackPanel>
+                            </Border>
+
+                            <TextBlock
+                                Margin="0,4,0,6"
+                                FontSize="11"
+                                FontWeight="ExtraBold"
+                                Foreground="{DynamicResource GameTextDarkBrush}"
+                                Text="DANH SÁCH BẢN ĐỒ SĂN (XOAY TUA):" />
+
+                            <Border
+                                Margin="0,0,0,8"
+                                Padding="8,6"
+                                Background="{DynamicResource GameBgBrush}"
+                                BorderBrush="{DynamicResource GameBorderBrush}"
+                                BorderThickness="1"
+                                CornerRadius="4">
+                                <StackPanel>
+                                    <Grid Margin="0,0,0,6">
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="*" />
+                                            <ColumnDefinition Width="Auto" />
+                                        </Grid.ColumnDefinitions>
+                                        <TextBlock
+                                            VerticalAlignment="Center"
+                                            FontSize="10"
+                                            FontWeight="Bold"
+                                            Foreground="{DynamicResource GameTextMutedBrush}">
+                                            <Run Text="Đã chọn: " />
+                                            <Run FontWeight="ExtraBold" Foreground="{DynamicResource GameGreenBrush}" Text="{Binding SelectedMapCount, Mode=OneWay}" />
+                                            <Run Text=" bản đồ" />
+                                        </TextBlock>
+                                        <StackPanel Grid.Column="1" Orientation="Horizontal">
+                                            <Button
+                                                Height="20"
+                                                Padding="6,0"
+                                                Margin="0,0,4,0"
+                                                Command="{Binding SelectCurrentMapCommand}"
+                                                Content="+ MAP HIỆN TẠI"
+                                                FontSize="8.5"
+                                                FontWeight="Bold"
+                                                Style="{StaticResource GameSecondaryButton}" />
+                                            <Button
+                                                Height="20"
+                                                Padding="6,0"
+                                                Margin="0,0,4,0"
+                                                Command="{Binding SelectAllFilteredMapsCommand}"
+                                                Content="CHỌN TẤT CẢ"
+                                                FontSize="8.5"
+                                                FontWeight="Bold"
+                                                Style="{StaticResource GameSecondaryButton}" />
+                                            <Button
+                                                Height="20"
+                                                Padding="6,0"
+                                                Command="{Binding ClearAllMapsCommand}"
+                                                Content="BỎ CHỌN"
+                                                FontSize="8.5"
+                                                FontWeight="Bold"
+                                                Style="{StaticResource GameSecondaryButton}" />
+                                        </StackPanel>
+                                    </Grid>
+
+                                    <Grid Margin="0,0,0,6">
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="100" />
+                                            <ColumnDefinition Width="*" />
+                                        </Grid.ColumnDefinitions>
+                                        <ComboBox
+                                            Grid.Column="0"
+                                            Height="24"
+                                            Margin="0,0,6,0"
+                                            FontSize="10"
+                                            ItemsSource="{Binding PlanetFilters}"
+                                            SelectedItem="{Binding SelectedPlanetFilter, Mode=TwoWay}"
+                                            Style="{StaticResource GameComboBoxStyle}" />
+                                        <TextBox
+                                            Grid.Column="1"
+                                            Height="24"
+                                            Padding="4,2"
+                                            FontSize="10"
+                                            Style="{StaticResource GameTextBoxStyle}"
+                                            Text="{Binding MapSearchText, UpdateSourceTrigger=PropertyChanged}" />
+                                    </Grid>
+
+                                    <Border
+                                        Background="{DynamicResource GameTabContentBrush}"
+                                        BorderBrush="{DynamicResource GameBorderBrush}"
+                                        BorderThickness="1"
+                                        CornerRadius="4"
+                                        Padding="4,3"
+                                        MaxHeight="160">
+                                        <ScrollViewer FocusVisualStyle="{x:Null}" VerticalScrollBarVisibility="Auto">
+                                            <ItemsControl ItemsSource="{Binding FilteredMaps}">
+                                                <ItemsControl.ItemTemplate>
+                                                    <DataTemplate DataType="{x:Type items:BossMapItem}">
+                                                        <Border
+                                                            Margin="0,1,0,2"
+                                                            Padding="5,4"
+                                                            Background="{DynamicResource GameBgBrush}"
+                                                            BorderBrush="{DynamicResource GameBorderBrush}"
+                                                            BorderThickness="1"
+                                                            CornerRadius="3"
+                                                            ToolTip="{Binding DisplayText}">
+                                                            <CheckBox
+                                                                VerticalAlignment="Center"
+                                                                Content="{Binding DisplayText}"
+                                                                FontSize="10.5"
+                                                                FontWeight="Bold"
+                                                                Foreground="{DynamicResource GameTextDarkBrush}"
+                                                                IsChecked="{Binding IsSelected, Mode=TwoWay}"
+                                                                Style="{StaticResource GameCheckBoxStyle}" />
+                                                        </Border>
+                                                    </DataTemplate>
+                                                </ItemsControl.ItemTemplate>
+                                            </ItemsControl>
+                                        </ScrollViewer>
+                                    </Border>
+                                </StackPanel>
+                            </Border>
+
+                            <Grid Margin="0,4,0,0">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="130" />
+                                    <ColumnDefinition Width="*" />
+                                </Grid.ColumnDefinitions>
+
+                                <Button
+                                    Grid.Column="0"
+                                    Height="30"
+                                    Margin="0,0,8,0"
+                                    Command="{Binding ToggleAutoBossCommand}"
+                                    FontSize="10"
+                                    FontWeight="ExtraBold"
+                                    Style="{StaticResource GameAutoBossToggleButtonStyle}" />
+
+                                <Border
+                                    Grid.Column="1"
+                                    Padding="8,4"
+                                    VerticalAlignment="Center"
+                                    Background="{DynamicResource GameBgBrush}"
+                                    BorderBrush="{DynamicResource GameBorderBrush}"
+                                    BorderThickness="1"
+                                    CornerRadius="3">
+                                    <TextBlock
+                                        FontSize="9.5"
+                                        FontWeight="SemiBold"
+                                        Foreground="{DynamicResource GameTextMutedBrush}"
+                                        Text="{Binding StatusText}"
+                                        TextTrimming="CharacterEllipsis"
+                                        ToolTip="{Binding StatusText}" />
+                                </Border>
+                            </Grid>
                         </StackPanel>
                     </ScrollViewer>
                 </TabItem>

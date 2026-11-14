@@ -991,6 +991,17 @@
         </Style.Triggers>
     </Style>
 
+    <Style x:Key="GameAutoBossToggleButtonStyle" BasedOn="{StaticResource GamePrimaryButton}" TargetType="Button">
+        <Setter Property="Content" Value="BẬT SĂN BOSS" />
+        <Style.Triggers>
+            <DataTrigger Binding="{Binding IsRunning}" Value="True">
+                <Setter Property="Content" Value="DỪNG SĂN BOSS" />
+                <Setter Property="Template" Value="{StaticResource GameDangerButtonTemplate}" />
+                <Setter Property="Foreground" Value="{DynamicResource GameBtnDangerTextBrush}" />
+            </DataTrigger>
+        </Style.Triggers>
+    </Style>
+
     <ControlTemplate x:Key="GameSuccessButtonTemplate" TargetType="Button">
         <Grid x:Name="rootGrid" SnapsToDevicePixels="True">
             <Border
