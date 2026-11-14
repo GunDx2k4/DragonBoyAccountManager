@@ -1,130 +1,220 @@
+using System.Collections.Concurrent;
 using DragonBoyAccountManager.Core.Telemetry.Snapshots;
 
 namespace DragonBoyAccountManager.Core.Automation.Navigation.Xmap;
 
 public sealed class WorldMapGraph
 {
+    private readonly record struct PathKey(
+        int Start,
+        int Target,
+        int Gender,
+        int TaskId,
+        int PowerTier,
+        bool HasClan);
+
     private static readonly Lazy<WorldMapGraph> _instance = new(() => new WorldMapGraph());
     public static WorldMapGraph Instance => _instance.Value;
 
-    private readonly Lock _lock = new();
+    public static readonly Dictionary<(int From, int To), NpcAction> NpcActions = NextMapCatalog.Maps
+        .SelectMany(kv => kv.Value.Adjacents.Where(a => a.NpcAction != null).Select(a => (Key: (kv.Key, a.TargetMapId), Value: a.NpcAction!)))
+        .ToDictionary(x => x.Key, x => x.Value);
+
     private readonly Dictionary<int, MapNode> _nodes = [];
-    private readonly List<PlanetInfo> _planets = [];
-
-    public IReadOnlyList<PlanetInfo> Planets => _planets;
-
-    public static string[] PlanetNames => WorldMapData.PlanetTabNames;
-    public static int[][] PlanetMapMatrix => WorldMapData.PlanetMapMatrix;
-    public static int[][] LinearChains => WorldMapData.LinearChains;
-    public static Dictionary<(int From, int To), NpcAction> NpcActions => WorldMapData.NpcActions;
+    private readonly ConcurrentDictionary<PathKey, int[]> _pathCache = new();
 
     public WorldMapGraph()
     {
         Initialize();
     }
 
-    public void ClearPathCache() => WorldMapPathFinder.ClearCache();
+    public static string GetMapName(int id) => NextMapCatalog.GetMapName(id);
+
+    public static bool IsNpcTransitionEdge(int currMapId, int nextMapId)
+    {
+        if (NextMapCatalog.TryGetMap(currMapId, out var m) && m != null)
+        {
+            var adj = m.Adjacents.FirstOrDefault(a => a.TargetMapId == nextMapId);
+            if (adj != null) return adj.IsNpc;
+        }
+        return NpcActions.ContainsKey((currMapId, nextMapId));
+    }
+
+    public static WorldWaypointInfo? FindWaypoint(
+        int fromMapId,
+        int toMapId,
+        IReadOnlyList<WorldWaypointInfo>? waypoints,
+        int expectedWaypointCount = 0)
+    {
+        if (waypoints == null || waypoints.Count == 0) return null;
+        if (expectedWaypointCount > 0 && waypoints.Count < expectedWaypointCount) return null;
+
+        for (int i = 0; i < waypoints.Count; i++)
+        {
+            if (string.IsNullOrWhiteSpace(waypoints[i].Name)) return null;
+        }
+
+        string targetName = GetMapName(toMapId);
+        for (int i = 0; i < waypoints.Count; i++)
+        {
+            if (waypoints[i].Name.Equals(targetName, StringComparison.OrdinalIgnoreCase))
+            {
+                return waypoints[i];
+            }
+        }
+
+        if (!NextMapCatalog.TryGetMap(fromMapId, out var mapData) || mapData == null)
+        {
+            return null;
+        }
+
+        var adj = mapData.Adjacents.FirstOrDefault(a => a.TargetMapId == toMapId && !a.IsNpc);
+        if (adj == null)
+        {
+            return null;
+        }
+
+        return adj.Direction switch
+        {
+            MapDirection.Left => waypoints[0],
+            MapDirection.Right => waypoints[^1],
+            MapDirection.Center => waypoints.Count >= 3 ? waypoints[1] : waypoints[0],
+            _ => null
+        };
+    }
 
     public void Initialize()
     {
-        lock (_lock)
+        _nodes.Clear();
+        foreach (var (mapId, mapData) in NextMapCatalog.Maps)
         {
-            _nodes.Clear();
-            _planets.Clear();
+            var transitions = mapData.Adjacents.Select(a => new MapTransition(
+                mapId,
+                a.TargetMapId,
+                a.TargetMapName,
+                a.Direction,
+                a.NpcAction
+            )).ToList();
 
-            for (int p = 0; p < WorldMapData.PlanetTabNames.Length; p++)
+            _nodes[mapId] = new MapNode
             {
-                string pName = WorldMapData.PlanetTabNames[p];
-                int[] pMapIds = WorldMapData.PlanetMapMatrix[p];
-                _planets.Add(new PlanetInfo(p, pName, pMapIds));
+                Id = mapId,
+                Name = mapData.Name,
+                PlanetIndex = mapData.PlanetId,
+                PlanetName = mapData.PlanetName,
+                Transitions = transitions
+            };
+        }
+
+        _pathCache.Clear();
+    }
+
+    public MapNode? GetNode(int mapId) =>
+        _nodes.TryGetValue(mapId, out var node) ? node : null;
+
+    public IReadOnlyList<MapNode> GetAllNodes() =>
+        _nodes.Values.OrderBy(m => m.PlanetIndex).ThenBy(m => m.Id).ToList();
+
+    public List<int>? FindPath(
+        int startMapId,
+        int targetMapId,
+        int gender = -1,
+        int taskId = -1,
+        long power = 0,
+        bool hasClan = true)
+    {
+        if (startMapId == targetMapId)
+        {
+            return [];
+        }
+
+        int powerTier = power <= 0L ? 0 : (power >= 60_000_000_000L ? 3 : (power >= 40_000_000_000L ? 2 : 1));
+        var key = new PathKey(startMapId, targetMapId, gender, taskId, powerTier, hasClan);
+
+        if (_pathCache.TryGetValue(key, out var cached))
+        {
+            return [.. cached];
+        }
+
+        bool isColdEndpoint = (startMapId >= 105 && startMapId <= 110) || (targetMapId >= 105 && targetMapId <= 110);
+
+        var queue = new Queue<int>();
+        var parent = new Dictionary<int, int>();
+        var visited = new HashSet<int>();
+
+        queue.Enqueue(startMapId);
+        visited.Add(startMapId);
+
+        bool found = false;
+        while (queue.Count > 0)
+        {
+            int curr = queue.Dequeue();
+            if (curr == targetMapId)
+            {
+                found = true;
+                break;
             }
 
-            foreach (var (mapId, mapData) in NextMapCatalog.Maps)
+            if (!NextMapCatalog.TryGetMap(curr, out var mapData) || mapData == null)
             {
-                var transitions = mapData.Adjacents.Select(a => new MapTransition(
-                    mapId,
-                    a.TargetMapId,
-                    a.TargetMapName,
-                    a.Direction,
-                    a.NpcAction
-                )).ToList();
-
-                _nodes[mapId] = new MapNode
-                {
-                    Id = mapId,
-                    Name = mapData.Name,
-                    PlanetIndex = mapData.PlanetId,
-                    PlanetName = mapData.PlanetName,
-                    Transitions = transitions
-                };
+                continue;
             }
-        }
-    }
 
-    public MapNode? GetNode(int mapId)
-    {
-        lock (_lock)
-        {
-            return _nodes.TryGetValue(mapId, out var node) ? node : null;
-        }
-    }
-
-    public IReadOnlyList<MapNode> GetAllNodes()
-    {
-        lock (_lock)
-        {
-            return _nodes.Values.OrderBy(m => m.PlanetIndex).ThenBy(m => m.Id).ToList();
-        }
-    }
-
-    public MapDirection ResolveDirection(
-        int fromMapId,
-        int toMapId,
-        bool isNpc = false,
-        IReadOnlyList<WorldWaypointInfo>? liveWaypoints = null)
-    {
-        if (isNpc || NpcActions.ContainsKey((fromMapId, toMapId)) || WorldMapData.IsNpcTransitionEdge(fromMapId, toMapId))
-        {
-            return MapDirection.Npc;
-        }
-
-        if (liveWaypoints != null && liveWaypoints.Count > 0)
-        {
-            string targetName = WorldMapData.GetMapName(toMapId);
-            var matchingWp = liveWaypoints.FirstOrDefault(w =>
-                !string.IsNullOrWhiteSpace(w.Name) && (w.Name == targetName || WorldMapData.MatchMapName(w.Name, targetName)));
-
-            if (matchingWp != null)
+            var adjacents = mapData.Adjacents;
+            for (int i = 0; i < adjacents.Count; i++)
             {
-                var sorted = liveWaypoints.OrderBy(w => w.X).ToList();
-                int idx = sorted.IndexOf(matchingWp);
-                if (sorted.Count >= 3)
+                int next = adjacents[i].TargetMapId;
+
+                if ((next == 21 || next == 39) && gender >= 0 && gender != 0 && targetMapId != next) continue;
+                if ((next == 22 || next == 40) && gender >= 0 && gender != 1 && targetMapId != next) continue;
+                if ((next == 23 || next == 41) && gender >= 0 && gender != 2 && targetMapId != next) continue;
+
+                if (next >= 92 && next <= 103 && taskId >= 0 && taskId <= 24 && targetMapId != next) continue;
+                if (next >= 105 && next <= 110)
                 {
-                    if (idx == 0) return MapDirection.Left;
-                    if (idx == sorted.Count - 1) return MapDirection.Right;
-                    return MapDirection.Center;
+                    if (taskId >= 0 && taskId <= 30 && targetMapId != next) continue;
+                    if (!isColdEndpoint) continue;
                 }
-                if (sorted.Count == 2)
+
+                if (!hasClan && ((next >= 53 && next <= 62) || (next >= 147 && next <= 153 && next != 150) || (next >= 156 && next <= 159)))
                 {
-                    return idx == 0 ? MapDirection.Left : MapDirection.Right;
+                    continue;
+                }
+
+                if (power > 0L)
+                {
+                    if (next >= 153 && next <= 159 && power < 40_000_000_000L && targetMapId != next) continue;
+                    if ((next == 155 || next == 166) && power < 60_000_000_000L && targetMapId != next) continue;
+                }
+
+                if (visited.Add(next))
+                {
+                    parent[next] = curr;
+                    queue.Enqueue(next);
                 }
             }
         }
 
-        if (NextMapCatalog.TryGetMap(fromMapId, out var mapData) && mapData != null)
+        if (!found)
         {
-            var adj = mapData.Adjacents.FirstOrDefault(a => a.TargetMapId == toMapId && !a.IsNpc);
-            if (adj != null)
-            {
-                return adj.Direction;
-            }
+            return null;
         }
 
-        int side = WorldMapData.GetChainWaypointSide(fromMapId, toMapId);
-        if (side < 0) return MapDirection.Left;
-        if (side > 0) return MapDirection.Right;
+        var path = new List<int>();
+        int currNode = targetMapId;
+        int maxSteps = 100;
+        while (currNode != startMapId && maxSteps-- > 0 && parent.TryGetValue(currNode, out int prev))
+        {
+            path.Insert(0, currNode);
+            currNode = prev;
+        }
 
-        return MapDirection.Center;
+        if (_pathCache.Count < 500)
+        {
+            _pathCache[key] = [.. path];
+        }
+
+        return path;
     }
 
     public List<NavigationStep>? FindRoute(
@@ -135,114 +225,35 @@ public sealed class WorldMapGraph
         long power = 0,
         bool hasClan = true)
     {
-        var rawPath = WorldMapPathFinder.FindPath(startMapId, targetMapId, gender, taskId, power, hasClan);
+        var rawPath = FindPath(startMapId, targetMapId, gender, taskId, power, hasClan);
         if (rawPath == null) return null;
         if (rawPath.Count == 0) return [];
 
-        var steps = new List<NavigationStep>();
+        var steps = new List<NavigationStep>(rawPath.Count);
         int current = startMapId;
 
         for (int i = 0; i < rawPath.Count; i++)
         {
             int next = rawPath[i];
-            string targetName = WorldMapData.GetMapName(next);
+            string targetName = GetMapName(next);
 
             NpcActions.TryGetValue((current, next), out var npc);
-            bool isNpc = npc != null || WorldMapData.IsNpcTransitionEdge(current, next);
-            var dir = ResolveDirection(current, next, isNpc);
+            var dir = MapDirection.Center;
+            if (npc != null || IsNpcTransitionEdge(current, next))
+            {
+                dir = MapDirection.Npc;
+            }
+            else if (NextMapCatalog.TryGetMap(current, out var mapData) && mapData != null)
+            {
+                var adj = mapData.Adjacents.FirstOrDefault(a => a.TargetMapId == next && !a.IsNpc);
+                if (adj != null) dir = adj.Direction;
+            }
 
-            var transition = new MapTransition(
-                current,
-                next,
-                targetName,
-                dir,
-                npc
-            );
-
+            var transition = new MapTransition(current, next, targetName, dir, npc);
             steps.Add(new NavigationStep(i + 1, current, next, targetName, transition));
             current = next;
         }
 
         return steps;
-    }
-
-    public void RegisterDynamicConnection(
-        int fromMapId,
-        int toMapId,
-        string? toMapName = null,
-        NpcAction? npc = null,
-        int? wpX = null,
-        int? wpY = null)
-    {
-        if (fromMapId < 0 || toMapId < 0 || fromMapId == toMapId) return;
-
-        lock (_lock)
-        {
-            if (!_nodes.TryGetValue(fromMapId, out var fromNode))
-            {
-                string fnName = WorldMapData.GetMapName(fromMapId);
-                fromNode = new MapNode
-                {
-                    Id = fromMapId,
-                    Name = fnName,
-                    PlanetIndex = WorldMapData.PlanetTabNames.Length - 1,
-                    PlanetName = WorldMapData.PlanetTabNames[^1]
-                };
-                _nodes[fromMapId] = fromNode;
-            }
-
-            if (!_nodes.TryGetValue(toMapId, out var toNode))
-            {
-                string tnName = toMapName ?? WorldMapData.GetMapName(toMapId);
-                toNode = new MapNode
-                {
-                    Id = toMapId,
-                    Name = tnName,
-                    PlanetIndex = WorldMapData.PlanetTabNames.Length - 1,
-                    PlanetName = WorldMapData.PlanetTabNames[^1]
-                };
-                _nodes[toMapId] = toNode;
-            }
-
-            bool isNpc = npc != null || WorldMapData.IsNpcTransitionEdge(fromMapId, toMapId);
-            var dir = ResolveDirection(fromMapId, toMapId, isNpc);
-            var wp = wpX.HasValue && wpY.HasValue ? (wpX.Value, wpY.Value) : ((int, int)?)null;
-
-            var newTransition = new MapTransition(
-                fromMapId,
-                toMapId,
-                toNode.Name,
-                dir,
-                npc,
-                wp
-            );
-
-            var list = fromNode.Transitions.ToList();
-            int existingIdx = list.FindIndex(t => t.ToMapId == toMapId);
-            if (existingIdx >= 0)
-            {
-                list[existingIdx] = newTransition;
-            }
-            else
-            {
-                list.Add(newTransition);
-            }
-            fromNode.Transitions = list;
-
-            lock (WorldMapData.Lock)
-            {
-                if (!WorldMapData.MapWaypoints.TryGetValue(fromMapId, out var neighbors))
-                {
-                    neighbors = [];
-                    WorldMapData.MapWaypoints[fromMapId] = neighbors;
-                }
-                if (!neighbors.Contains(toMapId))
-                {
-                    neighbors.Add(toMapId);
-                }
-            }
-        }
-
-        WorldMapPathFinder.ClearCache();
     }
 }

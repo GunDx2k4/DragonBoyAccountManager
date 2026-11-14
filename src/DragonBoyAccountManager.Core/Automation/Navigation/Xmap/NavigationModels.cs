@@ -1,5 +1,3 @@
-using DragonBoyAccountManager.Core.Telemetry.Snapshots;
-
 namespace DragonBoyAccountManager.Core.Automation.Navigation.Xmap;
 
 public enum MapDirection
@@ -21,8 +19,7 @@ public sealed record MapTransition(
     int ToMapId,
     string ToMapName,
     MapDirection Direction,
-    NpcAction? Npc = null,
-    (int X, int Y)? Waypoint = null
+    NpcAction? Npc = null
 )
 {
     public bool IsNpc => Npc != null || Direction == MapDirection.Npc;
@@ -77,9 +74,7 @@ public sealed record NextMapAdjacent(
     int TargetMapId,
     NextMapTransitionType TransitionType = NextMapTransitionType.Waypoint,
     MapDirection Direction = MapDirection.Center,
-    NpcAction? NpcAction = null,
-    long RequiredPower = 0,
-    int AllowedGender = -1
+    NpcAction? NpcAction = null
 )
 {
     public bool IsNpc => TransitionType == NextMapTransitionType.Npc;
@@ -107,12 +102,6 @@ public sealed class NextMapData
 
     public override string ToString() => $"#{Id} {Name} ({PlanetName}, {Adjacents.Count} edges)";
 }
-
-public sealed record PlanetInfo(
-    int Index,
-    string Name,
-    IReadOnlyList<int> MapIds
-);
 
 public sealed record NavigationStep(
     int StepIndex,

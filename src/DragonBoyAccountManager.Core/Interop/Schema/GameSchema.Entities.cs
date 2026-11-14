@@ -20,6 +20,9 @@ public static partial class GameSchema
         public const string FieldY = "cy";
         public const string FieldCvx = "cvx";
         public const string FieldCvy = "cvy";
+        public const string FieldCp1 = "cp1";
+        public const string FieldCp2 = "cp2";
+        public const string FieldCp3 = "cp3";
         public const string FieldCxSend = "cxSend";
         public const string FieldCySend = "cySend";
         public const string FieldStatusMe = "statusMe";

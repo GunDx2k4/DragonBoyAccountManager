@@ -595,8 +595,8 @@ public static class NextMapCatalog
             PlanetId = 7,
             Adjacents =
             [
+                NextMapAdjacent.Waypoint(27, MapDirection.Left),
                 NextMapAdjacent.Waypoint(58, MapDirection.Right),
-                NextMapAdjacent.Waypoint(27, MapDirection.Right),
             ]
         },
         [54] = new NextMapData

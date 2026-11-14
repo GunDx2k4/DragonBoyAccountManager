@@ -37,34 +37,41 @@ public class MovementHandler :
         var charLayout = _runtime.Layout.Char;
         var movePointLayout = _runtime.Layout.MovePoint;
 
+        int targetX = command.TargetX;
+        int targetY = command.TargetY;
+        if (_sessionContext?.CurrentMap is { IsValid: true } map)
+        {
+            (targetX, targetY) = map.ResolveSafePosition(targetX, targetY, preferGround: targetY <= 0);
+        }
+
         if (command.IsFastTeleport)
         {
             IntPtr service = _runtime.GetServicePtr();
             if (service == IntPtr.Zero)
                 return Result.Failure("Không tìm thấy Service.");
 
-            await WorldMapWaypointExecutor.TeleportToAsync(_runtime, charPtr, service, command.TargetX, command.TargetY, cancellationToken);
-            return Result.Success($"Đã dịch chuyển nhanh tới ({command.TargetX}, {command.TargetY})");
+            await XmapNavigator.TeleportToAsync(_runtime, charPtr, service, targetX, targetY, cancellationToken, _sessionContext?.CurrentMap);
+            return Result.Success($"Đã dịch chuyển nhanh tới ({targetX}, {targetY})");
         }
 
-        IntPtr mp = _runtime.CreateInstance(GameSchema.MovePoint.ClassName, command.TargetX, command.TargetY);
+        IntPtr mp = _runtime.CreateInstance(GameSchema.MovePoint.ClassName, targetX, targetY);
 
         if (mp != IntPtr.Zero)
         {
             int curX = _runtime.ReadField<int>(charPtr, charLayout.X);
-            _runtime.WriteField(mp, movePointLayout.XEnd, command.TargetX);
-            _runtime.WriteField(mp, movePointLayout.YEnd, command.TargetY);
+            _runtime.WriteField(mp, movePointLayout.XEnd, targetX);
+            _runtime.WriteField(mp, movePointLayout.YEnd, targetY);
             _runtime.WriteField(charPtr, charLayout.CurrentMovePoint, mp);
-            _runtime.WriteField(charPtr, charLayout.Cdir, command.TargetX >= curX ? 1 : -1);
+            _runtime.WriteField(charPtr, charLayout.Cdir, targetX >= curX ? 1 : -1);
             _runtime.WriteField(charPtr, charLayout.EndMovePointCommand, IntPtr.Zero);
-            return Result.Success($"Đang di chuyển tới ({command.TargetX}, {command.TargetY})");
+            return Result.Success($"Đang di chuyển tới ({targetX}, {targetY})");
         }
 
         IntPtr gameScr = _runtime.GetGameScrPtr();
         if (gameScr != IntPtr.Zero)
         {
-            _runtime.CallMethod(GameSchema.GameScr.ClassName, GameSchema.GameScr.MethodCheckClickMoveTo, gameScr, command.TargetX, command.TargetY, 0);
-            return Result.Success($"Đang di chuyển tới ({command.TargetX}, {command.TargetY})");
+            _runtime.CallMethod(GameSchema.GameScr.ClassName, GameSchema.GameScr.MethodCheckClickMoveTo, gameScr, targetX, targetY, 0);
+            return Result.Success($"Đang di chuyển tới ({targetX}, {targetY})");
         }
 
         return Result.Failure("Không thể khởi tạo MovePoint để di chuyển.");
@@ -100,7 +107,8 @@ public class MovementHandler :
         int targetX = command.WaypointX;
         int targetY = command.WaypointY;
         bool isOffline = false;
-        int mapPixelWidth = WorldMapWaypointExecutor.GetMapPixelWidth(_runtime, (_sessionContext?.CurrentMap.Width ?? 0) * 24);
+        var currentMap = _sessionContext?.CurrentMap;
+        int mapPixelWidth = XmapNavigator.GetMapPixelWidth(_runtime, (currentMap?.Width ?? 0) * 24);
 
         WorldWaypointInfo? matchedWp = null;
         if (_sessionContext != null && _sessionContext.CurrentWorld.Waypoints.Count > 0)
@@ -112,32 +120,37 @@ public class MovementHandler :
             if (matchedWp != null)
             {
                 isOffline = matchedWp.IsOffline;
-                targetX = WorldMapWaypointExecutor.GetWaypointTargetX(matchedWp, mapPixelWidth);
-                targetY = WorldMapWaypointExecutor.GetWaypointTargetY(matchedWp);
+                (targetX, targetY) = XmapNavigator.ResolveWaypointTarget(matchedWp, mapPixelWidth, currentMap);
             }
+        }
+        else if (currentMap is { IsValid: true })
+        {
+            (targetX, targetY) = currentMap.ResolveSafePosition(targetX, targetY);
         }
 
         if (command.IsFastTeleport)
         {
             if (matchedWp != null)
             {
-                return await WorldMapWaypointExecutor.StepToWaypointAsync(
+                return await XmapNavigator.StepToWaypointAsync(
                     _runtime,
                     charPtr,
                     service,
                     matchedWp,
                     mapPixelWidth,
-                    cancellationToken);
+                    cancellationToken,
+                    currentMap);
             }
 
-            await WorldMapWaypointExecutor.ExecuteTeleportAndChangeMapAsync(
+            await XmapNavigator.ExecuteTeleportAndChangeMapAsync(
                 _runtime,
                 charPtr,
                 service,
                 targetX,
                 targetY,
                 isOffline,
-                cancellationToken);
+                cancellationToken,
+                currentMap);
 
             return Result.Success("Đã tele tới waypoint và gửi yêu cầu chuyển map.");
         }

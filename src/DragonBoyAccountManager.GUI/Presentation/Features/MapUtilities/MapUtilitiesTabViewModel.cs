@@ -263,11 +263,6 @@ public sealed partial class MapUtilitiesTabViewModel : AccountAwareTabViewModel
             foreach (var t in mapNode.Transitions)
             {
                 var dir = t.Direction;
-                if (IsFocalAtCurrentMap && liveWps != null && t.Npc == null)
-                {
-                    dir = WorldMapGraph.Instance.ResolveDirection(mapId, t.ToMapId, false, liveWps);
-                }
-
                 string dirLabel = dir switch
                 {
                     MapDirection.Left => "Cổng Trái",
@@ -278,11 +273,9 @@ public sealed partial class MapUtilitiesTabViewModel : AccountAwareTabViewModel
                 };
 
                 string coord = string.Empty;
-                if (IsFocalAtCurrentMap && liveWps != null)
+                if (IsFocalAtCurrentMap && liveWps != null && !t.IsNpc)
                 {
-                    var matchingWp = liveWps.FirstOrDefault(w =>
-                        !string.IsNullOrWhiteSpace(w.Name) &&
-                        (w.Name == t.ToMapName || WorldMapData.MatchMapName(w.Name, t.ToMapName)));
+                    var matchingWp = WorldMapGraph.FindWaypoint(mapId, t.ToMapId, liveWps);
                     if (matchingWp != null)
                     {
                         coord = $"({matchingWp.X}, {matchingWp.Y})";

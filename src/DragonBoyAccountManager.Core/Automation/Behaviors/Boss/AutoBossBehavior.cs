@@ -108,7 +108,7 @@ public sealed class AutoBossBehavior : AutomationBehavior<AutoBossOptions>
         int targetMapId = mapIds[_currentMapIndex];
         if (world.MapId != targetMapId)
         {
-            progress?.Report($"[Săn Boss] Đang di chuyển tới {WorldMapData.GetMapName(targetMapId)} (#{targetMapId})...");
+            progress?.Report($"[Săn Boss] Đang di chuyển tới {WorldMapGraph.GetMapName(targetMapId)} (#{targetMapId})...");
             await context.Dispatcher.DispatchAsync(new XmapMoveCommand(targetMapId, Options.IsFastTeleport), cancellationToken);
             await Task.Delay(500, cancellationToken);
             return;
@@ -318,7 +318,7 @@ public sealed class AutoBossBehavior : AutomationBehavior<AutoBossOptions>
             _currentMapIndex = (_currentMapIndex + 1) % mapIds.Count;
             _visitedZones.Clear();
             int nextMapId = mapIds[_currentMapIndex];
-            progress?.Report($"[Săn Boss] Hết khu, chuyển sang {WorldMapData.GetMapName(nextMapId)} (#{nextMapId})...");
+            progress?.Report($"[Săn Boss] Hết khu, chuyển sang {WorldMapGraph.GetMapName(nextMapId)} (#{nextMapId})...");
             await context.Dispatcher.DispatchAsync(new XmapMoveCommand(nextMapId, Options.IsFastTeleport), cancellationToken);
             return;
         }
