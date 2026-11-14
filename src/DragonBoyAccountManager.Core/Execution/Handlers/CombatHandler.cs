@@ -8,6 +8,7 @@ namespace DragonBoyAccountManager.Core.Execution.Handlers;
 
 public class CombatHandler(IGameRuntime runtime) :
     IGameCommandHandler<AttackMobCommand>,
+    IGameCommandHandler<AttackBossCommand>,
     IGameCommandHandler<SelectSkillCommand>,
     IGameCommandHandler<SetInGameAutoTrainCommand>
 {
@@ -16,6 +17,10 @@ public class CombatHandler(IGameRuntime runtime) :
     private IntPtr _cachedVMobItems;
     private uint _cachedVMobItemsHandle;
     private IntPtr _cachedEmptyVChar;
+    private IntPtr _cachedEmptyVMob;
+    private IntPtr _cachedVChar;
+    private IntPtr _cachedVCharItems;
+    private uint _cachedVCharItemsHandle;
 
     public Task<Result> HandleAsync(SetInGameAutoTrainCommand command, CancellationToken cancellationToken)
     {
@@ -359,19 +364,6 @@ public class CombatHandler(IGameRuntime runtime) :
 
         _runtime.WriteField(charPtr, _runtime.Layout.Char.MobFocus, mobPtr);
 
-        int playerX = _runtime.ReadField<int>(charPtr, _runtime.Layout.Char.X);
-        int cdir = command.TargetX >= playerX ? 1 : -1;
-        _runtime.WriteField(charPtr, _runtime.Layout.Char.Cdir, cdir);
-
-        if (command.SkillSlot >= 0)
-        {
-            await HandleAsync(new SelectSkillCommand(command.SkillSlot), cancellationToken);
-        }
-
-        IntPtr service = _runtime.GetServicePtr();
-        if (service == IntPtr.Zero)
-            return Result.Failure("Không tìm thấy Service.");
-
         IntPtr vMob = EnsureValidMyVector(ref _cachedVMob, clearElements: true, pinInitialItems: false);
         IntPtr vChar = EnsureValidMyVector(ref _cachedEmptyVChar, clearElements: false, pinInitialItems: true);
 
@@ -381,7 +373,76 @@ public class CombatHandler(IGameRuntime runtime) :
         _runtime.CallMethod(GameSchema.MyVector.ClassName, GameSchema.MyVector.MethodAddElement, vMob, mobPtr);
         PinVectorBackingStorage(vMob, ref _cachedVMobItems, ref _cachedVMobItemsHandle);
 
-        _runtime.CallMethod(GameSchema.Service.ClassName, GameSchema.Service.MethodSendPlayerAttack, service, vMob, vChar, 1);
+        Result attackResult = await ExecutePlayerAttackAsync(charPtr, command.TargetX, command.SkillSlot, vMob, vChar, 1, cancellationToken);
+        return attackResult.IsSuccess ? Result.Success($"Đã đánh {command.MobName} #{command.MobId}") : attackResult;
+    }
+
+    public async Task<Result> HandleAsync(AttackBossCommand command, CancellationToken cancellationToken)
+    {
+        IntPtr targetCharPtr = IntPtr.Zero;
+        IntPtr vCharInMapPtr = _runtime.ReadStatic<IntPtr>(GameSchema.GameScr.ClassName, _runtime.Layout.GameScr.VCharInMap);
+        if (vCharInMapPtr != IntPtr.Zero)
+        {
+            var pointers = CollectionHelper.ReadMyVector(_runtime, vCharInMapPtr);
+            foreach (var ptr in pointers)
+            {
+                if (ptr != IntPtr.Zero && _runtime.ReadField<int>(ptr, _runtime.Layout.Char.CharId) == command.CharId)
+                {
+                    targetCharPtr = ptr;
+                    break;
+                }
+            }
+        }
+
+        if (targetCharPtr == IntPtr.Zero)
+            return Result.Failure($"Không tìm thấy mục tiêu #{command.CharId}.");
+
+        long targetHp = _runtime.ReadField<long>(targetCharPtr, _runtime.Layout.Char.Hp);
+        if (targetHp <= 0)
+            return Result.Failure($"Mục tiêu #{command.CharId} đã bị tiêu diệt.");
+
+        IntPtr charPtr = _runtime.GetMyCharPtr();
+        if (charPtr == IntPtr.Zero)
+            return Result.Failure("Nhân vật chưa vào game.");
+
+        _runtime.WriteField(charPtr, _runtime.Layout.Char.MobFocus, IntPtr.Zero);
+        _runtime.WriteField(charPtr, _runtime.Layout.Char.CharFocus, targetCharPtr);
+
+        IntPtr emptyVMob = EnsureValidMyVector(ref _cachedEmptyVMob, clearElements: false, pinInitialItems: true);
+        IntPtr vChar = EnsureValidMyVector(ref _cachedVChar, clearElements: true, pinInitialItems: false);
+        if (emptyVMob == IntPtr.Zero || vChar == IntPtr.Zero)
+            return Result.Failure("Không thể tạo vector tấn công.");
+
+        _runtime.CallMethod(GameSchema.MyVector.ClassName, GameSchema.MyVector.MethodAddElement, vChar, targetCharPtr);
+        PinVectorBackingStorage(vChar, ref _cachedVCharItems, ref _cachedVCharItemsHandle);
+
+        Result attackResult = await ExecutePlayerAttackAsync(charPtr, command.TargetX, command.SkillSlot, emptyVMob, vChar, 2, cancellationToken);
+        return attackResult.IsSuccess ? Result.Success($"Đã đánh {command.BossName} #{command.CharId}") : attackResult;
+    }
+
+    private async Task<Result> ExecutePlayerAttackAsync(
+        IntPtr charPtr,
+        int targetX,
+        int skillSlot,
+        IntPtr vMob,
+        IntPtr vChar,
+        int attackType,
+        CancellationToken cancellationToken)
+    {
+        int playerX = _runtime.ReadField<int>(charPtr, _runtime.Layout.Char.X);
+        int cdir = targetX >= playerX ? 1 : -1;
+        _runtime.WriteField(charPtr, _runtime.Layout.Char.Cdir, cdir);
+
+        if (skillSlot >= 0)
+        {
+            await HandleAsync(new SelectSkillCommand(skillSlot), cancellationToken);
+        }
+
+        IntPtr service = _runtime.GetServicePtr();
+        if (service == IntPtr.Zero)
+            return Result.Failure("Không tìm thấy Service.");
+
+        _runtime.CallMethod(GameSchema.Service.ClassName, GameSchema.Service.MethodSendPlayerAttack, service, vMob, vChar, attackType);
 
         long nowMs = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
         IntPtr mySkillPtr = _runtime.ReadFieldPtr(charPtr, _runtime.Layout.Char.MySkill);
@@ -390,7 +451,7 @@ public class CombatHandler(IGameRuntime runtime) :
             _runtime.WriteField(mySkillPtr, _runtime.Layout.Skill.LastTimeUseThisSkill, nowMs);
         }
 
-        return Result.Success($"Đã đánh {command.MobName} #{command.MobId}");
+        return Result.Success();
     }
 
     private IntPtr EnsureValidMyVector(ref IntPtr vectorPtr, bool clearElements, bool pinInitialItems)

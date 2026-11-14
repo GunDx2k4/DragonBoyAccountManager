@@ -1,17 +1,20 @@
+using System.Collections.Concurrent;
+
 namespace DragonBoyAccountManager.Core.Automation.Navigation.Xmap;
 
 public static class WorldMapPathFinder
 {
-    private static readonly Lock _lock = new();
-    private static readonly Dictionary<long, List<int>> _pathCache = [];
+    private readonly record struct PathKey(
+        int Start,
+        int Target,
+        int Gender,
+        int TaskId,
+        int PowerTier,
+        bool HasClan);
 
-    public static void ClearCache()
-    {
-        lock (_lock)
-        {
-            _pathCache.Clear();
-        }
-    }
+    private static readonly ConcurrentDictionary<PathKey, int[]> _cache = new();
+
+    public static void ClearCache() => _cache.Clear();
 
     public static List<int>? FindPath(
         int startMapId,
@@ -26,21 +29,12 @@ public static class WorldMapPathFinder
             return [];
         }
 
-        int powerTier = power >= 60_000_000_000L ? 2 : (power >= 40_000_000_000L ? 1 : 0);
-        int taskKey = taskId < 0 ? 63 : (taskId > 62 ? 62 : taskId);
-        long cacheKey = ((long)startMapId << 40)
-            | ((hasClan ? 1L : 0L) << 32)
-            | ((long)targetMapId << 16)
-            | ((long)taskKey << 8)
-            | ((long)powerTier << 4)
-            | (byte)(gender + 1);
+        int powerTier = power <= 0L ? 0 : (power >= 60_000_000_000L ? 3 : (power >= 40_000_000_000L ? 2 : 1));
+        var key = new PathKey(startMapId, targetMapId, gender, taskId, powerTier, hasClan);
 
-        lock (_lock)
+        if (_cache.TryGetValue(key, out var cached))
         {
-            if (_pathCache.TryGetValue(cacheKey, out var cachedPath))
-            {
-                return [.. cachedPath];
-            }
+            return [.. cached];
         }
 
         bool isColdEndpoint = (startMapId >= 105 && startMapId <= 110) || (targetMapId >= 105 && targetMapId <= 110);
@@ -114,12 +108,9 @@ public static class WorldMapPathFinder
             currNode = prev;
         }
 
-        lock (_lock)
+        if (_cache.Count < 500)
         {
-            if (_pathCache.Count < 500)
-            {
-                _pathCache[cacheKey] = [.. path];
-            }
+            _cache[key] = [.. path];
         }
 
         return path;

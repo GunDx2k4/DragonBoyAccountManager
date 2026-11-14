@@ -121,33 +121,21 @@ public static class WorldMapData
 
     public static string RemoveAccents(string text)
     {
-        if (string.IsNullOrEmpty(text)) return string.Empty;
-        string[] arr1 =
-        [
-            "á","à","ả","ã","ạ","â","ấ","ầ","ẩ","ẫ","ậ","ă","ắ","ằ","ẳ","ẵ","ặ",
-            "đ",
-            "é","è","ẻ","ẽ","ẹ","ê","ế","ề","ể","ễ","ệ",
-            "í","ì","ỉ","ĩ","ị",
-            "ó","ò","ỏ","õ","ọ","ô","ố","ồ","ổ","ỗ","ộ","ơ","ớ","ờ","ở","ỡ","ợ",
-            "ú","ù","ủ","ũ","ụ","ư","ứ","ừ","ử","ữ","ự",
-            "ý","ỳ","ỷ","ỹ","ỵ"
-        ];
-        string[] arr2 =
-        [
-            "a","a","a","a","a","a","a","a","a","a","a","a","a","a","a","a","a",
-            "d",
-            "e","e","e","e","e","e","e","e","e","e","e",
-            "i","i","i","i","i",
-            "o","o","o","o","o","o","o","o","o","o","o","o","o","o","o","o","o",
-            "u","u","u","u","u","u","u","u","u","u","u",
-            "y","y","y","y","y"
-        ];
-        text = text.ToLowerInvariant().Trim();
-        for (int i = 0; i < arr1.Length; i++)
+        if (string.IsNullOrWhiteSpace(text)) return string.Empty;
+        var normalized = text.Normalize(System.Text.NormalizationForm.FormD);
+        var sb = new System.Text.StringBuilder(normalized.Length);
+        foreach (char c in normalized)
         {
-            text = text.Replace(arr1[i], arr2[i]);
+            if (System.Globalization.CharUnicodeInfo.GetUnicodeCategory(c) != System.Globalization.UnicodeCategory.NonSpacingMark)
+            {
+                sb.Append(c switch
+                {
+                    'đ' or 'Đ' => 'd',
+                    _ => c
+                });
+            }
         }
-        return text;
+        return sb.ToString().Normalize(System.Text.NormalizationForm.FormC).ToLowerInvariant().Trim();
     }
 
     public static string CleanName(string s)
@@ -290,11 +278,18 @@ public static class WorldMapData
             return -1;
         }
 
-        if (clean == "tramtauvutru")
+        if (clean == "tramtauvutru" || clean == "tramtau")
         {
             if (planetId == 1 || currentMapId == 7 || currentMapId == 8 || currentMapId == 9) return 25;
             if (planetId == 2 || currentMapId == 14 || currentMapId == 15 || currentMapId == 16) return 26;
             return 24;
+        }
+
+        if (clean == "venha" || clean == "nha")
+        {
+            if (planetId == 1 || currentMapId == 7) return 22;
+            if (planetId == 2 || currentMapId == 14) return 23;
+            return 21;
         }
 
         if (clean == "vachnuiaru" || clean == "vacharu")
@@ -411,10 +406,11 @@ public static class WorldMapData
                 graphChanged = true;
             }
 
-            bool isSpaceshipStation = currMapId == 24 || currMapId == 25 || currMapId == 26;
-            bool isAirMap = currMapId == 45 || currMapId == 46 || currMapId == 48 || currMapId == 50;
+            bool isSpaceshipStation = NextMapCatalog.TryGetMap(currMapId, out var curMap) && curMap != null && curMap.IsSpaceshipStation;
+            bool isAirMap = curMap != null && curMap.IsAirMap;
+            int expectedCount = NextMapCatalog.GetExpectedWaypointCount(currMapId, planetId);
 
-            if (!isSpaceshipStation && !isAirMap && resolvedCount == totalWps)
+            if (!isSpaceshipStation && !isAirMap && totalWps >= expectedCount && resolvedCount == totalWps)
             {
                 for (int i = currNeighbors.Count - 1; i >= 0; i--)
                 {

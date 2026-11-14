@@ -30,6 +30,17 @@ public static class XmapNavigator
             return Result.Success($"Đã ở map đích #{targetMapId} ({WorldMapData.GetMapName(targetMapId)}).");
         }
 
+        if (session.CurrentPlayer.IsChangingMap || session.CurrentMap.Width <= 0)
+        {
+            int initWaitMs = 0;
+            while (initWaitMs < 2000 && (session.CurrentPlayer.IsChangingMap || session.CurrentMap.Width <= 0))
+            {
+                await Task.Delay(50, cancellationToken);
+                initWaitMs += 50;
+                session.Tick();
+            }
+        }
+
         int transitionsCount = 0;
 
         while (transitionsCount < MaxTransitions)
@@ -116,7 +127,7 @@ public static class XmapNavigator
                     continue;
                 }
 
-                bool mapChanged = await WaitForMapChangeAsync(session, startMapId, isNpcHop, cancellationToken);
+                bool mapChanged = await WaitForMapSettledAsync(session, startMapId, isNpcHop, cancellationToken);
                 if (mapChanged)
                 {
                     hopSuccess = true;
@@ -134,7 +145,7 @@ public static class XmapNavigator
             }
 
             transitionsCount++;
-            await Task.Delay(150, cancellationToken);
+            await Task.Delay(50, cancellationToken);
         }
 
         session.Tick();
@@ -162,8 +173,8 @@ public static class XmapNavigator
         if (charPtr == IntPtr.Zero || service == IntPtr.Zero)
             return Result.Failure("Không tìm thấy con trỏ nhân vật hoặc Service.");
 
-        int mapPixelWidth = session.CurrentMap.Width > 0 ? session.CurrentMap.Width * 24 : 2400;
-        int mapPixelHeight = session.CurrentMap.Height > 0 ? session.CurrentMap.Height * 24 : 1000;
+        int mapPixelWidth = WorldMapWaypointExecutor.GetMapPixelWidth(runtime, session.CurrentMap.Width * 24);
+        int mapPixelHeight = WorldMapWaypointExecutor.GetMapPixelHeight(runtime, session.CurrentMap.Height * 24);
 
         if (isNpcHop)
         {
@@ -206,29 +217,34 @@ public static class XmapNavigator
         int planetId = WorldMapData.GetPlanetId(currentMapId, session.CurrentPlayer.Gender);
         WorldWaypointInfo? matchedWp = null;
         int waitTimeMs = 0;
-        const int maxWaitWpMs = 2000;
-        const int pollIntervalMs = 100;
+        const int maxWaitWpMs = 2500;
+        const int pollIntervalMs = 60;
+        int expectedWpCount = NextMapCatalog.GetExpectedWaypointCount(currentMapId, session.CurrentPlayer.Gender);
 
         while (waitTimeMs < maxWaitWpMs)
         {
             if (cancellationToken.IsCancellationRequested)
                 return Result.Failure("Quá trình Xmap bị hủy.");
 
-            matchedWp = WorldMapWaypointExecutor.FindWaypointToMap(
-                currentMapId,
-                planetId,
-                nextMapId,
-                session.CurrentWorld.Waypoints,
-                mapPixelWidth);
+            session.Tick();
 
-            if (matchedWp != null)
+            if (!session.CurrentPlayer.IsChangingMap)
             {
-                break;
+                matchedWp = WorldMapWaypointExecutor.FindWaypointToMap(
+                    currentMapId,
+                    planetId,
+                    nextMapId,
+                    session.CurrentWorld.Waypoints,
+                    expectedWpCount);
+
+                if (matchedWp != null)
+                {
+                    break;
+                }
             }
 
             await Task.Delay(pollIntervalMs, cancellationToken);
             waitTimeMs += pollIntervalMs;
-            session.Tick();
         }
 
         if (matchedWp == null)
@@ -236,13 +252,13 @@ public static class XmapNavigator
             return Result.Failure($"Chưa tải được tọa độ cổng từ #{currentMapId} sang #{nextMapId} ({WorldMapData.GetMapName(nextMapId)}).");
         }
 
+        int finalPixelWidth = WorldMapWaypointExecutor.GetMapPixelWidth(runtime, session.CurrentMap.Width * 24);
         WorldMapData.SyncLiveWaypoints(currentMapId, planetId, session.CurrentWorld.Waypoints);
 
         if (!isFastTeleport)
         {
-            int wpTargetX = WorldMapWaypointExecutor.GetWaypointTargetX(matchedWp, mapPixelWidth);
-            bool isAirOrTower = currentMapId is 45 or 46 or 47 or 48;
-            int wpTargetY = WorldMapWaypointExecutor.GetWaypointTargetY(matchedWp, isAirOrTower);
+            int wpTargetX = WorldMapWaypointExecutor.GetWaypointTargetX(matchedWp, finalPixelWidth);
+            int wpTargetY = WorldMapWaypointExecutor.GetWaypointTargetY(matchedWp);
 
             var navResult = await session.Navigator.NavigateAsync(
                 session.CurrentPlayer,
@@ -270,21 +286,20 @@ public static class XmapNavigator
             charPtr,
             service,
             matchedWp,
-            mapPixelWidth,
-            currentMapId,
+            finalPixelWidth,
             cancellationToken);
     }
 
-    private static async Task<bool> WaitForMapChangeAsync(
+    private static async Task<bool> WaitForMapSettledAsync(
         ISessionContext session,
         int originalMapId,
         bool isNpcHop,
         CancellationToken cancellationToken)
     {
-        int baseTimeoutMs = isNpcHop ? 7000 : 4000;
+        int baseTimeoutMs = isNpcHop ? 8000 : 5000;
         int maxWaitTimeMs = baseTimeoutMs;
         int elapsedMs = 0;
-        const int pollIntervalMs = 80;
+        const int pollIntervalMs = 60;
 
         while (elapsedMs < maxWaitTimeMs)
         {
@@ -299,9 +314,36 @@ public static class XmapNavigator
 
             if (currentMapId != originalMapId && currentMapId >= 0)
             {
-                await Task.Delay(200, cancellationToken);
+                int settleWaitMs = 0;
+                const int maxSettleMs = 2500;
+                int expectedWps = NextMapCatalog.GetExpectedWaypointCount(currentMapId, session.CurrentPlayer.Gender);
+
+                while (settleWaitMs < maxSettleMs)
+                {
+                    if (cancellationToken.IsCancellationRequested)
+                        return false;
+
+                    session.Tick();
+
+                    bool isChanging = session.CurrentPlayer.IsChangingMap;
+                    bool hasMapDimensions = session.CurrentMap.Width > 0 && session.CurrentMap.Height > 0;
+                    bool hasPlayerPos = session.CurrentPlayer.X > 0 && session.CurrentPlayer.Y > 0;
+                    bool hasWaypoints = expectedWps <= 0 ||
+                                        (session.CurrentWorld.Waypoints.Count >= expectedWps &&
+                                         session.CurrentWorld.Waypoints.All(w => !string.IsNullOrWhiteSpace(w.Name)));
+
+                    if (!isChanging && hasMapDimensions && hasPlayerPos && hasWaypoints)
+                    {
+                        break;
+                    }
+
+                    await Task.Delay(50, cancellationToken);
+                    settleWaitMs += 50;
+                }
+
+                await Task.Delay(350, cancellationToken);
                 session.Tick();
-                return true;
+                return session.CurrentWorld.MapId != originalMapId && session.CurrentWorld.MapId >= 0;
             }
 
             if (session.CurrentPlayer.IsChangingMap)

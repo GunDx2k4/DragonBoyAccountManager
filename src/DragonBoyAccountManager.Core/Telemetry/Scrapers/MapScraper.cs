@@ -17,8 +17,26 @@ public class MapScraper(IGameRuntime runtime) : ISnapshotScraper<MapSnapshot>
         var tileMapLayout = _runtime.Layout.TileMap;
         int mapId = _runtime.ReadStatic<int>(GameSchema.TileMap.ClassName, tileMapLayout.MapId);
         int zoneId = _runtime.ReadStatic<int>(GameSchema.TileMap.ClassName, tileMapLayout.ZoneId);
+        int tmw = _runtime.ReadStatic<int>(GameSchema.TileMap.ClassName, tileMapLayout.Tmw);
+        int tmh = _runtime.ReadStatic<int>(GameSchema.TileMap.ClassName, tileMapLayout.Tmh);
 
-        if (!forceRefresh && _cachedMapId == mapId && _cachedSnapshot != null && _cachedSnapshot.IsValid)
+        bool isLoading = _runtime.ReadStatic<bool>(GameSchema.Char.ClassName, _runtime.Layout.Char.IsLoadingMap) ||
+                         _runtime.ReadStatic<bool>(GameSchema.GameCanvas.ClassName, _runtime.Layout.GameCanvas.IsLoading) ||
+                         _runtime.ReadStatic<bool>(GameSchema.Char.ClassName, _runtime.Layout.Char.IsChangingMap);
+
+        if (isLoading && _cachedMapId != mapId)
+        {
+            _cachedMapId = -1;
+            _cachedSnapshot = null;
+            return MapSnapshot.Empty;
+        }
+
+        if (!forceRefresh &&
+            _cachedMapId == mapId &&
+            _cachedSnapshot != null &&
+            _cachedSnapshot.IsValid &&
+            _cachedSnapshot.Width == tmw &&
+            _cachedSnapshot.Height == tmh)
         {
             if (_cachedSnapshot.ZoneId != zoneId)
             {
@@ -27,8 +45,6 @@ public class MapScraper(IGameRuntime runtime) : ISnapshotScraper<MapSnapshot>
             return _cachedSnapshot;
         }
 
-        int tmw = _runtime.ReadStatic<int>(GameSchema.TileMap.ClassName, tileMapLayout.Tmw);
-        int tmh = _runtime.ReadStatic<int>(GameSchema.TileMap.ClassName, tileMapLayout.Tmh);
         string mapName = _runtime.ReadStaticString(GameSchema.TileMap.ClassName, tileMapLayout.MapName);
 
         if (tmw <= 0 || tmh <= 0)
@@ -53,8 +69,11 @@ public class MapScraper(IGameRuntime runtime) : ISnapshotScraper<MapSnapshot>
         }
 
         var snapshot = new MapSnapshot(mapId, zoneId, mapName, tmw, tmh, types);
-        _cachedMapId = mapId;
-        _cachedSnapshot = snapshot;
+        if (!isLoading)
+        {
+            _cachedMapId = mapId;
+            _cachedSnapshot = snapshot;
+        }
         return snapshot;
     }
 }

@@ -1,4 +1,5 @@
 using DragonBoyAccountManager.Core.Automation.Behaviors.Combat;
+using DragonBoyAccountManager.Core.Automation.Behaviors.Boss;
 using DragonBoyAccountManager.Core.Automation.Behaviors.Social;
 using DragonBoyAccountManager.Core.Execution.Commands;
 using DragonBoyAccountManager.Core.Execution.Handlers;
@@ -27,6 +28,7 @@ public static class DefaultSessionBootstrap
         var gameConfigHandler = new GameConfigHandler(session.ConfigController);
 
         dispatcher.RegisterHandler<AttackMobCommand>(combatHandler);
+        dispatcher.RegisterHandler<AttackBossCommand>(combatHandler);
         dispatcher.RegisterHandler<SelectSkillCommand>(combatHandler);
         dispatcher.RegisterHandler<SetInGameAutoTrainCommand>(combatHandler);
         dispatcher.RegisterHandler<MoveCommand>(movementHandler);
@@ -49,5 +51,6 @@ public static class DefaultSessionBootstrap
 
         session.RegisterBehavior(new AutoTrainBehavior(new AutoTrainOptions()));
         session.RegisterBehavior(new AutoChatBehavior(new AutoChatOptions()));
+        session.RegisterBehavior(new AutoBossBehavior(new AutoBossOptions()));
     }
 }

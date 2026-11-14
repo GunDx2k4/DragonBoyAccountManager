@@ -13,8 +13,8 @@ public static class NextMapCatalog
             Adjacents =
             [
                 NextMapAdjacent.Waypoint(42, MapDirection.Left),
+                NextMapAdjacent.Waypoint(21, MapDirection.Center),
                 NextMapAdjacent.Waypoint(1, MapDirection.Right),
-                NextMapAdjacent.Waypoint(21, MapDirection.Left),
                 NextMapAdjacent.Npc(149, 67, 3, [0]),
             ]
         },
@@ -26,8 +26,8 @@ public static class NextMapCatalog
             Adjacents =
             [
                 NextMapAdjacent.Waypoint(0, MapDirection.Left),
+                NextMapAdjacent.Waypoint(47, MapDirection.Center),
                 NextMapAdjacent.Waypoint(2, MapDirection.Right),
-                NextMapAdjacent.Waypoint(47, MapDirection.Right),
             ]
         },
         [2] = new NextMapData
@@ -38,8 +38,8 @@ public static class NextMapCatalog
             Adjacents =
             [
                 NextMapAdjacent.Waypoint(1, MapDirection.Left),
+                NextMapAdjacent.Waypoint(24, MapDirection.Center),
                 NextMapAdjacent.Waypoint(3, MapDirection.Right),
-                NextMapAdjacent.Waypoint(24, MapDirection.Right),
             ]
         },
         [3] = new NextMapData
@@ -50,8 +50,8 @@ public static class NextMapCatalog
             Adjacents =
             [
                 NextMapAdjacent.Waypoint(2, MapDirection.Left),
+                NextMapAdjacent.Waypoint(27, MapDirection.Center),
                 NextMapAdjacent.Waypoint(4, MapDirection.Right),
-                NextMapAdjacent.Waypoint(27, MapDirection.Right),
             ]
         },
         [4] = new NextMapData
@@ -73,8 +73,8 @@ public static class NextMapCatalog
             Adjacents =
             [
                 NextMapAdjacent.Waypoint(4, MapDirection.Left),
+                NextMapAdjacent.Waypoint(29, MapDirection.Center),
                 NextMapAdjacent.Waypoint(6, MapDirection.Right),
-                NextMapAdjacent.Waypoint(29, MapDirection.Right),
                 NextMapAdjacent.Npc(153, 13, 0),
             ]
         },
@@ -96,8 +96,8 @@ public static class NextMapCatalog
             Adjacents =
             [
                 NextMapAdjacent.Waypoint(43, MapDirection.Left),
+                NextMapAdjacent.Waypoint(22, MapDirection.Center),
                 NextMapAdjacent.Waypoint(8, MapDirection.Right),
-                NextMapAdjacent.Waypoint(22, MapDirection.Left),
             ]
         },
         [8] = new NextMapData
@@ -119,8 +119,8 @@ public static class NextMapCatalog
             Adjacents =
             [
                 NextMapAdjacent.Waypoint(8, MapDirection.Left),
+                NextMapAdjacent.Waypoint(25, MapDirection.Center),
                 NextMapAdjacent.Waypoint(11, MapDirection.Right),
-                NextMapAdjacent.Waypoint(25, MapDirection.Right),
             ]
         },
         [10] = new NextMapData
@@ -141,8 +141,8 @@ public static class NextMapCatalog
             Adjacents =
             [
                 NextMapAdjacent.Waypoint(9, MapDirection.Left),
+                NextMapAdjacent.Waypoint(31, MapDirection.Center),
                 NextMapAdjacent.Waypoint(12, MapDirection.Right),
-                NextMapAdjacent.Waypoint(31, MapDirection.Right),
             ]
         },
         [12] = new NextMapData
@@ -164,8 +164,8 @@ public static class NextMapCatalog
             Adjacents =
             [
                 NextMapAdjacent.Waypoint(12, MapDirection.Left),
+                NextMapAdjacent.Waypoint(33, MapDirection.Center),
                 NextMapAdjacent.Waypoint(10, MapDirection.Right),
-                NextMapAdjacent.Waypoint(33, MapDirection.Right),
             ]
         },
         [14] = new NextMapData
@@ -176,8 +176,8 @@ public static class NextMapCatalog
             Adjacents =
             [
                 NextMapAdjacent.Waypoint(44, MapDirection.Left),
+                NextMapAdjacent.Waypoint(23, MapDirection.Center),
                 NextMapAdjacent.Waypoint(15, MapDirection.Right),
-                NextMapAdjacent.Waypoint(23, MapDirection.Left),
             ]
         },
         [15] = new NextMapData
@@ -199,8 +199,8 @@ public static class NextMapCatalog
             Adjacents =
             [
                 NextMapAdjacent.Waypoint(15, MapDirection.Left),
+                NextMapAdjacent.Waypoint(26, MapDirection.Center),
                 NextMapAdjacent.Waypoint(17, MapDirection.Right),
-                NextMapAdjacent.Waypoint(26, MapDirection.Right),
             ]
         },
         [17] = new NextMapData
@@ -211,8 +211,8 @@ public static class NextMapCatalog
             Adjacents =
             [
                 NextMapAdjacent.Waypoint(16, MapDirection.Left),
+                NextMapAdjacent.Waypoint(35, MapDirection.Center),
                 NextMapAdjacent.Waypoint(18, MapDirection.Right),
-                NextMapAdjacent.Waypoint(35, MapDirection.Right),
             ]
         },
         [18] = new NextMapData
@@ -247,8 +247,8 @@ public static class NextMapCatalog
             Adjacents =
             [
                 NextMapAdjacent.Waypoint(18, MapDirection.Left),
+                NextMapAdjacent.Waypoint(37, MapDirection.Center),
                 NextMapAdjacent.Waypoint(19, MapDirection.Right),
-                NextMapAdjacent.Waypoint(37, MapDirection.Right),
             ]
         },
         [21] = new NextMapData
@@ -378,8 +378,8 @@ public static class NextMapCatalog
             Adjacents =
             [
                 NextMapAdjacent.Waypoint(28, MapDirection.Left),
+                NextMapAdjacent.Waypoint(5, MapDirection.Center),
                 NextMapAdjacent.Waypoint(30, MapDirection.Right),
-                NextMapAdjacent.Waypoint(5, MapDirection.Left),
                 NextMapAdjacent.Npc(102, 38, 1),
             ]
         },
@@ -423,8 +423,8 @@ public static class NextMapCatalog
             Adjacents =
             [
                 NextMapAdjacent.Waypoint(32, MapDirection.Left),
+                NextMapAdjacent.Waypoint(13, MapDirection.Center),
                 NextMapAdjacent.Waypoint(34, MapDirection.Right),
-                NextMapAdjacent.Waypoint(13, MapDirection.Left),
             ]
         },
         [34] = new NextMapData
@@ -467,8 +467,8 @@ public static class NextMapCatalog
             Adjacents =
             [
                 NextMapAdjacent.Waypoint(36, MapDirection.Left),
+                NextMapAdjacent.Waypoint(20, MapDirection.Center),
                 NextMapAdjacent.Waypoint(38, MapDirection.Right),
-                NextMapAdjacent.Waypoint(20, MapDirection.Left),
             ]
         },
         [38] = new NextMapData
@@ -520,7 +520,7 @@ public static class NextMapCatalog
             IsAirMap = true,
             Adjacents =
             [
-                NextMapAdjacent.Waypoint(46, MapDirection.Left),
+                NextMapAdjacent.AirDownward(46),
                 NextMapAdjacent.Npc(48, 19, 3),
             ]
         },
@@ -532,8 +532,8 @@ public static class NextMapCatalog
             IsAirMap = true,
             Adjacents =
             [
-                NextMapAdjacent.Waypoint(47, MapDirection.Left),
-                NextMapAdjacent.Waypoint(45, MapDirection.Right),
+                NextMapAdjacent.AirDownward(47),
+                NextMapAdjacent.Waypoint(45, MapDirection.Center),
             ]
         },
         [47] = new NextMapData
@@ -544,8 +544,8 @@ public static class NextMapCatalog
             Adjacents =
             [
                 NextMapAdjacent.Waypoint(1, MapDirection.Left),
+                NextMapAdjacent.Waypoint(46, MapDirection.Center),
                 NextMapAdjacent.Waypoint(111, MapDirection.Right),
-                NextMapAdjacent.Waypoint(46, MapDirection.Right),
             ]
         },
         [48] = new NextMapData
@@ -572,7 +572,6 @@ public static class NextMapCatalog
             Id = 50,
             Name = "Thánh địa Kaio",
             PlanetId = 0,
-            IsAirMap = true,
             Adjacents =
             [
                 NextMapAdjacent.Npc(48, 44, 0),
@@ -1149,9 +1148,9 @@ public static class NextMapCatalog
             PlanetId = 4,
             Adjacents =
             [
-                NextMapAdjacent.Waypoint(109, MapDirection.Left),
-                NextMapAdjacent.Waypoint(108, MapDirection.Left),
                 NextMapAdjacent.Waypoint(80, MapDirection.Left),
+                NextMapAdjacent.Waypoint(108, MapDirection.Center),
+                NextMapAdjacent.Waypoint(109, MapDirection.Right),
             ]
         },
         [106] = new NextMapData
@@ -1161,8 +1160,8 @@ public static class NextMapCatalog
             PlanetId = 4,
             Adjacents =
             [
-                NextMapAdjacent.Waypoint(110, MapDirection.Left),
                 NextMapAdjacent.Waypoint(109, MapDirection.Left),
+                NextMapAdjacent.Waypoint(110, MapDirection.Center),
                 NextMapAdjacent.Waypoint(107, MapDirection.Right),
             ]
         },
@@ -1174,8 +1173,8 @@ public static class NextMapCatalog
             Adjacents =
             [
                 NextMapAdjacent.Waypoint(108, MapDirection.Left),
-                NextMapAdjacent.Waypoint(110, MapDirection.Right),
-                NextMapAdjacent.Waypoint(106, MapDirection.Left),
+                NextMapAdjacent.Waypoint(110, MapDirection.Center),
+                NextMapAdjacent.Waypoint(106, MapDirection.Right),
             ]
         },
         [108] = new NextMapData
@@ -1185,9 +1184,9 @@ public static class NextMapCatalog
             PlanetId = 4,
             Adjacents =
             [
-                NextMapAdjacent.Waypoint(109, MapDirection.Left),
+                NextMapAdjacent.Waypoint(105, MapDirection.Left),
+                NextMapAdjacent.Waypoint(109, MapDirection.Center),
                 NextMapAdjacent.Waypoint(107, MapDirection.Right),
-                NextMapAdjacent.Waypoint(105, MapDirection.Right),
             ]
         },
         [109] = new NextMapData
@@ -1197,8 +1196,8 @@ public static class NextMapCatalog
             PlanetId = 4,
             Adjacents =
             [
-                NextMapAdjacent.Waypoint(108, MapDirection.Right),
-                NextMapAdjacent.Waypoint(105, MapDirection.Right),
+                NextMapAdjacent.Waypoint(105, MapDirection.Left),
+                NextMapAdjacent.Waypoint(108, MapDirection.Center),
                 NextMapAdjacent.Waypoint(106, MapDirection.Right),
                 NextMapAdjacent.Npc(19, 12, 0),
             ]
@@ -1458,5 +1457,18 @@ public static class NextMapCatalog
         {
             return Maps.TryGetValue(mapId, out var m) ? m.PlanetId : 7;
         }
+    }
+
+    public static int GetExpectedWaypointCount(int mapId, int gender = 0)
+    {
+        if (TryGetMap(mapId, out var mapData) && mapData != null)
+        {
+            int count = mapData.Adjacents.Count(a => a.TransitionType == NextMapTransitionType.Waypoint);
+            if (mapId == 0 && gender != 0 && count > 0) count--;
+            if (mapId == 7 && gender != 1 && count > 0) count--;
+            if (mapId == 14 && gender != 2 && count > 0) count--;
+            return Math.Max(0, count);
+        }
+        return 0;
     }
 }

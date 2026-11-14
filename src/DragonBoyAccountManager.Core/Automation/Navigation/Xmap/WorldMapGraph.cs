@@ -96,9 +96,27 @@ public sealed class WorldMapGraph
 
             if (matchingWp != null)
             {
-                if (matchingWp.MinX <= 120) return MapDirection.Left;
-                if (matchingWp.MaxX >= 800) return MapDirection.Right;
-                return MapDirection.Center;
+                var sorted = liveWaypoints.OrderBy(w => w.X).ToList();
+                int idx = sorted.IndexOf(matchingWp);
+                if (sorted.Count >= 3)
+                {
+                    if (idx == 0) return MapDirection.Left;
+                    if (idx == sorted.Count - 1) return MapDirection.Right;
+                    return MapDirection.Center;
+                }
+                if (sorted.Count == 2)
+                {
+                    return idx == 0 ? MapDirection.Left : MapDirection.Right;
+                }
+            }
+        }
+
+        if (NextMapCatalog.TryGetMap(fromMapId, out var mapData) && mapData != null)
+        {
+            var adj = mapData.Adjacents.FirstOrDefault(a => a.TargetMapId == toMapId && !a.IsNpc);
+            if (adj != null)
+            {
+                return adj.Direction;
             }
         }
 

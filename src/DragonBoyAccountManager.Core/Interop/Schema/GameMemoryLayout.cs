@@ -64,6 +64,9 @@ public sealed record GameScrLayout(
     int VCharInMap,
     int VItemMap,
     int Zones,
+    int Pts,
+    int NumPlayer,
+    int MaxPlayer,
     int OnScreenSkill,
     int TextTime,
     int IsPaintChatVip);
@@ -390,6 +393,9 @@ public sealed class GameMemoryLayout
             VCharInMap: ResolveStatic(schema, GameSchema.GameScr.ClassName, GameSchema.GameScr.StaticVCharInMap),
             VItemMap: ResolveStatic(schema, GameSchema.GameScr.ClassName, GameSchema.GameScr.StaticVItemMap),
             Zones: ResolveInstance(schema, GameSchema.GameScr.ClassName, GameSchema.GameScr.FieldZones),
+            Pts: ResolveInstance(schema, GameSchema.GameScr.ClassName, GameSchema.GameScr.FieldPts),
+            NumPlayer: ResolveInstance(schema, GameSchema.GameScr.ClassName, GameSchema.GameScr.FieldNumPlayer),
+            MaxPlayer: ResolveInstance(schema, GameSchema.GameScr.ClassName, GameSchema.GameScr.FieldMaxPlayer),
             OnScreenSkill: ResolveStatic(schema, GameSchema.GameScr.ClassName, GameSchema.GameScr.StaticOnScreenSkill),
             TextTime: ResolveStatic(schema, GameSchema.GameScr.ClassName, GameSchema.GameScr.StaticTextTime),
             IsPaintChatVip: ResolveStatic(schema, GameSchema.GameScr.ClassName, GameSchema.GameScr.StaticIsPaintChatVip)

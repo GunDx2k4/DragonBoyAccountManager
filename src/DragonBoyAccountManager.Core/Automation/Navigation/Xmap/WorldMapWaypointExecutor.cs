@@ -7,11 +7,35 @@ namespace DragonBoyAccountManager.Core.Automation.Navigation.Xmap;
 
 public static class WorldMapWaypointExecutor
 {
+    public static int GetMapPixelWidth(IGameRuntime runtime, int fallbackWidth = 0)
+    {
+        int pxw = runtime.ReadStatic<int>(GameSchema.TileMap.ClassName, runtime.Layout.TileMap.Pxw);
+        if (pxw > 0) return pxw;
+        int tmw = runtime.ReadStatic<int>(GameSchema.TileMap.ClassName, runtime.Layout.TileMap.Tmw);
+        if (tmw > 0) return tmw * 24;
+        return fallbackWidth > 0 ? fallbackWidth : 2400;
+    }
+
+    public static int GetMapPixelHeight(IGameRuntime runtime, int fallbackHeight = 0)
+    {
+        int pxh = runtime.ReadStatic<int>(GameSchema.TileMap.ClassName, runtime.Layout.TileMap.Pxh);
+        if (pxh > 0) return pxh;
+        int tmh = runtime.ReadStatic<int>(GameSchema.TileMap.ClassName, runtime.Layout.TileMap.Tmh);
+        if (tmh > 0) return tmh * 24;
+        return fallbackHeight > 0 ? fallbackHeight : 1000;
+    }
+
     public static bool IsAirMapDownwardTransition(int currMapId, int nextMapId)
     {
-        return (currMapId == 46 && nextMapId == 47) ||
-               (currMapId == 45 && nextMapId == 46) ||
-               (currMapId == 48 && nextMapId == 45);
+        if (NextMapCatalog.TryGetMap(currMapId, out var map) && map != null)
+        {
+            var adj = map.Adjacents.FirstOrDefault(a => a.TargetMapId == nextMapId);
+            if (adj != null)
+            {
+                return adj.TransitionType == NextMapTransitionType.AirMapDownward;
+            }
+        }
+        return false;
     }
 
     public static void ResetMoveState(IGameRuntime runtime, IntPtr charPtr, int statusMe)
@@ -72,57 +96,25 @@ public static class WorldMapWaypointExecutor
 
     public static int GetWaypointTargetX(WorldWaypointInfo wp, int mapPixelWidth)
     {
-        int minX = wp.MinX;
-        int maxX = wp.MaxX;
-        int center = (minX + maxX) / 2;
-
-        if (maxX <= 60)
+        if (wp.MaxX < 60)
         {
-            if (15 >= minX && 15 <= maxX)
-            {
-                return 15;
-            }
-            return Math.Max(6, center);
+            return Math.Clamp(15, (int)wp.MinX, (int)wp.MaxX);
         }
 
-        if (minX >= mapPixelWidth - 60)
+        if ((mapPixelWidth > 0 && wp.MinX > mapPixelWidth - 60 && wp.MaxX <= mapPixelWidth + 60) ||
+            (!wp.IsEnter && wp.MinX >= 60))
         {
-            int rightTarget = mapPixelWidth - 15;
-            if (rightTarget >= minX && rightTarget <= maxX)
-            {
-                return rightTarget;
-            }
-            return Math.Min(mapPixelWidth - 6, center);
+            int target = mapPixelWidth > 0 && Math.Abs(wp.MaxX - mapPixelWidth) <= 60
+                ? mapPixelWidth - 15
+                : wp.MaxX - 15;
+            return Math.Clamp(target, (int)wp.MinX, (int)wp.MaxX);
         }
 
-        return center;
+        return wp.MinX + (wp.MaxX - wp.MinX) / 2;
     }
 
-    public static int GetWaypointApproachX(WorldWaypointInfo wp, int targetX, int targetY, int mapPixelWidth, bool isAirOrTower)
+    public static int GetWaypointTargetY(WorldWaypointInfo wp)
     {
-        bool isLeftEdge = wp.MaxX <= 60;
-        bool isRightEdge = !isLeftEdge && wp.MinX >= mapPixelWidth - 60;
-
-        if (!isLeftEdge && !isRightEdge)
-        {
-            return targetX;
-        }
-
-        if (isLeftEdge)
-        {
-            return Math.Max(35, targetX + 20);
-        }
-
-        return Math.Min(mapPixelWidth - 35, targetX - 20);
-    }
-
-    public static int GetWaypointTargetY(WorldWaypointInfo wp, bool isAirOrTower)
-    {
-        if (isAirOrTower)
-        {
-            return (wp.MaxY > wp.MinY + 24) ? ((wp.MinY + wp.MaxY) / 2) : wp.MaxY;
-        }
-
         return wp.MaxY > 0 ? wp.MaxY : wp.Y;
     }
 
@@ -132,13 +124,11 @@ public static class WorldMapWaypointExecutor
         IntPtr servicePtr,
         WorldWaypointInfo wp,
         int mapPixelWidth,
-        int currentMapId,
         CancellationToken cancellationToken = default)
     {
-        bool isAirOrTower = currentMapId == 45 || currentMapId == 46 || currentMapId == 47 || currentMapId == 48;
-        int wpTargetX = GetWaypointTargetX(wp, mapPixelWidth);
-        int wpTargetY = GetWaypointTargetY(wp, isAirOrTower);
-        int approachX = GetWaypointApproachX(wp, wpTargetX, wpTargetY, mapPixelWidth, isAirOrTower);
+        int actualPxw = GetMapPixelWidth(runtime, mapPixelWidth);
+        int wpTargetX = GetWaypointTargetX(wp, actualPxw);
+        int wpTargetY = GetWaypointTargetY(wp);
 
         await ExecuteTeleportAndChangeMapAsync(
             runtime,
@@ -146,7 +136,6 @@ public static class WorldMapWaypointExecutor
             servicePtr,
             wpTargetX,
             wpTargetY,
-            approachX,
             wp.IsOffline,
             cancellationToken);
 
@@ -159,23 +148,22 @@ public static class WorldMapWaypointExecutor
         IntPtr servicePtr,
         int targetX,
         int targetY,
-        int approachX,
         bool isOffline,
         CancellationToken cancellationToken = default)
     {
-        if (approachX != targetX)
-        {
-            await TeleportToAsync(runtime, charPtr, servicePtr, approachX, targetY, cancellationToken);
-            await Task.Delay(100, cancellationToken);
-            runtime.CallMethod(GameSchema.Service.ClassName, GameSchema.Service.MethodCharMove, servicePtr);
-            await Task.Delay(50, cancellationToken);
-        }
+        int startMapId = runtime.ReadStatic<int>(GameSchema.TileMap.ClassName, runtime.Layout.TileMap.MapId);
 
         await TeleportToAsync(runtime, charPtr, servicePtr, targetX, targetY, cancellationToken);
-        await Task.Delay(80, cancellationToken);
 
-        await SendNormalMoveAsync(runtime, charPtr, servicePtr, targetX, targetY, cancellationToken);
-        await Task.Delay(60, cancellationToken);
+        int nowMapId = runtime.ReadStatic<int>(GameSchema.TileMap.ClassName, runtime.Layout.TileMap.MapId);
+        bool isChanging = runtime.ReadStatic<bool>(GameSchema.Char.ClassName, runtime.Layout.Char.IsChangingMap) ||
+                          runtime.ReadStatic<bool>(GameSchema.Char.ClassName, runtime.Layout.Char.IsLoadingMap) ||
+                          runtime.ReadStatic<bool>(GameSchema.GameCanvas.ClassName, runtime.Layout.GameCanvas.IsLoading);
+
+        if (nowMapId != startMapId || isChanging)
+        {
+            return;
+        }
 
         string changeMapMethod = isOffline ? GameSchema.Service.MethodGetMapOffline : GameSchema.Service.MethodRequestChangeMap;
         runtime.CallMethod(GameSchema.Service.ClassName, changeMapMethod, servicePtr);
@@ -202,9 +190,6 @@ public static class WorldMapWaypointExecutor
         runtime.CallMethod(GameSchema.Service.ClassName, GameSchema.Service.MethodRequestChangeMap, servicePtr);
         return Result.Success();
     }
-
-    public static int GetFallbackNpcMenuIndex(int currentMapId, int targetMapId) =>
-        WorldMapData.NpcActions.TryGetValue((currentMapId, targetMapId), out var npcAction) ? npcAction.Select : 0;
 
     public static WorldNpcInfo? FindTransitionNpc(int currMapId, int nextMapId, IReadOnlyList<WorldNpcInfo> npcs)
     {
@@ -243,7 +228,7 @@ public static class WorldMapWaypointExecutor
         runtime.CallMethod(GameSchema.Service.ClassName, GameSchema.Service.MethodOpenMenu, servicePtr, shipNpc.TemplateId);
         await Task.Delay(400, cancellationToken);
 
-        sbyte menuIndex = (sbyte)GetFallbackNpcMenuIndex(currentMapId, targetPlanetMapId);
+        sbyte menuIndex = 0;
         int[]? selectChain = null;
 
         if (WorldMapData.NpcActions.TryGetValue((currentMapId, targetPlanetMapId), out var npcAction))
@@ -271,13 +256,35 @@ public static class WorldMapWaypointExecutor
         int planetId,
         int nextMapId,
         IReadOnlyList<WorldWaypointInfo> waypoints,
-        int mapPixelWidth)
+        int expectedWaypointCount = 0)
     {
         if (waypoints == null || waypoints.Count == 0) return null;
+        if (expectedWaypointCount > 0 && waypoints.Count < expectedWaypointCount) return null;
 
-        for (int j = 0; j < waypoints.Count; j++)
+        for (int i = 0; i < waypoints.Count; i++)
         {
-            var wp = waypoints[j];
+            if (string.IsNullOrWhiteSpace(waypoints[i].Name)) return null;
+        }
+
+        string targetMapName = WorldMapData.GetMapName(nextMapId);
+
+        for (int i = 0; i < waypoints.Count; i++)
+        {
+            var wp = waypoints[i];
+            if (string.IsNullOrWhiteSpace(wp.Name)) continue;
+
+            if (!string.IsNullOrEmpty(targetMapName) &&
+                (wp.Name.Equals(targetMapName, StringComparison.OrdinalIgnoreCase) ||
+                 WorldMapData.CleanName(wp.Name).Equals(WorldMapData.CleanName(targetMapName), StringComparison.OrdinalIgnoreCase)))
+            {
+                return wp;
+            }
+
+            if (WorldMapData.MatchMapId(wp.Name, nextMapId))
+            {
+                return wp;
+            }
+
             int resolvedId = WorldMapData.ResolveWaypointTargetMapId(wp.Name, currMapId, planetId);
             if (resolvedId == nextMapId)
             {
@@ -285,86 +292,6 @@ public static class WorldMapWaypointExecutor
             }
         }
 
-        for (int j = 0; j < waypoints.Count; j++)
-        {
-            var wp = waypoints[j];
-            if (!string.IsNullOrEmpty(wp.Name) && WorldMapData.MatchMapId(wp.Name, nextMapId))
-            {
-                return wp;
-            }
-        }
-
-        if (nextMapId == 21 || nextMapId == 22 || nextMapId == 23)
-        {
-            for (int j = 0; j < waypoints.Count; j++)
-            {
-                var wp = waypoints[j];
-                if (wp.IsOffline || (wp.IsEnter && wp.MinX >= 60 && wp.MaxX <= mapPixelWidth - 60))
-                {
-                    return wp;
-                }
-            }
-            return null;
-        }
-
-        if (currMapId == 21 || currMapId == 22 || currMapId == 23)
-        {
-            return waypoints[0];
-        }
-
-        if ((currMapId == 0 || currMapId == 7 || currMapId == 14) &&
-            (nextMapId == 42 || nextMapId == 43 || nextMapId == 44 || nextMapId == 39 || nextMapId == 40 || nextMapId == 41))
-        {
-            for (int j = 0; j < waypoints.Count; j++)
-            {
-                var wp = waypoints[j];
-                if (!wp.IsOffline && !wp.IsEnter && wp.MaxX < 100)
-                {
-                    return wp;
-                }
-            }
-        }
-
-        if (currMapId == 42)
-        {
-            if (nextMapId == 47) return waypoints.OrderBy(w => w.MinX).FirstOrDefault();
-            if (nextMapId == 0) return waypoints.OrderByDescending(w => w.MaxX).FirstOrDefault();
-        }
-        else if (currMapId == 47)
-        {
-            if (nextMapId == 46) return waypoints.OrderBy(w => w.MinY).FirstOrDefault();
-            if (nextMapId == 42) return waypoints.OrderBy(w => w.MinX).FirstOrDefault();
-            if (nextMapId == 2) return waypoints.OrderByDescending(w => w.MaxX).FirstOrDefault();
-        }
-        else if (currMapId == 46)
-        {
-            if (nextMapId == 45) return waypoints.Where(w => w.MinY <= 150).OrderBy(w => w.MinY).FirstOrDefault();
-            if (nextMapId == 47) return waypoints.FirstOrDefault(w => w.MinY > 150);
-        }
-        else if (currMapId == 45)
-        {
-            if (nextMapId == 48) return waypoints.Where(w => w.MinY <= 150).OrderBy(w => w.MinY).FirstOrDefault();
-            if (nextMapId == 46) return waypoints.FirstOrDefault(w => w.MinY > 150);
-        }
-        else if (currMapId == 48 && nextMapId == 45)
-        {
-            return waypoints.FirstOrDefault(w => w.MinY > 150);
-        }
-
-        int chainSide = WorldMapData.GetChainWaypointSide(currMapId, nextMapId);
-        int preferSide = chainSide != 0 ? chainSide : (nextMapId > currMapId ? 1 : -1);
-
-        if (preferSide > 0)
-        {
-            return waypoints
-                .Where(w => WorldMapData.ResolveWaypointTargetMapId(w.Name, currMapId, planetId) == -1)
-                .OrderByDescending(w => w.MaxX)
-                .FirstOrDefault();
-        }
-
-        return waypoints
-            .Where(w => WorldMapData.ResolveWaypointTargetMapId(w.Name, currMapId, planetId) == -1)
-            .OrderBy(w => w.MinX)
-            .FirstOrDefault();
+        return null;
     }
 }

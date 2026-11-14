@@ -100,7 +100,7 @@ public class MovementHandler :
         int targetX = command.WaypointX;
         int targetY = command.WaypointY;
         bool isOffline = false;
-        int mapPixelWidth = _sessionContext?.CurrentMap.Width > 0 ? _sessionContext.CurrentMap.Width * 24 : 2400;
+        int mapPixelWidth = WorldMapWaypointExecutor.GetMapPixelWidth(_runtime, (_sessionContext?.CurrentMap.Width ?? 0) * 24);
 
         WorldWaypointInfo? matchedWp = null;
         if (_sessionContext != null && _sessionContext.CurrentWorld.Waypoints.Count > 0)
@@ -113,7 +113,7 @@ public class MovementHandler :
             {
                 isOffline = matchedWp.IsOffline;
                 targetX = WorldMapWaypointExecutor.GetWaypointTargetX(matchedWp, mapPixelWidth);
-                targetY = WorldMapWaypointExecutor.GetWaypointTargetY(matchedWp, false);
+                targetY = WorldMapWaypointExecutor.GetWaypointTargetY(matchedWp);
             }
         }
 
@@ -127,18 +127,7 @@ public class MovementHandler :
                     service,
                     matchedWp,
                     mapPixelWidth,
-                    _sessionContext?.CurrentWorld.MapId ?? 0,
                     cancellationToken);
-            }
-
-            int approachX = targetX;
-            if (targetX <= 60)
-            {
-                approachX = Math.Max(35, targetX + 20);
-            }
-            else if (targetX >= mapPixelWidth - 60)
-            {
-                approachX = Math.Min(mapPixelWidth - 35, targetX - 20);
             }
 
             await WorldMapWaypointExecutor.ExecuteTeleportAndChangeMapAsync(
@@ -147,7 +136,6 @@ public class MovementHandler :
                 service,
                 targetX,
                 targetY,
-                approachX,
                 isOffline,
                 cancellationToken);
 

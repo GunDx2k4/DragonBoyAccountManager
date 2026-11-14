@@ -1,4 +1,5 @@
 using System.Collections.Concurrent;
+using DragonBoyAccountManager.Core.Automation.Navigation.Xmap;
 using DragonBoyAccountManager.Core.Interop.Abstractions;
 using DragonBoyAccountManager.Core.Interop.Schema;
 using DragonBoyAccountManager.Core.Telemetry.Snapshots;
@@ -23,9 +24,6 @@ public class WorldScraper(IGameRuntime runtime) : ISnapshotScraper<WorldSnapshot
 
     public string GetMapName(int mapId)
     {
-        string directName = _runtime.ReadStaticString(GameSchema.TileMap.ClassName, _runtime.Layout.TileMap.MapName);
-        if (!string.IsNullOrWhiteSpace(directName)) return directName;
-
         IntPtr mapNamesPtr = _runtime.ReadStatic<IntPtr>(GameSchema.TileMap.ClassName, _runtime.Layout.TileMap.MapNames);
         if (mapNamesPtr != IntPtr.Zero && mapId >= 0)
         {
@@ -33,6 +31,13 @@ public class WorldScraper(IGameRuntime runtime) : ISnapshotScraper<WorldSnapshot
             if (!string.IsNullOrWhiteSpace(name))
                 return name;
         }
+
+        if (mapId == GetMapId())
+        {
+            string directName = _runtime.ReadStaticString(GameSchema.TileMap.ClassName, _runtime.Layout.TileMap.MapName);
+            if (!string.IsNullOrWhiteSpace(directName)) return directName;
+        }
+
         return string.Empty;
     }
 
@@ -48,6 +53,7 @@ public class WorldScraper(IGameRuntime runtime) : ISnapshotScraper<WorldSnapshot
                 _cachedMapId = mapId;
                 _cachedMapName = string.Empty;
                 _cachedWaypoints = [];
+                InvalidateGameScrZones();
             }
             _cachedZoneId = zoneId;
             _mobDeathTimes.Clear();
@@ -58,9 +64,27 @@ public class WorldScraper(IGameRuntime runtime) : ISnapshotScraper<WorldSnapshot
             _cachedMapName = GetMapName(mapId);
         }
 
-        if (_cachedWaypoints.Count == 0 && mapId >= 0)
+        if (mapId >= 0)
         {
-            _cachedWaypoints = ScrapeWaypoints();
+            bool shouldScrape = _cachedWaypoints.Count == 0 || _cachedWaypoints.Any(w => string.IsNullOrWhiteSpace(w.Name));
+
+            if (!shouldScrape)
+            {
+                IntPtr vGoPtr = _runtime.ReadStatic<IntPtr>(GameSchema.TileMap.ClassName, _runtime.Layout.TileMap.VGo);
+                if (vGoPtr != IntPtr.Zero)
+                {
+                    int liveCount = CollectionHelper.ReadMyVector(_runtime, vGoPtr).Count;
+                    if (liveCount != _cachedWaypoints.Count)
+                    {
+                        shouldScrape = true;
+                    }
+                }
+            }
+
+            if (shouldScrape)
+            {
+                _cachedWaypoints = ScrapeWaypoints();
+            }
         }
 
         var mobs = ScrapeMobs();
@@ -289,40 +313,57 @@ public class WorldScraper(IGameRuntime runtime) : ISnapshotScraper<WorldSnapshot
             result.Add(new WorldWaypointInfo(name, centerX, centerY, minX, minY, maxX, maxY, isOffline, isEnter));
         }
 
-        var sorted = result.OrderBy(w => w.X).ToList();
-        for (int i = 0; i < sorted.Count; i++)
-        {
-            if (string.IsNullOrWhiteSpace(sorted[i].Name))
-            {
-                string fallback = sorted.Count switch
-                {
-                    1 => "Cổng Vực",
-                    2 => i == 0 ? "Cổng Trái" : "Cổng Phải",
-                    3 => i == 0 ? "Cổng Trái" : (i == 1 ? "Cổng Giữa" : "Cổng Phải"),
-                    _ => $"Cổng {i + 1}"
-                };
-                sorted[i] = sorted[i] with { Name = fallback };
-            }
-        }
+        result.Sort((a, b) => a.MinX.CompareTo(b.MinX));
+        return result;
+    }
 
-        return sorted;
+    private void InvalidateGameScrZones()
+    {
+        if (_runtime.Layout.GameScr.Zones < 0) return;
+        IntPtr gameScr = _runtime.ReadStatic<IntPtr>(GameSchema.GameScr.ClassName, _runtime.Layout.GameScr.Instance);
+        if (gameScr == IntPtr.Zero) return;
+        _runtime.WriteField(gameScr, _runtime.Layout.GameScr.Zones, IntPtr.Zero);
+        if (_runtime.Layout.GameScr.Pts >= 0) _runtime.WriteField(gameScr, _runtime.Layout.GameScr.Pts, IntPtr.Zero);
+        if (_runtime.Layout.GameScr.NumPlayer >= 0) _runtime.WriteField(gameScr, _runtime.Layout.GameScr.NumPlayer, IntPtr.Zero);
+        if (_runtime.Layout.GameScr.MaxPlayer >= 0) _runtime.WriteField(gameScr, _runtime.Layout.GameScr.MaxPlayer, IntPtr.Zero);
     }
 
     public IReadOnlyList<WorldZoneInfo> ScrapeZones()
     {
         var result = new List<WorldZoneInfo>();
+        if (_runtime.Layout.GameScr.Zones < 0) return result;
+
         IntPtr gameScr = _runtime.ReadStatic<IntPtr>(GameSchema.GameScr.ClassName, _runtime.Layout.GameScr.Instance);
         if (gameScr == IntPtr.Zero) return result;
 
         IntPtr zonesPtr = _runtime.ReadFieldPtr(gameScr, _runtime.Layout.GameScr.Zones);
         if (zonesPtr == IntPtr.Zero) return result;
 
-        int[] nums = _runtime.ReadIntArray(zonesPtr, 100);
-        if (nums.Length == 0) return result;
+        int[] zoneIds = _runtime.ReadIntArray(zonesPtr, 100);
+        if (zoneIds.Length == 0) return result;
 
-        for (int i = 0; i < nums.Length; i++)
+        IntPtr ptsPtr = _runtime.Layout.GameScr.Pts >= 0
+            ? _runtime.ReadFieldPtr(gameScr, _runtime.Layout.GameScr.Pts)
+            : IntPtr.Zero;
+        IntPtr numPlayerPtr = _runtime.Layout.GameScr.NumPlayer >= 0
+            ? _runtime.ReadFieldPtr(gameScr, _runtime.Layout.GameScr.NumPlayer)
+            : IntPtr.Zero;
+        IntPtr maxPlayerPtr = _runtime.Layout.GameScr.MaxPlayer >= 0
+            ? _runtime.ReadFieldPtr(gameScr, _runtime.Layout.GameScr.MaxPlayer)
+            : IntPtr.Zero;
+
+        int[] pts = ptsPtr != IntPtr.Zero ? _runtime.ReadIntArray(ptsPtr, zoneIds.Length) : [];
+        int[] numPlayers = numPlayerPtr != IntPtr.Zero ? _runtime.ReadIntArray(numPlayerPtr, zoneIds.Length) : [];
+        int[] maxPlayers = maxPlayerPtr != IntPtr.Zero ? _runtime.ReadIntArray(maxPlayerPtr, zoneIds.Length) : [];
+
+        for (int i = 0; i < zoneIds.Length; i++)
         {
-            result.Add(new WorldZoneInfo(i, nums[i], 15));
+            if (zoneIds[i] < 0) continue;
+            int zoneId = zoneIds[i];
+            int num = i < numPlayers.Length ? numPlayers[i] : 0;
+            int max = i < maxPlayers.Length && maxPlayers[i] > 0 ? maxPlayers[i] : 15;
+            int status = i < pts.Length ? pts[i] : 0;
+            result.Add(new WorldZoneInfo(zoneId, num, max, status));
         }
 
         return result;

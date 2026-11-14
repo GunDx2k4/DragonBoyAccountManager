@@ -10,6 +10,16 @@ public sealed record AttackMobCommand(
     public string Name => $"Tấn công {MobName} #{MobId}";
 }
 
+public sealed record AttackBossCommand(
+    int CharId,
+    string BossName = "Boss",
+    int TargetX = 0,
+    int SkillSlot = 0
+) : IGameCommand
+{
+    public string Name => $"Tấn công {BossName} #{CharId}";
+}
+
 public sealed record SelectSkillCommand(
     int SlotIndex
 ) : IGameCommand
