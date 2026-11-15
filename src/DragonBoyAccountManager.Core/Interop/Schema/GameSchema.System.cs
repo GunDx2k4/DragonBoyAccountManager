@@ -55,6 +55,7 @@ public static partial class GameSchema
         public const string MethodLogin = "login";
         public const string MethodPickItem = "pickItem";
         public const string MethodSendPlayerAttack = "sendPlayerAttack";
+        public const string MethodSkillNotFocus = "skill_not_focus";
         public const string MethodSelectSkill = "selectSkill";
         public const string MethodWakeUpFromDead = "wakeUpFromDead";
         public const string MethodOpenMenu = "openMenu";

@@ -25,7 +25,7 @@ public sealed partial class AutoTrainViewModel : AutoFeatureViewModelBase
     public override string BehaviorId => AutoTrainBehavior.BehaviorId;
 
     [ObservableProperty]
-    private bool _avoidSuperMobs = true;
+    private bool _avoidSuperMobs;
 
     [ObservableProperty]
     private bool _changeZoneWhenNoMobs;
@@ -40,7 +40,7 @@ public sealed partial class AutoTrainViewModel : AutoFeatureViewModelBase
     private long _maxMobHp = 10000000001L;
 
     [ObservableProperty]
-    private bool _autoUsePean = true;
+    private bool _autoUsePean;
 
     [ObservableProperty]
     private int _peanHpPercent = 50;
@@ -52,7 +52,7 @@ public sealed partial class AutoTrainViewModel : AutoFeatureViewModelBase
     private bool _checkAllMobs = true;
 
     [ObservableProperty]
-    private bool _autoPick = true;
+    private bool _autoPick;
 
     [ObservableProperty]
     private bool _pickOthersItems;
@@ -422,18 +422,18 @@ public sealed partial class AutoTrainViewModel : AutoFeatureViewModelBase
             CheckAttackByHp: options.CheckAttackByHp,
             MinMobHp: options.MinMobHp,
             MaxMobHp: options.MaxMobHp,
-            AutoUsePean: options.AutoUsePean,
+            AutoUsePean: false,
             PeanHpPercent: options.MinHpPercent,
             PeanMpPercent: options.MinMpPercent,
             CheckAllMobs: options.CheckAllMobs,
             TargetMobNames: options.TargetMobNames,
             SelectedSkillSlots: options.SelectedSkillSlots,
-            SelectedItemTemplateIds: options.SelectedItemTemplateIds,
-            SelectedBuaTemplateIds: options.SelectedBuaTemplateIds,
-            AutoPick: options.AutoPick,
-            PickOthersItems: options.PickOthersItems,
-            PickAllMap: options.PickAllMap,
-            AutoDropItems: options.AutoDropItems,
+            SelectedItemTemplateIds: [],
+            SelectedBuaTemplateIds: [],
+            AutoPick: false,
+            PickOthersItems: false,
+            PickAllMap: false,
+            AutoDropItems: false,
             FilterPickIds: options.FilterPickIds,
             FilterExcludeIds: options.FilterExcludeIds,
             FilterDropIds: options.FilterDropIds

@@ -12,15 +12,21 @@ public class CombatHandler(IGameRuntime runtime) :
     IGameCommandHandler<SelectSkillCommand>,
     IGameCommandHandler<SetInGameAutoTrainCommand>
 {
+    private struct CachedVectorSlot
+    {
+        public IntPtr VectorPtr;
+        public IntPtr ItemsPtr;
+        public uint VectorHandle;
+        public uint ListHandle;
+        public uint ItemsHandle;
+    }
+
     private readonly IGameRuntime _runtime = runtime;
-    private IntPtr _cachedVMob;
-    private IntPtr _cachedVMobItems;
-    private uint _cachedVMobItemsHandle;
-    private IntPtr _cachedEmptyVChar;
-    private IntPtr _cachedEmptyVMob;
-    private IntPtr _cachedVChar;
-    private IntPtr _cachedVCharItems;
-    private uint _cachedVCharItemsHandle;
+    private CachedVectorSlot _cachedVMob;
+    private CachedVectorSlot _cachedEmptyVChar;
+    private CachedVectorSlot _cachedEmptyVMob;
+    private CachedVectorSlot _cachedVChar;
+    private CachedVectorSlot _cachedSelfVChar;
 
     public Task<Result> HandleAsync(SetInGameAutoTrainCommand command, CancellationToken cancellationToken)
     {
@@ -211,11 +217,6 @@ public class CombatHandler(IGameRuntime runtime) :
                 }
             }
 
-            if (layout.IsNhat >= 0)
-            {
-                _runtime.WriteField(autoTrainStatic, layout.IsNhat, true);
-            }
-
             if (layout.StrIdNhat >= 0)
             {
                 _runtime.WriteStaticString(GameSchema.AutoTrainMenu.ClassName, layout.StrIdNhat, command.FilterPickIds ?? string.Empty);
@@ -335,6 +336,14 @@ public class CombatHandler(IGameRuntime runtime) :
 
     public async Task<Result> HandleAsync(AttackMobCommand command, CancellationToken cancellationToken)
     {
+        IntPtr charPtr = _runtime.GetMyCharPtr();
+        if (charPtr == IntPtr.Zero)
+            return Result.Failure("Nhân vật chưa vào game.");
+
+        Result? auxResult = await TryExecuteSelectedAuxiliarySkillAsync(charPtr, command.SkillSlot, cancellationToken);
+        if (auxResult != null)
+            return auxResult;
+
         IntPtr mobPtr = IntPtr.Zero;
         IntPtr vMobPtr = _runtime.ReadStatic<IntPtr>(GameSchema.GameScr.ClassName, _runtime.Layout.GameScr.VMob);
         if (vMobPtr != IntPtr.Zero)
@@ -358,10 +367,6 @@ public class CombatHandler(IGameRuntime runtime) :
         if (mobHp <= 0 || mobStatus == 0 || mobStatus == 1)
             return Result.Failure($"Quái #{command.MobId} đã chết.");
 
-        IntPtr charPtr = _runtime.GetMyCharPtr();
-        if (charPtr == IntPtr.Zero)
-            return Result.Failure("Nhân vật chưa vào game.");
-
         _runtime.WriteField(charPtr, _runtime.Layout.Char.MobFocus, mobPtr);
 
         IntPtr vMob = EnsureValidMyVector(ref _cachedVMob, clearElements: true, pinInitialItems: false);
@@ -371,14 +376,22 @@ public class CombatHandler(IGameRuntime runtime) :
             return Result.Failure("Không thể tạo vector tấn công.");
 
         _runtime.CallMethod(GameSchema.MyVector.ClassName, GameSchema.MyVector.MethodAddElement, vMob, mobPtr);
-        PinVectorBackingStorage(vMob, ref _cachedVMobItems, ref _cachedVMobItemsHandle);
+        PinVectorBackingStorage(ref _cachedVMob);
 
-        Result attackResult = await ExecutePlayerAttackAsync(charPtr, command.TargetX, command.SkillSlot, vMob, vChar, 1, cancellationToken);
+        Result attackResult = ExecutePlayerAttack(charPtr, command.TargetX, vMob, vChar, 1);
         return attackResult.IsSuccess ? Result.Success($"Đã đánh {command.MobName} #{command.MobId}") : attackResult;
     }
 
     public async Task<Result> HandleAsync(AttackBossCommand command, CancellationToken cancellationToken)
     {
+        IntPtr charPtr = _runtime.GetMyCharPtr();
+        if (charPtr == IntPtr.Zero)
+            return Result.Failure("Nhân vật chưa vào game.");
+
+        Result? auxResult = await TryExecuteSelectedAuxiliarySkillAsync(charPtr, command.SkillSlot, cancellationToken);
+        if (auxResult != null)
+            return auxResult;
+
         IntPtr targetCharPtr = IntPtr.Zero;
         IntPtr vCharInMapPtr = _runtime.ReadStatic<IntPtr>(GameSchema.GameScr.ClassName, _runtime.Layout.GameScr.VCharInMap);
         if (vCharInMapPtr != IntPtr.Zero)
@@ -401,10 +414,6 @@ public class CombatHandler(IGameRuntime runtime) :
         if (targetHp <= 0)
             return Result.Failure($"Mục tiêu #{command.CharId} đã bị tiêu diệt.");
 
-        IntPtr charPtr = _runtime.GetMyCharPtr();
-        if (charPtr == IntPtr.Zero)
-            return Result.Failure("Nhân vật chưa vào game.");
-
         _runtime.WriteField(charPtr, _runtime.Layout.Char.MobFocus, IntPtr.Zero);
         _runtime.WriteField(charPtr, _runtime.Layout.Char.CharFocus, targetCharPtr);
 
@@ -414,29 +423,22 @@ public class CombatHandler(IGameRuntime runtime) :
             return Result.Failure("Không thể tạo vector tấn công.");
 
         _runtime.CallMethod(GameSchema.MyVector.ClassName, GameSchema.MyVector.MethodAddElement, vChar, targetCharPtr);
-        PinVectorBackingStorage(vChar, ref _cachedVCharItems, ref _cachedVCharItemsHandle);
+        PinVectorBackingStorage(ref _cachedVChar);
 
-        Result attackResult = await ExecutePlayerAttackAsync(charPtr, command.TargetX, command.SkillSlot, emptyVMob, vChar, 2, cancellationToken);
+        Result attackResult = ExecutePlayerAttack(charPtr, command.TargetX, emptyVMob, vChar, 2);
         return attackResult.IsSuccess ? Result.Success($"Đã đánh {command.BossName} #{command.CharId}") : attackResult;
     }
 
-    private async Task<Result> ExecutePlayerAttackAsync(
+    private Result ExecutePlayerAttack(
         IntPtr charPtr,
         int targetX,
-        int skillSlot,
         IntPtr vMob,
         IntPtr vChar,
-        int attackType,
-        CancellationToken cancellationToken)
+        int attackType)
     {
         int playerX = _runtime.ReadField<int>(charPtr, _runtime.Layout.Char.X);
         int cdir = targetX >= playerX ? 1 : -1;
         _runtime.WriteField(charPtr, _runtime.Layout.Char.Cdir, cdir);
-
-        if (skillSlot >= 0)
-        {
-            await HandleAsync(new SelectSkillCommand(skillSlot), cancellationToken);
-        }
 
         IntPtr service = _runtime.GetServicePtr();
         if (service == IntPtr.Zero)
@@ -454,57 +456,146 @@ public class CombatHandler(IGameRuntime runtime) :
         return Result.Success();
     }
 
-    private IntPtr EnsureValidMyVector(ref IntPtr vectorPtr, bool clearElements, bool pinInitialItems)
+    private async Task<Result?> TryExecuteSelectedAuxiliarySkillAsync(
+        IntPtr charPtr,
+        int skillSlot,
+        CancellationToken cancellationToken)
     {
-        if (vectorPtr != IntPtr.Zero &&
-            _runtime.GetClassName(vectorPtr) == GameSchema.MyVector.ClassName)
+        if (skillSlot >= 0)
         {
-            IntPtr existingListPtr = _runtime.ReadFieldPtr(vectorPtr, _runtime.Layout.MyVector.A);
+            await HandleAsync(new SelectSkillCommand(skillSlot), cancellationToken);
+        }
+
+        IntPtr mySkillPtr = _runtime.ReadFieldPtr(charPtr, _runtime.Layout.Char.MySkill);
+        if (mySkillPtr == IntPtr.Zero)
+            return null;
+
+        IntPtr templatePtr = _runtime.ReadFieldPtr(mySkillPtr, _runtime.Layout.Skill.Template);
+        if (templatePtr == IntPtr.Zero)
+            return null;
+
+        var templateLayout = _runtime.Layout.SkillTemplate;
+        int skillType = templateLayout.Type >= 0 ? _runtime.ReadField<int>(templatePtr, templateLayout.Type) : 1;
+        if (skillType is not (2 or 3))
+            return null;
+
+        IntPtr service = _runtime.GetServicePtr();
+        if (service == IntPtr.Zero)
+            return Result.Failure("Không tìm thấy Service.");
+
+        long nowMs = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
+        if (skillType == 3)
+        {
+            sbyte templateId = templateLayout.Id >= 0 ? _runtime.ReadField<sbyte>(templatePtr, templateLayout.Id) : (sbyte)-1;
+            sbyte status = templateId switch
+            {
+                6 => 0,
+                8 => 1,
+                12 => 8,
+                13 => 6,
+                14 => 7,
+                19 => 9,
+                21 => 10,
+                _ => -1
+            };
+
+            if (status < 0)
+                return Result.Failure($"Kỹ năng hỗ trợ #{templateId} chưa được hỗ trợ thực thi tự động.");
+
+            _runtime.CallMethod(GameSchema.Service.ClassName, GameSchema.Service.MethodSkillNotFocus, service, status);
+            _runtime.WriteField(mySkillPtr, _runtime.Layout.Skill.LastTimeUseThisSkill, nowMs);
+            return Result.Success($"Đã kích hoạt kỹ năng hỗ trợ #{templateId}");
+        }
+
+        IntPtr emptyVMob = EnsureValidMyVector(ref _cachedEmptyVMob, clearElements: false, pinInitialItems: true);
+        if (emptyVMob == IntPtr.Zero)
+            return Result.Failure("Không thể tạo vector hỗ trợ.");
+
+        IntPtr selfVChar = EnsureValidMyVector(ref _cachedSelfVChar, clearElements: true, pinInitialItems: false);
+        if (selfVChar == IntPtr.Zero)
+            return Result.Failure("Không thể tạo vector nhân vật.");
+
+        _runtime.CallMethod(GameSchema.MyVector.ClassName, GameSchema.MyVector.MethodAddElement, selfVChar, charPtr);
+        PinVectorBackingStorage(ref _cachedSelfVChar);
+        _runtime.CallMethod(GameSchema.Service.ClassName, GameSchema.Service.MethodSendPlayerAttack, service, emptyVMob, selfVChar, 2);
+        _runtime.WriteField(mySkillPtr, _runtime.Layout.Skill.LastTimeUseThisSkill, nowMs);
+        return Result.Success("Đã sử dụng kỹ năng Trị Thương");
+    }
+
+    private IntPtr EnsureValidMyVector(ref CachedVectorSlot slot, bool clearElements, bool pinInitialItems)
+    {
+        if (slot.VectorPtr != IntPtr.Zero &&
+            _runtime.GetClassName(slot.VectorPtr) == GameSchema.MyVector.ClassName)
+        {
+            IntPtr existingListPtr = _runtime.ReadFieldPtr(slot.VectorPtr, _runtime.Layout.MyVector.A);
             if (existingListPtr != IntPtr.Zero && _runtime.GetClassName(existingListPtr) == "ArrayList")
             {
                 if (clearElements)
                 {
-                    _runtime.CallMethod(GameSchema.MyVector.ClassName, GameSchema.MyVector.MethodRemoveAllElements, vectorPtr);
+                    _runtime.CallMethod(GameSchema.MyVector.ClassName, GameSchema.MyVector.MethodRemoveAllElements, slot.VectorPtr);
                 }
-                return vectorPtr;
+                return slot.VectorPtr;
             }
         }
 
-        vectorPtr = _runtime.CreateInstance(GameSchema.MyVector.ClassName);
-        if (vectorPtr != IntPtr.Zero)
+        UnpinSlot(ref slot);
+
+        IntPtr newVectorPtr = _runtime.CreateInstance(GameSchema.MyVector.ClassName);
+        if (newVectorPtr != IntPtr.Zero)
         {
-            _runtime.PinObject(vectorPtr);
-            IntPtr listPtr = _runtime.ReadFieldPtr(vectorPtr, _runtime.Layout.MyVector.A);
+            slot.VectorPtr = newVectorPtr;
+            slot.VectorHandle = _runtime.PinObject(newVectorPtr);
+            IntPtr listPtr = _runtime.ReadFieldPtr(newVectorPtr, _runtime.Layout.MyVector.A);
             if (listPtr != IntPtr.Zero)
             {
-                _runtime.PinObject(listPtr);
+                slot.ListHandle = _runtime.PinObject(listPtr);
                 if (pinInitialItems)
                 {
                     IntPtr itemsPtr = _runtime.ReadArrayListItemsPtr(listPtr);
                     if (itemsPtr != IntPtr.Zero)
                     {
-                        _runtime.PinObject(itemsPtr);
+                        slot.ItemsPtr = itemsPtr;
+                        slot.ItemsHandle = _runtime.PinObject(itemsPtr);
                     }
                 }
             }
         }
-        return vectorPtr;
+
+        return slot.VectorPtr;
     }
 
-    private void PinVectorBackingStorage(IntPtr vectorPtr, ref IntPtr cachedItemsPtr, ref uint cachedHandle)
+    private void PinVectorBackingStorage(ref CachedVectorSlot slot)
     {
-        IntPtr listPtr = _runtime.ReadFieldPtr(vectorPtr, _runtime.Layout.MyVector.A);
+        if (slot.VectorPtr == IntPtr.Zero) return;
+        IntPtr listPtr = _runtime.ReadFieldPtr(slot.VectorPtr, _runtime.Layout.MyVector.A);
         if (listPtr == IntPtr.Zero) return;
 
         IntPtr itemsPtr = _runtime.ReadArrayListItemsPtr(listPtr);
-        if (itemsPtr != IntPtr.Zero && itemsPtr != cachedItemsPtr)
+        if (itemsPtr != IntPtr.Zero && itemsPtr != slot.ItemsPtr)
         {
-            if (cachedHandle != 0)
+            if (slot.ItemsHandle != 0)
             {
-                _runtime.UnpinObject(cachedHandle);
+                _runtime.UnpinObject(slot.ItemsHandle);
             }
-            cachedItemsPtr = itemsPtr;
-            cachedHandle = _runtime.PinObject(itemsPtr);
+            slot.ItemsPtr = itemsPtr;
+            slot.ItemsHandle = _runtime.PinObject(itemsPtr);
         }
+    }
+
+    private void UnpinSlot(ref CachedVectorSlot slot)
+    {
+        if (slot.ItemsHandle != 0)
+        {
+            _runtime.UnpinObject(slot.ItemsHandle);
+        }
+        if (slot.ListHandle != 0)
+        {
+            _runtime.UnpinObject(slot.ListHandle);
+        }
+        if (slot.VectorHandle != 0)
+        {
+            _runtime.UnpinObject(slot.VectorHandle);
+        }
+        slot = default;
     }
 }

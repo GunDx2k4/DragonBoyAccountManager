@@ -10,7 +10,7 @@ public class PlayerScraper(IGameRuntime runtime, Func<string?>? originalNameReso
     private readonly IGameRuntime _runtime = runtime;
     private readonly Func<string?>? _originalNameResolver = originalNameResolver;
     private readonly ConcurrentDictionary<short, (sbyte Type, string Name)> _itemTemplateCache = new();
-    private readonly ConcurrentDictionary<short, (string Name, int IconId)> _skillTemplateCache = new();
+    private readonly ConcurrentDictionary<short, (sbyte TemplateId, string Name, int IconId, int ManaUseType, int SkillType)> _skillTemplateCache = new();
 
     public PlayerSnapshot Scrape() => ScrapePlayer();
 
@@ -223,35 +223,48 @@ public class PlayerScraper(IGameRuntime runtime, Func<string?>? originalNameReso
             int point = _runtime.ReadField<int>(skillPtr, skillLayout.Point);
             int coolDown = _runtime.ReadField<int>(skillPtr, skillLayout.CoolDown);
             long lastTime = _runtime.ReadField<long>(skillPtr, skillLayout.LastTimeUseThisSkill);
+            int dx = skillLayout.Dx >= 0 ? _runtime.ReadField<int>(skillPtr, skillLayout.Dx) : 0;
+            int dy = skillLayout.Dy >= 0 ? _runtime.ReadField<int>(skillPtr, skillLayout.Dy) : 0;
             int mana = _runtime.ReadField<int>(skillPtr, skillLayout.ManaUse);
 
             string name = $"Skill {skillId}";
             int iconId = -1;
+            sbyte templateId = -1;
+            int manaUseType = 0;
+            int skillType = 1;
             if (_skillTemplateCache.TryGetValue(skillId, out var cachedSkill) && cachedSkill.IconId >= 0)
             {
+                templateId = cachedSkill.TemplateId;
                 name = cachedSkill.Name;
                 iconId = cachedSkill.IconId;
+                manaUseType = cachedSkill.ManaUseType;
+                skillType = cachedSkill.SkillType;
             }
             else
             {
                 IntPtr templatePtr = _runtime.ReadFieldPtr(skillPtr, skillLayout.Template);
                 if (templatePtr != IntPtr.Zero)
                 {
+                    templateId = skillTemplateLayout.Id >= 0 ? _runtime.ReadField<sbyte>(templatePtr, skillTemplateLayout.Id) : (sbyte)-1;
                     string tmplName = _runtime.ReadStringField(templatePtr, skillTemplateLayout.Name);
                     iconId = _runtime.ReadField<int>(templatePtr, skillTemplateLayout.IconId);
+                    manaUseType = skillTemplateLayout.ManaUseType >= 0 ? _runtime.ReadField<int>(templatePtr, skillTemplateLayout.ManaUseType) : 0;
+                    skillType = skillTemplateLayout.Type >= 0 ? _runtime.ReadField<int>(templatePtr, skillTemplateLayout.Type) : 1;
                     if (!string.IsNullOrWhiteSpace(tmplName))
                     {
                         name = tmplName;
                         if (iconId >= 0)
                         {
-                            _skillTemplateCache[skillId] = (tmplName, iconId);
+                            _skillTemplateCache[skillId] = (templateId, tmplName, iconId, manaUseType, skillType);
                         }
                     }
                 }
             }
 
             bool isSelected = mySkillPtr != IntPtr.Zero && mySkillPtr == skillPtr;
-            result.Add(new GameSkillInfo(i, skillId, name, point, coolDown, mana, iconId, isSelected, lastTime));
+            result.Add(new GameSkillInfo(
+                i, skillId, name, point, coolDown, mana, iconId, isSelected, lastTime,
+                templateId, manaUseType, skillType, dx, dy));
         }
 
         return result;

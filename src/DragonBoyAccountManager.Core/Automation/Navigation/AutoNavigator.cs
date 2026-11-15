@@ -26,7 +26,7 @@ public class AutoNavigator(ICommandDispatcher dispatcher)
             return Result.Failure("Nhân vật chưa vào game hoặc đã tử vong.");
 
         bool preferGround = targetY <= 0;
-        int effectiveY = preferGround ? map.GetYGround(targetX) : targetY;
+        int effectiveY = preferGround && map.IsValid ? map.GetYGround(targetX) : targetY;
 
         if (map.IsValid)
         {
@@ -39,49 +39,14 @@ public class AutoNavigator(ICommandDispatcher dispatcher)
             return Result.Success("Đã ở vị trí mục tiêu.");
         }
 
-        if (isFastTeleport)
-        {
-            progress?.Report($"Dịch chuyển tức thời tới ({targetX}, {effectiveY})...");
-            return await _dispatcher.DispatchAsync(new MoveCommand(targetX, effectiveY, true), cancellationToken);
-        }
+        progress?.Report(isFastTeleport
+            ? $"Dịch chuyển tức thời tới ({targetX}, {effectiveY})..."
+            : $"Đang di chuyển A* tới ({targetX}, {effectiveY})...");
 
-        if (!map.IsValid)
-        {
-            return await _dispatcher.DispatchAsync(new MoveCommand(targetX, effectiveY, false), cancellationToken);
-        }
-
-        progress?.Report($"Đang tìm đường A* tới ({targetX}, {effectiveY})...");
-        var path = FindPath(map, player.X, player.Y, targetX, effectiveY);
-
-        if (path.Count <= 1)
-        {
-            return await _dispatcher.DispatchAsync(new MoveCommand(targetX, effectiveY, false), cancellationToken);
-        }
-
-        progress?.Report($"Đi theo lộ trình {path.Count} mốc...");
-        int prevX = player.X;
-        int prevY = player.Y;
-        for (int i = 1; i < path.Count; i++)
-        {
-            if (cancellationToken.IsCancellationRequested)
-                return Result.Failure("Quá trình di chuyển bị hủy.");
-
-            var (wx, wy) = path[i];
-            var stepResult = await _dispatcher.DispatchAsync(new MoveCommand(wx, wy, false), cancellationToken);
-            if (stepResult.IsFailure)
-                return stepResult;
-
-            double stepDist = Math.Sqrt((double)(wx - prevX) * (wx - prevX) + (double)(wy - prevY) * (wy - prevY));
-            int waitMs = Math.Clamp((int)(stepDist * 3.5), 120, 800);
-            prevX = wx;
-            prevY = wy;
-            await Task.Delay(waitMs, cancellationToken);
-        }
-
-        return Result.Success($"Đã tới ({targetX}, {effectiveY})");
+        return await _dispatcher.DispatchAsync(new MoveCommand(targetX, effectiveY, isFastTeleport), cancellationToken);
     }
 
-    private static List<(int X, int Y)> FindPath(MapSnapshot map, int startPx, int startPy, int targetPx, int targetPy)
+    public static List<(int X, int Y)> FindPath(MapSnapshot map, int startPx, int startPy, int targetPx, int targetPy)
     {
         var result = new List<(int X, int Y)>();
         if (!map.IsValid)
@@ -90,10 +55,14 @@ public class AutoNavigator(ICommandDispatcher dispatcher)
         int tmw = map.Width;
         int tmh = map.Height;
 
-        var (startTx, startTy) = PixelToCell(map, startPx, startPy);
-        var (targetTx, targetTy) = PixelToCell(map, targetPx, targetPy);
+        var (origStartTx, origStartTy) = PixelToCell(map, startPx, startPy);
+        var (origTargetTx, origTargetTy) = PixelToCell(map, targetPx, targetPy);
+        int startTx = origStartTx;
+        int startTy = origStartTy;
+        int targetTx = origTargetTx;
+        int targetTy = origTargetTy;
 
-        if (!map.IsOpenSpace(startTx, startTy))
+        if ((startTy < 1 && tmh > 1) || !map.IsOpenSpace(startTx, startTy))
         {
             var nearestStart = FindNearestOpenSpace(map, startTx, startTy, 6);
             if (nearestStart.HasValue)
@@ -102,7 +71,7 @@ public class AutoNavigator(ICommandDispatcher dispatcher)
             }
         }
 
-        if (!map.IsOpenSpace(targetTx, targetTy))
+        if ((targetTy < 1 && tmh > 1) || !map.IsOpenSpace(targetTx, targetTy))
         {
             var nearestTarget = FindNearestOpenSpace(map, targetTx, targetTy, 6);
             if (!nearestTarget.HasValue)
@@ -113,6 +82,7 @@ public class AutoNavigator(ICommandDispatcher dispatcher)
 
         if (startTx == targetTx && startTy == targetTy)
         {
+            result.Add((startPx, startPy));
             result.Add((targetPx, targetPy));
             return result;
         }
@@ -196,11 +166,18 @@ public class AutoNavigator(ICommandDispatcher dispatcher)
 
             var waypoints = CompressCollinearPath(cellPath);
             result.Add((startPx, startPy));
-            for (int i = 1; i < waypoints.Count - 1; i++)
+
+            bool shiftedStart = origStartTx != startTx || origStartTy != startTy;
+            bool shiftedTarget = origTargetTx != targetTx || origTargetTy != targetTy;
+            int firstIdx = shiftedStart ? 0 : 1;
+            int lastIdx = shiftedTarget ? waypoints.Count - 1 : waypoints.Count - 2;
+
+            for (int i = firstIdx; i <= lastIdx; i++)
             {
                 var (tx, ty) = waypoints[i];
-                result.Add((tx * MapSnapshot.TileSize + MapSnapshot.TileSize / 2, (ty + 1) * MapSnapshot.TileSize));
+                result.Add(ToPixelPoint(map, tx, ty));
             }
+
             result.Add((targetPx, targetPy));
             return result;
         }
@@ -209,6 +186,15 @@ public class AutoNavigator(ICommandDispatcher dispatcher)
             ArrayPool<float>.Shared.Return(gScore);
             ArrayPool<int>.Shared.Return(parent);
         }
+    }
+
+    private static (int X, int Y) ToPixelPoint(MapSnapshot map, int tx, int ty)
+    {
+        int px = tx * MapSnapshot.TileSize + MapSnapshot.TileSize / 2;
+        int py = ty + 1 < map.Height && map.IsStandableGround(tx, ty + 1, allowBorderWalls: true)
+            ? (ty + 1) * MapSnapshot.TileSize
+            : ty * MapSnapshot.TileSize + MapSnapshot.TileSize / 2;
+        return (px, py);
     }
 
     private static List<(int X, int Y)> CompressCollinearPath(List<(int X, int Y)> cellPath)
@@ -254,6 +240,8 @@ public class AutoNavigator(ICommandDispatcher dispatcher)
 
     private static (int X, int Y)? FindNearestOpenSpace(MapSnapshot map, int cx, int cy, int radius)
     {
+        int minTy = map.Height > 1 ? 1 : 0;
+
         for (int r = 0; r <= radius; r++)
         {
             for (int dy = -r; dy <= r; dy++)
@@ -262,7 +250,7 @@ public class AutoNavigator(ICommandDispatcher dispatcher)
                 {
                     int nx = cx + dx;
                     int ny = cy + dy;
-                    if (map.IsOpenSpace(nx, ny) && map.IsGroundBelow(nx, ny))
+                    if (ny >= minTy && map.IsOpenSpace(nx, ny) && map.IsGroundBelow(nx, ny))
                         return (nx, ny);
                 }
             }
@@ -276,7 +264,7 @@ public class AutoNavigator(ICommandDispatcher dispatcher)
                 {
                     int nx = cx + dx;
                     int ny = cy + dy;
-                    if (map.IsOpenSpace(nx, ny))
+                    if (ny >= minTy && map.IsOpenSpace(nx, ny))
                         return (nx, ny);
                 }
             }

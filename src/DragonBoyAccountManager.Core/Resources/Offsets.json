@@ -1951,6 +1951,7 @@
       "Service.login": 4211984,
       "Service.pickItem": 4218656,
       "Service.sendPlayerAttack": 4235216,
+      "Service.skill_not_focus": 4242768,
       "Service.selectSkill": 4230384,
       "Service.wakeUpFromDead": 4254656,
       "Service.openMenu": 4216928,

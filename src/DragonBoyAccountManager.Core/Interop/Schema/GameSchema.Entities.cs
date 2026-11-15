@@ -25,6 +25,8 @@ public static partial class GameSchema
         public const string FieldCp3 = "cp3";
         public const string FieldCxSend = "cxSend";
         public const string FieldCySend = "cySend";
+        public const string FieldCspeed = "cspeed";
+        public const string FieldCBonusSpeed = "cBonusSpeed";
         public const string FieldStatusMe = "statusMe";
         public const string FieldCdir = "cdir";
         public const string FieldCTypePk = "cTypePk";
@@ -60,6 +62,8 @@ public static partial class GameSchema
         public const string FieldPoint = "point";
         public const string FieldCoolDown = "coolDown";
         public const string FieldLastTimeUseThisSkill = "lastTimeUseThisSkill";
+        public const string FieldDx = "dx";
+        public const string FieldDy = "dy";
         public const string FieldManaUse = "manaUse";
         public const string FieldTemplate = "template";
     }
@@ -69,6 +73,8 @@ public static partial class GameSchema
         public const string ClassName = "SkillTemplate";
         public const string FieldName = "name";
         public const string FieldId = "id";
+        public const string FieldManaUseType = "manaUseType";
+        public const string FieldType = "type";
         public const string FieldIconId = "iconId";
     }
 

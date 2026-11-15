@@ -44,14 +44,21 @@ public class MovementHandler :
             (targetX, targetY) = map.ResolveSafePosition(targetX, targetY, preferGround: targetY <= 0);
         }
 
-        if (command.IsFastTeleport)
+        IntPtr service = _runtime.GetServicePtr();
+        if (service != IntPtr.Zero)
         {
-            IntPtr service = _runtime.GetServicePtr();
-            if (service == IntPtr.Zero)
-                return Result.Failure("Không tìm thấy Service.");
-
-            await XmapNavigator.TeleportToAsync(_runtime, charPtr, service, targetX, targetY, cancellationToken, _sessionContext?.CurrentMap);
-            return Result.Success($"Đã dịch chuyển nhanh tới ({targetX}, {targetY})");
+            await XmapNavigator.TeleportToAsync(
+                _runtime,
+                charPtr,
+                service,
+                targetX,
+                targetY,
+                cancellationToken,
+                _sessionContext?.CurrentMap,
+                command.IsFastTeleport);
+            return Result.Success(command.IsFastTeleport
+                ? $"Đã dịch chuyển tức thời tới ({targetX}, {targetY})"
+                : $"Đã di chuyển tới ({targetX}, {targetY})");
         }
 
         IntPtr mp = _runtime.CreateInstance(GameSchema.MovePoint.ClassName, targetX, targetY);
@@ -128,59 +135,31 @@ public class MovementHandler :
             (targetX, targetY) = currentMap.ResolveSafePosition(targetX, targetY);
         }
 
-        if (command.IsFastTeleport)
+        if (matchedWp != null)
         {
-            if (matchedWp != null)
-            {
-                return await XmapNavigator.StepToWaypointAsync(
-                    _runtime,
-                    charPtr,
-                    service,
-                    matchedWp,
-                    mapPixelWidth,
-                    cancellationToken,
-                    currentMap);
-            }
-
-            await XmapNavigator.ExecuteTeleportAndChangeMapAsync(
+            return await XmapNavigator.StepToWaypointAsync(
                 _runtime,
                 charPtr,
                 service,
-                targetX,
-                targetY,
-                isOffline,
+                matchedWp,
+                mapPixelWidth,
                 cancellationToken,
-                currentMap);
-
-            return Result.Success("Đã tele tới waypoint và gửi yêu cầu chuyển map.");
+                currentMap,
+                command.IsFastTeleport);
         }
 
-        if (_navigator == null || _sessionContext == null)
-        {
-            return await HandleAsync(new MoveCommand(targetX, targetY, false), cancellationToken);
-        }
-
-        var navResult = await _navigator.NavigateAsync(
-            _sessionContext.CurrentPlayer,
-            _sessionContext.CurrentMap,
+        await XmapNavigator.ExecuteTeleportAndChangeMapAsync(
+            _runtime,
+            charPtr,
+            service,
             targetX,
             targetY,
-            false,
-            null,
-            cancellationToken);
+            isOffline,
+            cancellationToken,
+            currentMap,
+            command.IsFastTeleport);
 
-        if (navResult.IsFailure)
-            return navResult;
-
-        await Task.Delay(80, cancellationToken);
-        _sessionContext.Tick();
-        if (!_sessionContext.CurrentPlayer.IsChangingMap)
-        {
-            string transitionMethod = isOffline ? GameSchema.Service.MethodGetMapOffline : GameSchema.Service.MethodRequestChangeMap;
-            _runtime.CallMethod(GameSchema.Service.ClassName, transitionMethod, service);
-        }
-
-        return Result.Success("Đã tới waypoint.");
+        return Result.Success("Đã tới waypoint và gửi yêu cầu chuyển map.");
     }
 
     public async Task<Result> HandleAsync(XmapMoveCommand command, CancellationToken cancellationToken)

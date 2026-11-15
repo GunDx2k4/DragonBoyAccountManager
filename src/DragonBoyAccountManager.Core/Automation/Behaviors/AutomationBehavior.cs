@@ -1,4 +1,3 @@
-using DragonBoyAccountManager.Core.Automation.Interrupters;
 using DragonBoyAccountManager.Core.Sessions;
 
 namespace DragonBoyAccountManager.Core.Automation.Behaviors;
@@ -19,8 +18,6 @@ public abstract class AutomationBehavior : IBehavior
     public bool IsPaused => Volatile.Read(ref _isPaused) == 1;
 
     protected ISessionContext? Context { get; private set; }
-
-    public EmergencyPipeline Interrupters { get; } = new();
 
     protected AutomationBehavior(string name, string? id = null)
     {
@@ -100,13 +97,6 @@ public abstract class AutomationBehavior : IBehavior
                 if (IsPaused)
                 {
                     await Task.Delay(200, cancellationToken);
-                    continue;
-                }
-
-                var interruptResult = await Interrupters.CheckAndExecuteAsync(context, cancellationToken);
-                if (interruptResult != null)
-                {
-                    progress?.Report($"[{Name}] Ngắt khẩn cấp: {interruptResult.Message}");
                     continue;
                 }
 

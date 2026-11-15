@@ -275,8 +275,8 @@ static Account PromptNewAccount()
     var autoSettings = new AccountAutoSettings();
     autoSettings.SetBehaviorOptions(AutoTrainBehavior.BehaviorId, new AutoTrainOptions
     {
-        AutoUsePean = true,
-        AvoidSuperMobs = true
+        AutoUsePean = false,
+        AvoidSuperMobs = false
     });
 
     return new Account

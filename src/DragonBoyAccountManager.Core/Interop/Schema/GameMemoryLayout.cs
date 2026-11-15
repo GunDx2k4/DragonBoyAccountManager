@@ -32,6 +32,8 @@ public sealed record CharLayout(
     int Cp3,
     int CxSend,
     int CySend,
+    int Cspeed,
+    int CBonusSpeed,
     int CTypePk,
     int IsPet,
     int IsMiniPet,
@@ -116,12 +118,16 @@ public sealed record SkillLayout(
     int Point,
     int CoolDown,
     int LastTimeUseThisSkill,
+    int Dx,
+    int Dy,
     int ManaUse,
     int Template);
 
 public sealed record SkillTemplateLayout(
     int Id,
     int Name,
+    int ManaUseType,
+    int Type,
     int IconId);
 
 public sealed record ItemLayout(
@@ -363,6 +369,8 @@ public sealed class GameMemoryLayout
             Cp3: ResolveInstance(schema, GameSchema.Char.ClassName, GameSchema.Char.FieldCp3),
             CxSend: ResolveInstance(schema, GameSchema.Char.ClassName, GameSchema.Char.FieldCxSend),
             CySend: ResolveInstance(schema, GameSchema.Char.ClassName, GameSchema.Char.FieldCySend),
+            Cspeed: ResolveInstance(schema, GameSchema.Char.ClassName, GameSchema.Char.FieldCspeed),
+            CBonusSpeed: ResolveInstance(schema, GameSchema.Char.ClassName, GameSchema.Char.FieldCBonusSpeed),
             CTypePk: ResolveInstance(schema, GameSchema.Char.ClassName, GameSchema.Char.FieldCTypePk),
             IsPet: ResolveInstance(schema, GameSchema.Char.ClassName, GameSchema.Char.FieldIsPet),
             IsMiniPet: ResolveInstance(schema, GameSchema.Char.ClassName, GameSchema.Char.FieldIsMiniPet),
@@ -455,6 +463,8 @@ public sealed class GameMemoryLayout
             Point: ResolveInstance(schema, GameSchema.Skill.ClassName, GameSchema.Skill.FieldPoint),
             CoolDown: ResolveInstance(schema, GameSchema.Skill.ClassName, GameSchema.Skill.FieldCoolDown),
             LastTimeUseThisSkill: ResolveInstance(schema, GameSchema.Skill.ClassName, GameSchema.Skill.FieldLastTimeUseThisSkill),
+            Dx: ResolveInstance(schema, GameSchema.Skill.ClassName, GameSchema.Skill.FieldDx),
+            Dy: ResolveInstance(schema, GameSchema.Skill.ClassName, GameSchema.Skill.FieldDy),
             ManaUse: ResolveInstance(schema, GameSchema.Skill.ClassName, GameSchema.Skill.FieldManaUse),
             Template: ResolveInstance(schema, GameSchema.Skill.ClassName, GameSchema.Skill.FieldTemplate)
         );
@@ -462,6 +472,8 @@ public sealed class GameMemoryLayout
         SkillTemplate = new SkillTemplateLayout(
             Id: ResolveInstance(schema, GameSchema.SkillTemplate.ClassName, GameSchema.SkillTemplate.FieldId),
             Name: ResolveInstance(schema, GameSchema.SkillTemplate.ClassName, GameSchema.SkillTemplate.FieldName),
+            ManaUseType: ResolveInstance(schema, GameSchema.SkillTemplate.ClassName, GameSchema.SkillTemplate.FieldManaUseType),
+            Type: ResolveInstance(schema, GameSchema.SkillTemplate.ClassName, GameSchema.SkillTemplate.FieldType),
             IconId: ResolveInstance(schema, GameSchema.SkillTemplate.ClassName, GameSchema.SkillTemplate.FieldIconId)
         );
 

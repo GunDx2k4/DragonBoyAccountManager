@@ -1,4 +1,3 @@
-using DragonBoyAccountManager.Core.Automation.Interrupters;
 using DragonBoyAccountManager.Core.Automation.Navigation.Xmap;
 using DragonBoyAccountManager.Core.Execution.Commands;
 using DragonBoyAccountManager.Core.Sessions;
@@ -10,7 +9,6 @@ public sealed class AutoBossBehavior : AutomationBehavior<AutoBossOptions>
 {
     public const string BehaviorId = "AutoBoss";
 
-    private readonly AutoReviveInterrupter _reviveInterrupter = new();
     private readonly HashSet<int> _visitedZones = [];
     private int _currentMapIndex;
     private int _lastMapId = -1;
@@ -21,7 +19,6 @@ public sealed class AutoBossBehavior : AutomationBehavior<AutoBossOptions>
     public AutoBossBehavior(AutoBossOptions options)
         : base("Săn Boss", options, BehaviorId)
     {
-        Interrupters.Register(_reviveInterrupter);
     }
 
     protected override int TickDelayMs => 500;
