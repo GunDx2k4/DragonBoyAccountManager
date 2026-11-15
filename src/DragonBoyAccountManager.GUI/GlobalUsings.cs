@@ -7,7 +7,6 @@ global using System.Threading.Tasks;
 global using DragonBoyAccountManager.Core.Accounts;
 global using DragonBoyAccountManager.Core.Automation.Behaviors;
 global using DragonBoyAccountManager.Core.Automation.Behaviors.Combat;
-global using DragonBoyAccountManager.Core.Automation.Behaviors.Lifecycle;
 global using DragonBoyAccountManager.Core.Automation.Behaviors.Social;
 global using DragonBoyAccountManager.Core.Automation.Navigation;
 global using DragonBoyAccountManager.Core.Common;

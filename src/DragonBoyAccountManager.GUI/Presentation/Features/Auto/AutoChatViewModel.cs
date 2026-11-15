@@ -65,14 +65,13 @@ public sealed partial class AutoChatViewModel : AutoFeatureViewModelBase
         account.AutoSettings.SetBehaviorOptions(BehaviorId, BuildCurrentOptions());
     }
 
-    partial void OnChatTextChanged(string value) => OnConfigChanged();
-    partial void OnChatDelaySecondsChanged(int value) => OnConfigChanged();
-    partial void OnSelectedChatTypeIndexChanged(int value) => OnConfigChanged();
-    partial void OnIsRandomChatChanged(bool value) => OnConfigChanged();
+    protected override bool IsOptionProperty(string propertyName) =>
+        base.IsOptionProperty(propertyName) &&
+        propertyName is not (nameof(ChatSentCount) or nameof(LastChatSentTime));
 
-    private void OnConfigChanged()
+    protected override void OnOptionChanged()
     {
-        if (IsSwitchingAccount || ActiveAccount == null) return;
+        if (IsSwitchingAccount || IsBulkUpdating || ActiveAccount == null) return;
 
         PersistActiveAccountSettings();
 
@@ -83,8 +82,7 @@ public sealed partial class AutoChatViewModel : AutoFeatureViewModelBase
         {
             if (target.Id != ActiveAccount.Id)
             {
-                target.AutoSettings.SetBehaviorOptions(BehaviorId, options);
-                _ = StorageService.AddOrUpdateAsync(target.Model);
+                SaveSettings(target);
             }
             if (target.IsRunning)
             {

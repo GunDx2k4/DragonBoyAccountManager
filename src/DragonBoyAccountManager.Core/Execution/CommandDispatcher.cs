@@ -8,21 +8,10 @@ public class CommandDispatcher : ICommandDispatcher, IDisposable
 {
     private readonly SemaphoreSlim _lock = new(1, 1);
     private readonly AsyncLocal<int> _lockDepth = new();
-    private readonly ConcurrentDictionary<Type, CommandExecutionDelegate> _handlers = new();
-    private readonly List<ICommandMiddleware> _middlewares = [];
-    private readonly Lock _middlewareLock = new();
+    private readonly ConcurrentDictionary<Type, Func<IGameCommand, CancellationToken, Task<Result>>> _handlers = new();
 
     public event Action<IGameCommand, Result>? CommandExecuted;
     public event Action<IGameCommand>? CommandExecuting;
-
-    public void AddMiddleware(ICommandMiddleware middleware)
-    {
-        ArgumentNullException.ThrowIfNull(middleware);
-        lock (_middlewareLock)
-        {
-            _middlewares.Add(middleware);
-        }
-    }
 
     public void RegisterHandler<TCommand>(IGameCommandHandler<TCommand> handler) where TCommand : IGameCommand
     {
@@ -53,18 +42,7 @@ public class CommandDispatcher : ICommandDispatcher, IDisposable
         {
             CommandExecuting?.Invoke(command);
 
-            CommandExecutionDelegate pipeline = handlerDelegate;
-            lock (_middlewareLock)
-            {
-                for (int i = _middlewares.Count - 1; i >= 0; i--)
-                {
-                    var current = _middlewares[i];
-                    var next = pipeline;
-                    pipeline = (cmd, ct) => current.InvokeAsync(cmd, next, ct);
-                }
-            }
-
-            var result = await pipeline(command, cancellationToken);
+            var result = await handlerDelegate(command, cancellationToken);
             CommandExecuted?.Invoke(command, result);
             return result;
         }

@@ -1,6 +1,5 @@
 using System.Collections.Concurrent;
 using DragonBoyAccountManager.Core.Automation.Behaviors;
-using DragonBoyAccountManager.Core.Automation.Behaviors.Lifecycle;
 using DragonBoyAccountManager.Core.Common;
 using DragonBoyAccountManager.Core.Common.Results;
 using DragonBoyAccountManager.Core.Engine.Events;
@@ -157,18 +156,8 @@ public sealed class SessionWorker : IDisposable, IAsyncDisposable
 
         try
         {
-            var loginOptions = new AutoLoginOptions
-            {
-                Username = Options.Username,
-                Password = Options.Password,
-                ServerId = Options.ServerId,
-                ServerName = Options.ServerName,
-                MaxAttempts = Options.AutoLogin ? 15 : 3,
-                IsMasked = IsMasked
-            };
-
-            var behavior = new AutoLoginBehavior(loginOptions, Session.LoginScreen);
-            await behavior.StartAsync(Session, progress, Cts.Token);
+            var orchestrator = new LoginOrchestrator(Options, Session.LoginScreen, IsMasked);
+            await orchestrator.ExecuteAsync(Session, progress, Cts.Token);
 
             Session.Tick();
             if (Session.CurrentPlayer.IsInGame)
@@ -211,7 +200,12 @@ public sealed class SessionWorker : IDisposable, IAsyncDisposable
 
     public async Task<Result> ExecuteCommandAsync(IGameCommand command, CancellationToken cancellationToken = default)
     {
-        if (Session.IsRunning)
+        if (!Session.IsRunning || _disposed != 0)
+        {
+            return Result.Failure("Tài khoản chưa vào game.");
+        }
+
+        try
         {
             using var linkedCts = CancellationTokenSource.CreateLinkedTokenSource(Cts.Token, cancellationToken);
             var res = await Session.Dispatcher.DispatchAsync(command, linkedCts.Token);
@@ -222,7 +216,10 @@ public sealed class SessionWorker : IDisposable, IAsyncDisposable
             PublishSessionUpdate();
             return res;
         }
-        return Result.Failure("Tài khoản chưa vào game.");
+        catch (ObjectDisposedException)
+        {
+            return Result.Failure("Phiên đã đóng.");
+        }
     }
 
     public bool StartBehavior<TBehavior, TOptions>(TOptions options)
@@ -249,14 +246,6 @@ public sealed class SessionWorker : IDisposable, IAsyncDisposable
 
         behavior.UpdateOptions(options);
         return true;
-    }
-
-    public bool StartBehavior(string behaviorId)
-    {
-        var behavior = Session.GetBehavior(behaviorId);
-        if (behavior == null || !Session.IsRunning) return false;
-
-        return LaunchBehaviorInternal(behavior);
     }
 
     private bool LaunchBehaviorInternal(IBehavior behavior)
@@ -368,12 +357,6 @@ public sealed class SessionWorker : IDisposable, IAsyncDisposable
         return behavior != null && StopBehaviorInternal(behavior);
     }
 
-    public bool StopBehavior(string behaviorId)
-    {
-        var behavior = Session.GetBehavior(behaviorId);
-        return behavior != null && StopBehaviorInternal(behavior);
-    }
-
     private bool StopBehaviorInternal(IBehavior behavior)
     {
         behavior.Stop();
@@ -391,14 +374,6 @@ public sealed class SessionWorker : IDisposable, IAsyncDisposable
         var behavior = Session.GetBehavior<TBehavior>();
         return behavior != null && behavior.IsRunning && _activeBehaviors.ContainsKey(behavior.Id);
     }
-
-    public bool IsBehaviorRunning(string behaviorId)
-    {
-        var behavior = Session.GetBehavior(behaviorId);
-        return behavior != null && behavior.IsRunning && _activeBehaviors.ContainsKey(behavior.Id);
-    }
-
-    public IReadOnlyCollection<IBehavior> GetBehaviors() => Session.Behaviors.ToList();
 
     public void UpdateLaunchOptions(AccountLaunchOptions options)
     {

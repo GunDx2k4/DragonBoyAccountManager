@@ -8,7 +8,6 @@ using DragonBoyAccountManager.Core.Engine;
 using DragonBoyAccountManager.Core.Engine.Abstractions;
 using DragonBoyAccountManager.Core.Engine.Events;
 using DragonBoyAccountManager.Core.Engine.Models;
-using DragonBoyAccountManager.Core.Execution;
 using DragonBoyAccountManager.Core.Sessions;
 using DragonBoyAccountManager.Core.Telemetry.Snapshots;
 using DragonBoyAccountManager.GUI.Domain.Messaging;
@@ -131,6 +130,13 @@ public sealed class CoreGameEngineAdapter : IGameEngineService, IDisposable
         int width = customW > 0 ? customW : 1024;
         int height = customH > 0 ? customH : 600;
         int zoom = _settingsService?.Current.GameConfig?.ZoomLevel ?? (width * height < 480000 ? 1 : 2);
+        var cfg = _settingsService?.Current.GameConfig ?? new GameConfigOptions();
+        var configWithRes = cfg with
+        {
+            ScreenWidth = width,
+            ScreenHeight = height,
+            ZoomLevel = cfg.ZoomLevel > 0 ? cfg.ZoomLevel : zoom
+        };
 
         var options = new AccountLaunchOptions
         {
@@ -142,7 +148,7 @@ public sealed class CoreGameEngineAdapter : IGameEngineService, IDisposable
             GamePath = gamePath,
             ScreenWidth = width,
             ScreenHeight = height,
-            ZoomLevel = zoom,
+            ZoomLevel = configWithRes.ZoomLevel,
             AutoLogin = account.AutoLogin,
             AutoReconnect = _settingsService?.Current.AutoReconnect ?? true,
             ReconnectDelaySeconds = _settingsService?.Current.ReconnectDelaySeconds ?? 3,
@@ -151,17 +157,7 @@ public sealed class CoreGameEngineAdapter : IGameEngineService, IDisposable
                 _settingsService?.Current.ReconnectDelaySeconds ?? 3),
             AutoAssignSkills = _settingsService?.Current.AutoAssignSkills == true,
             IsMasked = _isMasked,
-            ConfigureSession = session =>
-            {
-                var cfg = _settingsService?.Current.GameConfig ?? new GameConfigOptions();
-                var configWithRes = cfg with
-                {
-                    ScreenWidth = width,
-                    ScreenHeight = height,
-                    ZoomLevel = cfg.ZoomLevel > 0 ? cfg.ZoomLevel : zoom
-                };
-                session.ConfigController.ApplyConfig(configWithRes);
-            }
+            InitialGameConfig = configWithRes
         };
 
         return await _gameEngine.StartAccountAsync(options);
@@ -183,7 +179,7 @@ public sealed class CoreGameEngineAdapter : IGameEngineService, IDisposable
 
     public int? GetProcessId(Guid accountId) => _gameEngine.GetProcessId(accountId);
 
-    public IReadOnlyCollection<Guid> ActiveSessionIds => _gameEngine.Sessions.ActiveSessionIds;
+    public IReadOnlyCollection<Guid> ActiveSessionIds => _gameEngine.ActiveSessionIds;
 
     public bool FocusWindow(Guid accountId)
     {
@@ -193,7 +189,7 @@ public sealed class CoreGameEngineAdapter : IGameEngineService, IDisposable
 
     public void ArrangeWindows(IEnumerable<Guid>? accountIds = null)
     {
-        var targetIds = accountIds?.ToList() ?? _gameEngine.Sessions.ActiveSessionIds.ToList();
+        var targetIds = accountIds?.ToList() ?? _gameEngine.ActiveSessionIds.ToList();
         var processes = new List<Process>();
 
         foreach (var id in targetIds)
@@ -220,24 +216,7 @@ public sealed class CoreGameEngineAdapter : IGameEngineService, IDisposable
     public bool SetResolution(Guid accountId, int width, int height)
     {
         var process = _gameEngine.GetProcess(accountId);
-        if (process == null) return false;
-
-        bool resized = _windowManager.ResizeWindow(process, width, height);
-
-        var session = _gameEngine.Sessions.GetSession(accountId);
-        if (session != null)
-        {
-            int zoom = _settingsService?.Current.GameConfig?.ZoomLevel ?? (width * height < 480000 ? 1 : 2);
-            var updatedConfig = (_settingsService?.Current.GameConfig ?? new GameConfigOptions()) with
-            {
-                ScreenWidth = width,
-                ScreenHeight = height,
-                ZoomLevel = zoom
-            };
-            session.ConfigController.ApplyConfig(updatedConfig);
-        }
-
-        return resized;
+        return process != null && _windowManager.ResizeWindow(process, width, height);
     }
 
     public void SetMasked(bool isMasked)
@@ -245,7 +224,7 @@ public sealed class CoreGameEngineAdapter : IGameEngineService, IDisposable
         _isMasked = isMasked;
         _gameEngine.SetAllMasked(isMasked);
 
-        foreach (var accountId in _gameEngine.Sessions.ActiveSessionIds)
+        foreach (var accountId in _gameEngine.ActiveSessionIds)
         {
             var process = _gameEngine.GetProcess(accountId);
             if (process != null)
@@ -261,13 +240,8 @@ public sealed class CoreGameEngineAdapter : IGameEngineService, IDisposable
         }
     }
 
-    public void SendGameKeyDown(Guid accountId, GameKey key) => _gameEngine.SendGameKeyDown(accountId, key);
-    public void SendGameKeyUp(Guid accountId, GameKey key) => _gameEngine.SendGameKeyUp(accountId, key);
-    public Task SendGameKeyPressAsync(Guid accountId, GameKey key, int holdMs = 120) => _gameEngine.SendGameKeyPressAsync(accountId, key, holdMs);
-
     public void SendGameKeyDown(Guid accountId, int keyCode) => _gameEngine.SendGameKeyDown(accountId, keyCode);
     public void SendGameKeyUp(Guid accountId, int keyCode) => _gameEngine.SendGameKeyUp(accountId, keyCode);
-    public Task SendGameKeyPressAsync(Guid accountId, int keyCode, int holdMs = 120) => _gameEngine.SendGameKeyPressAsync(accountId, keyCode, holdMs);
 
     public Task<bool> LoginAsync(Guid accountId) => _gameEngine.LoginAsync(accountId);
 
@@ -292,14 +266,6 @@ public sealed class CoreGameEngineAdapter : IGameEngineService, IDisposable
 
     public bool IsBehaviorRunning<TBehavior>(Guid accountId) where TBehavior : class, IBehavior =>
         _gameEngine.IsBehaviorRunning<TBehavior>(accountId);
-
-    public TBehavior? GetBehavior<TBehavior>(Guid accountId) where TBehavior : class, IBehavior =>
-        _gameEngine.GetBehavior<TBehavior>(accountId);
-
-    public bool StartBehavior(Guid accountId, string behaviorId) => _gameEngine.StartBehavior(accountId, behaviorId);
-    public bool StopBehavior(Guid accountId, string behaviorId) => _gameEngine.StopBehavior(accountId, behaviorId);
-    public bool IsBehaviorRunning(Guid accountId, string behaviorId) => _gameEngine.IsBehaviorRunning(accountId, behaviorId);
-    public IReadOnlyCollection<IBehavior> GetBehaviors(Guid accountId) => _gameEngine.GetBehaviors(accountId);
 
     public void Dispose()
     {

@@ -105,6 +105,23 @@ public sealed record WorldZoneInfo(
     public override string ToString() => DisplayText;
 }
 
+public sealed record GroundItemSnapshot(
+    short ItemMapId,
+    short TemplateId,
+    string Name,
+    int X,
+    int Y,
+    int PlayerId
+) : IPositioned
+{
+    public double DistanceTo(int targetX, int targetY)
+    {
+        int dx = X - targetX;
+        int dy = Y - targetY;
+        return Math.Sqrt(dx * dx + dy * dy);
+    }
+}
+
 public sealed record WorldSnapshot(
     int MapId,
     int ZoneId,

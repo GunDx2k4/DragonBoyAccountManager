@@ -33,7 +33,7 @@ src/DragonBoyAccountManager.GUI/
 │   ├── Input/                                  # IGameInputService, GameInputService, IHotkeyRoutingService, HotkeyRoutingService
 │   ├── Selection/                              # Quản lý trạng thái lựa chọn tài khoản tập trung
 │   │   ├── IActiveSelectionService.cs          # Single Source of Truth cho SelectedAccount & CheckedAccounts
-│   │   └── ActiveSelectionStore.cs
+│   │   └── ActiveSelectionService.cs
 │   ├── Settings/                               # ISettingsService, SettingsService
 │   ├── Updater/                                # IAppUpdaterService, AppUpdaterService
 │   └── Windowing/                              # IWindowManagerService, WindowManagerService, User32
@@ -47,16 +47,18 @@ src/DragonBoyAccountManager.GUI/
     │   ├── MainWindow.xaml / .cs               # Cửa sổ khung chứa chính
     │   ├── MainViewModel.cs                    # Điều phối các Tab thông qua IActivatableTab
     │   ├── IActivatableTab.cs                  # Hợp đồng vòng đời kích hoạt / hủy kích hoạt Tab
+    │   ├── AccountTargetedViewModelBase.cs     # Lớp cơ sở chọn tập tài khoản mục tiêu (ActiveAccount / SyncTargets)
     │   ├── AccountAwareTabViewModel.cs         # Lớp cơ sở tự động đồng bộ tài khoản đang chọn & vòng đời Tab
     │   ├── Dialogs/                            # GameDialogWindow, GameDialogViewModel, HotkeyCheatsheetWindow
     │   ├── StatusBar/                          # AppStatusBarView, AppStatusBarViewModel
     │   └── TitleBar/                           # AppTitleBarView, AppTitleBarViewModel
     └── Features/                               # Các phân hệ tính năng độc lập theo chiều dọc (Vertical Slices)
         ├── Accounts/                           # AccountsPanelView / AccountsPanelViewModel, AccountConfigTabView / AccountConfigTabViewModel (.Controls.cs), Items/AccountItemViewModel
-        ├── Auto/                               # AutoTabView / AutoTabViewModel, IAutoFeatureViewModel (AutoFeatureViewModelBase), AutoTrainViewModel, AutoChatViewModel, Items/
+        ├── Auto/                               # AutoTabView / AutoTabViewModel, IAutoFeatureViewModel, AutoFeatureViewModelBase, AutoTrainViewModel, AutoChatViewModel, AutoBossViewModel, Items/
         ├── Feedback/                           # FeedbackTabView / FeedbackTabViewModel
+        ├── GameConfig/                         # GameConfigTabView / GameConfigTabViewModel
         ├── Guide/                              # GuideTabView / GuideTabViewModel
-        ├── MapUtilities/                       # MapUtilitiesTabView / MapUtilitiesTabViewModel (.Actions.cs), Items/WaypointButtonItem
+        ├── MapUtilities/                       # MapUtilitiesTabView / MapUtilitiesTabViewModel (.Actions.cs, .Xmap.cs), Items/, Dialogs/
         └── Settings/                           # SettingsTabView / SettingsTabViewModel, Items/ (SettingGroupViewModel, SettingItemViewModel)
 ```
 
@@ -74,7 +76,7 @@ Thay vì khai báo trùng lặp các giao diện và phương thức mở rộng
 - Toàn bộ phương thức mở rộng tiện ích trong [`GameEngineExtensions.cs`](file:///d:/DragonBoy/DBAM/src/DragonBoyAccountManager.Core/Engine/Abstractions/GameEngineExtensions.cs) của Core tự động khả dụng trên cả `IGameEngine` lẫn `IGameEngineService` mà không cần bất kỳ lớp wrapper trùng lặp nào ở GUI.
 
 ### 2.2. Nguồn Sự Thật Duy Nhất Cho Trạng Thái Chọn Tài Khoản (`IActiveSelectionService`)
-- [`IActiveSelectionService`](file:///d:/DragonBoy/DBAM/src/DragonBoyAccountManager.GUI/Services/Selection/IActiveSelectionService.cs) và [`ActiveSelectionStore`](file:///d:/DragonBoy/DBAM/src/DragonBoyAccountManager.GUI/Services/Selection/ActiveSelectionStore.cs) đóng vai trò là **Single Source of Truth** cho danh sách `Accounts`, tài khoản đang được chọn (`SelectedAccount`) và tập hợp các tài khoản mục tiêu (`GetTargetAccounts`).
+- [`IActiveSelectionService`](file:///d:/DragonBoy/DBAM/src/DragonBoyAccountManager.GUI/Services/Selection/IActiveSelectionService.cs) và [`ActiveSelectionService`](file:///d:/DragonBoy/DBAM/src/DragonBoyAccountManager.GUI/Services/Selection/ActiveSelectionService.cs) đóng vai trò là **Single Source of Truth** cho danh sách `Accounts`, tài khoản đang được chọn (`SelectedAccount`) và tập hợp các tài khoản mục tiêu (`GetTargetAccounts`).
 - Trạng thái vận hành của từng Behavior trên mỗi tài khoản được quản lý tổng quát qua [`AccountItemViewModel.GetBehaviorState(behaviorId)`](file:///d:/DragonBoy/DBAM/src/DragonBoyAccountManager.GUI/Presentation/Features/Accounts/Items/AccountItemViewModel.cs).
 
 ### 2.3. Tổng Quát Hóa Vòng Đời Tab (`IActivatableTab`, `AccountAwareTabViewModel` & `IAutoFeatureViewModel`)
@@ -82,10 +84,10 @@ Thay vì khai báo trùng lặp các giao diện và phương thức mở rộng
   - Định nghĩa `OnTabActivated()` và `OnTabDeactivated()`.
   - [`MainViewModel`](file:///d:/DragonBoy/DBAM/src/DragonBoyAccountManager.GUI/Presentation/Shell/MainViewModel.cs) điều phối các Tab hoàn toàn đa hình thông qua từ điển `IReadOnlyDictionary<AppTab, IActivatableTab>` mà không cần biết chi tiết bên trong từng Tab.
 - **Lớp cơ sở nhận biết tài khoản ([`AccountAwareTabViewModel`](file:///d:/DragonBoy/DBAM/src/DragonBoyAccountManager.GUI/Presentation/Shell/AccountAwareTabViewModel.cs)):**
-  - Tự động đăng ký sự kiện `SelectedAccountChanged` từ [`IActiveSelectionService`](file:///d:/DragonBoy/DBAM/src/DragonBoyAccountManager.GUI/Services/Selection/IActiveSelectionService.cs) và nhận thông điệp [`SessionSnapshotUpdatedMessage`](file:///d:/DragonBoy/DBAM/src/DragonBoyAccountManager.GUI/Domain/Messaging/Messages.cs) qua `WeakReferenceMessenger`.
+  - Kế thừa [`AccountTargetedViewModelBase`](file:///d:/DragonBoy/DBAM/src/DragonBoyAccountManager.GUI/Presentation/Shell/AccountTargetedViewModelBase.cs), tự động đăng ký sự kiện `SelectedAccountChanged` từ [`IActiveSelectionService`](file:///d:/DragonBoy/DBAM/src/DragonBoyAccountManager.GUI/Services/Selection/IActiveSelectionService.cs) và nhận thông điệp [`SessionSnapshotUpdatedMessage`](file:///d:/DragonBoy/DBAM/src/DragonBoyAccountManager.GUI/Domain/Messaging/Messages.cs) qua `WeakReferenceMessenger`.
   - Các Tab [`AccountConfigTabViewModel`](file:///d:/DragonBoy/DBAM/src/DragonBoyAccountManager.GUI/Presentation/Features/Accounts/AccountConfigTabViewModel.cs), [`MapUtilitiesTabViewModel`](file:///d:/DragonBoy/DBAM/src/DragonBoyAccountManager.GUI/Presentation/Features/MapUtilities/MapUtilitiesTabViewModel.cs) và [`AutoTabViewModel`](file:///d:/DragonBoy/DBAM/src/DragonBoyAccountManager.GUI/Presentation/Features/Auto/AutoTabViewModel.cs) kế thừa trực tiếp từ lớp này, chỉ làm mới dữ liệu khi Tab đang hiển thị (`IsTabActive == true`).
 - **Tách biệt các tính năng tự động hóa con ([`IAutoFeatureViewModel`](file:///d:/DragonBoy/DBAM/src/DragonBoyAccountManager.GUI/Presentation/Features/Auto/IAutoFeatureViewModel.cs)):**
-  - [`AutoTabViewModel`](file:///d:/DragonBoy/DBAM/src/DragonBoyAccountManager.GUI/Presentation/Features/Auto/AutoTabViewModel.cs) đóng vai trò điều phối tập hợp `IReadOnlyList<IAutoFeatureViewModel>` ([`AutoTrainViewModel`](file:///d:/DragonBoy/DBAM/src/DragonBoyAccountManager.GUI/Presentation/Features/Auto/AutoTrainViewModel.cs), [`AutoChatViewModel`](file:///d:/DragonBoy/DBAM/src/DragonBoyAccountManager.GUI/Presentation/Features/Auto/AutoChatViewModel.cs)) kế thừa từ [`AutoFeatureViewModelBase`](file:///d:/DragonBoy/DBAM/src/DragonBoyAccountManager.GUI/Presentation/Features/Auto/IAutoFeatureViewModel.cs), giúp việc thêm tính năng Auto mới độc lập hoàn toàn với các tính năng hiện có.
+  - [`AutoTabViewModel`](file:///d:/DragonBoy/DBAM/src/DragonBoyAccountManager.GUI/Presentation/Features/Auto/AutoTabViewModel.cs) đóng vai trò điều phối tập hợp `IReadOnlyList<IAutoFeatureViewModel>` ([`AutoTrainViewModel`](file:///d:/DragonBoy/DBAM/src/DragonBoyAccountManager.GUI/Presentation/Features/Auto/AutoTrainViewModel.cs), [`AutoChatViewModel`](file:///d:/DragonBoy/DBAM/src/DragonBoyAccountManager.GUI/Presentation/Features/Auto/AutoChatViewModel.cs), [`AutoBossViewModel`](file:///d:/DragonBoy/DBAM/src/DragonBoyAccountManager.GUI/Presentation/Features/Auto/AutoBossViewModel.cs)) kế thừa từ [`AutoFeatureViewModelBase`](file:///d:/DragonBoy/DBAM/src/DragonBoyAccountManager.GUI/Presentation/Features/Auto/AutoFeatureViewModelBase.cs), giúp việc thêm tính năng Auto mới độc lập hoàn toàn với các tính năng hiện có.
 
 ### 2.4. Ràng Buộc Cài Đặt Hai Chiều Khai Báo (`Declarative Two-Way Settings Binding`)
 - [`SettingItemViewModel`](file:///d:/DragonBoy/DBAM/src/DragonBoyAccountManager.GUI/Presentation/Features/Settings/Items/SettingItemViewModel.cs) hỗ trợ khai báo trực tiếp biểu thức đọc/ghi (`Func<AppSettings, T>` getter và `Action<AppSettings, T>` setter) thông qua chuỗi phương thức fluent:

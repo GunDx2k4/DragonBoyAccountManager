@@ -20,7 +20,6 @@ public sealed partial class AutoTrainViewModel : AutoFeatureViewModelBase
 {
     private readonly IGameImageService _gameImageService;
     private readonly DispatcherTimer _cooldownTimer;
-    private bool _isBulkUpdating;
 
     public override string BehaviorId => AutoTrainBehavior.BehaviorId;
 
@@ -204,29 +203,30 @@ public sealed partial class AutoTrainViewModel : AutoFeatureViewModelBase
         var selectedSlots = train.SelectedSkillSlots is { Count: > 0 }
             ? train.SelectedSkillSlots.ToHashSet()
             : [0];
-
-        foreach (var item in AutoTrainSkills)
-        {
-            item.IsSelected = selectedSlots.Contains(item.SlotIndex);
-        }
-
         var selectedItemIds = train.SelectedItemTemplateIds is { Count: > 0 }
             ? train.SelectedItemTemplateIds.ToHashSet()
             : [];
-
-        foreach (var item in AutoTrainItems)
-        {
-            item.IsSelected = selectedItemIds.Contains(item.TemplateId);
-        }
-
         var selectedBuaIds = train.SelectedBuaTemplateIds is { Count: > 0 }
             ? train.SelectedBuaTemplateIds.ToHashSet()
             : [];
 
-        foreach (var item in AutoTrainBuas)
+        RunBulkUpdate(() =>
         {
-            item.IsSelected = selectedBuaIds.Contains(item.TemplateId);
-        }
+            foreach (var item in AutoTrainSkills)
+            {
+                item.IsSelected = selectedSlots.Contains(item.SlotIndex);
+            }
+
+            foreach (var item in AutoTrainItems)
+            {
+                item.IsSelected = selectedItemIds.Contains(item.TemplateId);
+            }
+
+            foreach (var item in AutoTrainBuas)
+            {
+                item.IsSelected = selectedBuaIds.Contains(item.TemplateId);
+            }
+        });
 
         HasSelectedAutoItems = selectedItemIds.Count > 0;
         UpdateItemStatusText();
@@ -280,47 +280,21 @@ public sealed partial class AutoTrainViewModel : AutoFeatureViewModelBase
         RefreshSkills();
     }
 
-    partial void OnAvoidSuperMobsChanged(bool value) => OnOptionChanged();
-    partial void OnChangeZoneWhenNoMobsChanged(bool value) => OnOptionChanged();
-    partial void OnCheckAttackByHpChanged(bool value) => OnOptionChanged();
-    partial void OnMinMobHpChanged(long value) => OnOptionChanged();
-    partial void OnMaxMobHpChanged(long value) => OnOptionChanged();
-    partial void OnAutoUsePeanChanged(bool value) => OnOptionChanged();
-    partial void OnPeanHpPercentChanged(int value) => OnOptionChanged();
-    partial void OnPeanMpPercentChanged(int value) => OnOptionChanged();
-    partial void OnCheckAllMobsChanged(bool value) => OnOptionChanged();
+    protected override bool IsOptionProperty(string propertyName) =>
+        base.IsOptionProperty(propertyName) &&
+        propertyName is not (nameof(PickStatusText) or nameof(ItemStatusText) or nameof(HasSelectedAutoItems));
 
-
-    partial void OnAutoPickChanged(bool value)
+    protected override void OnOptionPropertyChanged(string propertyName)
     {
-        UpdatePickStatus();
-        OnOptionChanged();
+        if (propertyName is nameof(AutoPick) or nameof(PickOthersItems) or nameof(PickAllMap) or nameof(AutoDropItems))
+        {
+            UpdatePickStatus();
+        }
     }
-
-    partial void OnPickOthersItemsChanged(bool value)
-    {
-        UpdatePickStatus();
-        OnOptionChanged();
-    }
-
-    partial void OnPickAllMapChanged(bool value)
-    {
-        UpdatePickStatus();
-        OnOptionChanged();
-    }
-
-    partial void OnAutoDropItemsChanged(bool value)
-    {
-        UpdatePickStatus();
-        OnOptionChanged();
-    }
-    partial void OnFilterPickIdsChanged(string value) => OnOptionChanged();
-    partial void OnFilterExcludeIdsChanged(string value) => OnOptionChanged();
-    partial void OnFilterDropIdsChanged(string value) => OnOptionChanged();
 
     private void OnSkillItemPropertyChanged(object? sender, PropertyChangedEventArgs e)
     {
-        if (!_isBulkUpdating && e.PropertyName == nameof(SkillButtonItem.IsSelected))
+        if (!IsBulkUpdating && e.PropertyName == nameof(SkillButtonItem.IsSelected))
         {
             OnOptionChanged();
         }
@@ -328,7 +302,7 @@ public sealed partial class AutoTrainViewModel : AutoFeatureViewModelBase
 
     private void OnMobItemPropertyChanged(object? sender, PropertyChangedEventArgs e)
     {
-        if (!_isBulkUpdating && e.PropertyName == nameof(MobFilterItem.IsSelected))
+        if (!IsBulkUpdating && e.PropertyName == nameof(MobFilterItem.IsSelected))
         {
             OnOptionChanged();
         }
@@ -336,7 +310,7 @@ public sealed partial class AutoTrainViewModel : AutoFeatureViewModelBase
 
     private void OnAutoItemPropertyChanged(object? sender, PropertyChangedEventArgs e)
     {
-        if (!_isBulkUpdating && e.PropertyName == nameof(AutoItemSlotItem.IsSelected))
+        if (!IsBulkUpdating && e.PropertyName == nameof(AutoItemSlotItem.IsSelected))
         {
             UpdateItemSelectionStatusAndSave();
         }
@@ -344,7 +318,7 @@ public sealed partial class AutoTrainViewModel : AutoFeatureViewModelBase
 
     private void OnAutoBuaPropertyChanged(object? sender, PropertyChangedEventArgs e)
     {
-        if (!_isBulkUpdating && e.PropertyName == nameof(AutoItemSlotItem.IsSelected))
+        if (!IsBulkUpdating && e.PropertyName == nameof(AutoItemSlotItem.IsSelected))
         {
             OnOptionChanged();
         }
@@ -387,9 +361,9 @@ public sealed partial class AutoTrainViewModel : AutoFeatureViewModelBase
         OnOptionChanged();
     }
 
-    private void OnOptionChanged()
+    protected override void OnOptionChanged()
     {
-        if (IsSwitchingAccount || _isBulkUpdating || ActiveAccount == null) return;
+        if (IsSwitchingAccount || IsBulkUpdating || ActiveAccount == null) return;
 
         PersistActiveAccountSettings();
 
@@ -455,108 +429,78 @@ public sealed partial class AutoTrainViewModel : AutoFeatureViewModelBase
     [RelayCommand]
     public void SelectAllMobs()
     {
-        _isBulkUpdating = true;
-        try
+        RunBulkUpdate(() =>
         {
             foreach (var item in AvailableMobTypes)
             {
                 item.IsSelected = true;
             }
-        }
-        finally
-        {
-            _isBulkUpdating = false;
-        }
+        });
         OnOptionChanged();
     }
 
     [RelayCommand]
     public void DeselectAllMobs()
     {
-        _isBulkUpdating = true;
-        try
+        RunBulkUpdate(() =>
         {
             foreach (var item in AvailableMobTypes)
             {
                 item.IsSelected = false;
             }
-        }
-        finally
-        {
-            _isBulkUpdating = false;
-        }
+        });
         OnOptionChanged();
     }
 
     [RelayCommand]
     public void SelectAllSkills()
     {
-        _isBulkUpdating = true;
-        try
+        RunBulkUpdate(() =>
         {
             foreach (var item in AutoTrainSkills)
             {
                 item.IsSelected = true;
             }
-        }
-        finally
-        {
-            _isBulkUpdating = false;
-        }
+        });
         OnOptionChanged();
     }
 
     [RelayCommand]
     public void DeselectAllSkills()
     {
-        _isBulkUpdating = true;
-        try
+        RunBulkUpdate(() =>
         {
             foreach (var item in AutoTrainSkills)
             {
                 item.IsSelected = false;
             }
-        }
-        finally
-        {
-            _isBulkUpdating = false;
-        }
+        });
         OnOptionChanged();
     }
 
     [RelayCommand]
     public void SelectAllItems()
     {
-        _isBulkUpdating = true;
-        try
+        RunBulkUpdate(() =>
         {
             foreach (var item in AutoTrainItems)
             {
                 item.IsSelected = true;
             }
-        }
-        finally
-        {
-            _isBulkUpdating = false;
-        }
+        });
         UpdateItemSelectionStatusAndSave();
     }
 
     [RelayCommand]
     public void DeselectAllItems()
     {
-        _isBulkUpdating = true;
-        try
+        RunBulkUpdate(() =>
         {
             foreach (var item in AutoTrainItems)
             {
                 item.IsSelected = false;
             }
-        }
-        finally
-        {
-            _isBulkUpdating = false;
-        }
+        });
         UpdateItemSelectionStatusAndSave();
     }
 

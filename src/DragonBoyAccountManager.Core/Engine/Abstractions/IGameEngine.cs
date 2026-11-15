@@ -9,7 +9,7 @@ public interface IGameEngine :
     IGameEngineEvents,
     IDisposable
 {
-    ISessionManager Sessions { get; }
+    IReadOnlyCollection<Guid> ActiveSessionIds { get; }
 
     Task<bool> StartAccountAsync(AccountLaunchOptions options, CancellationToken cancellationToken = default);
     Task StopAccountAsync(Guid accountId);

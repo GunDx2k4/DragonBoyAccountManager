@@ -4,7 +4,7 @@ using System.Linq;
 
 namespace DragonBoyAccountManager.GUI.Services.Selection;
 
-public sealed class ActiveSelectionStore : IActiveSelectionService
+public sealed class ActiveSelectionService : IActiveSelectionService
 {
     private AccountItemViewModel? _selectedAccount;
     private Func<IReadOnlyList<AccountItemViewModel>>? _allAccountsProvider;

@@ -23,8 +23,7 @@ public static class DefaultSessionBootstrap
         var inventoryHandler = new InventoryHandler(runtime);
         var zoneHandler = new ZoneHandler(runtime);
         var chatHandler = new ChatHandler(runtime);
-        var worldInteractionHandler = new WorldInteractionHandler(runtime);
-        var skillAssignmentHandler = new SkillAssignmentHandler(runtime);
+        var worldHandler = new WorldHandler(runtime);
         var gameConfigHandler = new GameConfigHandler(session.ConfigController);
 
         dispatcher.RegisterHandler<AttackMobCommand>(combatHandler);
@@ -38,15 +37,15 @@ public static class DefaultSessionBootstrap
         dispatcher.RegisterHandler<UseItemCommand>(inventoryHandler);
         dispatcher.RegisterHandler<PickItemCommand>(inventoryHandler);
         dispatcher.RegisterHandler<SendChatCommand>(chatHandler);
-        dispatcher.RegisterHandler<WakeUpCommand>(worldInteractionHandler);
+        dispatcher.RegisterHandler<WakeUpCommand>(worldHandler);
         dispatcher.RegisterHandler<ChangeZoneCommand>(zoneHandler);
         dispatcher.RegisterHandler<OpenZonePanelCommand>(zoneHandler);
         dispatcher.RegisterHandler<CloseZonePanelCommand>(zoneHandler);
-        dispatcher.RegisterHandler<LoginCommand>(worldInteractionHandler);
-        dispatcher.RegisterHandler<FocusEntityCommand>(worldInteractionHandler);
-        dispatcher.RegisterHandler<OpenNpcMenuCommand>(worldInteractionHandler);
-        dispatcher.RegisterHandler<ConfirmMenuCommand>(worldInteractionHandler);
-        dispatcher.RegisterHandler<AssignSkillsCommand>(skillAssignmentHandler);
+        dispatcher.RegisterHandler<LoginCommand>(worldHandler);
+        dispatcher.RegisterHandler<FocusEntityCommand>(worldHandler);
+        dispatcher.RegisterHandler<OpenNpcMenuCommand>(worldHandler);
+        dispatcher.RegisterHandler<ConfirmMenuCommand>(worldHandler);
+        dispatcher.RegisterHandler<AssignSkillsCommand>(combatHandler);
         dispatcher.RegisterHandler<SetGameConfigCommand>(gameConfigHandler);
 
         session.RegisterBehavior(new AutoTrainBehavior(new AutoTrainOptions()));

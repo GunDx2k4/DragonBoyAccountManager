@@ -1,5 +1,6 @@
 using System.Diagnostics;
 using DragonBoyAccountManager.Core.Common;
+using DragonBoyAccountManager.Core.Engine.Models;
 using DragonBoyAccountManager.Core.Interop.Abstractions;
 using DragonBoyAccountManager.Core.Interop.Il2Cpp;
 using DragonBoyAccountManager.Core.Interop.Schema;
@@ -31,7 +32,7 @@ public class SessionLauncher : ISessionLauncher
         return paths;
     }
 
-    public async Task<GameSession> LaunchAsync(LaunchOptions options, CancellationToken cancellationToken = default)
+    public async Task<GameSession> LaunchAsync(AccountLaunchOptions options, CancellationToken cancellationToken = default)
     {
         Validate(options.GamePath);
 
@@ -52,12 +53,16 @@ public class SessionLauncher : ISessionLauncher
             argsList.Add(options.AdditionalArguments.Trim());
         }
 
-        if (options.EnableLogging && !string.IsNullOrEmpty(options.LogPrefix))
+        string logPrefix = !string.IsNullOrWhiteSpace(options.LogPrefix)
+            ? options.LogPrefix
+            : (!string.IsNullOrWhiteSpace(options.Username) ? $"DBAM_{options.Username}" : "DragonBoy");
+
+        if (options.EnableLogging && !string.IsNullOrEmpty(logPrefix))
         {
             var logsDir = Path.Combine(workingDir, "Logs");
             Directory.CreateDirectory(logsDir);
 
-            string safeName = string.Join("_", options.LogPrefix.Split(Path.GetInvalidFileNameChars()));
+            string safeName = string.Join("_", logPrefix.Split(Path.GetInvalidFileNameChars()));
             string logFile = Path.Combine(logsDir, $"log_{safeName}_{DateTime.Now:yyyyMMdd_HHmmss}.txt");
             argsList.Add($"-logfile \"{logFile}\"");
         }
@@ -88,16 +93,22 @@ public class SessionLauncher : ISessionLauncher
                 ApplyCustomResolutionPatch(gameRuntime, options.ScreenWidth, options.ScreenHeight);
             }
 
-            if (options.ServerId.HasValue && gameRuntime.Layout.ServerListScreen.IpSelect >= 0)
+            if (options.ServerId >= 0 && gameRuntime.Layout.ServerListScreen.IpSelect >= 0)
             {
                 try
                 {
-                    gameRuntime.WriteStatic(GameSchema.ServerListScreen.ClassName, gameRuntime.Layout.ServerListScreen.IpSelect, options.ServerId.Value);
+                    gameRuntime.WriteStatic(GameSchema.ServerListScreen.ClassName, gameRuntime.Layout.ServerListScreen.IpSelect, options.ServerId);
                 }
                 catch { }
             }
 
-            return new GameSession(process, gameRuntime, options.SessionId ?? Guid.NewGuid(), options.ConfigureSession);
+            var session = new GameSession(process, gameRuntime, options.AccountId, options.ConfigureSession);
+            if (options.InitialGameConfig != null)
+            {
+                session.ConfigController.ApplyConfig(options.InitialGameConfig);
+            }
+
+            return session;
         }
         catch
         {

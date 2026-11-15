@@ -17,7 +17,6 @@ public sealed partial class AutoBossViewModel : AutoFeatureViewModelBase
 {
     private readonly IGameImageService _gameImageService;
     private readonly List<BossMapItem> _allMaps = [];
-    private bool _isBulkUpdating;
 
     public override string BehaviorId => AutoBossBehavior.BehaviorId;
 
@@ -85,28 +84,25 @@ public sealed partial class AutoBossViewModel : AutoFeatureViewModelBase
 
     private void OnMapSelectionChanged()
     {
-        if (_isBulkUpdating) return;
+        if (IsBulkUpdating) return;
         SelectedMapCount = _allMaps.Count(m => m.IsSelected);
         OnOptionChanged();
     }
 
     private void OnSkillItemPropertyChanged(object? sender, PropertyChangedEventArgs e)
     {
-        if (e.PropertyName == nameof(SkillButtonItem.IsSelected))
+        if (!IsBulkUpdating && e.PropertyName == nameof(SkillButtonItem.IsSelected))
         {
             OnOptionChanged();
         }
     }
 
-    partial void OnTargetBossNameChanged(string value) => OnOptionChanged();
-    partial void OnMinZoneChanged(int value) => OnOptionChanged();
-    partial void OnZoneChangeDelaySecondsChanged(int value) => OnOptionChanged();
-    partial void OnIsFastTeleportChanged(bool value) => OnOptionChanged();
-    partial void OnPickOthersItemsChanged(bool value) => OnOptionChanged();
-    partial void OnFilterPickNamesChanged(string value) => OnOptionChanged();
-
     partial void OnMapSearchTextChanged(string value) => ApplyMapFilter();
     partial void OnSelectedPlanetFilterChanged(string value) => ApplyMapFilter();
+
+    protected override bool IsOptionProperty(string propertyName) =>
+        base.IsOptionProperty(propertyName) &&
+        propertyName is not (nameof(MapSearchText) or nameof(SelectedPlanetFilter) or nameof(SelectedMapCount));
 
     private void ApplyMapFilter()
     {
@@ -135,25 +131,30 @@ public sealed partial class AutoBossViewModel : AutoFeatureViewModelBase
         }
     }
 
-    private void OnOptionChanged()
+    protected override void OnOptionChanged()
     {
-        if (IsSwitchingAccount || _isBulkUpdating) return;
+        if (IsSwitchingAccount || IsBulkUpdating || ActiveAccount == null) return;
+
         PersistActiveAccountSettings();
 
-        if (IsRunning)
+        var currentOptions = BuildCurrentOptions();
+        foreach (var target in GetAllTargetAccounts())
         {
-            var currentOptions = BuildCurrentOptions();
-            foreach (var id in GetTargetAccountIds())
+            if (target.Id != ActiveAccount.Id)
             {
-                GameEngine.UpdateBehaviorOptions<AutoBossBehavior, AutoBossOptions>(id, currentOptions);
+                SaveSettings(target);
+            }
+
+            if (GameEngine.IsBehaviorRunning<AutoBossBehavior>(target.Id))
+            {
+                GameEngine.UpdateBehaviorOptions<AutoBossBehavior, AutoBossOptions>(target.Id, currentOptions);
             }
         }
     }
 
     protected override void LoadAccountCore(AccountItemViewModel account)
     {
-        _isBulkUpdating = true;
-        try
+        RunBulkUpdate(() =>
         {
             var options = account.AutoSettings.GetBehaviorOptionsOrDefault<AutoBossOptions>(BehaviorId);
             TargetBossName = options.TargetBossName;
@@ -182,11 +183,7 @@ public sealed partial class AutoBossViewModel : AutoFeatureViewModelBase
             StatusText = !string.IsNullOrWhiteSpace(state.StatusText)
                 ? state.StatusText
                 : (IsRunning ? "Đang chạy săn Boss..." : "Chưa kích hoạt");
-        }
-        finally
-        {
-            _isBulkUpdating = false;
-        }
+        });
 
         RefreshSkills();
     }
@@ -320,56 +317,54 @@ public sealed partial class AutoBossViewModel : AutoFeatureViewModelBase
     [RelayCommand]
     private void ClearAllMaps()
     {
-        _isBulkUpdating = true;
-        try
+        RunBulkUpdate(() =>
         {
             foreach (var map in _allMaps)
             {
                 map.IsSelected = false;
             }
             SelectedMapCount = 0;
-        }
-        finally
-        {
-            _isBulkUpdating = false;
-        }
+        });
         OnOptionChanged();
     }
 
     [RelayCommand]
     private void SelectAllFilteredMaps()
     {
-        _isBulkUpdating = true;
-        try
+        RunBulkUpdate(() =>
         {
             foreach (var map in FilteredMaps)
             {
                 map.IsSelected = true;
             }
             SelectedMapCount = _allMaps.Count(m => m.IsSelected);
-        }
-        finally
-        {
-            _isBulkUpdating = false;
-        }
+        });
         OnOptionChanged();
     }
 
     [RelayCommand]
     private void SelectAllSkills()
     {
-        foreach (var skill in BossSkills)
+        RunBulkUpdate(() =>
         {
-            skill.IsSelected = true;
-        }
+            foreach (var skill in BossSkills)
+            {
+                skill.IsSelected = true;
+            }
+        });
+        OnOptionChanged();
     }
 
     [RelayCommand]
     private void DeselectAllSkills()
     {
-        foreach (var skill in BossSkills)
+        RunBulkUpdate(() =>
         {
-            skill.IsSelected = false;
-        }
+            foreach (var skill in BossSkills)
+            {
+                skill.IsSelected = false;
+            }
+        });
+        OnOptionChanged();
     }
 }

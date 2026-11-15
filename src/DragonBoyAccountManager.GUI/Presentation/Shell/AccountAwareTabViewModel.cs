@@ -10,15 +10,8 @@ using DragonBoyAccountManager.GUI.Services.Selection;
 
 namespace DragonBoyAccountManager.GUI.Presentation.Shell;
 
-public abstract partial class AccountAwareTabViewModel : ObservableObject, IActivatableTab
+public abstract partial class AccountAwareTabViewModel : AccountTargetedViewModelBase, IActivatableTab
 {
-    protected readonly IGameEngineService _gameEngine;
-    protected readonly IActiveSelectionService? _selectionService;
-    protected readonly IDispatcherService? _dispatcher;
-
-    [ObservableProperty]
-    private AccountItemViewModel? _activeAccount;
-
     [ObservableProperty]
     private bool _hasActiveAccount;
 
@@ -28,21 +21,12 @@ public abstract partial class AccountAwareTabViewModel : ObservableObject, IActi
     [ObservableProperty]
     private string _activeAccountInfo = "Chưa chọn tài khoản";
 
-    [ObservableProperty]
-    private string _syncTargetDisplay = "1 tài khoản";
-
-    [ObservableProperty]
-    private string _statusText = string.Empty;
-
     protected AccountAwareTabViewModel(
         IGameEngineService gameEngine,
         IActiveSelectionService? selectionService = null,
         IDispatcherService? dispatcher = null)
+        : base(gameEngine, selectionService, dispatcher)
     {
-        _gameEngine = gameEngine;
-        _selectionService = selectionService;
-        _dispatcher = dispatcher;
-
         if (_selectionService != null)
         {
             _selectionService.SelectedAccountChanged += account =>
@@ -74,8 +58,6 @@ public abstract partial class AccountAwareTabViewModel : ObservableObject, IActi
         });
     }
 
-    protected void RunOnUi(Action action) => _dispatcher.Dispatch(action);
-
     protected static string FormatAccountDisplayInfo(AccountItemViewModel account)
     {
         string server = !string.IsNullOrWhiteSpace(account.Server) ? $" ({account.Server})" : string.Empty;
@@ -92,31 +74,4 @@ public abstract partial class AccountAwareTabViewModel : ObservableObject, IActi
     public virtual void OnTabActivated() { }
 
     public virtual void OnTabDeactivated() { }
-
-    public void UpdateSyncTargetDisplay()
-    {
-        int count = _selectionService?.TargetCount ?? (ActiveAccount != null ? 1 : 0);
-        SyncTargetDisplay = count > 1
-            ? $"Đồng bộ: {count} tài khoản"
-            : (count == 1 ? "1 tài khoản" : "Chưa chọn tài khoản");
-    }
-
-    public AccountItemViewModel? ResolveAccount(Guid id) =>
-        _selectionService?.FindAccount(id) ?? (ActiveAccount?.Id == id ? ActiveAccount : null);
-
-    protected List<Guid> GetTargetAccountIds()
-    {
-        if (_selectionService != null)
-        {
-            var running = _selectionService.GetRunningTargetAccountIds();
-            if (running.Count > 0) return running.ToList();
-        }
-
-        if (ActiveAccount != null && ActiveAccount.IsRunning)
-        {
-            return [ActiveAccount.Id];
-        }
-
-        return [];
-    }
 }

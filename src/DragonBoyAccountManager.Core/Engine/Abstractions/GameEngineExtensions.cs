@@ -119,6 +119,29 @@ public static class GameEngineExtensions
     public static Task<Result> AutoAssignSkillsAsync(this IGameActionService engine, Guid accountId, CancellationToken cancellationToken = default)
         => engine.ExecuteCommandAsync(accountId, new AssignSkillsCommand(), cancellationToken);
 
+    public static void SendGameKeyDown(this IGameActionService engine, Guid accountId, GameKey key)
+        => engine.SendGameKeyDown(accountId, GameKeyMapper.MapToKeyCode(key));
+
+    public static void SendGameKeyUp(this IGameActionService engine, Guid accountId, GameKey key)
+        => engine.SendGameKeyUp(accountId, GameKeyMapper.MapToKeyCode(key));
+
+    public static async Task SendGameKeyPressAsync(this IGameActionService engine, Guid accountId, int keyCode, int holdMs = 120, CancellationToken cancellationToken = default)
+    {
+        if (keyCode == 0 || !engine.IsRunning(accountId)) return;
+        engine.SendGameKeyDown(accountId, keyCode);
+        try
+        {
+            await Task.Delay(holdMs, cancellationToken);
+        }
+        finally
+        {
+            engine.SendGameKeyUp(accountId, keyCode);
+        }
+    }
+
+    public static Task SendGameKeyPressAsync(this IGameActionService engine, Guid accountId, GameKey key, int holdMs = 120, CancellationToken cancellationToken = default)
+        => engine.SendGameKeyPressAsync(accountId, GameKeyMapper.MapToKeyCode(key), holdMs, cancellationToken);
+
     public static bool StartAutoTrain(this IGameAutomationService engine, Guid accountId, AutoTrainOptions options)
         => engine.StartBehavior<AutoTrainBehavior, AutoTrainOptions>(accountId, options);
 

@@ -6,7 +6,7 @@ using DragonBoyAccountManager.Core.Telemetry.Scrapers;
 
 namespace DragonBoyAccountManager.Core.Execution.Handlers;
 
-public class WorldInteractionHandler(IGameRuntime runtime) :
+public class WorldHandler(IGameRuntime runtime) :
     IGameCommandHandler<FocusEntityCommand>,
     IGameCommandHandler<WakeUpCommand>,
     IGameCommandHandler<LoginCommand>,

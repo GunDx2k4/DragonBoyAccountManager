@@ -27,8 +27,8 @@ flowchart TD
     end
 
     subgraph Core["DragonBoyAccountManager.Core (UI-Agnostic Engine)"]
-        Engine["Engine Layer (IGameEngine / SessionManager / SessionWorker)"]
-        Automation["Automation Layer (IBehavior<TOptions> / AutoNavigator / EmergencyPipeline)"]
+        Engine["Engine Layer (IGameEngine / GameEngine / SessionWorker)"]
+        Automation["Automation Layer (IBehavior<TOptions> / AutoNavigator / XmapNavigator)"]
         Execution["Execution Layer (CommandDispatcher / IGameCommand / Handlers)"]
         Telemetry["Telemetry Layer (ISnapshotScraper<TSnapshot> / GameSessionSnapshot)"]
         Interop["Interop Layer (IGameRuntime / RemoteInvoker / RemoteScratchpad / GameSchema)"]
@@ -66,7 +66,7 @@ flowchart TD
 5. **Cô Lập Tầng Tự Động Hóa Khỏi `IGameRuntime` (Strict Layer Isolation):**
    - Giao diện [`ISessionContext`](file:///d:/DragonBoy/DBAM/src/DragonBoyAccountManager.Core/Sessions/ISessionContext.cs) cung cấp cho các [`IBehavior`](file:///d:/DragonBoy/DBAM/src/DragonBoyAccountManager.Core/Automation/Behaviors/IBehavior.cs) **không phơi bày `IGameRuntime`**. Mọi hành vi tự động hóa bắt buộc phải đọc dữ liệu từ `GetSnapshot<TSnapshot>()` và gửi lệnh qua [`ICommandDispatcher`](file:///d:/DragonBoy/DBAM/src/DragonBoyAccountManager.Core/Execution/ICommandDispatcher.cs).
 6. **Tuần Tự Hóa Khởi Động Tiến Trình & File RMS (`_launchGate` & `ISessionLauncher`):**
-   - [`SessionManager.StartSessionAsync`](file:///d:/DragonBoy/DBAM/src/DragonBoyAccountManager.Core/Engine/SessionManager.cs#L95-L120) sử dụng `SemaphoreSlim _launchGate` bao bọc [`SessionLauncher.LaunchAsync`](file:///d:/DragonBoy/DBAM/src/DragonBoyAccountManager.Core/Sessions/SessionLauncher.cs) để bảo vệ đoạn tới hạn từ lúc ghi file cấu hình máy chủ dùng chung (`svselect`) qua [`GameRmsStorage`](file:///d:/DragonBoy/DBAM/src/DragonBoyAccountManager.Core/Sessions/GameRmsStorage.cs) cho tới khi tiến trình game nạp xong `GameAssembly.dll`, ngăn chặn hoàn toàn lỗi nhận nhầm máy chủ khi mở nhiều tài khoản cùng lúc.
+   - [`GameEngine.StartAccountAsync`](file:///d:/DragonBoy/DBAM/src/DragonBoyAccountManager.Core/Engine/GameEngine.cs#L67-L141) sử dụng `SemaphoreSlim _launchGate` bao bọc [`SessionLauncher.LaunchAsync`](file:///d:/DragonBoy/DBAM/src/DragonBoyAccountManager.Core/Sessions/SessionLauncher.cs) để bảo vệ đoạn tới hạn từ lúc ghi file cấu hình máy chủ dùng chung (`svselect`) qua [`GameRmsStorage`](file:///d:/DragonBoy/DBAM/src/DragonBoyAccountManager.Core/Sessions/GameRmsStorage.cs) cho tới khi tiến trình game nạp xong `GameAssembly.dll`, ngăn chặn hoàn toàn lỗi nhận nhầm máy chủ khi mở nhiều tài khoản cùng lúc.
 7. **Mở Rộng Động Theo Nguyên Tắc Open/Closed (OCP):**
    - Các thành phần cốt lõi của cả Core và GUI đều hoạt động dựa trên cơ chế đăng ký tổng quát ([`DefaultSessionBootstrap`](file:///d:/DragonBoy/DBAM/src/DragonBoyAccountManager.Core/Sessions/DefaultSessionBootstrap.cs), `RegisterScraper<TSnapshot>`, `RegisterHandler<TCommand>`, `RegisterBehavior<TBehavior>`, [`IActivatableTab`](file:///d:/DragonBoy/DBAM/src/DragonBoyAccountManager.GUI/Presentation/Shell/IActivatableTab.cs), [`AccountAwareTabViewModel`](file:///d:/DragonBoy/DBAM/src/DragonBoyAccountManager.GUI/Presentation/Shell/AccountAwareTabViewModel.cs), [`IAutoFeatureViewModel`](file:///d:/DragonBoy/DBAM/src/DragonBoyAccountManager.GUI/Presentation/Features/Auto/IAutoFeatureViewModel.cs), `SettingItemViewModel.Bind...`), cho phép thêm tính năng mới mà không cần sửa đổi mã nguồn điều phối hiện có.
 

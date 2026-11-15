@@ -15,7 +15,7 @@ Khi cần đọc thêm dữ liệu từ tiến trình game (ví dụ: thông tin
 3. **Hiện thực hóa `ISnapshotScraper<TSnapshot>`:**
    - Tạo lớp `ClanScraper : ISnapshotScraper<ClanSnapshot>` trong thư mục [`Telemetry/Scrapers/`](file:///d:/DragonBoy/DBAM/src/DragonBoyAccountManager.Core/Telemetry/Scrapers), triển khai phương thức `ClanSnapshot Scrape()`.
 4. **Đăng ký vào phiên làm việc:**
-   - Đăng ký mặc định trong [`DefaultSessionBootstrap.Configure`](file:///d:/DragonBoy/DBAM/src/DragonBoyAccountManager.Core/Sessions/DefaultSessionBootstrap.cs), đăng ký toàn cục qua [`ISessionManager.SessionInitializer`](file:///d:/DragonBoy/DBAM/src/DragonBoyAccountManager.Core/Engine/Abstractions/ISessionManager.cs), hoặc đăng ký theo từng phiên qua [`AccountLaunchOptions.ConfigureSession`](file:///d:/DragonBoy/DBAM/src/DragonBoyAccountManager.Core/Engine/Models/AccountLaunchOptions.cs):
+   - Đăng ký mặc định trong [`DefaultSessionBootstrap.Configure`](file:///d:/DragonBoy/DBAM/src/DragonBoyAccountManager.Core/Sessions/DefaultSessionBootstrap.cs), đăng ký toàn cục qua [`GameEngine.SessionInitializer`](file:///d:/DragonBoy/DBAM/src/DragonBoyAccountManager.Core/Engine/GameEngine.cs), hoặc đăng ký theo từng phiên qua [`AccountLaunchOptions.ConfigureSession`](file:///d:/DragonBoy/DBAM/src/DragonBoyAccountManager.Core/Engine/Models/AccountLaunchOptions.cs):
      ```csharp
      session.RegisterScraper(new ClanScraper(session.Runtime));
      ```
@@ -36,7 +36,7 @@ Khi cần thêm một thao tác điều khiển trong game (ví dụ: nâng cấ
    - Tạo lớp xử lý cài đặt [`IGameCommandHandler<UpgradeItemCommand>`](file:///d:/DragonBoy/DBAM/src/DragonBoyAccountManager.Core/Execution/ICommandDispatcher.cs) trong [`Execution/Handlers/`](file:///d:/DragonBoy/DBAM/src/DragonBoyAccountManager.Core/Execution/Handlers).
    - Triển khai `HandleAsync(UpgradeItemCommand command, CancellationToken cancellationToken = default)`.
 3. **Đăng ký Handler:**
-   - Đăng ký vào [`ICommandDispatcher`](file:///d:/DragonBoy/DBAM/src/DragonBoyAccountManager.Core/Execution/ICommandDispatcher.cs) trong [`DefaultSessionBootstrap.Configure`](file:///d:/DragonBoy/DBAM/src/DragonBoyAccountManager.Core/Sessions/DefaultSessionBootstrap.cs), qua `ISessionManager.SessionInitializer`, hoặc qua `AccountLaunchOptions.ConfigureSession`:
+   - Đăng ký vào [`ICommandDispatcher`](file:///d:/DragonBoy/DBAM/src/DragonBoyAccountManager.Core/Execution/ICommandDispatcher.cs) trong [`DefaultSessionBootstrap.Configure`](file:///d:/DragonBoy/DBAM/src/DragonBoyAccountManager.Core/Sessions/DefaultSessionBootstrap.cs), qua `GameEngine.SessionInitializer`, hoặc qua `AccountLaunchOptions.ConfigureSession`:
      ```csharp
      session.Dispatcher.RegisterHandler<UpgradeItemCommand>(handler);
      ```
@@ -60,7 +60,7 @@ Khi cần phát triển một tính năng tự động hóa chạy theo chu kỳ
      - Phát lệnh qua `context.Dispatcher.DispatchAsync(...)`.
    - Ghi đè `OnOptionsChanged(AutoBossOptions options)` hoặc `OnStopped()` nếu cần đồng bộ trạng thái in-game thông qua `CurrentContext`.
 3. **Đăng ký và cấu hình:**
-   - Đăng ký trong [`DefaultSessionBootstrap.Configure`](file:///d:/DragonBoy/DBAM/src/DragonBoyAccountManager.Core/Sessions/DefaultSessionBootstrap.cs), qua `ISessionManager.SessionInitializer`, hoặc qua `AccountLaunchOptions.ConfigureSession`:
+   - Đăng ký trong [`DefaultSessionBootstrap.Configure`](file:///d:/DragonBoy/DBAM/src/DragonBoyAccountManager.Core/Sessions/DefaultSessionBootstrap.cs), qua `GameEngine.SessionInitializer`, hoặc qua `AccountLaunchOptions.ConfigureSession`:
      ```csharp
      session.RegisterBehavior(new AutoBossBehavior());
      ```

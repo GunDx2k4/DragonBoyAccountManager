@@ -309,7 +309,7 @@ static async Task RunInspectAsync(string targetPath)
 
     AnsiConsole.MarkupLine("[cyan][[INFO]][/] Đang khởi chạy game client...");
     var launcher = new SessionLauncher();
-    var launchOptions = new LaunchOptions
+    var launchOptions = new AccountLaunchOptions
     {
         GamePath = targetPath,
         ScreenWidth = 1024,

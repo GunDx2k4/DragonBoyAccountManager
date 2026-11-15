@@ -1,6 +1,8 @@
+using DragonBoyAccountManager.Core.Engine.Models;
+
 namespace DragonBoyAccountManager.Core.Sessions;
 
 public interface ISessionLauncher
 {
-    Task<GameSession> LaunchAsync(LaunchOptions options, CancellationToken cancellationToken = default);
+    Task<GameSession> LaunchAsync(AccountLaunchOptions options, CancellationToken cancellationToken = default);
 }
