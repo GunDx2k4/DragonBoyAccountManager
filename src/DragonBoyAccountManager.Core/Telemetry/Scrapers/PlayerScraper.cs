@@ -75,10 +75,11 @@ public class PlayerScraper(IGameRuntime runtime, Func<string?>? originalNameReso
         var skills = isInGame ? ScrapeSkills(charPtr) : [];
         var bagItems = isInGame ? ScrapeBagItems(charPtr) : [];
         var activeBuffIcons = isInGame ? ScrapeActiveBuffIconIds() : [];
+        bool isCharging = isInGame && charLayout.IsCharge >= 0 && _runtime.ReadField<bool>(charPtr, charLayout.IsCharge);
 
         return new PlayerSnapshot(
             id, name, hp, maxHp, power, gender, x, y,
-            isAlive, isInGame, isChangingMap, mp, maxMp, status, isTdltActive, isAutoPlay, skills, bagItems, activeBuffIcons);
+            isAlive, isInGame, isChangingMap, mp, maxMp, status, isTdltActive, isAutoPlay, skills, bagItems, activeBuffIcons, isCharging);
     }
 
     public bool IsChangingMap(IntPtr charPtr = default)

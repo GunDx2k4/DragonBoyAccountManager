@@ -29,7 +29,8 @@ public interface ISessionContext
     IBehavior? GetBehavior(string behaviorId);
     void RegisterBehavior<TBehavior>(TBehavior behavior) where TBehavior : class, IBehavior;
     void StopAllBehaviors();
+    Task StopAllBehaviorsAsync();
 
-    void Tick();
+    void Tick(bool force = false);
     void Kill();
 }

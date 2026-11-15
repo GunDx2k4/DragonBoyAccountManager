@@ -159,7 +159,7 @@ public sealed class SessionWorker : IDisposable, IAsyncDisposable
             var orchestrator = new LoginOrchestrator(Options, Session.LoginScreen, IsMasked);
             await orchestrator.ExecuteAsync(Session, progress, Cts.Token);
 
-            Session.Tick();
+            Session.Tick(force: true);
             if (Session.CurrentPlayer.IsInGame)
             {
                 _wasInGame = true;
@@ -399,7 +399,7 @@ public sealed class SessionWorker : IDisposable, IAsyncDisposable
             return;
 
         try { Cts.Cancel(); } catch { }
-        Session.StopAllBehaviors();
+        await Session.StopAllBehaviorsAsync();
         Session.Kill();
         if (LoopTask != null)
         {
@@ -414,16 +414,17 @@ public sealed class SessionWorker : IDisposable, IAsyncDisposable
             return;
 
         try { Cts.Cancel(); } catch { }
-        Session.StopAllBehaviors();
+        var stopBehaviorsTask = Session.StopAllBehaviorsAsync();
         Session.Kill();
 
-        if (LoopTask == null || LoopTask.IsCompleted)
+        if ((LoopTask == null || LoopTask.IsCompleted) && stopBehaviorsTask.IsCompleted)
         {
             DisposeResources();
         }
         else
         {
-            _ = LoopTask.ContinueWith(_ => DisposeResources(), TaskScheduler.Default);
+            _ = Task.WhenAll(LoopTask ?? Task.CompletedTask, stopBehaviorsTask)
+                .ContinueWith(_ => DisposeResources(), TaskScheduler.Default);
         }
 
         GC.SuppressFinalize(this);

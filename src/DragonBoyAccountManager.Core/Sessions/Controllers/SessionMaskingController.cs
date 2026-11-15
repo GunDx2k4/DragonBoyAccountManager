@@ -7,6 +7,7 @@ namespace DragonBoyAccountManager.Core.Sessions.Controllers;
 public sealed class SessionMaskingController(IGameRuntime runtime)
 {
     private readonly IGameRuntime _runtime = runtime ?? throw new ArgumentNullException(nameof(runtime));
+    private readonly Lock _syncLock = new();
 
     public bool IsMasked { get; private set; }
     public string Username { get; private set; } = string.Empty;
@@ -17,38 +18,50 @@ public sealed class SessionMaskingController(IGameRuntime runtime)
 
     public void Configure(bool isMasked, string username, bool isInGame)
     {
-        IsMasked = isMasked;
-        Username = username ?? string.Empty;
-        OnTick(isInGame);
+        lock (_syncLock)
+        {
+            IsMasked = isMasked;
+            Username = username ?? string.Empty;
+            OnTick(isInGame);
+        }
     }
 
     public void SetMasked(bool isMasked, bool isInGame)
     {
-        IsMasked = isMasked;
-        ApplyEarlyMaskingGuard(IsMasked);
-        SyncInGameCharacterNameMasking(IsMasked, isInGame);
+        lock (_syncLock)
+        {
+            IsMasked = isMasked;
+            ApplyEarlyMaskingGuard(IsMasked);
+            SyncInGameCharacterNameMasking(IsMasked, isInGame);
+        }
     }
 
     public void OnTick(bool isInGame)
     {
-        if (IsMasked || HasOriginalServerListCaption)
+        lock (_syncLock)
         {
-            ApplyEarlyMaskingGuard(IsMasked);
-        }
+            if (IsMasked || HasOriginalServerListCaption)
+            {
+                ApplyEarlyMaskingGuard(IsMasked);
+            }
 
-        if (isInGame)
-        {
-            SyncInGameCharacterNameMasking(IsMasked, true);
-        }
-        else
-        {
-            ResetCharacterName();
+            if (isInGame)
+            {
+                SyncInGameCharacterNameMasking(IsMasked, true);
+            }
+            else
+            {
+                ResetCharacterName();
+            }
         }
     }
 
     public void ResetCharacterName()
     {
-        OriginalCharacterName = null;
+        lock (_syncLock)
+        {
+            OriginalCharacterName = null;
+        }
     }
 
     public static void EnsureRmsAccKey(IGameRuntime runtime)
@@ -100,50 +113,53 @@ public sealed class SessionMaskingController(IGameRuntime runtime)
 
     public void ApplyEarlyMaskingGuard(bool isMasked)
     {
-        try
+        lock (_syncLock)
         {
-            var gameCanvasLayout = _runtime.Layout.GameCanvas;
-            var loginScrLayout = _runtime.Layout.LoginScr;
-            var tfieldLayout = _runtime.Layout.TField;
-
-            EnsureRmsAccKey(_runtime);
-
-            if (isMasked)
+            try
             {
-                string? prevCaption = ApplyServerListCaptionMask(_runtime, "DragonBoy Account Manager");
-                if (prevCaption != null)
-                {
-                    OriginalServerListCaption ??= prevCaption;
-                }
+                var gameCanvasLayout = _runtime.Layout.GameCanvas;
+                var loginScrLayout = _runtime.Layout.LoginScr;
+                var tfieldLayout = _runtime.Layout.TField;
 
-                IntPtr loginScr = _runtime.ReadStatic<IntPtr>(GameSchema.GameCanvas.ClassName, gameCanvasLayout.LoginScr);
-                EnforceLoginScreenPasswordFields(_runtime, loginScr);
-            }
-            else
-            {
-                if (!string.IsNullOrEmpty(OriginalServerListCaption))
-                {
-                    _ = ApplyServerListCaptionMask(_runtime, OriginalServerListCaption);
-                    OriginalServerListCaption = null;
-                }
+                EnsureRmsAccKey(_runtime);
 
-                IntPtr loginScr = _runtime.ReadStatic<IntPtr>(GameSchema.GameCanvas.ClassName, gameCanvasLayout.LoginScr);
-                if (loginScr != IntPtr.Zero)
+                if (isMasked)
                 {
-                    IntPtr tfUser = _runtime.ReadFieldPtr(loginScr, loginScrLayout.TfUser);
-                    if (tfUser != IntPtr.Zero)
+                    string? prevCaption = ApplyServerListCaptionMask(_runtime, "DragonBoy Account Manager");
+                    if (prevCaption != null)
                     {
-                        int inputType = _runtime.ReadField<int>(tfUser, tfieldLayout.InputType);
-                        if (inputType == GameSchema.TField.InputTypePassword)
+                        OriginalServerListCaption ??= prevCaption;
+                    }
+
+                    IntPtr loginScr = _runtime.ReadStatic<IntPtr>(GameSchema.GameCanvas.ClassName, gameCanvasLayout.LoginScr);
+                    EnforceLoginScreenPasswordFields(_runtime, loginScr);
+                }
+                else
+                {
+                    if (!string.IsNullOrEmpty(OriginalServerListCaption))
+                    {
+                        _ = ApplyServerListCaptionMask(_runtime, OriginalServerListCaption);
+                        OriginalServerListCaption = null;
+                    }
+
+                    IntPtr loginScr = _runtime.ReadStatic<IntPtr>(GameSchema.GameCanvas.ClassName, gameCanvasLayout.LoginScr);
+                    if (loginScr != IntPtr.Zero)
+                    {
+                        IntPtr tfUser = _runtime.ReadFieldPtr(loginScr, loginScrLayout.TfUser);
+                        if (tfUser != IntPtr.Zero)
                         {
-                            _runtime.WriteField(tfUser, tfieldLayout.InputType, 0);
+                            int inputType = _runtime.ReadField<int>(tfUser, tfieldLayout.InputType);
+                            if (inputType == GameSchema.TField.InputTypePassword)
+                            {
+                                _runtime.WriteField(tfUser, tfieldLayout.InputType, 0);
+                            }
                         }
                     }
                 }
             }
-        }
-        catch
-        {
+            catch
+            {
+            }
         }
     }
 
@@ -151,36 +167,39 @@ public sealed class SessionMaskingController(IGameRuntime runtime)
     {
         if (!isInGame) return;
 
-        try
+        lock (_syncLock)
         {
-            var charLayout = _runtime.Layout.Char;
-
-            IntPtr myCharPtr = _runtime.ReadStatic<IntPtr>(GameSchema.Char.ClassName, charLayout.MyChar);
-            if (myCharPtr != IntPtr.Zero)
+            try
             {
-                string currentCName = _runtime.ReadStringField(myCharPtr, charLayout.Name) ?? string.Empty;
+                var charLayout = _runtime.Layout.Char;
 
-                if (isMasked)
+                IntPtr myCharPtr = _runtime.ReadStatic<IntPtr>(GameSchema.Char.ClassName, charLayout.MyChar);
+                if (myCharPtr != IntPtr.Zero)
                 {
-                    if (!string.IsNullOrWhiteSpace(currentCName) && !currentCName.Contains('*'))
+                    string currentCName = _runtime.ReadStringField(myCharPtr, charLayout.Name) ?? string.Empty;
+
+                    if (isMasked)
                     {
-                        OriginalCharacterName ??= currentCName;
-                        string masked = TextMaskHelper.MaskText(currentCName);
-                        _runtime.WriteStringField(myCharPtr, charLayout.Name, masked);
+                        if (!string.IsNullOrWhiteSpace(currentCName) && !currentCName.Contains('*'))
+                        {
+                            OriginalCharacterName ??= currentCName;
+                            string masked = TextMaskHelper.MaskText(currentCName);
+                            _runtime.WriteStringField(myCharPtr, charLayout.Name, masked);
+                        }
                     }
-                }
-                else
-                {
-                    if (!string.IsNullOrWhiteSpace(OriginalCharacterName) && currentCName != OriginalCharacterName)
+                    else
                     {
-                        _runtime.WriteStringField(myCharPtr, charLayout.Name, OriginalCharacterName);
-                        OriginalCharacterName = null;
+                        if (!string.IsNullOrWhiteSpace(OriginalCharacterName) && currentCName != OriginalCharacterName)
+                        {
+                            _runtime.WriteStringField(myCharPtr, charLayout.Name, OriginalCharacterName);
+                            OriginalCharacterName = null;
+                        }
                     }
                 }
             }
-        }
-        catch
-        {
+            catch
+            {
+            }
         }
     }
 }

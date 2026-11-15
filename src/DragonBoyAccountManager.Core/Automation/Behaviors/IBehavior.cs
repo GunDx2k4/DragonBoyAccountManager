@@ -21,6 +21,7 @@ public interface IBehavior
     void Pause();
     void Resume();
     void Stop();
+    Task StopAsync();
 }
 
 public interface IBehavior<TOptions> : IBehavior where TOptions : class

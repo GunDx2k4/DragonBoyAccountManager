@@ -6,6 +6,7 @@ namespace DragonBoyAccountManager.Core.Sessions.Controllers;
 public sealed class GameConfigController(IGameRuntime runtime)
 {
     private readonly IGameRuntime _runtime = runtime ?? throw new ArgumentNullException(nameof(runtime));
+    private readonly Lock _syncLock = new();
     private GameConfigOptions _currentConfig = new();
     private int _appliedZoom;
 
@@ -14,76 +15,85 @@ public sealed class GameConfigController(IGameRuntime runtime)
     public void ApplyConfig(GameConfigOptions config)
     {
         ArgumentNullException.ThrowIfNull(config);
-        _currentConfig = config;
+        lock (_syncLock)
+        {
+            _currentConfig = config;
 
-        try
-        {
-            ApplyResolutionAndZoom(config);
-            ApplySoundAndGraphic(config);
-            ApplyEffectsAndChat(config);
-            ApplyAutoPickTab(config.EnablePickTab);
-        }
-        catch
-        {
+            try
+            {
+                ApplyResolutionAndZoom(config);
+                ApplySoundAndGraphic(config);
+                ApplyEffectsAndChat(config);
+                ApplyAutoPickTab(config.EnablePickTab);
+            }
+            catch
+            {
+            }
         }
     }
 
     public void OnTick()
     {
-        try
+        lock (_syncLock)
         {
-            ApplyResolutionAndZoom(_currentConfig);
-            ApplySoundAndGraphic(_currentConfig);
-            ApplyEffectsAndChat(_currentConfig);
-            ApplyAutoPickTab(_currentConfig.EnablePickTab);
-        }
-        catch
-        {
+            try
+            {
+                ApplyResolutionAndZoom(_currentConfig);
+                ApplySoundAndGraphic(_currentConfig);
+                ApplyEffectsAndChat(_currentConfig);
+                ApplyAutoPickTab(_currentConfig.EnablePickTab);
+            }
+            catch
+            {
+            }
         }
     }
 
     public void ApplyResolutionAndZoom(GameConfigOptions config)
     {
-        int zoom = config.ZoomLevel;
-        if (zoom <= 0)
+        lock (_syncLock)
         {
-            int w = config.ScreenWidth > 0 ? config.ScreenWidth : 1024;
-            int h = config.ScreenHeight > 0 ? config.ScreenHeight : 600;
-            zoom = (w * h < 480000) ? 1 : 2;
-        }
-
-        if (zoom == _appliedZoom)
-        {
-            return;
-        }
-
-        _appliedZoom = zoom;
-
-        try
-        {
-            var graphicsLayout = _runtime.Layout.MGraphics;
-            IntPtr graphicsStatic = _runtime.GetStaticFieldsPtr(GameSchema.mGraphics.ClassName);
-            if (graphicsStatic != IntPtr.Zero && graphicsLayout.ZoomLevel >= 0)
+            int zoom = config.ZoomLevel;
+            if (zoom <= 0)
             {
-                _runtime.WriteField(graphicsStatic, graphicsLayout.ZoomLevel, zoom);
+                int w = config.ScreenWidth > 0 ? config.ScreenWidth : 1024;
+                int h = config.ScreenHeight > 0 ? config.ScreenHeight : 600;
+                zoom = (w * h < 480000) ? 1 : 2;
             }
 
-            var motherLayout = _runtime.Layout.MotherCanvas;
-            if (motherLayout.Instance >= 0 && motherLayout.ZoomLevel >= 0)
+            if (zoom == _appliedZoom)
             {
-                IntPtr motherCanvasStatic = _runtime.GetStaticFieldsPtr(GameSchema.MotherCanvas.ClassName);
-                if (motherCanvasStatic != IntPtr.Zero)
+                return;
+            }
+
+            _appliedZoom = zoom;
+
+            try
+            {
+                var graphicsLayout = _runtime.Layout.MGraphics;
+                IntPtr graphicsStatic = _runtime.GetStaticFieldsPtr(GameSchema.mGraphics.ClassName);
+                if (graphicsStatic != IntPtr.Zero && graphicsLayout.ZoomLevel >= 0)
                 {
-                    IntPtr motherInstance = _runtime.ReadFieldPtr(motherCanvasStatic, motherLayout.Instance);
-                    if (motherInstance != IntPtr.Zero)
+                    _runtime.WriteField(graphicsStatic, graphicsLayout.ZoomLevel, zoom);
+                }
+
+                var motherLayout = _runtime.Layout.MotherCanvas;
+                if (motherLayout.Instance >= 0 && motherLayout.ZoomLevel >= 0)
+                {
+                    IntPtr motherCanvasStatic = _runtime.GetStaticFieldsPtr(GameSchema.MotherCanvas.ClassName);
+                    if (motherCanvasStatic != IntPtr.Zero)
                     {
-                        _runtime.WriteField(motherInstance, motherLayout.ZoomLevel, zoom);
+                        IntPtr motherInstance = _runtime.ReadFieldPtr(motherCanvasStatic, motherLayout.Instance);
+                        if (motherInstance != IntPtr.Zero)
+                        {
+                            _runtime.WriteField(motherInstance, motherLayout.ZoomLevel, zoom);
+                        }
                     }
                 }
             }
-        }
-        catch
-        {
+            catch
+            {
+            }
         }
     }
 

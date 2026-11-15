@@ -43,7 +43,8 @@ public sealed record CharLayout(
     int IsLoadingMap,
     int VItemTime,
     int IsPaintAura,
-    int IsPaintAura2);
+    int IsPaintAura2,
+    int IsCharge = -1);
 
 public sealed record TileMapLayout(
     int MapId,
@@ -285,7 +286,8 @@ public sealed record AutoTrainMenuLayout(
     int TfBuaKills);
 
 public sealed record ServiceLayout(
-    int Instance);
+    int Instance,
+    int LastTimeSendPlayerAttack = -1);
 
 public sealed record MResourcesLayout(
     int AutoTrainTabNames,
@@ -380,7 +382,8 @@ public sealed class GameMemoryLayout
             IsLoadingMap: ResolveStatic(schema, GameSchema.Char.ClassName, GameSchema.Char.StaticIsLoadingMap),
             VItemTime: ResolveStatic(schema, GameSchema.Char.ClassName, GameSchema.Char.StaticVItemTime),
             IsPaintAura: ResolveStatic(schema, GameSchema.Char.ClassName, GameSchema.Char.StaticIsPaintAura),
-            IsPaintAura2: ResolveStatic(schema, GameSchema.Char.ClassName, GameSchema.Char.StaticIsPaintAura2)
+            IsPaintAura2: ResolveStatic(schema, GameSchema.Char.ClassName, GameSchema.Char.StaticIsPaintAura2),
+            IsCharge: ResolveInstance(schema, GameSchema.Char.ClassName, GameSchema.Char.FieldIsCharge)
         );
 
         TileMap = new TileMapLayout(
@@ -597,7 +600,8 @@ public sealed class GameMemoryLayout
         );
 
         Service = new ServiceLayout(
-            Instance: ResolveStatic(schema, GameSchema.Service.ClassName, GameSchema.Service.StaticInstance)
+            Instance: ResolveStatic(schema, GameSchema.Service.ClassName, GameSchema.Service.StaticInstance),
+            LastTimeSendPlayerAttack: ResolveStatic(schema, GameSchema.Service.ClassName, GameSchema.Service.StaticLastTimeSendPlayerAttack)
         );
 
         Main = new MainLayout(

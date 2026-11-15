@@ -5,7 +5,9 @@ namespace DragonBoyAccountManager.Core.Automation.Behaviors;
 public abstract class AutomationBehavior : IBehavior
 {
     private CancellationTokenSource? _internalCts;
+    private CancellationToken _hostCancellationToken;
     private Task? _runTask;
+    private long _stopVersion;
     private int _isRunning;
     private int _isPaused;
 
@@ -16,8 +18,11 @@ public abstract class AutomationBehavior : IBehavior
 
     public bool IsRunning => Volatile.Read(ref _isRunning) == 1;
     public bool IsPaused => Volatile.Read(ref _isPaused) == 1;
+    public bool IsStopping => Volatile.Read(ref _internalCts) is { IsCancellationRequested: true };
 
     protected ISessionContext? Context { get; private set; }
+    protected CancellationToken HostCancellationToken => _hostCancellationToken;
+    protected bool IsHostCancellationRequested => _hostCancellationToken.IsCancellationRequested;
 
     protected AutomationBehavior(string name, string? id = null)
     {
@@ -37,22 +42,27 @@ public abstract class AutomationBehavior : IBehavior
     {
         ArgumentNullException.ThrowIfNull(context);
 
-        var existingTask = _runTask;
-        var existingCts = _internalCts;
+        long stopVersionAtEntry = Volatile.Read(ref _stopVersion);
+        var existingTask = Volatile.Read(ref _runTask);
+        var existingCts = Volatile.Read(ref _internalCts);
         if (existingTask is { IsCompleted: false } && existingCts is { IsCancellationRequested: true })
         {
-            try { await existingTask; } catch { }
+            try { await existingTask.ConfigureAwait(false); } catch { }
         }
+
+        if (Volatile.Read(ref _stopVersion) != stopVersionAtEntry || cancellationToken.IsCancellationRequested)
+            return;
 
         if (Interlocked.CompareExchange(ref _isRunning, 1, 0) != 0)
             return;
 
         Context = context;
+        _hostCancellationToken = cancellationToken;
         var cts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
-        _internalCts = cts;
+        Volatile.Write(ref _internalCts, cts);
 
         var runTask = ExecuteLifecycleAsync(context, progress, cts);
-        _runTask = runTask;
+        Volatile.Write(ref _runTask, runTask);
         await runTask;
     }
 
@@ -79,8 +89,19 @@ public abstract class AutomationBehavior : IBehavior
 
     public void Stop()
     {
-        try { _internalCts?.Cancel(); }
+        Interlocked.Increment(ref _stopVersion);
+        try { Volatile.Read(ref _internalCts)?.Cancel(); }
         catch (ObjectDisposedException) { }
+    }
+
+    public async Task StopAsync()
+    {
+        Stop();
+        var task = Volatile.Read(ref _runTask);
+        if (task != null)
+        {
+            try { await task.ConfigureAwait(false); } catch { }
+        }
     }
 
     private async Task RunLoopAsync(
@@ -118,7 +139,7 @@ public abstract class AutomationBehavior : IBehavior
             }
         }
 
-        OnStopped(progress);
+        await OnStoppedAsync(progress).ConfigureAwait(false);
     }
 
     protected virtual int TickDelayMs => 100;
@@ -130,6 +151,12 @@ public abstract class AutomationBehavior : IBehavior
 
     protected virtual void OnStarted(IProgress<string>? progress) { }
     protected virtual void OnStopped(IProgress<string>? progress) { }
+
+    protected virtual Task OnStoppedAsync(IProgress<string>? progress)
+    {
+        OnStopped(progress);
+        return Task.CompletedTask;
+    }
 }
 
 public abstract class AutomationBehavior<TOptions> : AutomationBehavior, IBehavior<TOptions>

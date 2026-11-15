@@ -59,3 +59,8 @@ public sealed record AssignSkillsCommand : IGameCommand
 {
     public string Name => "Tự động gán kỹ năng vào phím tắt";
 }
+
+public sealed record StopSkillChargeCommand : IGameCommand
+{
+    public string Name => "Ngắt gồng tái tạo năng lượng";
+}

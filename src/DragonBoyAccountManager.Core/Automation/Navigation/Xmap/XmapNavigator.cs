@@ -26,7 +26,7 @@ public static class XmapNavigator
 
         var graph = WorldMapGraph.Instance;
 
-        session.Tick();
+        session.Tick(force: true);
         if (session.CurrentWorld.MapId == targetMapId)
         {
             return Result.Success($"Đã ở map đích #{targetMapId} ({WorldMapGraph.GetMapName(targetMapId)}).");
@@ -39,7 +39,7 @@ public static class XmapNavigator
             {
                 await Task.Delay(50, cancellationToken);
                 initWaitMs += 50;
-                session.Tick();
+                session.Tick(force: true);
             }
         }
 
@@ -50,7 +50,7 @@ public static class XmapNavigator
             if (cancellationToken.IsCancellationRequested)
                 return Result.Failure("Quá trình Xmap bị hủy.");
 
-            session.Tick();
+            session.Tick(force: true);
             int currentMapId = session.CurrentWorld.MapId;
             if (currentMapId == targetMapId)
             {
@@ -90,7 +90,7 @@ public static class XmapNavigator
                 if (cancellationToken.IsCancellationRequested)
                     return Result.Failure("Quá trình Xmap bị hủy.");
 
-                session.Tick();
+                session.Tick(force: true);
                 if (session.CurrentWorld.MapId == targetMapId)
                 {
                     return Result.Success($"Đã tới {session.CurrentWorld.MapName} (Map #{targetMapId})");
@@ -146,7 +146,7 @@ public static class XmapNavigator
             await Task.Delay(50, cancellationToken);
         }
 
-        session.Tick();
+        session.Tick(force: true);
         if (session.CurrentWorld.MapId == targetMapId)
         {
             return Result.Success($"Đã tới {session.CurrentWorld.MapName} (Map #{targetMapId})");
@@ -405,7 +405,7 @@ public static class XmapNavigator
             if (cancellationToken.IsCancellationRequested)
                 return Result.Failure("Quá trình Xmap bị hủy.");
 
-            session.Tick();
+            session.Tick(force: true);
 
             if (!session.CurrentPlayer.IsChangingMap)
             {
@@ -461,7 +461,7 @@ public static class XmapNavigator
             await Task.Delay(pollIntervalMs, cancellationToken);
             elapsedMs += pollIntervalMs;
 
-            session.Tick();
+            session.Tick(force: true);
             int currentMapId = session.CurrentWorld.MapId;
 
             if (currentMapId != originalMapId && currentMapId >= 0)
@@ -475,7 +475,7 @@ public static class XmapNavigator
                     if (cancellationToken.IsCancellationRequested)
                         return false;
 
-                    session.Tick();
+                    session.Tick(force: true);
 
                     bool isChanging = session.CurrentPlayer.IsChangingMap;
                     bool hasValidMap = session.CurrentMap.IsValid && session.CurrentMap.MapId == currentMapId;
@@ -494,7 +494,7 @@ public static class XmapNavigator
                 }
 
                 await Task.Delay(150, cancellationToken);
-                session.Tick();
+                session.Tick(force: true);
                 return session.CurrentWorld.MapId != originalMapId && session.CurrentWorld.MapId >= 0;
             }
 

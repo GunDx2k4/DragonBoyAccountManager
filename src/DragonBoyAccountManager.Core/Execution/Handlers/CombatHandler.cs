@@ -11,7 +11,8 @@ public class CombatHandler(IGameRuntime runtime) :
     IGameCommandHandler<AttackBossCommand>,
     IGameCommandHandler<SelectSkillCommand>,
     IGameCommandHandler<SetInGameAutoTrainCommand>,
-    IGameCommandHandler<AssignSkillsCommand>
+    IGameCommandHandler<AssignSkillsCommand>,
+    IGameCommandHandler<StopSkillChargeCommand>
 {
     private struct CachedVectorSlot
     {
@@ -56,7 +57,7 @@ public class CombatHandler(IGameRuntime runtime) :
                 instancePtr = _runtime.CallMethod(GameSchema.AutoTrainMenu.ClassName, GameSchema.AutoTrainMenu.MethodGI, IntPtr.Zero);
             }
 
-            if (shouldSyncConfig)
+            if (command.Enable)
             {
                 _runtime.CallMethod(GameSchema.AutoTrainMenu.ClassName, GameSchema.AutoTrainMenu.MethodScanSkills, IntPtr.Zero);
                 _runtime.CallMethod(GameSchema.AutoTrainMenu.ClassName, GameSchema.AutoTrainMenu.MethodScanMobsInMap, IntPtr.Zero);
@@ -96,7 +97,6 @@ public class CombatHandler(IGameRuntime runtime) :
 
             if (!shouldSyncConfig)
             {
-                _runtime.CallMethod(GameSchema.AutoTrainMenu.ClassName, GameSchema.AutoTrainMenu.MethodSaveAutoTrainConfig, IntPtr.Zero);
                 return Task.FromResult(Result.Success("Đã tắt tự đánh trong game"));
             }
 
@@ -173,7 +173,7 @@ public class CombatHandler(IGameRuntime runtime) :
                     }
 
                     bool hasCheckedSkill = false;
-                    if (skillPointers.Count > 0 && selectedSkillPointers.Count > 0)
+                    if (skillPointers.Count > 0)
                     {
                         int count = Math.Min(skillPointers.Count, arrayLen);
                         for (int i = 0; i < count; i++)
@@ -183,8 +183,19 @@ public class CombatHandler(IGameRuntime runtime) :
                             if (isMatch) hasCheckedSkill = true;
                         }
                     }
+                    else
+                    {
+                        var selectedSlotSet = command.SelectedSkillSlots?.ToHashSet() ?? [];
+                        int count = Math.Min(10, arrayLen);
+                        for (int i = 0; i < count; i++)
+                        {
+                            bool isMatch = selectedSlotSet.Contains(i);
+                            _runtime.WriteBoolArrayElement(isCheckedSkillArray, i, isMatch);
+                            if (isMatch) hasCheckedSkill = true;
+                        }
+                    }
 
-                    if (!hasCheckedSkill && arrayLen > 0 && command.Enable)
+                    if (!hasCheckedSkill && arrayLen > 0)
                     {
                         _runtime.WriteBoolArrayElement(isCheckedSkillArray, 0, true);
                     }
@@ -268,11 +279,6 @@ public class CombatHandler(IGameRuntime runtime) :
                     IntPtr tfIdVutBo = _runtime.ReadFieldPtr(instancePtr, layout.TfIdVutBo);
                     SetTFieldText(tfIdVutBo, command.FilterDropIds ?? string.Empty);
                 }
-            }
-
-            if (shouldSyncConfig)
-            {
-                _runtime.CallMethod(GameSchema.AutoTrainMenu.ClassName, GameSchema.AutoTrainMenu.MethodSaveAutoTrainConfig, IntPtr.Zero);
             }
         }
 
@@ -430,6 +436,16 @@ public class CombatHandler(IGameRuntime runtime) :
         return attackResult.IsSuccess ? Result.Success($"Đã đánh {command.BossName} #{command.CharId}") : attackResult;
     }
 
+    private bool IsAttackCooldownReady(long nowMs)
+    {
+        int lastAttackOffset = _runtime.Layout.Service.LastTimeSendPlayerAttack;
+        if (lastAttackOffset < 0)
+            return true;
+
+        long lastSendAttack = _runtime.ReadStatic<long>(GameSchema.Service.ClassName, lastAttackOffset);
+        return lastSendAttack == 0L || nowMs - lastSendAttack >= 500L;
+    }
+
     private Result ExecutePlayerAttack(
         IntPtr charPtr,
         int targetX,
@@ -437,6 +453,10 @@ public class CombatHandler(IGameRuntime runtime) :
         IntPtr vChar,
         int attackType)
     {
+        long nowMs = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
+        if (!IsAttackCooldownReady(nowMs))
+            return Result.Failure("Đang chờ giãn cách đòn đánh (500ms).");
+
         int playerX = _runtime.ReadField<int>(charPtr, _runtime.Layout.Char.X);
         int cdir = targetX >= playerX ? 1 : -1;
         _runtime.WriteField(charPtr, _runtime.Layout.Char.Cdir, cdir);
@@ -447,7 +467,7 @@ public class CombatHandler(IGameRuntime runtime) :
 
         _runtime.CallMethod(GameSchema.Service.ClassName, GameSchema.Service.MethodSendPlayerAttack, service, vMob, vChar, attackType);
 
-        long nowMs = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
+        nowMs = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
         IntPtr mySkillPtr = _runtime.ReadFieldPtr(charPtr, _runtime.Layout.Char.MySkill);
         if (mySkillPtr != IntPtr.Zero)
         {
@@ -477,6 +497,13 @@ public class CombatHandler(IGameRuntime runtime) :
 
         var templateLayout = _runtime.Layout.SkillTemplate;
         int skillType = templateLayout.Type >= 0 ? _runtime.ReadField<int>(templatePtr, templateLayout.Type) : 1;
+        sbyte templateId = templateLayout.Id >= 0 ? _runtime.ReadField<sbyte>(templatePtr, templateLayout.Id) : (sbyte)-1;
+
+        if (templateId != 8)
+        {
+            StopChargeIfActive(charPtr);
+        }
+
         if (skillType is not (2 or 3))
             return null;
 
@@ -487,7 +514,6 @@ public class CombatHandler(IGameRuntime runtime) :
         long nowMs = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
         if (skillType == 3)
         {
-            sbyte templateId = templateLayout.Id >= 0 ? _runtime.ReadField<sbyte>(templatePtr, templateLayout.Id) : (sbyte)-1;
             sbyte status = templateId switch
             {
                 6 => 0,
@@ -504,9 +530,17 @@ public class CombatHandler(IGameRuntime runtime) :
                 return Result.Failure($"Kỹ năng hỗ trợ #{templateId} chưa được hỗ trợ thực thi tự động.");
 
             _runtime.CallMethod(GameSchema.Service.ClassName, GameSchema.Service.MethodSkillNotFocus, service, status);
+            int isChargeOffset = _runtime.Layout.Char.IsCharge;
+            if (templateId == 8 && isChargeOffset >= 0)
+            {
+                _runtime.WriteField(charPtr, isChargeOffset, true);
+            }
             _runtime.WriteField(mySkillPtr, _runtime.Layout.Skill.LastTimeUseThisSkill, nowMs);
             return Result.Success($"Đã kích hoạt kỹ năng hỗ trợ #{templateId}");
         }
+
+        if (!IsAttackCooldownReady(nowMs))
+            return Result.Failure("Đang chờ giãn cách đòn đánh (500ms).");
 
         IntPtr emptyVMob = EnsureValidMyVector(ref _cachedEmptyVMob, clearElements: false, pinInitialItems: true);
         if (emptyVMob == IntPtr.Zero)
@@ -519,6 +553,7 @@ public class CombatHandler(IGameRuntime runtime) :
         _runtime.CallMethod(GameSchema.MyVector.ClassName, GameSchema.MyVector.MethodAddElement, selfVChar, charPtr);
         PinVectorBackingStorage(ref _cachedSelfVChar);
         _runtime.CallMethod(GameSchema.Service.ClassName, GameSchema.Service.MethodSendPlayerAttack, service, emptyVMob, selfVChar, 2);
+        nowMs = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
         _runtime.WriteField(mySkillPtr, _runtime.Layout.Skill.LastTimeUseThisSkill, nowMs);
         return Result.Success("Đã sử dụng kỹ năng Trị Thương");
     }
@@ -647,5 +682,25 @@ public class CombatHandler(IGameRuntime runtime) :
         {
             return Task.FromResult(Result.Failure($"Lỗi khi gán kỹ năng: {ex.Message}"));
         }
+    }
+
+    public Task<Result> HandleAsync(StopSkillChargeCommand command, CancellationToken cancellationToken)
+    {
+        StopChargeIfActive(_runtime.GetMyCharPtr());
+        return Task.FromResult(Result.Success("Đã ngắt gồng tái tạo năng lượng"));
+    }
+
+    private void StopChargeIfActive(IntPtr charPtr)
+    {
+        int isChargeOffset = _runtime.Layout.Char.IsCharge;
+        if (charPtr == IntPtr.Zero || isChargeOffset < 0 || !_runtime.ReadField<bool>(charPtr, isChargeOffset))
+            return;
+
+        IntPtr activeService = _runtime.GetServicePtr();
+        if (activeService != IntPtr.Zero)
+        {
+            _runtime.CallMethod(GameSchema.Service.ClassName, GameSchema.Service.MethodSkillNotFocus, activeService, (sbyte)3);
+        }
+        _runtime.WriteField(charPtr, isChargeOffset, false);
     }
 }

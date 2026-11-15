@@ -28,6 +28,8 @@ public sealed class GameSession : ISessionContext, IDisposable
     private readonly ConcurrentDictionary<Type, ISnapshotScraper> _scrapers = new();
     private readonly ConcurrentDictionary<Type, object> _snapshots = new();
     private readonly ConcurrentDictionary<Type, IBehavior> _behaviors = new();
+    private readonly Lock _tickLock = new();
+    private long _lastTickMs = -1000;
 
     public void RegisterScraper<TSnapshot>(ISnapshotScraper<TSnapshot> scraper) where TSnapshot : class
     {
@@ -117,18 +119,28 @@ public sealed class GameSession : ISessionContext, IDisposable
         configure?.Invoke(this);
     }
 
-    public void Tick()
+    public void Tick(bool force = false)
     {
         if (!IsRunning || IsQuitRequested) return;
 
-        foreach (var (snapshotType, scraper) in _scrapers)
+        lock (_tickLock)
         {
-            _snapshots[snapshotType] = scraper.Scrape();
-        }
+            if (!IsRunning || IsQuitRequested) return;
 
-        bool isInGame = CurrentPlayer.IsInGame;
-        MaskingController.OnTick(isInGame);
-        ConfigController.OnTick();
+            long nowMs = Environment.TickCount64;
+            if (!force && nowMs - _lastTickMs < 80) return;
+
+            foreach (var (snapshotType, scraper) in _scrapers)
+            {
+                _snapshots[snapshotType] = scraper.Scrape();
+            }
+
+            bool isInGame = CurrentPlayer.IsInGame;
+            MaskingController.OnTick(isInGame);
+            ConfigController.OnTick();
+
+            _lastTickMs = Environment.TickCount64;
+        }
 
         Ticked?.Invoke(this);
     }
@@ -154,6 +166,16 @@ public sealed class GameSession : ISessionContext, IDisposable
         foreach (var behavior in _behaviors.Values)
         {
             try { behavior.Stop(); } catch { }
+        }
+    }
+
+    public async Task StopAllBehaviorsAsync()
+    {
+        StopAllBehaviors();
+        var tasks = _behaviors.Values.Select(b => b.StopAsync()).ToArray();
+        if (tasks.Length > 0)
+        {
+            try { await Task.WhenAll(tasks).ConfigureAwait(false); } catch { }
         }
     }
 

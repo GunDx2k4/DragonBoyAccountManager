@@ -45,6 +45,7 @@ public static partial class GameSchema
         public const string FieldEndMovePointCommand = "endMovePointCommand";
         public const string FieldIsTeleport = "isTeleport";
         public const string FieldTelePortSkill = "telePortSkill";
+        public const string FieldIsCharge = "isCharge";
 
         public const string StaticIsChangingMap = "ischangingMap";
         public const string StaticIsLoadingMap = "isLoadingMap";

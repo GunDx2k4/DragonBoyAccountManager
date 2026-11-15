@@ -20,6 +20,9 @@ public sealed partial class AutoTrainViewModel : AutoFeatureViewModelBase
 {
     private readonly IGameImageService _gameImageService;
     private readonly DispatcherTimer _cooldownTimer;
+    private readonly DispatcherTimer _optionDebounceTimer;
+    private Guid _lastSyncedOnlineAccountId;
+    private bool _hasPendingDebouncedSync;
 
     public override string BehaviorId => AutoTrainBehavior.BehaviorId;
 
@@ -122,6 +125,12 @@ public sealed partial class AutoTrainViewModel : AutoFeatureViewModelBase
         };
         _cooldownTimer.Tick += (_, _) => UpdateCooldowns();
 
+        _optionDebounceTimer = new DispatcherTimer
+        {
+            Interval = TimeSpan.FromMilliseconds(350)
+        };
+        _optionDebounceTimer.Tick += (_, _) => FlushDebouncedOptionChanged();
+
         PropertyChanged += (_, e) =>
         {
             if (e.PropertyName == nameof(SyncTargetDisplay))
@@ -147,22 +156,39 @@ public sealed partial class AutoTrainViewModel : AutoFeatureViewModelBase
         {
             _cooldownTimer.Stop();
         }
+        FlushDebouncedOptionChanged();
     }
 
     public override void OnSnapshotUpdated(GameSessionSnapshot snapshot)
     {
-        if (snapshot.World.Mobs.Count > 0)
-        {
-            UpdateAvailableMobTypes(snapshot.World.Mobs);
-        }
+        UpdateAvailableMobTypes(snapshot.World.Mobs);
         RefreshSkills();
         RefreshAutoItems(snapshot.Player.BagItemList);
+
+        if (ActiveAccount != null && snapshot.Player.IsInGame && _lastSyncedOnlineAccountId != ActiveAccount.Id)
+        {
+            _lastSyncedOnlineAccountId = ActiveAccount.Id;
+            if (!GameEngine.IsAutoTrainRunning(ActiveAccount.Id))
+            {
+                _ = GameEngine.ExecuteCommandAsync(ActiveAccount.Id, BuildInGameSyncCommand(BuildCurrentOptions()));
+            }
+        }
     }
 
     public override void OnAccountOffline()
     {
         base.OnAccountOffline();
+        _optionDebounceTimer.Stop();
+        _hasPendingDebouncedSync = false;
+        _lastSyncedOnlineAccountId = Guid.Empty;
         ClearAvailableMobTypes();
+        RunBulkUpdate(() =>
+        {
+            foreach (var item in AutoTrainSkills)
+            {
+                item.Reset(resetSelection: false);
+            }
+        });
         foreach (var item in AutoTrainItems)
         {
             item.Quantity = 0;
@@ -180,6 +206,9 @@ public sealed partial class AutoTrainViewModel : AutoFeatureViewModelBase
 
     protected override void LoadAccountCore(AccountItemViewModel account)
     {
+        _optionDebounceTimer.Stop();
+        _hasPendingDebouncedSync = false;
+        _lastSyncedOnlineAccountId = Guid.Empty;
         ClearAvailableMobTypes();
 
         var train = account.AutoSettings.GetBehaviorOptionsOrDefault<AutoTrainOptions>(BehaviorId);
@@ -214,6 +243,7 @@ public sealed partial class AutoTrainViewModel : AutoFeatureViewModelBase
         {
             foreach (var item in AutoTrainSkills)
             {
+                item.Reset(resetSelection: false);
                 item.IsSelected = selectedSlots.Contains(item.SlotIndex);
             }
 
@@ -244,7 +274,25 @@ public sealed partial class AutoTrainViewModel : AutoFeatureViewModelBase
 
     protected override void SaveAccountCore(AccountItemViewModel account)
     {
-        account.AutoSettings.SetBehaviorOptions(BehaviorId, BuildCurrentOptions());
+        var options = BuildCurrentOptions();
+        account.AutoSettings.SetBehaviorOptions(BehaviorId, options);
+
+        if (_hasPendingDebouncedSync && ActiveAccount != null && account.Id == ActiveAccount.Id)
+        {
+            _optionDebounceTimer.Stop();
+            _hasPendingDebouncedSync = false;
+            SyncOptionsToEngine(account, options);
+
+            foreach (var targetAcc in GetAllTargetAccounts())
+            {
+                if (targetAcc.Id != account.Id)
+                {
+                    targetAcc.AutoSettings.SetBehaviorOptions(BehaviorId, options);
+                    _ = StorageService.AddOrUpdateAsync(targetAcc.Model);
+                    SyncOptionsToEngine(targetAcc, options);
+                }
+            }
+        }
     }
 
     public void RefreshData()
@@ -266,7 +314,7 @@ public sealed partial class AutoTrainViewModel : AutoFeatureViewModelBase
         }
 
         var snapshot = GameEngine.GetWorldSnapshot(ActiveAccount.Id);
-        if (snapshot != null && snapshot.Mobs.Count > 0)
+        if (snapshot != null)
         {
             UpdateAvailableMobTypes(snapshot.Mobs);
         }
@@ -280,15 +328,63 @@ public sealed partial class AutoTrainViewModel : AutoFeatureViewModelBase
         RefreshSkills();
     }
 
+    private static bool IsDebouncedOptionProperty(string? propertyName) =>
+        propertyName is nameof(MinMobHp)
+            or nameof(MaxMobHp)
+            or nameof(PeanHpPercent)
+            or nameof(PeanMpPercent)
+            or nameof(FilterPickIds)
+            or nameof(FilterExcludeIds)
+            or nameof(FilterDropIds);
+
     protected override bool IsOptionProperty(string propertyName) =>
         base.IsOptionProperty(propertyName) &&
+        !IsDebouncedOptionProperty(propertyName) &&
         propertyName is not (nameof(PickStatusText) or nameof(ItemStatusText) or nameof(HasSelectedAutoItems));
+
+    protected override void OnPropertyChanged(PropertyChangedEventArgs e)
+    {
+        base.OnPropertyChanged(e);
+
+        if (!IsSwitchingAccount
+            && !IsBulkUpdating
+            && ActiveAccount != null
+            && IsDebouncedOptionProperty(e.PropertyName))
+        {
+            _hasPendingDebouncedSync = true;
+            _optionDebounceTimer.Stop();
+            _optionDebounceTimer.Start();
+        }
+    }
+
+    private void FlushDebouncedOptionChanged()
+    {
+        _optionDebounceTimer.Stop();
+        if (_hasPendingDebouncedSync)
+        {
+            _hasPendingDebouncedSync = false;
+            OnOptionChanged();
+        }
+    }
 
     protected override void OnOptionPropertyChanged(string propertyName)
     {
         if (propertyName is nameof(AutoPick) or nameof(PickOthersItems) or nameof(PickAllMap) or nameof(AutoDropItems))
         {
             UpdatePickStatus();
+        }
+        else if (propertyName == nameof(CheckAllMobs)
+            && !CheckAllMobs
+            && AvailableMobTypes.Count > 0
+            && AvailableMobTypes.All(m => !m.IsSelected))
+        {
+            RunBulkUpdate(() =>
+            {
+                foreach (var item in AvailableMobTypes)
+                {
+                    item.IsSelected = true;
+                }
+            });
         }
     }
 
@@ -365,6 +461,9 @@ public sealed partial class AutoTrainViewModel : AutoFeatureViewModelBase
     {
         if (IsSwitchingAccount || IsBulkUpdating || ActiveAccount == null) return;
 
+        _optionDebounceTimer.Stop();
+        _hasPendingDebouncedSync = false;
+
         PersistActiveAccountSettings();
 
         var options = BuildCurrentOptions();
@@ -375,15 +474,20 @@ public sealed partial class AutoTrainViewModel : AutoFeatureViewModelBase
             {
                 SaveSettings(targetAcc);
             }
-            if (GameEngine.IsAutoTrainRunning(targetAcc.Id))
-            {
-                GameEngine.UpdateAutoTrainOptions(targetAcc.Id, options);
-            }
-            else if (targetAcc.IsRunning)
-            {
-                var cmd = BuildInGameSyncCommand(options);
-                _ = GameEngine.ExecuteCommandAsync(targetAcc.Id, cmd);
-            }
+            SyncOptionsToEngine(targetAcc, options);
+        }
+    }
+
+    private void SyncOptionsToEngine(AccountItemViewModel account, AutoTrainOptions options)
+    {
+        if (GameEngine.IsAutoTrainRunning(account.Id))
+        {
+            GameEngine.UpdateAutoTrainOptions(account.Id, options);
+        }
+        else if (account.IsRunning)
+        {
+            var cmd = BuildInGameSyncCommand(options);
+            _ = GameEngine.ExecuteCommandAsync(account.Id, cmd);
         }
     }
 
@@ -402,12 +506,12 @@ public sealed partial class AutoTrainViewModel : AutoFeatureViewModelBase
             CheckAllMobs: options.CheckAllMobs,
             TargetMobNames: options.TargetMobNames,
             SelectedSkillSlots: options.SelectedSkillSlots,
-            SelectedItemTemplateIds: [],
-            SelectedBuaTemplateIds: [],
-            AutoPick: false,
-            PickOthersItems: false,
-            PickAllMap: false,
-            AutoDropItems: false,
+            SelectedItemTemplateIds: options.SelectedItemTemplateIds,
+            SelectedBuaTemplateIds: options.SelectedBuaTemplateIds,
+            AutoPick: options.AutoPick,
+            PickOthersItems: options.PickOthersItems,
+            PickAllMap: options.PickAllMap,
+            AutoDropItems: options.AutoDropItems,
             FilterPickIds: options.FilterPickIds,
             FilterExcludeIds: options.FilterExcludeIds,
             FilterDropIds: options.FilterDropIds
@@ -459,7 +563,7 @@ public sealed partial class AutoTrainViewModel : AutoFeatureViewModelBase
         {
             foreach (var item in AutoTrainSkills)
             {
-                item.IsSelected = true;
+                item.IsSelected = item.TemplateId != 14;
             }
         });
         OnOptionChanged();
@@ -521,9 +625,21 @@ public sealed partial class AutoTrainViewModel : AutoFeatureViewModelBase
             selectedSlots = [0];
         }
 
-        IReadOnlyList<string> selectedMobNames = AvailableMobTypes.Count > 0
-            ? AvailableMobTypes.Where(m => m.IsSelected).Select(m => m.Name).ToList()
-            : (ActiveAccount?.AutoSettings.GetBehaviorOptions<AutoTrainOptions>(BehaviorId)?.TargetMobNames ?? []);
+        var existingSavedNames = ActiveAccount?.AutoSettings.GetBehaviorOptions<AutoTrainOptions>(BehaviorId)?.TargetMobNames ?? [];
+        IReadOnlyList<string> selectedMobNames;
+        if (AvailableMobTypes.Count > 0)
+        {
+            var currentMapMobNames = AvailableMobTypes.Select(m => m.Name).ToHashSet(StringComparer.OrdinalIgnoreCase);
+            selectedMobNames = existingSavedNames
+                .Where(n => !currentMapMobNames.Contains(n))
+                .Concat(AvailableMobTypes.Where(m => m.IsSelected).Select(m => m.Name))
+                .Distinct(StringComparer.OrdinalIgnoreCase)
+                .ToList();
+        }
+        else
+        {
+            selectedMobNames = existingSavedNames.ToList();
+        }
 
         var selectedItemIds = AutoTrainItems.Where(i => i.IsSelected).Select(i => i.TemplateId).ToList();
         var selectedBuaIds = AutoTrainBuas.Where(i => i.IsSelected).Select(i => i.TemplateId).ToList();
@@ -555,6 +671,7 @@ public sealed partial class AutoTrainViewModel : AutoFeatureViewModelBase
 
     private void StartAutoTrain()
     {
+        FlushDebouncedOptionChanged();
         PersistActiveAccountSettings();
 
         var targets = GetTargetAccountIds();
@@ -604,34 +721,38 @@ public sealed partial class AutoTrainViewModel : AutoFeatureViewModelBase
     private void UpdateAvailableMobTypes(IReadOnlyList<WorldMobInfo> mobs)
     {
         var savedMobNames = ActiveAccount?.AutoSettings.GetBehaviorOptionsOrDefault<AutoTrainOptions>(BehaviorId).TargetMobNames ?? [];
-        var distinctNames = mobs.Select(m => m.Name).Where(n => !string.IsNullOrEmpty(n)).Distinct().ToList();
+        var savedSet = savedMobNames.ToHashSet(StringComparer.OrdinalIgnoreCase);
+        var distinctNames = mobs.Select(m => m.Name).Where(n => !string.IsNullOrEmpty(n)).Distinct(StringComparer.OrdinalIgnoreCase).ToList();
 
-        var existingMap = AvailableMobTypes.ToDictionary(m => m.Name);
-        var currentNames = distinctNames.ToHashSet();
+        var existingMap = AvailableMobTypes.ToDictionary(m => m.Name, StringComparer.OrdinalIgnoreCase);
+        var currentNames = distinctNames.ToHashSet(StringComparer.OrdinalIgnoreCase);
 
-        for (int i = AvailableMobTypes.Count - 1; i >= 0; i--)
+        RunBulkUpdate(() =>
         {
-            var item = AvailableMobTypes[i];
-            if (!currentNames.Contains(item.Name))
+            for (int i = AvailableMobTypes.Count - 1; i >= 0; i--)
             {
-                item.PropertyChanged -= OnMobItemPropertyChanged;
-                AvailableMobTypes.RemoveAt(i);
+                var item = AvailableMobTypes[i];
+                if (!currentNames.Contains(item.Name))
+                {
+                    item.PropertyChanged -= OnMobItemPropertyChanged;
+                    AvailableMobTypes.RemoveAt(i);
+                }
             }
-        }
 
-        foreach (var name in distinctNames)
-        {
-            if (!existingMap.TryGetValue(name, out _))
+            foreach (var name in distinctNames)
             {
-                bool isSelected = savedMobNames.Count == 0 || savedMobNames.Contains(name);
-                var mobItem = new MobFilterItem(
-                    templateId: 0,
-                    name: name,
-                    isSelected: isSelected);
-                mobItem.PropertyChanged += OnMobItemPropertyChanged;
-                AvailableMobTypes.Add(mobItem);
+                if (!existingMap.ContainsKey(name))
+                {
+                    bool isSelected = savedSet.Contains(name);
+                    var mobItem = new MobFilterItem(
+                        templateId: 0,
+                        name: name,
+                        isSelected: isSelected);
+                    mobItem.PropertyChanged += OnMobItemPropertyChanged;
+                    AvailableMobTypes.Add(mobItem);
+                }
             }
-        }
+        });
     }
 
     private void RefreshAutoItems(IReadOnlyList<InventoryItem> bagItems)
@@ -652,13 +773,31 @@ public sealed partial class AutoTrainViewModel : AutoFeatureViewModelBase
         if (ActiveAccount == null || !ActiveAccount.IsRunning) return;
 
         var skills = GameEngine.GetSkills(ActiveAccount.Id);
-        if (skills.Count == 0) return;
+        if (skills.Count == 0)
+        {
+            foreach (var item in AutoTrainSkills)
+            {
+                item.Reset(resetSelection: false);
+            }
+            UpdateCooldowns();
+            return;
+        }
 
+        Span<bool> populatedSlots = stackalloc bool[AutoTrainSkills.Count];
         foreach (var skill in skills)
         {
             if (skill.Slot >= 0 && skill.Slot < AutoTrainSkills.Count)
             {
                 AutoTrainSkills[skill.Slot].SyncFrom(skill, _gameImageService, syncSelection: false);
+                populatedSlots[skill.Slot] = true;
+            }
+        }
+
+        for (int i = 0; i < AutoTrainSkills.Count; i++)
+        {
+            if (!populatedSlots[i])
+            {
+                AutoTrainSkills[i].Reset(resetSelection: false);
             }
         }
         UpdateCooldowns();

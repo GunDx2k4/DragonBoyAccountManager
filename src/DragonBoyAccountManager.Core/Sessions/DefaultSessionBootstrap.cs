@@ -46,6 +46,7 @@ public static class DefaultSessionBootstrap
         dispatcher.RegisterHandler<OpenNpcMenuCommand>(worldHandler);
         dispatcher.RegisterHandler<ConfirmMenuCommand>(worldHandler);
         dispatcher.RegisterHandler<AssignSkillsCommand>(combatHandler);
+        dispatcher.RegisterHandler<StopSkillChargeCommand>(combatHandler);
         dispatcher.RegisterHandler<SetGameConfigCommand>(gameConfigHandler);
 
         session.RegisterBehavior(new AutoTrainBehavior(new AutoTrainOptions()));

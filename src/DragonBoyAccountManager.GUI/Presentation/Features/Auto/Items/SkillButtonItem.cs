@@ -8,6 +8,7 @@ namespace DragonBoyAccountManager.GUI.Presentation.Features.Auto.Items;
 public sealed partial class SkillButtonItem : ObservableObject
 {
     public int SlotIndex { get; }
+    public sbyte TemplateId { get; private set; } = -1;
 
     public string DefaultName => SlotIndex == 9 ? "Skill 0" : $"Skill {SlotIndex + 1}";
 
@@ -84,6 +85,7 @@ public sealed partial class SkillButtonItem : ObservableObject
             if (Name != expectedName) Name = expectedName;
             if (syncSelection && IsSelected != info.IsSelected) IsSelected = info.IsSelected;
 
+            TemplateId = info.TemplateId;
             Point = info.Point;
             CoolDown = info.CoolDown;
             ManaUse = info.ManaUse;
@@ -113,6 +115,7 @@ public sealed partial class SkillButtonItem : ObservableObject
     {
         if (Name != DefaultName) Name = DefaultName;
         if (resetSelection && IsSelected) IsSelected = false;
+        TemplateId = -1;
         Point = 0;
         CoolDown = 0;
         ManaUse = 0;

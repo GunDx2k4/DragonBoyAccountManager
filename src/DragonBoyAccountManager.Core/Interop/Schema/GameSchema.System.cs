@@ -42,6 +42,7 @@ public static partial class GameSchema
     {
         public const string ClassName = "Service";
         public const string StaticInstance = "instance";
+        public const string StaticLastTimeSendPlayerAttack = "lastTimeSendPlayerAttack";
         public const string MethodGI = "gI";
         public const string MethodCharMove = "charMove";
         public const string MethodRequestChangeZone = "requestChangeZone";
