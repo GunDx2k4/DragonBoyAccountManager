@@ -16,4 +16,7 @@
     <Project Path="src/DragonBoyAccountManager.Core/DragonBoyAccountManager.Core.csproj" />
     <Project Path="src/DragonBoyAccountManager.GUI/DragonBoyAccountManager.GUI.csproj" />
   </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/DragonBoyAccountManager.Core.Tests/DragonBoyAccountManager.Core.Tests.csproj" />
+  </Folder>
 </Solution>
