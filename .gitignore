@@ -11,6 +11,10 @@ GEMINI.md
 CLAUDE.md
 .cursorrules
 .cursor/
+.gemini/
+.antigravity/
+.claude/
+.copilot/
 
 
 # dotenv files
