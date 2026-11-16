@@ -1925,6 +1925,7 @@
       "ItemMap.playerId": 44,
       "ItemMap.itemMapID": 48,
       "ItemMap.template": 56,
+      "ItemMap.status": 64,
       "AutoTrainMenu.tfHpOn": 48,
       "AutoTrainMenu.tfHpDuoi": 56,
       "AutoTrainMenu.tfHpPean": 64,
@@ -1933,7 +1934,9 @@
       "AutoTrainMenu.tfIdLoaiTru": 88,
       "AutoTrainMenu.tfIdVutBo": 96,
       "AutoTrainMenu.tfBuaKills": 104,
-      "ItemTime.idIcon": 16
+      "ItemTime.idIcon": 16,
+      "ItemTime.time": 68,
+      "ItemTime.coutTime": 72
     },
     "Methods": {
       "ScaleGUI.initScaleGUI": 2731296,

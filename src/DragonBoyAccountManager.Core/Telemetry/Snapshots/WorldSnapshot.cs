@@ -106,7 +106,7 @@ public sealed record WorldZoneInfo(
 }
 
 public sealed record GroundItemSnapshot(
-    short ItemMapId,
+    int ItemMapId,
     short TemplateId,
     string Name,
     int X,

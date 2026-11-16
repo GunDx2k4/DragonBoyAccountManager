@@ -1,3 +1,4 @@
+using DragonBoyAccountManager.Core.Automation.Coordinators;
 using DragonBoyAccountManager.Core.Automation.Navigation.Xmap;
 using DragonBoyAccountManager.Core.Execution.Commands;
 using DragonBoyAccountManager.Core.Sessions;
@@ -10,21 +11,26 @@ public sealed class AutoBossBehavior : AutomationBehavior<AutoBossOptions>
     public const string BehaviorId = "AutoBoss";
 
     private readonly HashSet<int> _visitedZones = [];
+    private readonly IGroundLootCoordinator _lootCoordinator;
+    private IReadOnlyList<string> _cachedNameFilters = [];
     private int _currentMapIndex;
     private int _lastMapId = -1;
     private DateTime _lastCombatTime = DateTime.MinValue;
     private DateTime _lastZoneHopTime = DateTime.MinValue;
     private DateTime _lastZonePanelTime = DateTime.MinValue;
 
-    public AutoBossBehavior(AutoBossOptions options)
+    public AutoBossBehavior(AutoBossOptions options, IGroundLootCoordinator? lootCoordinator = null)
         : base("Săn Boss", options, BehaviorId)
     {
+        _lootCoordinator = lootCoordinator ?? new GroundLootCoordinator();
+        _cachedNameFilters = ParseNameFilters(options.FilterPickNames);
     }
 
     protected override int TickDelayMs => 500;
 
     protected override void OnStarted(IProgress<string>? progress)
     {
+        _cachedNameFilters = ParseNameFilters(Options.FilterPickNames);
         ResetScanState();
         progress?.Report("[Săn Boss] Đã bật tự động săn Boss.");
     }
@@ -37,6 +43,7 @@ public sealed class AutoBossBehavior : AutomationBehavior<AutoBossOptions>
 
     protected override void OnOptionsChanged(AutoBossOptions previousOptions, AutoBossOptions newOptions)
     {
+        _cachedNameFilters = ParseNameFilters(newOptions.FilterPickNames);
         if (previousOptions.TargetBossName != newOptions.TargetBossName || previousOptions.MinZone != newOptions.MinZone)
         {
             _visitedZones.Clear();
@@ -48,6 +55,7 @@ public sealed class AutoBossBehavior : AutomationBehavior<AutoBossOptions>
         _currentMapIndex = 0;
         _lastMapId = -1;
         _visitedZones.Clear();
+        _lootCoordinator.Reset();
         _lastCombatTime = DateTime.MinValue;
         _lastZoneHopTime = DateTime.MinValue;
         _lastZonePanelTime = DateTime.MinValue;
@@ -111,7 +119,14 @@ public sealed class AutoBossBehavior : AutomationBehavior<AutoBossOptions>
             return;
         }
 
-        if (await TryPickGroundItemsAsync(context, player, world, progress, cancellationToken))
+        var lootOptions = new LootFilterOptions(
+            AutoPick: true,
+            PickOthersItems: Options.PickOthersItems,
+            PickAllMap: false,
+            IsFastTeleport: Options.IsFastTeleport,
+            NameFilters: _cachedNameFilters);
+
+        if (await _lootCoordinator.TryPickGroundItemsAsync(context, player, world, lootOptions, "[Săn Boss]", progress, cancellationToken))
         {
             return;
         }
@@ -135,59 +150,14 @@ public sealed class AutoBossBehavior : AutomationBehavior<AutoBossOptions>
         await ScanNextZoneAsync(context, world, mapIds, progress, cancellationToken);
     }
 
-    private async Task<bool> TryPickGroundItemsAsync(
-        ISessionContext context,
-        PlayerSnapshot player,
-        WorldSnapshot world,
-        IProgress<string>? progress,
-        CancellationToken cancellationToken)
+    private static IReadOnlyList<string> ParseNameFilters(string? rawFilters)
     {
-        var groundItems = world.GroundItems;
-        if (groundItems.Count == 0)
+        if (string.IsNullOrWhiteSpace(rawFilters))
         {
-            return false;
+            return [];
         }
 
-        var filterNames = !string.IsNullOrWhiteSpace(Options.FilterPickNames)
-            ? Options.FilterPickNames.Split([',', ';'], StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
-            : [];
-
-        GroundItemSnapshot? closest = null;
-        double closestDist = double.MaxValue;
-
-        foreach (var item in groundItems)
-        {
-            bool isAllowedOwner = Options.PickOthersItems || item.PlayerId == player.Id;
-            if (!isAllowedOwner) continue;
-
-            if (filterNames.Length > 0 && !filterNames.Any(f =>
-                item.Name.Contains(f, StringComparison.OrdinalIgnoreCase) ||
-                item.TemplateId.ToString() == f))
-            {
-                continue;
-            }
-
-            double dist = item.DistanceTo(player.X, player.Y);
-            if (dist < closestDist)
-            {
-                closestDist = dist;
-                closest = item;
-            }
-        }
-
-        if (closest == null)
-        {
-            return false;
-        }
-
-        if (closestDist > 32)
-        {
-            progress?.Report($"[Săn Boss] Chạy tới nhặt {closest.Name}...");
-            await context.Dispatcher.DispatchAsync(new NavigateCommand(closest.X, closest.Y, Options.IsFastTeleport), cancellationToken);
-        }
-
-        await context.Dispatcher.DispatchAsync(new PickItemCommand(closest.ItemMapId, closest.Name), cancellationToken);
-        return true;
+        return rawFilters.Split([',', ';'], StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
     }
 
     private async Task<bool> TryEngageBossAsync(
@@ -199,38 +169,92 @@ public sealed class AutoBossBehavior : AutomationBehavior<AutoBossOptions>
     {
         string targetName = Options.TargetBossName?.Trim() ?? string.Empty;
 
-        var boss = world.Bosses
-            .Where(b => b.Hp > 0 && (string.IsNullOrEmpty(targetName) || b.Name.Contains(targetName, StringComparison.OrdinalIgnoreCase)))
-            .OrderBy(b => Math.Abs(b.X - player.X) + Math.Abs(b.Y - player.Y))
-            .FirstOrDefault();
-
-        if (boss != null)
+        WorldBossInfo? bestBoss = null;
+        int bestDist = int.MaxValue;
+        for (int i = 0; i < world.Bosses.Count; i++)
         {
-            await EngageTargetAsync(context, player, boss.X, boss.Y, boss.Id, boss.Name, boss.Hp, isMob: false, world.ZoneId, progress, cancellationToken);
+            var b = world.Bosses[i];
+            if (b.Hp <= 0)
+            {
+                continue;
+            }
+
+            if (!string.IsNullOrEmpty(targetName) && !b.Name.Contains(targetName, StringComparison.OrdinalIgnoreCase))
+            {
+                continue;
+            }
+
+            int dist = Math.Abs(b.X - player.X) + Math.Abs(b.Y - player.Y);
+            if (dist < bestDist)
+            {
+                bestDist = dist;
+                bestBoss = b;
+            }
+        }
+
+        if (bestBoss != null)
+        {
+            await EngageTargetAsync(context, player, bestBoss.X, bestBoss.Y, bestBoss.Id, bestBoss.Name, bestBoss.Hp, isMob: false, world.ZoneId, progress, cancellationToken);
             return true;
         }
 
         if (!string.IsNullOrEmpty(targetName))
         {
-            var playerBoss = world.Players
-                .Where(p => p.Id != player.Id && p.Hp > 0 && p.Name.Contains(targetName, StringComparison.OrdinalIgnoreCase))
-                .OrderBy(p => Math.Abs(p.X - player.X) + Math.Abs(p.Y - player.Y))
-                .FirstOrDefault();
-
-            if (playerBoss != null)
+            WorldPlayerInfo? bestPlayerBoss = null;
+            bestDist = int.MaxValue;
+            for (int i = 0; i < world.Players.Count; i++)
             {
-                await EngageTargetAsync(context, player, playerBoss.X, playerBoss.Y, playerBoss.Id, playerBoss.Name, playerBoss.Hp, isMob: false, world.ZoneId, progress, cancellationToken);
+                var p = world.Players[i];
+                if (p.Id == player.Id || p.Hp <= 0)
+                {
+                    continue;
+                }
+
+                if (!p.Name.Contains(targetName, StringComparison.OrdinalIgnoreCase))
+                {
+                    continue;
+                }
+
+                int dist = Math.Abs(p.X - player.X) + Math.Abs(p.Y - player.Y);
+                if (dist < bestDist)
+                {
+                    bestDist = dist;
+                    bestPlayerBoss = p;
+                }
+            }
+
+            if (bestPlayerBoss != null)
+            {
+                await EngageTargetAsync(context, player, bestPlayerBoss.X, bestPlayerBoss.Y, bestPlayerBoss.Id, bestPlayerBoss.Name, bestPlayerBoss.Hp, isMob: false, world.ZoneId, progress, cancellationToken);
                 return true;
             }
 
-            var mobBoss = world.Mobs
-                .Where(m => m.IsAlive && m.Hp > 0 && (m.IsBoss || m.Name.Contains(targetName, StringComparison.OrdinalIgnoreCase)))
-                .OrderBy(m => Math.Abs(m.X - player.X) + Math.Abs(m.Y - player.Y))
-                .FirstOrDefault();
-
-            if (mobBoss != null)
+            WorldMobInfo? bestMobBoss = null;
+            bestDist = int.MaxValue;
+            for (int i = 0; i < world.Mobs.Count; i++)
             {
-                await EngageTargetAsync(context, player, mobBoss.X, mobBoss.Y, mobBoss.Id, mobBoss.Name, mobBoss.Hp, isMob: true, world.ZoneId, progress, cancellationToken);
+                var m = world.Mobs[i];
+                if (!m.IsAlive || m.Hp <= 0)
+                {
+                    continue;
+                }
+
+                if (!m.IsBoss && !m.Name.Contains(targetName, StringComparison.OrdinalIgnoreCase))
+                {
+                    continue;
+                }
+
+                int dist = Math.Abs(m.X - player.X) + Math.Abs(m.Y - player.Y);
+                if (dist < bestDist)
+                {
+                    bestDist = dist;
+                    bestMobBoss = m;
+                }
+            }
+
+            if (bestMobBoss != null)
+            {
+                await EngageTargetAsync(context, player, bestMobBoss.X, bestMobBoss.Y, bestMobBoss.Id, bestMobBoss.Name, bestMobBoss.Hp, isMob: true, world.ZoneId, progress, cancellationToken);
                 return true;
             }
         }
@@ -293,10 +317,20 @@ public sealed class AutoBossBehavior : AutomationBehavior<AutoBossOptions>
         }
 
         int minZone = Math.Max(0, Options.MinZone);
-        var nextZone = world.Zones
-            .Where(z => z.ZoneId >= minZone && !z.IsFull && z.ZoneId != world.ZoneId && !_visitedZones.Contains(z.ZoneId))
-            .OrderBy(z => z.ZoneId)
-            .FirstOrDefault();
+        WorldZoneInfo? nextZone = null;
+        for (int i = 0; i < world.Zones.Count; i++)
+        {
+            var z = world.Zones[i];
+            if (z.ZoneId < minZone || z.IsFull || z.ZoneId == world.ZoneId || _visitedZones.Contains(z.ZoneId))
+            {
+                continue;
+            }
+
+            if (nextZone == null || z.ZoneId < nextZone.ZoneId)
+            {
+                nextZone = z;
+            }
+        }
 
         if (nextZone == null)
         {
@@ -339,18 +373,30 @@ public sealed class AutoBossBehavior : AutomationBehavior<AutoBossOptions>
         long now = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
         if (preferredSlots.Count > 0)
         {
-            foreach (int slot in preferredSlots)
+            for (int p = 0; p < preferredSlots.Count; p++)
             {
-                var skill = skills.FirstOrDefault(s => s.Slot == slot);
-                if (skill != null && skill.IsReady(now))
+                int slot = preferredSlots[p];
+                for (int i = 0; i < skills.Count; i++)
                 {
-                    return slot;
+                    var skill = skills[i];
+                    if (skill.Slot == slot && skill.IsReady(now))
+                    {
+                        return slot;
+                    }
                 }
             }
             return preferredSlots[0];
         }
 
-        var readySkill = skills.FirstOrDefault(s => s.IsReady(now));
-        return readySkill?.Slot ?? 0;
+        for (int i = 0; i < skills.Count; i++)
+        {
+            var readySkill = skills[i];
+            if (readySkill.IsReady(now))
+            {
+                return readySkill.Slot;
+            }
+        }
+
+        return 0;
     }
 }

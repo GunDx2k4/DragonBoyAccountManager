@@ -74,12 +74,12 @@ public class PlayerScraper(IGameRuntime runtime, Func<string?>? originalNameReso
 
         var skills = isInGame ? ScrapeSkills(charPtr) : [];
         var bagItems = isInGame ? ScrapeBagItems(charPtr) : [];
-        var activeBuffIcons = isInGame ? ScrapeActiveBuffIconIds() : [];
+        var (activeBuffIcons, hasMagnetCharm) = isInGame ? ScrapeActiveBuffs() : ([], false);
         bool isCharging = isInGame && charLayout.IsCharge >= 0 && _runtime.ReadField<bool>(charPtr, charLayout.IsCharge);
 
         return new PlayerSnapshot(
             id, name, hp, maxHp, power, gender, x, y,
-            isAlive, isInGame, isChangingMap, mp, maxMp, status, isTdltActive, isAutoPlay, skills, bagItems, activeBuffIcons, isCharging);
+            isAlive, isInGame, isChangingMap, mp, maxMp, status, isTdltActive, isAutoPlay, skills, bagItems, activeBuffIcons, isCharging, hasMagnetCharm);
     }
 
     public bool IsChangingMap(IntPtr charPtr = default)
@@ -152,11 +152,14 @@ public class PlayerScraper(IGameRuntime runtime, Func<string?>? originalNameReso
         return result;
     }
 
-    public IReadOnlyList<int> ScrapeActiveBuffIconIds()
+    public (IReadOnlyList<int> BuffIcons, bool HasMagnetCharm) ScrapeActiveBuffs()
     {
         var result = new List<int>();
+        bool hasMagnet = false;
         int idIconOffset = _runtime.Layout.ItemTime.IdIcon;
-        if (idIconOffset < 0) return result;
+        int coutTimeOffset = _runtime.Layout.ItemTime.CoutTime;
+        int timeOffset = _runtime.Layout.ItemTime.Time;
+        if (idIconOffset < 0) return (result, false);
 
         try
         {
@@ -169,9 +172,22 @@ public class PlayerScraper(IGameRuntime runtime, Func<string?>? originalNameReso
                     {
                         if (ptr == IntPtr.Zero) continue;
                         short idIcon = _runtime.ReadField<short>(ptr, idIconOffset);
-                        if (idIcon > 0 && !result.Contains(idIcon))
+                        if (idIcon > 0)
                         {
-                            result.Add(idIcon);
+                            if (!result.Contains(idIcon))
+                            {
+                                result.Add(idIcon);
+                            }
+
+                            if (idIcon == 2755)
+                            {
+                                int coutTime = coutTimeOffset >= 0 ? _runtime.ReadField<int>(ptr, coutTimeOffset) : 0;
+                                int time = timeOffset >= 0 ? _runtime.ReadField<int>(ptr, timeOffset) : 0;
+                                if (coutTime > 1800 || time > 1800 || time == -1)
+                                {
+                                    hasMagnet = true;
+                                }
+                            }
                         }
                     }
                 }
@@ -196,8 +212,10 @@ public class PlayerScraper(IGameRuntime runtime, Func<string?>? originalNameReso
         }
         catch { }
 
-        return result;
+        return (result, hasMagnet);
     }
+
+    public IReadOnlyList<int> ScrapeActiveBuffIconIds() => ScrapeActiveBuffs().BuffIcons;
 
     public IReadOnlyList<GameSkillInfo> ScrapeSkills(IntPtr charPtr = default)
     {

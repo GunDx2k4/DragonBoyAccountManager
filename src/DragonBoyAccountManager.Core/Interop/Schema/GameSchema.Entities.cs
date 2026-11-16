@@ -132,6 +132,9 @@ public static partial class GameSchema
         public const string FieldTemplate = "template";
         public const string FieldX = "x";
         public const string FieldY = "y";
+        public const string FieldXEnd = "xEnd";
+        public const string FieldYEnd = "yEnd";
+        public const string FieldStatus = "status";
         public const string FieldPlayerId = "playerId";
     }
 
@@ -147,6 +150,8 @@ public static partial class GameSchema
     {
         public const string ClassName = "ItemTime";
         public const string FieldIdIcon = "idIcon";
+        public const string FieldTime = "time";
+        public const string FieldCoutTime = "coutTime";
     }
 
     public static class ItemTemplate

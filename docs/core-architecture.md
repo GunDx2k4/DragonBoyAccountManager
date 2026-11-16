@@ -1,6 +1,6 @@
 # Kiến Trúc Phân Hệ Core (`DragonBoyAccountManager.Core`)
 
-[`DragonBoyAccountManager.Core`](file:///d:/DragonBoy/DBAM/src/DragonBoyAccountManager.Core) là thư viện nền tảng độc lập giao diện (UI-Agnostic Engine), chịu trách nhiệm giao tiếp bộ nhớ ngoài tiến trình (Out-of-Process), thu thập dữ liệu Telemetry, điều phối lệnh CQRS và vận hành các hành vi tự động hóa.
+[`DragonBoyAccountManager.Core`](file:///d:/DragonBoy/DBAM/src/DragonBoyAccountManager.Core) là thư viện nền tảng độc lập giao diện, chịu trách nhiệm giao tiếp bộ nhớ ngoài tiến trình (Out-of-Process), thu thập dữ liệu Telemetry, điều phối lệnh CQRS và vận hành các hành vi tự động hóa.
 
 ---
 
@@ -74,14 +74,23 @@ src/DragonBoyAccountManager.Core/
 │       ├── WorldHandler.cs
 │       └── GameConfigHandler.cs
 ├── Automation/                         # Các hành vi tự động hóa & dịch vụ điều hướng bản đồ
-│   ├── Behaviors/
+│   ├── Coordinators/                   # Bộ điều phối tự động hóa dùng chung
+│   │   ├── IGroundLootCoordinator.cs   # Hợp đồng điều phối nhặt đồ rơi
+│   │   ├── GroundLootCoordinator.cs    # Quét items, lọc blacklist 15s, tính tọa độ tiếp đất, nhặt đồ
+│   │   ├── IRecoveryCoordinator.cs     # Hợp đồng hồi phục HP/MP và sạc nạp năng lượng
+│   │   ├── RecoveryCoordinator.cs      # Tự động dùng đậu thần, theo dõi & ngắt gồng chiêu
+│   │   ├── ICombatCoordinator.cs       # Hợp đồng điều phối chiến đấu và xoay tua kỹ năng
+│   │   ├── CombatCoordinator.cs        # Tiếp cận quái đất/quái bay, sticky target, xoay tua chiêu
+│   │   ├── IZoneCoordinator.cs         # Hợp đồng điều phối chuyển khu khi trống quái
+│   │   └── ZoneCoordinator.cs          # Quản lý cooldown, mở bảng khu và nhảy khu vắng
+│   ├── Behaviors/                      # Hành vi điều phối luồng tự động
 │   │   ├── IBehavior.cs                # IBehavior & IBehavior<TOptions>
 │   │   ├── AutomationBehavior.cs       # Lớp cơ sở vòng lặp hành vi có AttachContext(ISessionContext)
 │   │   ├── Boss/
-│   │   │   ├── AutoBossBehavior.cs
+│   │   │   ├── AutoBossBehavior.cs     # Tự động săn Boss (dùng chung GroundLootCoordinator)
 │   │   │   └── AutoBossOptions.cs
 │   │   ├── Combat/
-│   │   │   ├── AutoTrainBehavior.cs
+│   │   │   ├── AutoTrainBehavior.cs    # Tự động luyện tập
 │   │   │   └── AutoTrainOptions.cs
 │   │   └── Social/
 │   │       ├── AutoChatBehavior.cs
@@ -116,7 +125,7 @@ src/DragonBoyAccountManager.Core/
 
 ---
 
-## 2. Năm Trụ Cột Tổng Quát Hóa Của Core
+## 2. Các Trụ Cột Tổng Quát Hóa Của Core
 
 ### 2.1. Phân Tách `GameSchema` Theo Miền & `GameRuntimeExtensions`
 - Toàn bộ tên lớp, trường, phương thức và RVA offsets của `GameAssembly.dll` được quản lý tập trung tại `Interop/Schema/` (và `Offsets.json`) chia thành 4 tệp `partial class GameSchema`:
@@ -124,72 +133,24 @@ src/DragonBoyAccountManager.Core/
   - [`GameSchema.Entities.cs`](file:///d:/DragonBoy/DBAM/src/DragonBoyAccountManager.Core/Interop/Schema/GameSchema.Entities.cs): `Char`, `Mob`, `MobTemplate`, `Npc`, `NpcTemplate`, `Item`, `ItemMap`, `ItemOption`, `Skill`, `SkillTemplate`.
   - [`GameSchema.World.cs`](file:///d:/DragonBoy/DBAM/src/DragonBoyAccountManager.Core/Interop/Schema/GameSchema.World.cs): `TileMap`, `Waypoint`, `PopUp`, `MovePoint`, `InfoDlg`.
   - [`GameSchema.UI.cs`](file:///d:/DragonBoy/DBAM/src/DragonBoyAccountManager.Core/Interop/Schema/GameSchema.UI.cs): `GameScr`, `LoginScr`, `ServerListScreen`, `SplashScr`, `SelectCharScr`, `ChooseCharScr`, `Panel`, `Command`, `TField`, `MyVector`, `MyHashTable`.
-- [`GameRuntimeExtensions.cs`](file:///d:/DragonBoy/DBAM/src/DragonBoyAccountManager.Core/Interop/Abstractions/GameRuntimeExtensions.cs) đóng gói các phương thức truy xuất con trỏ Singleton cốt lõi (`GetMyCharPtr()`, `GetServicePtr()`, `GetGameScrPtr()`, `GetGameCanvasPtr()`) dùng chung cho mọi Handler và Scraper.
 
-### 2.2. Đường Ống Telemetry Đa Hình (`ISnapshotScraper<out TSnapshot>`) & `DefaultSessionBootstrap`
-- Giao diện [`ISnapshotScraper<out TSnapshot>`](file:///d:/DragonBoy/DBAM/src/DragonBoyAccountManager.Core/Telemetry/Scrapers/ISnapshotScraper.cs) sử dụng Default Interface Implementation cho `SnapshotType` và `Scrape()`, giúp các lớp thực thi ([`PlayerScraper`](file:///d:/DragonBoy/DBAM/src/DragonBoyAccountManager.Core/Telemetry/Scrapers/PlayerScraper.cs), [`WorldScraper`](file:///d:/DragonBoy/DBAM/src/DragonBoyAccountManager.Core/Telemetry/Scrapers/WorldScraper.cs), [`MapScraper`](file:///d:/DragonBoy/DBAM/src/DragonBoyAccountManager.Core/Telemetry/Scrapers/MapScraper.cs)) chỉ cần viết duy nhất phương thức `TSnapshot Scrape()`.
-- [`GameSession`](file:///d:/DragonBoy/DBAM/src/DragonBoyAccountManager.Core/Sessions/GameSession.cs) đóng vai trò là container hoàn toàn tổng quát, còn việc đăng ký các Scrapers, Handlers và Behaviors mặc định được tách biệt vào [`DefaultSessionBootstrap.Configure`](file:///d:/DragonBoy/DBAM/src/DragonBoyAccountManager.Core/Sessions/DefaultSessionBootstrap.cs).
-- Trong mỗi chu kỳ [`GameSession.Tick()`](file:///d:/DragonBoy/DBAM/src/DragonBoyAccountManager.Core/Sessions/GameSession.cs), tất cả Scraper đã đăng ký qua `RegisterScraper<TSnapshot>` đều được thực thi và lưu vào từ điển `_snapshots`.
-- [`GameSessionSnapshot`](file:///d:/DragonBoy/DBAM/src/DragonBoyAccountManager.Core/Telemetry/Snapshots/GameSessionSnapshot.cs) đóng gói cả `PlayerSnapshot`, `WorldSnapshot`, `MapSnapshot` lẫn toàn bộ `CustomSnapshots`, cho phép truy xuất bất kỳ Snapshot mở rộng nào qua `snapshot.Get<TSnapshot>()`.
-- Các thực thể có tọa độ trong thế giới game đều kế thừa [`IPositioned`](file:///d:/DragonBoy/DBAM/src/DragonBoyAccountManager.Core/Telemetry/Snapshots/WorldSnapshot.cs) và [`IWorldEntity`](file:///d:/DragonBoy/DBAM/src/DragonBoyAccountManager.Core/Telemetry/Snapshots/WorldSnapshot.cs).
+### 2.2. Đường Ống Telemetry Đa Hình (`ISnapshotScraper<out TSnapshot>`)
+- Giao diện [`ISnapshotScraper<out TSnapshot>`](file:///d:/DragonBoy/DBAM/src/DragonBoyAccountManager.Core/Telemetry/Scrapers/ISnapshotScraper.cs) sử dụng Default Interface Implementation cho `SnapshotType` và `Scrape()`.
+- Các lớp thực thi ([`PlayerScraper`](file:///d:/DragonBoy/DBAM/src/DragonBoyAccountManager.Core/Telemetry/Scrapers/PlayerScraper.cs), [`WorldScraper`](file:///d:/DragonBoy/DBAM/src/DragonBoyAccountManager.Core/Telemetry/Scrapers/WorldScraper.cs), [`MapScraper`](file:///d:/DragonBoy/DBAM/src/DragonBoyAccountManager.Core/Telemetry/Scrapers/MapScraper.cs)) cung cấp bản sao dữ liệu bất biến, bảo vệ an toàn đa luồng và chống đọc bộ nhớ lặp lại (bão syscall).
 
-### 2.3. Đường Ống Lệnh CQRS Đa Hình (`CommandDispatcher`)
-- [`CommandDispatcher`](file:///d:/DragonBoy/DBAM/src/DragonBoyAccountManager.Core/Execution/CommandDispatcher.cs) lưu trữ các handler dưới dạng `ConcurrentDictionary<Type, Func<IGameCommand, CancellationToken, Task<Result>>>` và tra cứu theo kiểu thực tế `command.GetType()` lúc chạy.
-- Các lệnh `IGameCommand` được phân chia theo miền tại `Execution/Commands/` ([`CombatCommands.cs`](file:///d:/DragonBoy/DBAM/src/DragonBoyAccountManager.Core/Execution/Commands/CombatCommands.cs), [`MovementCommands.cs`](file:///d:/DragonBoy/DBAM/src/DragonBoyAccountManager.Core/Execution/Commands/MovementCommands.cs), [`InventoryCommands.cs`](file:///d:/DragonBoy/DBAM/src/DragonBoyAccountManager.Core/Execution/Commands/InventoryCommands.cs), [`ZoneCommands.cs`](file:///d:/DragonBoy/DBAM/src/DragonBoyAccountManager.Core/Execution/Commands/ZoneCommands.cs), [`ChatCommands.cs`](file:///d:/DragonBoy/DBAM/src/DragonBoyAccountManager.Core/Execution/Commands/ChatCommands.cs), [`WorldCommands.cs`](file:///d:/DragonBoy/DBAM/src/DragonBoyAccountManager.Core/Execution/Commands/WorldCommands.cs), [`GameConfigCommands.cs`](file:///d:/DragonBoy/DBAM/src/DragonBoyAccountManager.Core/Execution/Commands/GameConfigCommands.cs)).
-- Nhờ cơ chế phân phối đa hình, `DispatchAsync` hỗ trợ đồng thời cả lệnh gọi generic tường minh lẫn lệnh gọi qua giao diện [`IGameCommand`](file:///d:/DragonBoy/DBAM/src/DragonBoyAccountManager.Core/Execution/Commands/IGameCommand.cs) tại [`IGameActionService.ExecuteCommandAsync`](file:///d:/DragonBoy/DBAM/src/DragonBoyAccountManager.Core/Engine/Abstractions/IGameActionService.cs) mà không cần reflection.
-- Mọi lệnh thực thi đều đi qua khóa `SemaphoreSlim` (1 lệnh tại 1 thời điểm trên mỗi phiên, cho phép tái nhập cùng ngữ cảnh bất đồng bộ qua `AsyncLocal`).
+### 2.3. Đường Ống Điều Phối Lệnh CQRS (`ICommandDispatcher` & Handlers)
+- Toàn bộ thao tác ghi bộ nhớ hoặc can thiệp điều khiển client được chuẩn hóa qua `IGameCommand`.
+- [`CommandDispatcher`](file:///d:/DragonBoy/DBAM/src/DragonBoyAccountManager.Core/Execution/CommandDispatcher.cs) thực thi tuần tự có khóa `SemaphoreSlim`, bảo đảm an toàn đa luồng out-of-process.
 
-### 2.4. Hệ Thống Hành Vi Tự Động Hóa (`IBehavior<TOptions>`) & Cấu Hình Tổng Quát (`AccountAutoSettings`)
-- [`IBehavior<TOptions>`](file:///d:/DragonBoy/DBAM/src/DragonBoyAccountManager.Core/Automation/Behaviors/IBehavior.cs) và lớp cơ sở [`AutomationBehavior<TOptions>`](file:///d:/DragonBoy/DBAM/src/DragonBoyAccountManager.Core/Automation/Behaviors/AutomationBehavior.cs) chuẩn hóa vòng đời gắn ngữ cảnh (`AttachContext`), khởi chạy (`StartAsync`), tạm dừng (`Pause`/`Resume`), dừng (`Stop`) và cập nhật cấu hình nóng (`UpdateOptions` -> `OnOptionsChanged`) một cách an toàn luồng (`volatile`).
-- [`AccountAutoSettings`](file:///d:/DragonBoy/DBAM/src/DragonBoyAccountManager.Core/Accounts/AccountAutoSettings.cs) lưu trữ cấu hình của mọi Behavior hoàn toàn tổng quát qua từ điển `Behaviors` (`GetBehaviorOptionsOrDefault<TOptions>(behaviorId)` và `SetBehaviorOptions(behaviorId, options)`), không phụ thuộc cứng vào bất kỳ Behavior cụ thể nào.
-- [`SessionWorker`](file:///d:/DragonBoy/DBAM/src/DragonBoyAccountManager.Core/Engine/SessionWorker.cs) hoàn toàn tuân thủ nguyên tắc Open/Closed: không chứa bất kỳ câu lệnh kiểm tra kiểu `if (behavior is ...)` nào mà điều phối đồng nhất mọi Behavior qua `StartBehavior<TBehavior, TOptions>`, `UpdateBehaviorOptions<TBehavior, TOptions>`, `StopBehavior<TBehavior>`.
+### 2.4. Phân Hệ Coordinators & Behaviors
+- **Bộ điều phối dùng chung (`Automation/Coordinators/`):**
+  - [`GroundLootCoordinator`](file:///d:/DragonBoy/DBAM/src/DragonBoyAccountManager.Core/Automation/Coordinators/GroundLootCoordinator.cs): Đóng gói toàn bộ logic quét vật phẩm, lọc blacklist 15s, kiểm tra bùa thu hút, tính tọa độ tiếp đất an toàn và gửi lệnh nhặt đồ. Dùng chung cho cả `AutoTrain` và `AutoBoss`.
+  - [`RecoveryCoordinator`](file:///d:/DragonBoy/DBAM/src/DragonBoyAccountManager.Core/Automation/Coordinators/RecoveryCoordinator.cs): Đóng gói hồi phục đậu thần theo ngưỡng HP/MP và quản lý ngắt trạng thái gồng/tụ chiêu.
+  - [`CombatCoordinator`](file:///d:/DragonBoy/DBAM/src/DragonBoyAccountManager.Core/Automation/Coordinators/CombatCoordinator.cs): Chọn mục tiêu (sticky target), tiếp cận an toàn quái đất/quái bay, blacklist kẹt quái, xoay tua kỹ năng theo cooldown local tracker.
+  - [`ZoneCoordinator`](file:///d:/DragonBoy/DBAM/src/DragonBoyAccountManager.Core/Automation/Coordinators/ZoneCoordinator.cs): Xử lý đổi khu khi hết quái mục tiêu, gọi bảng khu và nhảy khu vắng nhất.
+- **Thin Behaviors:** Các lớp hành vi như [`AutoTrainBehavior.cs`](file:///d:/DragonBoy/DBAM/src/DragonBoyAccountManager.Core/Automation/Behaviors/Combat/AutoTrainBehavior.cs) đóng vai trò Orchestrator điều phối pipeline tuần tự.
+- **Zero-Allocation Invariant:** 100% tham số nhịp tick được đóng gói qua `readonly record struct` trên stack. Loại bỏ hoàn toàn LINQ (`Where`, `OrderBy`, `FirstOrDefault`) trong vòng lặp nhịp tick 200ms-500ms, sử dụng vòng lặp chỉ mục phẳng `for`.
 
-### 2.5. Dòng Sự Kiện Hợp Nhất (`SessionEvent`)
-Toàn bộ thông báo từ `SessionWorker` -> `GameEngine` được hợp nhất vào một luồng sự kiện đa hình duy nhất `event Action<SessionEvent>? OnSessionEvent` tại [`SessionEvents.cs`](file:///d:/DragonBoy/DBAM/src/DragonBoyAccountManager.Core/Engine/Events/SessionEvents.cs):
-
-```mermaid
-classDiagram
-    class SessionEvent {
-        <<abstract>>
-        +Guid AccountId
-        +DateTime Timestamp
-    }
-    class SessionStateChangedEvent {
-        +GameSessionStatus Status
-        +GameSessionSnapshot? Snapshot
-    }
-    class SessionMessageEvent {
-        +string Message
-    }
-    class ActionReportedEvent {
-        +ActionExecutionReport Report
-    }
-    class BehaviorProgressEvent {
-        +string BehaviorId
-        +string Message
-    }
-    class BehaviorStateChangedEvent {
-        +string BehaviorId
-        +bool IsRunning
-        +string? Reason
-    }
-    class SessionProcessStartedEvent {
-        +Process Process
-    }
-    class SessionProcessExitedEvent {
-        +bool UserInitiated
-    }
-
-    SessionEvent <|-- SessionStateChangedEvent
-    SessionEvent <|-- SessionMessageEvent
-    SessionEvent <|-- ActionReportedEvent
-    SessionEvent <|-- BehaviorProgressEvent
-    SessionEvent <|-- BehaviorStateChangedEvent
-    SessionEvent <|-- SessionProcessStartedEvent
-    SessionEvent <|-- SessionProcessExitedEvent
-```
-
-### 2.6. Đồng Bộ Luồng, Tự Động Kết Nối Lại & Hủy Bỏ An Toàn (Threading & Lifecycle Invariants)
-- **Tự động kết nối lại ở tầng Core (`GameEngine`):** Cơ chế tự động mở lại tiến trình và khôi phục phiên khi mất kết nối ngoài ý muốn được quản lý trực tiếp trong [`GameEngine`](file:///d:/DragonBoy/DBAM/src/DragonBoyAccountManager.Core/Engine/GameEngine.cs) thông qua [`AccountLaunchOptions`](file:///d:/DragonBoy/DBAM/src/DragonBoyAccountManager.Core/Engine/Models/AccountLaunchOptions.cs), phục vụ thống nhất cho cả GUI lẫn CLI.
-- **C# 13 `System.Threading.Lock`:** Toàn bộ đồng bộ luồng ngắn hạn nội bộ ([`GameEngine`](file:///d:/DragonBoy/DBAM/src/DragonBoyAccountManager.Core/Engine/GameEngine.cs), [`CommandDispatcher`](file:///d:/DragonBoy/DBAM/src/DragonBoyAccountManager.Core/Execution/CommandDispatcher.cs), [`RemoteScratchpad`](file:///d:/DragonBoy/DBAM/src/DragonBoyAccountManager.Core/Interop/Memory/RemoteScratchpad.cs), [`Il2CppRuntime`](file:///d:/DragonBoy/DBAM/src/DragonBoyAccountManager.Core/Interop/Il2Cpp/Il2CppRuntime.cs)) sử dụng `Lock` thay thế `object` khóa truyền thống, giảm thiểu chi phí runtime và ngăn chặn deadlock.
-- **Dọn dẹp bất đồng bộ (`IAsyncDisposable`):** [`GameEngine`](file:///d:/DragonBoy/DBAM/src/DragonBoyAccountManager.Core/Engine/GameEngine.cs) và [`SessionWorker`](file:///d:/DragonBoy/DBAM/src/DragonBoyAccountManager.Core/Engine/SessionWorker.cs) đồng bộ hiện thực `IAsyncDisposable`. Khi dừng ứng dụng hoặc ngắt phiên, quy trình teardown được thực thi phi phong bế qua `DisposeAsync()`, triệt tiêu hoàn toàn `.Wait()` hay `Thread.Sleep()`.
+### 2.5. Luồng Vòng Đời & Dọn Dẹp Bất Đồng Bộ (`IAsyncDisposable`)
+- [`GameEngine`](file:///d:/DragonBoy/DBAM/src/DragonBoyAccountManager.Core/Engine/GameEngine.cs) và [`SessionWorker`](file:///d:/DragonBoy/DBAM/src/DragonBoyAccountManager.Core/Engine/SessionWorker.cs) đồng bộ hiện thực `IAsyncDisposable`.
+- Khi dừng ứng dụng hoặc ngắt phiên, quy trình teardown được thực thi phi phong bế qua `DisposeAsync()`, triệt tiêu hoàn toàn `.Wait()` hay `Thread.Sleep()`.

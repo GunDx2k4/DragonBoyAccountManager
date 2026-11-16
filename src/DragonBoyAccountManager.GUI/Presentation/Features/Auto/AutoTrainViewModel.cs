@@ -1,4 +1,3 @@
-using System.Collections.ObjectModel;
 using System.ComponentModel;
 using System.Windows.Threading;
 using CommunityToolkit.Mvvm.ComponentModel;
@@ -6,10 +5,8 @@ using CommunityToolkit.Mvvm.Input;
 using DragonBoyAccountManager.Core.Automation.Behaviors.Combat;
 using DragonBoyAccountManager.Core.Common;
 using DragonBoyAccountManager.Core.Execution.Commands;
-using DragonBoyAccountManager.Core.Interop.Schema;
 using DragonBoyAccountManager.Core.Telemetry.Snapshots;
 using DragonBoyAccountManager.GUI.Presentation.Features.Accounts.Items;
-using DragonBoyAccountManager.GUI.Presentation.Features.Auto.Items;
 using DragonBoyAccountManager.GUI.Services.Dispatching;
 using DragonBoyAccountManager.GUI.Services.Engine;
 using DragonBoyAccountManager.GUI.Services.Selection;
@@ -19,7 +16,6 @@ namespace DragonBoyAccountManager.GUI.Presentation.Features.Auto;
 public sealed partial class AutoTrainViewModel : AutoFeatureViewModelBase
 {
     private readonly IGameImageService _gameImageService;
-    private readonly DispatcherTimer _cooldownTimer;
     private readonly DispatcherTimer _optionDebounceTimer;
     private Guid _lastSyncedOnlineAccountId;
     private bool _hasPendingDebouncedSync;
@@ -83,11 +79,6 @@ public sealed partial class AutoTrainViewModel : AutoFeatureViewModelBase
     [ObservableProperty]
     private string _pickStatusText = "Chưa bật tự động nhặt";
 
-    public ObservableCollection<MobFilterItem> AvailableMobTypes { get; } = [];
-    public ObservableCollection<SkillButtonItem> AutoTrainSkills { get; } = [];
-    public ObservableCollection<AutoItemSlotItem> AutoTrainItems { get; } = [];
-    public ObservableCollection<AutoItemSlotItem> AutoTrainBuas { get; } = [];
-
     public AutoTrainViewModel(
         IGameEngineService gameEngine,
         IGameImageService gameImageService,
@@ -98,32 +89,8 @@ public sealed partial class AutoTrainViewModel : AutoFeatureViewModelBase
     {
         _gameImageService = gameImageService;
 
-        for (int i = 0; i < 10; i++)
-        {
-            var skill = new SkillButtonItem(i, i == 9 ? "Skill 0" : $"Skill {i + 1}", i == 0);
-            skill.PropertyChanged += OnSkillItemPropertyChanged;
-            AutoTrainSkills.Add(skill);
-        }
-
-        foreach (var def in GameDefinitions.AutoTrainItems)
-        {
-            var autoItem = new AutoItemSlotItem(def.Index, def.TemplateId, def.IconId, def.Name);
-            autoItem.PropertyChanged += OnAutoItemPropertyChanged;
-            AutoTrainItems.Add(autoItem);
-        }
-
-        foreach (var def in GameDefinitions.AutoTrainBuas)
-        {
-            var autoBua = new AutoItemSlotItem(def.Index, def.TemplateId, def.IconId, def.Name);
-            autoBua.PropertyChanged += OnAutoBuaPropertyChanged;
-            AutoTrainBuas.Add(autoBua);
-        }
-
-        _cooldownTimer = new DispatcherTimer
-        {
-            Interval = TimeSpan.FromMilliseconds(100)
-        };
-        _cooldownTimer.Tick += (_, _) => UpdateCooldowns();
+        InitializeSkills();
+        InitializeItems();
 
         _optionDebounceTimer = new DispatcherTimer
         {
@@ -184,24 +151,15 @@ public sealed partial class AutoTrainViewModel : AutoFeatureViewModelBase
         ClearAvailableMobTypes();
         RunBulkUpdate(() =>
         {
-            foreach (var item in AutoTrainSkills)
+            for (int i = 0; i < AutoTrainSkills.Count; i++)
             {
-                item.Reset(resetSelection: false);
+                AutoTrainSkills[i].Reset(resetSelection: false);
             }
         });
-        foreach (var item in AutoTrainItems)
+        for (int i = 0; i < AutoTrainItems.Count; i++)
         {
-            item.Quantity = 0;
+            AutoTrainItems[i].Quantity = 0;
         }
-    }
-
-    private void ClearAvailableMobTypes()
-    {
-        foreach (var item in AvailableMobTypes)
-        {
-            item.PropertyChanged -= OnMobItemPropertyChanged;
-        }
-        AvailableMobTypes.Clear();
     }
 
     protected override void LoadAccountCore(AccountItemViewModel account)
@@ -241,19 +199,22 @@ public sealed partial class AutoTrainViewModel : AutoFeatureViewModelBase
 
         RunBulkUpdate(() =>
         {
-            foreach (var item in AutoTrainSkills)
+            for (int i = 0; i < AutoTrainSkills.Count; i++)
             {
+                var item = AutoTrainSkills[i];
                 item.Reset(resetSelection: false);
                 item.IsSelected = selectedSlots.Contains(item.SlotIndex);
             }
 
-            foreach (var item in AutoTrainItems)
+            for (int i = 0; i < AutoTrainItems.Count; i++)
             {
+                var item = AutoTrainItems[i];
                 item.IsSelected = selectedItemIds.Contains(item.TemplateId);
             }
 
-            foreach (var item in AutoTrainBuas)
+            for (int i = 0; i < AutoTrainBuas.Count; i++)
             {
+                var item = AutoTrainBuas[i];
                 item.IsSelected = selectedBuaIds.Contains(item.TemplateId);
             }
         });
@@ -297,14 +258,14 @@ public sealed partial class AutoTrainViewModel : AutoFeatureViewModelBase
 
     public void RefreshData()
     {
-        foreach (var item in AutoTrainItems)
+        for (int i = 0; i < AutoTrainItems.Count; i++)
         {
-            item.EnsureIconLoaded(_gameImageService);
+            AutoTrainItems[i].EnsureIconLoaded(_gameImageService);
         }
 
-        foreach (var item in AutoTrainBuas)
+        for (int i = 0; i < AutoTrainBuas.Count; i++)
         {
-            item.EnsureIconLoaded(_gameImageService);
+            AutoTrainBuas[i].EnsureIconLoaded(_gameImageService);
         }
 
         if (ActiveAccount == null || !ActiveAccount.IsRunning || ActiveAccount.Status != GameSessionStatus.Active)
@@ -373,93 +334,24 @@ public sealed partial class AutoTrainViewModel : AutoFeatureViewModelBase
         {
             UpdatePickStatus();
         }
-        else if (propertyName == nameof(CheckAllMobs)
-            && !CheckAllMobs
-            && AvailableMobTypes.Count > 0
-            && AvailableMobTypes.All(m => !m.IsSelected))
+        else if (propertyName is nameof(CheckAllMobs))
         {
             RunBulkUpdate(() =>
             {
-                foreach (var item in AvailableMobTypes)
+                for (int i = 0; i < AvailableMobTypes.Count; i++)
                 {
-                    item.IsSelected = true;
+                    AvailableMobTypes[i].IsSelected = true;
                 }
             });
         }
     }
 
-    private void OnSkillItemPropertyChanged(object? sender, PropertyChangedEventArgs e)
-    {
-        if (!IsBulkUpdating && e.PropertyName == nameof(SkillButtonItem.IsSelected))
-        {
-            OnOptionChanged();
-        }
-    }
-
-    private void OnMobItemPropertyChanged(object? sender, PropertyChangedEventArgs e)
-    {
-        if (!IsBulkUpdating && e.PropertyName == nameof(MobFilterItem.IsSelected))
-        {
-            OnOptionChanged();
-        }
-    }
-
-    private void OnAutoItemPropertyChanged(object? sender, PropertyChangedEventArgs e)
-    {
-        if (!IsBulkUpdating && e.PropertyName == nameof(AutoItemSlotItem.IsSelected))
-        {
-            UpdateItemSelectionStatusAndSave();
-        }
-    }
-
-    private void OnAutoBuaPropertyChanged(object? sender, PropertyChangedEventArgs e)
-    {
-        if (!IsBulkUpdating && e.PropertyName == nameof(AutoItemSlotItem.IsSelected))
-        {
-            OnOptionChanged();
-        }
-    }
-
-    private void UpdateItemStatusText()
-    {
-        int selectedCount = AutoTrainItems.Count(i => i.IsSelected);
-        HasSelectedAutoItems = selectedCount > 0;
-        var targets = GetTargetAccountIds();
-        ItemStatusText = selectedCount > 0
-            ? (targets.Count > 1
-                ? $"Đã cấu hình {selectedCount} vật phẩm ({targets.Count} tài khoản)"
-                : $"Đã cấu hình {selectedCount} vật phẩm tự dùng")
-            : "Chưa chọn vật phẩm tự dùng";
-    }
-
-    private void UpdatePickStatus()
-    {
-        var targets = GetTargetAccountIds();
-        string targetSuffix = targets.Count > 1 ? $" ({targets.Count} tài khoản)" : string.Empty;
-        if (AutoPick)
-        {
-            var modes = new List<string>();
-            if (PickAllMap) modes.Add("toàn map");
-            if (PickOthersItems) modes.Add("người khác");
-            if (AutoDropItems) modes.Add("tự vứt");
-            string modeDesc = modes.Count > 0 ? $" ({string.Join(", ", modes)})" : string.Empty;
-            PickStatusText = $"Tự động nhặt: Đang bật{modeDesc}{targetSuffix}";
-        }
-        else
-        {
-            PickStatusText = $"Chưa bật tự động nhặt{targetSuffix}";
-        }
-    }
-
-    private void UpdateItemSelectionStatusAndSave()
-    {
-        UpdateItemStatusText();
-        OnOptionChanged();
-    }
-
     protected override void OnOptionChanged()
     {
-        if (IsSwitchingAccount || IsBulkUpdating || ActiveAccount == null) return;
+        if (IsSwitchingAccount || IsBulkUpdating || ActiveAccount == null)
+        {
+            return;
+        }
 
         _optionDebounceTimer.Stop();
         _hasPendingDebouncedSync = false;
@@ -468,8 +360,9 @@ public sealed partial class AutoTrainViewModel : AutoFeatureViewModelBase
 
         var options = BuildCurrentOptions();
         var allTargets = GetAllTargetAccounts();
-        foreach (var targetAcc in allTargets)
+        for (int i = 0; i < allTargets.Count; i++)
         {
+            var targetAcc = allTargets[i];
             if (targetAcc.Id != ActiveAccount.Id)
             {
                 SaveSettings(targetAcc);
@@ -530,96 +423,16 @@ public sealed partial class AutoTrainViewModel : AutoFeatureViewModelBase
         }
     }
 
-    [RelayCommand]
-    public void SelectAllMobs()
-    {
-        RunBulkUpdate(() =>
-        {
-            foreach (var item in AvailableMobTypes)
-            {
-                item.IsSelected = true;
-            }
-        });
-        OnOptionChanged();
-    }
-
-    [RelayCommand]
-    public void DeselectAllMobs()
-    {
-        RunBulkUpdate(() =>
-        {
-            foreach (var item in AvailableMobTypes)
-            {
-                item.IsSelected = false;
-            }
-        });
-        OnOptionChanged();
-    }
-
-    [RelayCommand]
-    public void SelectAllSkills()
-    {
-        RunBulkUpdate(() =>
-        {
-            foreach (var item in AutoTrainSkills)
-            {
-                item.IsSelected = item.TemplateId != 14;
-            }
-        });
-        OnOptionChanged();
-    }
-
-    [RelayCommand]
-    public void DeselectAllSkills()
-    {
-        RunBulkUpdate(() =>
-        {
-            foreach (var item in AutoTrainSkills)
-            {
-                item.IsSelected = false;
-            }
-        });
-        OnOptionChanged();
-    }
-
-    [RelayCommand]
-    public void SelectAllItems()
-    {
-        RunBulkUpdate(() =>
-        {
-            foreach (var item in AutoTrainItems)
-            {
-                item.IsSelected = true;
-            }
-        });
-        UpdateItemSelectionStatusAndSave();
-    }
-
-    [RelayCommand]
-    public void DeselectAllItems()
-    {
-        RunBulkUpdate(() =>
-        {
-            foreach (var item in AutoTrainItems)
-            {
-                item.IsSelected = false;
-            }
-        });
-        UpdateItemSelectionStatusAndSave();
-    }
-
-    [RelayCommand]
-    public async Task UseSkillSlotAsync(SkillButtonItem? item)
-    {
-        if (item == null || ActiveAccount == null || !ActiveAccount.IsRunning) return;
-        await GameEngine.SelectSkillAsync(ActiveAccount.Id, item.SlotIndex);
-        item.LastTimeUse = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
-        item.UpdateCooldown(item.LastTimeUse);
-    }
-
     private AutoTrainOptions BuildCurrentOptions()
     {
-        var selectedSlots = AutoTrainSkills.Where(s => s.IsSelected).Select(s => s.SlotIndex).ToList();
+        var selectedSlots = new List<int>();
+        for (int i = 0; i < AutoTrainSkills.Count; i++)
+        {
+            if (AutoTrainSkills[i].IsSelected)
+            {
+                selectedSlots.Add(AutoTrainSkills[i].SlotIndex);
+            }
+        }
         if (selectedSlots.Count == 0)
         {
             selectedSlots = [0];
@@ -629,20 +442,55 @@ public sealed partial class AutoTrainViewModel : AutoFeatureViewModelBase
         IReadOnlyList<string> selectedMobNames;
         if (AvailableMobTypes.Count > 0)
         {
-            var currentMapMobNames = AvailableMobTypes.Select(m => m.Name).ToHashSet(StringComparer.OrdinalIgnoreCase);
-            selectedMobNames = existingSavedNames
-                .Where(n => !currentMapMobNames.Contains(n))
-                .Concat(AvailableMobTypes.Where(m => m.IsSelected).Select(m => m.Name))
-                .Distinct(StringComparer.OrdinalIgnoreCase)
-                .ToList();
+            var currentMapMobNames = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+            for (int i = 0; i < AvailableMobTypes.Count; i++)
+            {
+                currentMapMobNames.Add(AvailableMobTypes[i].Name);
+            }
+
+            var mergedNames = new List<string>();
+            for (int i = 0; i < existingSavedNames.Count; i++)
+            {
+                string n = existingSavedNames[i];
+                if (!currentMapMobNames.Contains(n) && !mergedNames.Contains(n, StringComparer.OrdinalIgnoreCase))
+                {
+                    mergedNames.Add(n);
+                }
+            }
+
+            for (int i = 0; i < AvailableMobTypes.Count; i++)
+            {
+                var mob = AvailableMobTypes[i];
+                if (mob.IsSelected && !mergedNames.Contains(mob.Name, StringComparer.OrdinalIgnoreCase))
+                {
+                    mergedNames.Add(mob.Name);
+                }
+            }
+
+            selectedMobNames = mergedNames;
         }
         else
         {
             selectedMobNames = existingSavedNames.ToList();
         }
 
-        var selectedItemIds = AutoTrainItems.Where(i => i.IsSelected).Select(i => i.TemplateId).ToList();
-        var selectedBuaIds = AutoTrainBuas.Where(i => i.IsSelected).Select(i => i.TemplateId).ToList();
+        var selectedItemIds = new List<short>();
+        for (int i = 0; i < AutoTrainItems.Count; i++)
+        {
+            if (AutoTrainItems[i].IsSelected)
+            {
+                selectedItemIds.Add(AutoTrainItems[i].TemplateId);
+            }
+        }
+
+        var selectedBuaIds = new List<short>();
+        for (int i = 0; i < AutoTrainBuas.Count; i++)
+        {
+            if (AutoTrainBuas[i].IsSelected)
+            {
+                selectedBuaIds.Add(AutoTrainBuas[i].TemplateId);
+            }
+        }
 
         return new AutoTrainOptions
         {
@@ -685,8 +533,9 @@ public sealed partial class AutoTrainViewModel : AutoFeatureViewModelBase
         StatusText = targets.Count > 1 ? $"Đang khởi động ({targets.Count} tài khoản)..." : "Đang khởi động...";
 
         var currentOptions = BuildCurrentOptions();
-        foreach (var id in targets)
+        for (int i = 0; i < targets.Count; i++)
         {
+            var id = targets[i];
             var targetAcc = ResolveAccount(id);
             if (targetAcc != null)
             {
@@ -703,8 +552,9 @@ public sealed partial class AutoTrainViewModel : AutoFeatureViewModelBase
     private void StopAutoTrain()
     {
         var targets = GetTargetAccountIds();
-        foreach (var id in targets)
+        for (int i = 0; i < targets.Count; i++)
         {
+            var id = targets[i];
             GameEngine.StopAutoTrain(id);
             var targetAcc = ResolveAccount(id);
             if (targetAcc != null)
@@ -716,99 +566,5 @@ public sealed partial class AutoTrainViewModel : AutoFeatureViewModelBase
         }
         IsRunning = false;
         StatusText = "Đã dừng tự động luyện tập.";
-    }
-
-    private void UpdateAvailableMobTypes(IReadOnlyList<WorldMobInfo> mobs)
-    {
-        var savedMobNames = ActiveAccount?.AutoSettings.GetBehaviorOptionsOrDefault<AutoTrainOptions>(BehaviorId).TargetMobNames ?? [];
-        var savedSet = savedMobNames.ToHashSet(StringComparer.OrdinalIgnoreCase);
-        var distinctNames = mobs.Select(m => m.Name).Where(n => !string.IsNullOrEmpty(n)).Distinct(StringComparer.OrdinalIgnoreCase).ToList();
-
-        var existingMap = AvailableMobTypes.ToDictionary(m => m.Name, StringComparer.OrdinalIgnoreCase);
-        var currentNames = distinctNames.ToHashSet(StringComparer.OrdinalIgnoreCase);
-
-        RunBulkUpdate(() =>
-        {
-            for (int i = AvailableMobTypes.Count - 1; i >= 0; i--)
-            {
-                var item = AvailableMobTypes[i];
-                if (!currentNames.Contains(item.Name))
-                {
-                    item.PropertyChanged -= OnMobItemPropertyChanged;
-                    AvailableMobTypes.RemoveAt(i);
-                }
-            }
-
-            foreach (var name in distinctNames)
-            {
-                if (!existingMap.ContainsKey(name))
-                {
-                    bool isSelected = savedSet.Contains(name);
-                    var mobItem = new MobFilterItem(
-                        templateId: 0,
-                        name: name,
-                        isSelected: isSelected);
-                    mobItem.PropertyChanged += OnMobItemPropertyChanged;
-                    AvailableMobTypes.Add(mobItem);
-                }
-            }
-        });
-    }
-
-    private void RefreshAutoItems(IReadOnlyList<InventoryItem> bagItems)
-    {
-        var countByTemplate = bagItems
-            .GroupBy(b => b.TemplateId)
-            .ToDictionary(g => g.Key, g => g.Sum(x => Math.Max(1, x.Quantity)));
-
-        foreach (var item in AutoTrainItems)
-        {
-            item.EnsureIconLoaded(_gameImageService);
-            item.Quantity = countByTemplate.GetValueOrDefault(item.TemplateId, 0);
-        }
-    }
-
-    private void RefreshSkills()
-    {
-        if (ActiveAccount == null || !ActiveAccount.IsRunning) return;
-
-        var skills = GameEngine.GetSkills(ActiveAccount.Id);
-        if (skills.Count == 0)
-        {
-            foreach (var item in AutoTrainSkills)
-            {
-                item.Reset(resetSelection: false);
-            }
-            UpdateCooldowns();
-            return;
-        }
-
-        Span<bool> populatedSlots = stackalloc bool[AutoTrainSkills.Count];
-        foreach (var skill in skills)
-        {
-            if (skill.Slot >= 0 && skill.Slot < AutoTrainSkills.Count)
-            {
-                AutoTrainSkills[skill.Slot].SyncFrom(skill, _gameImageService, syncSelection: false);
-                populatedSlots[skill.Slot] = true;
-            }
-        }
-
-        for (int i = 0; i < AutoTrainSkills.Count; i++)
-        {
-            if (!populatedSlots[i])
-            {
-                AutoTrainSkills[i].Reset(resetSelection: false);
-            }
-        }
-        UpdateCooldowns();
-    }
-
-    private void UpdateCooldowns()
-    {
-        long now = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
-        foreach (var item in AutoTrainSkills)
-        {
-            item.UpdateCooldown(now);
-        }
     }
 }

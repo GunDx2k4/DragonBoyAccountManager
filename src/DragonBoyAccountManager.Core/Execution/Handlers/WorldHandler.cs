@@ -139,7 +139,7 @@ public class WorldHandler(IGameRuntime runtime) :
         var itemMapLayout = _runtime.Layout.ItemMap;
         foreach (var ptr in CollectionHelper.ReadMyVector(_runtime, vectorPtr))
         {
-            if (ptr != IntPtr.Zero && _runtime.ReadField<short>(ptr, itemMapLayout.ItemMapId) == targetId)
+            if (ptr != IntPtr.Zero && _runtime.ReadField<int>(ptr, itemMapLayout.ItemMapId) == targetId)
             {
                 return ptr;
             }

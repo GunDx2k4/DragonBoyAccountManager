@@ -762,6 +762,73 @@
                                             FontSize="10"
                                             Style="{StaticResource GameTextBoxStyle}"
                                             Text="{Binding FilterPickIds, UpdateSourceTrigger=PropertyChanged}" />
+                                        <WrapPanel Margin="0,4,0,0">
+                                            <Button
+                                                Height="18"
+                                                Padding="4,0"
+                                                Margin="0,0,4,2"
+                                                Command="{Binding AddFilterPickPresetCommand}"
+                                                CommandParameter="190,457"
+                                                Content="+ Vàng"
+                                                FontSize="8"
+                                                FontWeight="Bold"
+                                                Style="{StaticResource GameSecondaryButton}"
+                                                ToolTip="Thêm ID Vàng &amp; Thỏi vàng (190, 457)" />
+                                            <Button
+                                                Height="18"
+                                                Padding="4,0"
+                                                Margin="0,0,4,2"
+                                                Command="{Binding AddFilterPickPresetCommand}"
+                                                CommandParameter="14,15,16,17,18,19,20"
+                                                Content="+ Ngọc rồng"
+                                                FontSize="8"
+                                                FontWeight="Bold"
+                                                Style="{StaticResource GameSecondaryButton}"
+                                                ToolTip="Thêm ID Ngọc rồng 1-7 sao (14-20)" />
+                                            <Button
+                                                Height="18"
+                                                Padding="4,0"
+                                                Margin="0,0,4,2"
+                                                Command="{Binding AddFilterPickPresetCommand}"
+                                                CommandParameter="441,442,443,444,445,446,447"
+                                                Content="+ Pha lê"
+                                                FontSize="8"
+                                                FontWeight="Bold"
+                                                Style="{StaticResource GameSecondaryButton}"
+                                                ToolTip="Thêm ID Sao pha lê (441-447)" />
+                                            <Button
+                                                Height="18"
+                                                Padding="4,0"
+                                                Margin="0,0,4,2"
+                                                Command="{Binding AddFilterPickPresetCommand}"
+                                                CommandParameter="220,221,222,223,224"
+                                                Content="+ Đá"
+                                                FontSize="8"
+                                                FontWeight="Bold"
+                                                Style="{StaticResource GameSecondaryButton}"
+                                                ToolTip="Thêm ID Đá nâng cấp (220-224)" />
+                                            <Button
+                                                Height="18"
+                                                Padding="4,0"
+                                                Margin="0,0,4,2"
+                                                Command="{Binding AddFilterPickPresetCommand}"
+                                                CommandParameter="1066,1067,1068,1069,1070"
+                                                Content="+ Bông tai"
+                                                FontSize="8"
+                                                FontWeight="Bold"
+                                                Style="{StaticResource GameSecondaryButton}"
+                                                ToolTip="Thêm ID Mảnh Porata (1066-1070)" />
+                                            <Button
+                                                Height="18"
+                                                Padding="4,0"
+                                                Margin="0,0,4,2"
+                                                Command="{Binding ClearFilterPickIdsCommand}"
+                                                Content="Xóa"
+                                                FontSize="8"
+                                                FontWeight="Bold"
+                                                Style="{StaticResource GameSecondaryButton}"
+                                                ToolTip="Xóa trống danh sách ID chỉ định nhặt" />
+                                        </WrapPanel>
                                     </StackPanel>
 
                                     <StackPanel Margin="0,0,0,8">

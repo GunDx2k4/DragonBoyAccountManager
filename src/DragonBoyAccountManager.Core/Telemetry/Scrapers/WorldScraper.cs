@@ -249,9 +249,28 @@ public class WorldScraper(IGameRuntime runtime) : ISnapshotScraper<WorldSnapshot
         {
             if (ptr == IntPtr.Zero) continue;
 
-            short itemMapId = _runtime.ReadField<short>(ptr, itemMapLayout.ItemMapId);
+            if (itemMapLayout.Status >= 0)
+            {
+                sbyte status = _runtime.ReadField<sbyte>(ptr, itemMapLayout.Status);
+                if (status == 2)
+                {
+                    continue;
+                }
+            }
+
+            int itemMapId = _runtime.ReadField<int>(ptr, itemMapLayout.ItemMapId);
             int x = _runtime.ReadField<int>(ptr, itemMapLayout.X);
             int y = _runtime.ReadField<int>(ptr, itemMapLayout.Y);
+            if (itemMapLayout.XEnd >= 0 && itemMapLayout.YEnd >= 0)
+            {
+                int xEnd = _runtime.ReadField<int>(ptr, itemMapLayout.XEnd);
+                int yEnd = _runtime.ReadField<int>(ptr, itemMapLayout.YEnd);
+                if (xEnd != 0 || yEnd != 0)
+                {
+                    x = xEnd;
+                    y = yEnd;
+                }
+            }
             int playerId = _runtime.ReadField<int>(ptr, itemMapLayout.PlayerId);
 
             short templateId = -1;

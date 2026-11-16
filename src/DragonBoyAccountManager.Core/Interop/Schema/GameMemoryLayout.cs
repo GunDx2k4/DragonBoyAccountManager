@@ -142,14 +142,19 @@ public sealed record ItemTemplateLayout(
     int Name);
 
 public sealed record ItemTimeLayout(
-    int IdIcon);
+    int IdIcon,
+    int Time = -1,
+    int CoutTime = -1);
 
 public sealed record ItemMapLayout(
     int ItemMapId,
     int Template,
     int X,
     int Y,
-    int PlayerId);
+    int PlayerId,
+    int XEnd = -1,
+    int YEnd = -1,
+    int Status = -1);
 
 public sealed record WaypointLayout(
     int MinX,
@@ -493,7 +498,9 @@ public sealed class GameMemoryLayout
         );
 
         ItemTime = new ItemTimeLayout(
-            IdIcon: ResolveInstance(schema, GameSchema.ItemTime.ClassName, GameSchema.ItemTime.FieldIdIcon)
+            IdIcon: ResolveInstance(schema, GameSchema.ItemTime.ClassName, GameSchema.ItemTime.FieldIdIcon),
+            Time: ResolveInstance(schema, GameSchema.ItemTime.ClassName, GameSchema.ItemTime.FieldTime),
+            CoutTime: ResolveInstance(schema, GameSchema.ItemTime.ClassName, GameSchema.ItemTime.FieldCoutTime)
         );
 
         ItemMap = new ItemMapLayout(
@@ -501,7 +508,10 @@ public sealed class GameMemoryLayout
             Template: ResolveInstance(schema, GameSchema.ItemMap.ClassName, GameSchema.ItemMap.FieldTemplate),
             X: ResolveInstance(schema, GameSchema.ItemMap.ClassName, GameSchema.ItemMap.FieldX),
             Y: ResolveInstance(schema, GameSchema.ItemMap.ClassName, GameSchema.ItemMap.FieldY),
-            PlayerId: ResolveInstance(schema, GameSchema.ItemMap.ClassName, GameSchema.ItemMap.FieldPlayerId)
+            PlayerId: ResolveInstance(schema, GameSchema.ItemMap.ClassName, GameSchema.ItemMap.FieldPlayerId),
+            XEnd: ResolveInstance(schema, GameSchema.ItemMap.ClassName, GameSchema.ItemMap.FieldXEnd),
+            YEnd: ResolveInstance(schema, GameSchema.ItemMap.ClassName, GameSchema.ItemMap.FieldYEnd),
+            Status: ResolveInstance(schema, GameSchema.ItemMap.ClassName, GameSchema.ItemMap.FieldStatus)
         );
 
         Waypoint = new WaypointLayout(

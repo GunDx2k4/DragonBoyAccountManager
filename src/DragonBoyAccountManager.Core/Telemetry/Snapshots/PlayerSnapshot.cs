@@ -69,12 +69,13 @@ public sealed record PlayerSnapshot(
     IReadOnlyList<GameSkillInfo>? Skills = null,
     IReadOnlyList<InventoryItem>? BagItems = null,
     IReadOnlyList<int>? ActiveBuffIconIds = null,
-    bool IsCharging = false
+    bool IsCharging = false,
+    bool HasMagnetCharm = false
 ) : IPositioned
 {
     public IReadOnlyList<GameSkillInfo> SkillList => Skills ?? [];
     public IReadOnlyList<InventoryItem> BagItemList => BagItems ?? [];
     public IReadOnlyList<int> ActiveBuffIconIdList => ActiveBuffIconIds ?? [];
 
-    public static PlayerSnapshot Empty => new(0, string.Empty, 0, 0, 0, 0, 0, 0, false, false, false, 0, 0, 0, false, false, [], [], [], false);
+    public static PlayerSnapshot Empty => new(0, string.Empty, 0, 0, 0, 0, 0, 0, false, false, false, 0, 0, 0, false, false, [], [], [], false, false);
 }

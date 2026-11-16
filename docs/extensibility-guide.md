@@ -1,6 +1,6 @@
 # Cẩm Nang Mở Rộng Tính Năng (Extensibility Guide)
 
-Nhờ kiến trúc được tổng quát hóa theo nguyên tắc **Open/Closed Principle (OCP)**, việc bổ sung tính năng mới vào **DBAM** được thực hiện bằng cách tạo lớp mới và đăng ký vào pipeline mà không cần sửa đổi logic điều phối cốt lõi.
+Khi bổ sung tính năng mới vào **DBAM**, tạo lớp mới và đăng ký vào pipeline mà không cần sửa đổi logic điều phối cốt lõi.
 
 ---
 
@@ -15,14 +15,14 @@ Khi cần đọc thêm dữ liệu từ tiến trình game (ví dụ: thông tin
 3. **Hiện thực hóa `ISnapshotScraper<TSnapshot>`:**
    - Tạo lớp `ClanScraper : ISnapshotScraper<ClanSnapshot>` trong thư mục [`Telemetry/Scrapers/`](file:///d:/DragonBoy/DBAM/src/DragonBoyAccountManager.Core/Telemetry/Scrapers), triển khai phương thức `ClanSnapshot Scrape()`.
 4. **Đăng ký vào phiên làm việc:**
-   - Đăng ký mặc định trong [`DefaultSessionBootstrap.Configure`](file:///d:/DragonBoy/DBAM/src/DragonBoyAccountManager.Core/Sessions/DefaultSessionBootstrap.cs), đăng ký toàn cục qua [`GameEngine.SessionInitializer`](file:///d:/DragonBoy/DBAM/src/DragonBoyAccountManager.Core/Engine/GameEngine.cs), hoặc đăng ký theo từng phiên qua [`AccountLaunchOptions.ConfigureSession`](file:///d:/DragonBoy/DBAM/src/DragonBoyAccountManager.Core/Engine/Models/AccountLaunchOptions.cs):
+   - Đăng ký mặc định trong [`DefaultSessionBootstrap.Configure`](file:///d:/DragonBoy/DBAM/src/DragonBoyAccountManager.Core/Sessions/DefaultSessionBootstrap.cs), hoặc đăng ký qua `AccountLaunchOptions.ConfigureSession`:
      ```csharp
      session.RegisterScraper(new ClanScraper(session.Runtime));
      ```
 5. **Truy xuất dữ liệu:**
-   - Trong `IBehavior`: gọi `context.GetSnapshot<ClanSnapshot>()`.
-   - Từ `GameSessionSnapshot` bất kỳ: gọi [`snapshot.Get<ClanSnapshot>()`](file:///d:/DragonBoy/DBAM/src/DragonBoyAccountManager.Core/Telemetry/Snapshots/GameSessionSnapshot.cs).
-   - Từ `IGameEngine` hoặc `IGameActionService`: gọi `engine.GetSnapshot<ClanSnapshot>(accountId)`.
+   - Trong Behavior: gọi `context.GetSnapshot<ClanSnapshot>()`.
+   - Từ `GameSessionSnapshot`: gọi [`snapshot.Get<ClanSnapshot>()`](file:///d:/DragonBoy/DBAM/src/DragonBoyAccountManager.Core/Telemetry/Snapshots/GameSessionSnapshot.cs).
+   - Từ `IGameEngine`: gọi `engine.GetSnapshot<ClanSnapshot>(accountId)`.
 
 ---
 
@@ -36,69 +36,47 @@ Khi cần thêm một thao tác điều khiển trong game (ví dụ: nâng cấ
    - Tạo lớp xử lý cài đặt [`IGameCommandHandler<UpgradeItemCommand>`](file:///d:/DragonBoy/DBAM/src/DragonBoyAccountManager.Core/Execution/ICommandDispatcher.cs) trong [`Execution/Handlers/`](file:///d:/DragonBoy/DBAM/src/DragonBoyAccountManager.Core/Execution/Handlers).
    - Triển khai `HandleAsync(UpgradeItemCommand command, CancellationToken cancellationToken = default)`.
 3. **Đăng ký Handler:**
-   - Đăng ký vào [`ICommandDispatcher`](file:///d:/DragonBoy/DBAM/src/DragonBoyAccountManager.Core/Execution/ICommandDispatcher.cs) trong [`DefaultSessionBootstrap.Configure`](file:///d:/DragonBoy/DBAM/src/DragonBoyAccountManager.Core/Sessions/DefaultSessionBootstrap.cs), qua `GameEngine.SessionInitializer`, hoặc qua `AccountLaunchOptions.ConfigureSession`:
+   - Đăng ký vào [`ICommandDispatcher`](file:///d:/DragonBoy/DBAM/src/DragonBoyAccountManager.Core/Execution/ICommandDispatcher.cs) trong [`DefaultSessionBootstrap.Configure`](file:///d:/DragonBoy/DBAM/src/DragonBoyAccountManager.Core/Sessions/DefaultSessionBootstrap.cs):
      ```csharp
      session.Dispatcher.RegisterHandler<UpgradeItemCommand>(handler);
      ```
 4. **Gửi lệnh từ GUI hoặc Behavior:**
    - Gọi `await engine.ExecuteCommandAsync(accountId, new UpgradeItemCommand(0), ct)` hoặc `await context.Dispatcher.DispatchAsync(new UpgradeItemCommand(0), ct)`.
-   - Nhờ cơ chế phân phối đa hình theo kiểu thực tế (`command.GetType()`), lệnh có thể được truyền dưới dạng biến `IGameCommand` tổng quát mà không cần ép kiểu.
 
 ---
 
 ## 3. Thêm Hành Vi Tự Động Hóa Mới (`IBehavior<TOptions>`)
 
-Khi cần phát triển một tính năng tự động hóa chạy theo chu kỳ Tick (ví dụ: Tự động làm nhiệm vụ, Tự động săn Boss):
+Khi phát triển tính năng tự động hóa chạy theo chu kỳ Tick:
 
 1. **Định nghĩa cấu hình `TOptions`:**
-   - Tạo `public sealed record AutoBossOptions(...)` trong thư mục miền tương ứng của [`Automation/Behaviors/`](file:///d:/DragonBoy/DBAM/src/DragonBoyAccountManager.Core/Automation/Behaviors).
-2. **Kế thừa lớp cơ sở `AutomationBehavior<TOptions>`:**
-   - Tạo lớp `AutoBossBehavior : AutomationBehavior<AutoBossOptions>` trong [`Automation/Behaviors/`](file:///d:/DragonBoy/DBAM/src/DragonBoyAccountManager.Core/Automation/Behaviors).
+   - Tạo `public sealed record AutoQuestOptions(...)` trong thư mục miền của [`Automation/Behaviors/`](file:///d:/DragonBoy/DBAM/src/DragonBoyAccountManager.Core/Automation/Behaviors).
+2. **Kế thừa lớp cơ sở `AutomationBehavior<TOptions>` và tái sử dụng Shared Coordinators:**
+   - Tạo lớp `AutoQuestBehavior : AutomationBehavior<AutoQuestOptions>` trong [`Automation/Behaviors/`](file:///d:/DragonBoy/DBAM/src/DragonBoyAccountManager.Core/Automation/Behaviors).
+   - Tái sử dụng các Coordinator có sẵn ([`GroundLootCoordinator`](file:///d:/DragonBoy/DBAM/src/DragonBoyAccountManager.Core/Automation/Coordinators/GroundLootCoordinator.cs), [`RecoveryCoordinator`](file:///d:/DragonBoy/DBAM/src/DragonBoyAccountManager.Core/Automation/Coordinators/RecoveryCoordinator.cs)) thay vì viết lại logic nhặt đồ hoặc hồi máu.
    - Ghi đè `OnTickAsync(ISessionContext context, IProgress<string>? progress, CancellationToken cancellationToken)`:
-     - Đọc trạng thái game qua `context.CurrentPlayer`, `context.CurrentWorld` hoặc `context.GetSnapshot<TSnapshot>()`.
-     - Điều hướng bản đồ qua `context.Navigator.NavigateAsync(...)`.
-     - Phát lệnh qua `context.Dispatcher.DispatchAsync(...)`.
-   - Ghi đè `OnOptionsChanged(AutoBossOptions options)` hoặc `OnStopped()` nếu cần đồng bộ trạng thái in-game thông qua `CurrentContext`.
-3. **Đăng ký và cấu hình:**
-   - Đăng ký trong [`DefaultSessionBootstrap.Configure`](file:///d:/DragonBoy/DBAM/src/DragonBoyAccountManager.Core/Sessions/DefaultSessionBootstrap.cs), qua `GameEngine.SessionInitializer`, hoặc qua `AccountLaunchOptions.ConfigureSession`:
+     - Đọc trạng thái qua `context.CurrentPlayer`, `context.CurrentWorld`.
+     - Điều phối lệnh qua `context.Dispatcher.DispatchAsync(...)`.
+3. **Đăng ký và lưu trữ:**
+   - Đăng ký trong [`DefaultSessionBootstrap.Configure`](file:///d:/DragonBoy/DBAM/src/DragonBoyAccountManager.Core/Sessions/DefaultSessionBootstrap.cs):
      ```csharp
-     session.RegisterBehavior(new AutoBossBehavior());
+     session.RegisterBehavior(new AutoQuestBehavior(new AutoQuestOptions()));
      ```
-   - Lưu và đọc cấu hình tùy chỉnh trên tài khoản thông qua từ điển tổng quát trong [`AccountAutoSettings`](file:///d:/DragonBoy/DBAM/src/DragonBoyAccountManager.Core/Accounts/AccountAutoSettings.cs):
+   - Bật/tắt qua [`IGameAutomationService`](file:///d:/DragonBoy/DBAM/src/DragonBoyAccountManager.Core/Engine/Abstractions/IGameAutomationService.cs):
      ```csharp
-     var options = account.AutoSettings.GetBehaviorOptionsOrDefault<AutoBossOptions>(AutoBossBehavior.BehaviorId);
-     account.AutoSettings.SetBehaviorOptions(AutoBossBehavior.BehaviorId, options);
-     ```
-   - Hoặc bật/tắt trực tiếp ở thời gian thực qua [`IGameAutomationService`](file:///d:/DragonBoy/DBAM/src/DragonBoyAccountManager.Core/Engine/Abstractions/IGameAutomationService.cs):
-     ```csharp
-     engine.StartBehavior<AutoBossBehavior, AutoBossOptions>(accountId, options);
+     engine.StartBehavior<AutoQuestBehavior, AutoQuestOptions>(accountId, options);
      ```
 
 ---
 
-## 4. Mở Rộng Giao Diện Người Dùng Trên GUI (`AccountAwareTabViewModel` & `AutoFeatureViewModelBase`)
+## 4. Mở Rộng Giao Diện Người Dùng Trên GUI
 
-### 4.1. Thêm Tính Năng Tự Động Hóa Con Trong Tab Auto (`AutoFeatureViewModelBase`)
-1. Tạo lớp `AutoBossViewModel` kế thừa [`AutoFeatureViewModelBase`](file:///d:/DragonBoy/DBAM/src/DragonBoyAccountManager.GUI/Presentation/Features/Auto/IAutoFeatureViewModel.cs) trong [`Presentation/Features/Auto/`](file:///d:/DragonBoy/DBAM/src/DragonBoyAccountManager.GUI/Presentation/Features/Auto).
-2. Cài đặt `BehaviorId`, `LoadFromAccount(AccountItemViewModel?)` và `StopOnEngine(Guid)`.
+### 4.1. Thêm Tính Năng Tự Động Hóa Vào Tab Auto (`AutoFeatureViewModelBase`)
+1. Tạo lớp `AutoQuestViewModel` kế thừa [`AutoFeatureViewModelBase`](file:///d:/DragonBoy/DBAM/src/DragonBoyAccountManager.GUI/Presentation/Features/Auto/IAutoFeatureViewModel.cs) trong [`Presentation/Features/Auto/`](file:///d:/DragonBoy/DBAM/src/DragonBoyAccountManager.GUI/Presentation/Features/Auto).
+2. Khi ViewModel có nhiều phần tử nghiệp vụ phức tạp, tách thành `partial class` theo miền (ví dụ: `.Skills.cs`, `.Mobs.cs`, `.Items.cs`) để giữ ViewModels gọn gàng và giữ nguyên data-binding XAML.
 3. Đăng ký vào [`AutoTabViewModel`](file:///d:/DragonBoy/DBAM/src/DragonBoyAccountManager.GUI/Presentation/Features/Auto/AutoTabViewModel.cs) và thêm thẻ cấu hình tương ứng vào [`AutoTabView.xaml`](file:///d:/DragonBoy/DBAM/src/DragonBoyAccountManager.GUI/Presentation/Features/Auto/AutoTabView.xaml).
 
 ### 4.2. Thêm Tab Chức Năng Mới Trên Cửa Sổ Chính (`AccountAwareTabViewModel`)
 1. Tạo thư mục mới trong `src/DragonBoyAccountManager.GUI/Presentation/Features/<FeatureName>/`.
-2. Tạo `<FeatureName>TabViewModel` kế thừa [`AccountAwareTabViewModel`](file:///d:/DragonBoy/DBAM/src/DragonBoyAccountManager.GUI/Presentation/Shell/AccountAwareTabViewModel.cs) và `<FeatureName>TabView.xaml` tuân thủ Retro Pixel Design System.
-3. Đăng ký ViewModel trong [`App.xaml.cs`](file:///d:/DragonBoy/DBAM/src/DragonBoyAccountManager.GUI/App.xaml.cs) và thêm vào từ điển `_tabs` trong [`MainViewModel.cs`](file:///d:/DragonBoy/DBAM/src/DragonBoyAccountManager.GUI/Presentation/Shell/MainViewModel.cs).
-
----
-
-## 5. Thêm Tùy Chọn Cài Đặt Hệ Thống Mới (`SettingItemViewModel.Bind...`)
-
-Khi cần thêm một mục cấu hình mới vào Tab Cài đặt (`Settings`):
-
-1. **Thêm thuộc tính vào `AppSettings`:**
-   - Bổ sung thuộc tính cấu hình mới kèm giá trị mặc định trong [`AppSettings.cs`](file:///d:/DragonBoy/DBAM/src/DragonBoyAccountManager.GUI/Domain/Settings/AppSettings.cs).
-2. **Khai báo mục cài đặt trong `SettingsTabViewModel`:**
-   - Trong [`SettingsTabViewModel.InitializeDefaultGroups`](file:///d:/DragonBoy/DBAM/src/DragonBoyAccountManager.GUI/Presentation/Features/Settings/SettingsTabViewModel.cs), thêm mục mới bằng một trong ba phương thức fluent khai báo hai chiều:
-     - `SettingItemViewModel.CreateBoolean(key, label, cur.MyFlag, description).BindBool(s => s.MyFlag, (s, v) => s.MyFlag = v)`
-     - `SettingItemViewModel.CreateNumber(key, label, cur.MyNumber, min, max, unit, description).BindNumber(s => s.MyNumber, (s, v) => s.MyNumber = v)`
-     - `SettingItemViewModel.CreateSelect(key, label, defaultLabel, labels, description).BindSelect(choices, s => s.MyMode, (s, v) => s.MyMode = v)`
-   - Không cần viết thêm bất kỳ mã đồng bộ hay `switch-case` nào khác; thao tác nạp và lưu tự động sẽ hoạt động ngay lập tức.
+2. Tạo `<FeatureName>TabViewModel` kế thừa [`AccountAwareTabViewModel`](file:///d:/DragonBoy/DBAM/src/DragonBoyAccountManager.GUI/Presentation/Shell/AccountAwareTabViewModel.cs) và `<FeatureName>TabView.xaml` theo Retro Pixel Design System.
+3. Đăng ký ViewModel trong [`App.xaml.cs`](file:///d:/DragonBoy/DBAM/src/DragonBoyAccountManager.GUI/App.xaml.cs) và thêm vào danh sách tab trong [`MainViewModel.cs`](file:///d:/DragonBoy/DBAM/src/DragonBoyAccountManager.GUI/Presentation/Shell/MainViewModel.cs).

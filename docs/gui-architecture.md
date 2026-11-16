@@ -4,9 +4,9 @@ Phân hệ [`DragonBoyAccountManager.GUI`](file:///d:/DragonBoy/DBAM/src/DragonB
 
 ---
 
-## 1. Cấu Trúc Thư Mục & Phân Tầng 3 Lớp Tinh Gọn
+## 1. Cấu Trúc Thư Mục & Phân Tầng
 
-Sau khi loại bỏ các lớp trung gian dư thừa (YAGNI) và chuẩn hóa hậu tố đồng bộ `View` $\leftrightarrow$ `ViewModel`, GUI được tổ chức thành 3 tầng rõ ràng và tuân thủ tuyệt đối quy tắc **1:1 Folder-to-Namespace Alignment**:
+GUI được tổ chức thành 3 tầng rõ ràng và tuân thủ tuyệt đối quy tắc **1:1 Folder-to-Namespace Alignment**:
 
 ```text
 src/DragonBoyAccountManager.GUI/
@@ -23,7 +23,7 @@ src/DragonBoyAccountManager.GUI/
 │   ├── Engine/                                 # Hợp đồng Desktop & Adapter kết nối với DragonBoyAccountManager.Core
 │   │   ├── ISessionManagementService.cs        # Quản lý vòng đời mở/tắt phiên từ Desktop Host
 │   │   ├── IGameWindowControlService.cs        # Quản lý cửa sổ Win32 (Focus, Arrange, Resolution, Masking)
-│   │   ├── IGameEngineService.cs               # Hợp nhất IGameActionService, IGameAutomationService, IGameEngineEvents, ISessionManagementService, IGameWindowControlService
+│   │   ├── IGameEngineService.cs               # Hợp nhất các dịch vụ engine Core và quản lý cửa sổ
 │   │   ├── CoreGameEngineAdapter.cs            # Adapter kết nối IGameEngine của Core & quản lý cửa sổ Win32
 │   │   ├── IGameEnvironmentService.cs          # Quản lý môi trường & đường dẫn GameClient
 │   │   ├── GameEnvironmentService.cs
@@ -53,52 +53,41 @@ src/DragonBoyAccountManager.GUI/
     │   ├── StatusBar/                          # AppStatusBarView, AppStatusBarViewModel
     │   └── TitleBar/                           # AppTitleBarView, AppTitleBarViewModel
     └── Features/                               # Các phân hệ tính năng độc lập theo chiều dọc (Vertical Slices)
-        ├── Accounts/                           # AccountsPanelView / AccountsPanelViewModel, AccountConfigTabView / AccountConfigTabViewModel (.Controls.cs), Items/AccountItemViewModel
-        ├── Auto/                               # AutoTabView / AutoTabViewModel, IAutoFeatureViewModel, AutoFeatureViewModelBase, AutoTrainViewModel, AutoChatViewModel, AutoBossViewModel, Items/
+        ├── Accounts/                           # Quản lý danh sách và cấu hình tài khoản
+        ├── Auto/                               # Tự động hóa (Luyện tập, Săn Boss, Tự chat)
+        │   ├── AutoTabView.xaml / .cs          # View giao diện tổng hợp các tab tự động
+        │   ├── AutoTabViewModel.cs             # ViewModel điều phối chung các tính năng Auto
+        │   ├── AutoTrainViewModel.cs           # Facade ViewModel điều phối luyện tập
+        │   ├── AutoTrainViewModel.Skills.cs    # Partial: Quản lý 10 skill slots, cooldown timer 100ms
+        │   ├── AutoTrainViewModel.Mobs.cs      # Partial: Quản lý danh sách quái lọc theo map, dọn dẹp event
+        │   ├── AutoTrainViewModel.Items.cs     # Partial: Quản lý vật phẩm tự dùng và bùa
+        │   ├── AutoTrainViewModel.Pick.cs      # Partial: Quản lý preset nhặt đồ và chuỗi ID bộ lọc
+        │   ├── AutoBossViewModel.cs            # ViewModel cấu hình săn Boss
+        │   ├── AutoChatViewModel.cs            # ViewModel cấu hình tự chat
+        │   └── Items/                          # SkillButtonItem, MobFilterItem, AutoItemSlotItem
         ├── Feedback/                           # FeedbackTabView / FeedbackTabViewModel
         ├── GameConfig/                         # GameConfigTabView / GameConfigTabViewModel
-        ├── Guide/                              # GuideTabView / GuideTabViewModel
-        ├── MapUtilities/                       # MapUtilitiesTabView / MapUtilitiesTabViewModel (.Actions.cs, .Xmap.cs), Items/, Dialogs/
-        └── Settings/                           # SettingsTabView / SettingsTabViewModel, Items/ (SettingGroupViewModel, SettingItemViewModel)
+        └── Guide/                              # GuideTabView / GuideTabViewModel
 ```
 
 ---
 
-## 2. Năm Trụ Cột Thiết Kế Trong `DragonBoyAccountManager.GUI`
+## 2. Các Nguyên Tắc Kiến Trúc & Thiết Kế GUI
 
-### 2.1. Kế Thừa Trực Tiếp Giao Diện ISP Từ Core (`Services/Engine/`)
-Thay vì khai báo trùng lặp các giao diện và phương thức mở rộng của Core, [`IGameEngineService.cs`](file:///d:/DragonBoy/DBAM/src/DragonBoyAccountManager.GUI/Services/Engine/IGameEngineService.cs) kế thừa trực tiếp 3 giao diện vai trò từ Core và 2 giao diện quản lý cấp Desktop:
-- [`IGameActionService`](file:///d:/DragonBoy/DBAM/src/DragonBoyAccountManager.Core/Engine/Abstractions/IGameActionService.cs) *(từ Core)*: Thực thi lệnh `ExecuteCommandAsync`, truy xuất `GetSnapshot<TSnapshot>`, lấy danh sách kỹ năng `GetSkills`, điều chỉnh tốc độ game, gửi phím, tìm đường `AutoMoveAsync` và đi qua cổng `EnterWaypointAsync`.
-- [`IGameAutomationService`](file:///d:/DragonBoy/DBAM/src/DragonBoyAccountManager.Core/Engine/Abstractions/IGameAutomationService.cs) *(từ Core)*: Bật, tắt và cập nhật cấu hình động cho mọi `IBehavior<TOptions>` (`StartBehavior`, `UpdateBehaviorOptions`, `StopBehavior`, `IsBehaviorRunning`).
-- [`IGameEngineEvents`](file:///d:/DragonBoy/DBAM/src/DragonBoyAccountManager.Core/Engine/Abstractions/IGameEngineEvents.cs) *(từ Core)*: Phát sự kiện `OnSessionEvent`.
-- [`ISessionManagementService`](file:///d:/DragonBoy/DBAM/src/DragonBoyAccountManager.GUI/Services/Engine/ISessionManagementService.cs) *(Desktop Host)*: Khởi chạy (`StartAsync`), dừng tiến trình (`StopAsync`, `StopAllAsync`), kiểm tra trạng thái (`IsRunning`) và đăng nhập (`LoginAsync`).
-- [`IGameWindowControlService`](file:///d:/DragonBoy/DBAM/src/DragonBoyAccountManager.GUI/Services/Engine/IGameWindowControlService.cs) *(Desktop Host)*: Đưa cửa sổ lên trước (`FocusWindow`), sắp xếp lưới cửa sổ (`ArrangeWindows`), đổi độ phân giải (`SetResolution`) và bật/tắt chế độ ẩn danh (`SetMasked`).
-- Toàn bộ phương thức mở rộng tiện ích trong [`GameEngineExtensions.cs`](file:///d:/DragonBoy/DBAM/src/DragonBoyAccountManager.Core/Engine/Abstractions/GameEngineExtensions.cs) của Core tự động khả dụng trên cả `IGameEngine` lẫn `IGameEngineService` mà không cần bất kỳ lớp wrapper trùng lặp nào ở GUI.
+### 2.1. Phân Tách ViewModel Theo Miền Nghiệp Vụ (Facade + Partial Classes)
+- [`AutoTrainViewModel`](file:///d:/DragonBoy/DBAM/src/DragonBoyAccountManager.GUI/Presentation/Features/Auto/AutoTrainViewModel.cs) được phân rã thành các partial classes chuyên trách:
+  - [`AutoTrainViewModel.cs`](file:///d:/DragonBoy/DBAM/src/DragonBoyAccountManager.GUI/Presentation/Features/Auto/AutoTrainViewModel.cs): Facade trung gian quản lý vòng đời (`OnActivated`, `OnDeactivated`, `OnSnapshotUpdated`), timer debounce lưu trữ và điều phối bật/tắt hành vi.
+  - [`AutoTrainViewModel.Skills.cs`](file:///d:/DragonBoy/DBAM/src/DragonBoyAccountManager.GUI/Presentation/Features/Auto/AutoTrainViewModel.Skills.cs): Quản lý 10 nút kỹ năng, timer cooldown 100ms, đồng bộ icon và lệnh kích hoạt skill.
+  - [`AutoTrainViewModel.Mobs.cs`](file:///d:/DragonBoy/DBAM/src/DragonBoyAccountManager.GUI/Presentation/Features/Auto/AutoTrainViewModel.Mobs.cs): Quản lý danh sách quái lọc theo map, dọn dẹp event handler chống memory leak khi đổi khu/map.
+  - [`AutoTrainViewModel.Items.cs`](file:///d:/DragonBoy/DBAM/src/DragonBoyAccountManager.GUI/Presentation/Features/Auto/AutoTrainViewModel.Items.cs): Quản lý vật phẩm tự dùng và bùa, đếm số lượng từ kho đồ.
+  - [`AutoTrainViewModel.Pick.cs`](file:///d:/DragonBoy/DBAM/src/DragonBoyAccountManager.GUI/Presentation/Features/Auto/AutoTrainViewModel.Pick.cs): Quản lý preset nhặt đồ và chuỗi ID bộ lọc nhặt/vứt.
+- **Bảo toàn 100% Binding XAML:** Không làm vỡ bất kỳ binding nào trong [`AutoTabView.xaml`](file:///d:/DragonBoy/DBAM/src/DragonBoyAccountManager.GUI/Presentation/Features/Auto/AutoTabView.xaml), không sinh thêm tầng forwarder hay wrapper trung gian.
 
-### 2.2. Nguồn Sự Thật Duy Nhất Cho Trạng Thái Chọn Tài Khoản (`IActiveSelectionService`)
-- [`IActiveSelectionService`](file:///d:/DragonBoy/DBAM/src/DragonBoyAccountManager.GUI/Services/Selection/IActiveSelectionService.cs) và [`ActiveSelectionService`](file:///d:/DragonBoy/DBAM/src/DragonBoyAccountManager.GUI/Services/Selection/ActiveSelectionService.cs) đóng vai trò là **Single Source of Truth** cho danh sách `Accounts`, tài khoản đang được chọn (`SelectedAccount`) và tập hợp các tài khoản mục tiêu (`GetTargetAccounts`).
-- Trạng thái vận hành của từng Behavior trên mỗi tài khoản được quản lý tổng quát qua [`AccountItemViewModel.GetBehaviorState(behaviorId)`](file:///d:/DragonBoy/DBAM/src/DragonBoyAccountManager.GUI/Presentation/Features/Accounts/Items/AccountItemViewModel.cs).
+### 2.2. An Toàn Luồng UI Dispatcher & Chống Rò Rỉ Bộ Nhớ
+- Toàn bộ thao tác cập nhật `ObservableCollection` chỉ được phép diễn ra trên UI Thread (`RunOnUi`).
+- Mọi timer chu kỳ (`DispatcherTimer`) tự động dừng (`Stop()`) khi tab bị ẩn (`OnDeactivated()`) hoặc tài khoản offline (`OnAccountOffline()`), triệt tiêu CPU ngầm.
+- Hủy đăng ký sự kiện `PropertyChanged` triệt để trước khi xóa phần tử khỏi bộ sưu tập (`ClearAvailableMobTypes`).
 
-### 2.3. Tổng Quát Hóa Vòng Đời Tab (`IActivatableTab`, `AccountAwareTabViewModel` & `IAutoFeatureViewModel`)
-- **Hợp đồng kích hoạt Tab ([`IActivatableTab`](file:///d:/DragonBoy/DBAM/src/DragonBoyAccountManager.GUI/Presentation/Shell/IActivatableTab.cs)):**
-  - Định nghĩa `OnTabActivated()` và `OnTabDeactivated()`.
-  - [`MainViewModel`](file:///d:/DragonBoy/DBAM/src/DragonBoyAccountManager.GUI/Presentation/Shell/MainViewModel.cs) điều phối các Tab hoàn toàn đa hình thông qua từ điển `IReadOnlyDictionary<AppTab, IActivatableTab>` mà không cần biết chi tiết bên trong từng Tab.
-- **Lớp cơ sở nhận biết tài khoản ([`AccountAwareTabViewModel`](file:///d:/DragonBoy/DBAM/src/DragonBoyAccountManager.GUI/Presentation/Shell/AccountAwareTabViewModel.cs)):**
-  - Kế thừa [`AccountTargetedViewModelBase`](file:///d:/DragonBoy/DBAM/src/DragonBoyAccountManager.GUI/Presentation/Shell/AccountTargetedViewModelBase.cs), tự động đăng ký sự kiện `SelectedAccountChanged` từ [`IActiveSelectionService`](file:///d:/DragonBoy/DBAM/src/DragonBoyAccountManager.GUI/Services/Selection/IActiveSelectionService.cs) và nhận thông điệp [`SessionSnapshotUpdatedMessage`](file:///d:/DragonBoy/DBAM/src/DragonBoyAccountManager.GUI/Domain/Messaging/Messages.cs) qua `WeakReferenceMessenger`.
-  - Các Tab [`AccountConfigTabViewModel`](file:///d:/DragonBoy/DBAM/src/DragonBoyAccountManager.GUI/Presentation/Features/Accounts/AccountConfigTabViewModel.cs), [`MapUtilitiesTabViewModel`](file:///d:/DragonBoy/DBAM/src/DragonBoyAccountManager.GUI/Presentation/Features/MapUtilities/MapUtilitiesTabViewModel.cs) và [`AutoTabViewModel`](file:///d:/DragonBoy/DBAM/src/DragonBoyAccountManager.GUI/Presentation/Features/Auto/AutoTabViewModel.cs) kế thừa trực tiếp từ lớp này, chỉ làm mới dữ liệu khi Tab đang hiển thị (`IsTabActive == true`).
-- **Tách biệt các tính năng tự động hóa con ([`IAutoFeatureViewModel`](file:///d:/DragonBoy/DBAM/src/DragonBoyAccountManager.GUI/Presentation/Features/Auto/IAutoFeatureViewModel.cs)):**
-  - [`AutoTabViewModel`](file:///d:/DragonBoy/DBAM/src/DragonBoyAccountManager.GUI/Presentation/Features/Auto/AutoTabViewModel.cs) đóng vai trò điều phối tập hợp `IReadOnlyList<IAutoFeatureViewModel>` ([`AutoTrainViewModel`](file:///d:/DragonBoy/DBAM/src/DragonBoyAccountManager.GUI/Presentation/Features/Auto/AutoTrainViewModel.cs), [`AutoChatViewModel`](file:///d:/DragonBoy/DBAM/src/DragonBoyAccountManager.GUI/Presentation/Features/Auto/AutoChatViewModel.cs), [`AutoBossViewModel`](file:///d:/DragonBoy/DBAM/src/DragonBoyAccountManager.GUI/Presentation/Features/Auto/AutoBossViewModel.cs)) kế thừa từ [`AutoFeatureViewModelBase`](file:///d:/DragonBoy/DBAM/src/DragonBoyAccountManager.GUI/Presentation/Features/Auto/AutoFeatureViewModelBase.cs), giúp việc thêm tính năng Auto mới độc lập hoàn toàn với các tính năng hiện có.
-
-### 2.4. Ràng Buộc Cài Đặt Hai Chiều Khai Báo (`Declarative Two-Way Settings Binding`)
-- [`SettingItemViewModel`](file:///d:/DragonBoy/DBAM/src/DragonBoyAccountManager.GUI/Presentation/Features/Settings/Items/SettingItemViewModel.cs) hỗ trợ khai báo trực tiếp biểu thức đọc/ghi (`Func<AppSettings, T>` getter và `Action<AppSettings, T>` setter) thông qua chuỗi phương thức fluent:
-  - `SettingItemViewModel.CreateBoolean(...).BindBool(getter, setter)`
-  - `SettingItemViewModel.CreateNumber(...).BindNumber(getter, setter)`
-  - `SettingItemViewModel.CreateSelect(...).BindSelect(choices, getter, setter)`
-- Khi nạp hoặc lưu cài đặt trong [`SettingsTabViewModel`](file:///d:/DragonBoy/DBAM/src/DragonBoyAccountManager.GUI/Presentation/Features/Settings/SettingsTabViewModel.cs), mỗi mục tự động đồng bộ hai chiều với [`AppSettings`](file:///d:/DragonBoy/DBAM/src/DragonBoyAccountManager.GUI/Domain/Settings/AppSettings.cs) qua `LoadFromSettings` và `ApplyToSettings` mà không cần viết các khối `switch-case` thủ công theo chuỗi khóa.
-
-### 2.5. An Toàn Luồng Giao Diện (`IDispatcherService`) & Hệ Thống Thiết Kế Retro Pixel XAML
-- **An toàn luồng tuyệt đối:**
-  - Mọi cập nhật trạng thái từ luồng nền lên các `ObservableCollection` hoặc thuộc tính ràng buộc dữ liệu trong ViewModel đều đi qua [`IDispatcherService`](file:///d:/DragonBoy/DBAM/src/DragonBoyAccountManager.GUI/Services/Dispatching/IDispatcherService.cs) ([`WpfDispatcherService`](file:///d:/DragonBoy/DBAM/src/DragonBoyAccountManager.GUI/Services/Dispatching/WpfDispatcherService.cs)).
-  - Việc lấy danh sách kỹ năng nhân vật trong [`CoreGameEngineAdapter.GetSkills`](file:///d:/DragonBoy/DBAM/src/DragonBoyAccountManager.GUI/Services/Engine/CoreGameEngineAdapter.cs) đọc trực tiếp từ `PlayerSnapshot.SkillList` trong bộ nhớ đệm, đảm bảo không bao giờ phát sinh syscall liên tiến trình trên luồng UI.
-- **NRO Retro Pixel Design System ([`Presentation/DesignSystem/`](file:///d:/DragonBoy/DBAM/src/DragonBoyAccountManager.GUI/Presentation/DesignSystem)):**
-  - Toàn bộ giao diện sử dụng bảng màu chuẩn hóa trong [`Colors.xaml`](file:///d:/DragonBoy/DBAM/src/DragonBoyAccountManager.GUI/Presentation/DesignSystem/Themes/Colors.xaml) và hệ thống control tùy chỉnh ([`GameButton`](file:///d:/DragonBoy/DBAM/src/DragonBoyAccountManager.GUI/Presentation/DesignSystem/Controls/GameButton.cs), [`GameCard`](file:///d:/DragonBoy/DBAM/src/DragonBoyAccountManager.GUI/Presentation/DesignSystem/Controls/GameCard.cs), [`GameBadge`](file:///d:/DragonBoy/DBAM/src/DragonBoyAccountManager.GUI/Presentation/DesignSystem/Controls/GameBadge.cs), [`GameStatusOrb`](file:///d:/DragonBoy/DBAM/src/DragonBoyAccountManager.GUI/Presentation/DesignSystem/Controls/GameStatusOrb.cs)) được định kiểu tại [`Themes/`](file:///d:/DragonBoy/DBAM/src/DragonBoyAccountManager.GUI/Presentation/DesignSystem/Themes).
+### 2.3. Hệ Thống Thiết Kế Thuần XAML (Retro Pixel Design System)
+- Giao diện được định kiểu 100% bằng WPF XAML vector/path và styles tái sử dụng tại `Presentation/DesignSystem/Themes/`.
+- Không sử dụng thư viện UI bên ngoài (không nạp MaterialDesignXAML hay MahApps.Metro).
